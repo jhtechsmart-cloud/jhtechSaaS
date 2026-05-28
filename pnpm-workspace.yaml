@@ -1,0 +1,8 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+# create-next-app(pnpm 10)이 apps/web에 넣었던 설정을 루트로 통합
+ignoredBuiltDependencies:
+  - sharp
+  - unrs-resolver
