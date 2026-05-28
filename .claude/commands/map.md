@@ -36,6 +36,8 @@ gh issue list --repo jhtechsmart-cloud/jhtechSaaS --state all --limit 30 --json 
 
 `DESIGN.md`(프로젝트 루트)를 따른다: Pretendard(한글 UI) + JetBrains Mono(경로·코드), 중립 그레이 + deep teal 액센트 + 상태 색, 명료한 표 중심, 라이트/다크 토글. 기존 PROJECT-MAP.html의 CSS를 재사용해도 됨.
 
+단계별 파일 생성 맵 표는 `class="pmap"` + `<colgroup>`(단계 96px / 명령어 160px / 생기는 파일 auto / 담기는 내용 200px) + `table-layout:fixed`를 쓴다. 단계·명령어 셀은 한 줄(nowrap), 생기는 파일 셀(.path)은 셀 안에서 줄바꿈(word-break). "(상시)"·진행표시 같은 부가 정보는 단계 셀이 아니라 명령어 셀에 작게 둔다(단계는 짧은 라벨 1줄 유지).
+
 ## 4. 커밋
 
 재생성 후 커밋한다 (PR 아님, 로컬 커밋):

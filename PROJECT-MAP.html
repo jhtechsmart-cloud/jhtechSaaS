@@ -34,6 +34,10 @@
   td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:top}
   tr:last-child td{border-bottom:0}
   td.path{font-family:var(--mono);font-size:12px;color:var(--accent);white-space:nowrap}
+  .pmap{table-layout:fixed}
+  .pmap td:first-child{white-space:nowrap;font-weight:600}
+  .pmap td:nth-child(2){white-space:nowrap}
+  .pmap td.path{white-space:normal;word-break:break-word;line-height:1.7}
   .tag{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px}
   .t-commit{color:var(--sent);background:var(--sent-bg)}
   .t-ignore{color:var(--quoting);background:var(--quoting-bg)}
@@ -149,17 +153,18 @@
     <span class="step">⑨ 배포</span>
   </div>
 
-  <table>
+  <table class="pmap">
+    <colgroup><col style="width:96px"><col style="width:160px"><col><col style="width:200px"></colgroup>
     <tr><th>단계</th><th>명령어</th><th>생기는 파일 (위치)</th><th>담기는 내용</th></tr>
     <tr><td><b>① 기획</b></td><td class="mono">/office-hours</td><td class="path">~/.gstack/…/…-design-*.md</td><td>문제·전제·대안·승인된 접근. "무엇을/왜"</td></tr>
-    <tr><td><b>② 셋업</b><br>(Phase 0)</td><td>대화/수동</td><td class="path">루트: package.json, pnpm-workspace.yaml, apps/, packages/, supabase/config.toml, .env.example, apps/web/.env.local, apps/worker/.env<br>전역: ~/.ssh/config</td><td>모노레포 골격, Supabase 연결, SSH 다계정 인증</td></tr>
+    <tr><td>② 셋업</td><td>대화/수동</td><td class="path">루트: package.json, pnpm-workspace.yaml, apps/, packages/, supabase/config.toml, .env.example, apps/web/.env.local, apps/worker/.env<br>전역: ~/.ssh/config</td><td>모노레포 골격, Supabase 연결, SSH 다계정 인증</td></tr>
     <tr><td><b>③ 스펙</b></td><td class="mono">/spec</td><td class="path">~/.gstack/…/specs/*.md<br>+ GitHub 이슈 #1~#8</td><td>EPIC + child 요구사항·수용기준(AC)·의존성</td></tr>
     <tr><td><b>④ 검토</b></td><td class="mono">/autoplan</td><td class="path">~/.gstack/…/main-autoplan-review-*.md, …-restore-*.md<br>+ EPIC #1 코멘트</td><td>CEO·Design·Eng 리뷰, 미해결 설계 해결책, 결정 로그</td></tr>
     <tr><td><b>⑤ 디자인</b></td><td class="mono">/design-consultation</td><td class="path">루트: DESIGN.md<br>~/.gstack/…/designs/…/design-preview.html</td><td>디자인 시스템(폰트·색·간격·레이아웃) + 프리뷰</td></tr>
-    <tr><td>(상시) <b>기억</b></td><td>자동</td><td class="path">~/.claude/…/memory/jhtechsaas-project.md, MEMORY.md</td><td>세션 간 핵심 결정·진행 상태</td></tr>
-    <tr><td>(상시) <b>지도</b></td><td class="mono">/map</td><td class="path">루트: PROJECT-MAP.html</td><td>이 문서(4곳 인벤토리 + 단계 맵)</td></tr>
-    <tr><td><b>⑥ 구현</b><br>(다음)</td><td>Superpowers TDD</td><td class="path">apps/web/src/…, apps/worker/src/…, supabase/migrations/…, *.test.*</td><td>실제 코드·DB 마이그레이션·테스트</td></tr>
-    <tr><td><b>⑦~⑨</b></td><td class="mono">/review · /qa · /ship</td><td class="path">git 커밋·PR(원격)</td><td>코드리뷰·QA·배포</td></tr>
+    <tr><td>기억</td><td>자동 <span style="color:var(--muted);font-size:11px">(상시)</span></td><td class="path">~/.claude/…/memory/jhtechsaas-project.md, MEMORY.md</td><td>세션 간 핵심 결정·진행 상태</td></tr>
+    <tr><td>지도</td><td class="mono">/map <span style="color:var(--muted);font-size:11px">(상시)</span></td><td class="path">루트: PROJECT-MAP.html</td><td>이 문서(4곳 인벤토리 + 단계 맵)</td></tr>
+    <tr><td>⑥ 구현 <span style="color:var(--new);font-weight:600">●</span></td><td>Superpowers TDD</td><td class="path">apps/web/src/…, apps/worker/src/…, supabase/migrations/…, *.test.*</td><td>실제 코드·DB 마이그레이션·테스트</td></tr>
+    <tr><td>⑦~⑨</td><td class="mono">/review·/qa·/ship</td><td class="path">git 커밋·PR(원격)</td><td>코드리뷰·QA·배포</td></tr>
   </table>
 
   <h2>3. 문제 시 어디를 보나 (빠른 참조)</h2>
