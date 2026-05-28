@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>jhtechSaaS — 프로젝트 지도</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@latest/dist/web/static/pretendard.css" />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#FFFFFF;--surface:#F8FAFC;--surface-2:#F1F5F9;--border:#E2E8F0;
+    --text:#0F172A;--muted:#64748B;--accent:#155E75;--accent-soft:#ECFEFF;
+    --new:#2563EB;--assign:#7C3AED;--quoting:#D97706;--sent:#16A34A;--fail:#DC2626;
+    --new-bg:#EFF6FF;--assign-bg:#F5F3FF;--quoting-bg:#FFFBEB;--sent-bg:#F0FDF4;--fail-bg:#FEF2F2;
+    --r:8px;--mono:'JetBrains Mono',monospace;--sans:'Pretendard',system-ui,sans-serif;
+  }
+  [data-theme="dark"]{--bg:#0B1220;--surface:#111827;--surface-2:#1E293B;--border:#1E293B;--text:#E5E7EB;--muted:#94A3B8;--accent:#22D3EE;--accent-soft:#0E2A33;--new-bg:#11233F;--assign-bg:#241A3F;--quoting-bg:#2B2008;--sent-bg:#0C2417;--fail-bg:#2A1212;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--sans);background:var(--bg);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased}
+  .mono{font-family:var(--mono);font-size:.88em}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px 96px}
+  header.top{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg);z-index:10}
+  .brand{font-weight:700;font-size:17px;letter-spacing:-.02em}.brand .a{color:var(--accent)}
+  .toggle{font-family:var(--sans);font-size:13px;font-weight:500;border:1px solid var(--border);background:var(--surface);color:var(--text);padding:7px 14px;border-radius:var(--r);cursor:pointer}
+  h1{font-size:30px;font-weight:700;letter-spacing:-.03em;margin:36px 0 6px}
+  .sub{color:var(--muted);font-size:15px;margin-bottom:6px}
+  .upd{font-family:var(--mono);font-size:12px;color:var(--accent)}
+  h2{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:52px 0 14px;padding-top:18px;border-top:1px solid var(--border)}
+  h3{font-size:17px;font-weight:600;margin:26px 0 10px;letter-spacing:-.01em}
+  p{margin:10px 0;font-size:14.5px}
+  .lead{font-size:15px;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:var(--r);padding:14px 16px;margin:14px 0}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin:12px 0 8px;border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+  th{text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);background:var(--surface-2);padding:10px 12px;border-bottom:1px solid var(--border)}
+  td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:top}
+  tr:last-child td{border-bottom:0}
+  td.path{font-family:var(--mono);font-size:12px;color:var(--accent);white-space:nowrap}
+  .tag{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px}
+  .t-commit{color:var(--sent);background:var(--sent-bg)}
+  .t-ignore{color:var(--quoting);background:var(--quoting-bg)}
+  .t-remote{color:var(--assign);background:var(--assign-bg)}
+  .t-out{color:var(--muted);background:var(--surface-2)}
+  /* location diagram */
+  .locs{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin:14px 0}
+  .loc{border:1px solid var(--border);border-radius:var(--r);padding:14px;background:var(--surface)}
+  .loc .n{font-family:var(--mono);font-size:12px;color:var(--accent);font-weight:600;margin-bottom:6px;word-break:break-all}
+  .loc .d{font-size:13px}
+  .loc .badge{font-size:11px;font-weight:600;margin-top:8px;display:inline-block}
+  .in{color:var(--sent)}.out{color:var(--fail)}
+  /* flow */
+  .flow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:14px 0;font-size:13px}
+  .flow .step{border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:6px 13px;font-weight:600}
+  .flow .step.done{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+  .flow .step.next{border-color:var(--new);color:var(--new);background:var(--new-bg)}
+  .flow .arr{color:var(--muted)}
+  .note{font-size:12.5px;color:var(--muted);margin-top:6px}
+  code{font-family:var(--mono);font-size:.86em;background:var(--surface-2);padding:1px 6px;border-radius:4px}
+  footer{margin-top:48px;padding-top:18px;border-top:1px solid var(--border);font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">jhtechSaaS <span class="a">프로젝트 지도</span></div>
+  <button class="toggle" onclick="document.documentElement.dataset.theme=document.documentElement.dataset.theme==='dark'?'light':'dark'">라이트 / 다크</button>
+</header>
+<div class="wrap">
+  <h1>프로젝트 지도</h1>
+  <div class="sub">지금까지 만들어진 파일이 <b>어디에</b> 있고, <b>각 단계가 어떤 파일을 만드는지</b>, 문제 시 <b>어디를 봐야 하는지</b>.</div>
+  <div class="upd">갱신: 2026-05-28 · 명령어 <code>/map</code> 으로 재생성</div>
+
+  <div class="lead">
+    <b>핵심:</b> 이 프로젝트의 산출물은 <b>4곳에 흩어져</b> 있습니다. 코드·설정만 프로젝트 폴더 안에 있고,
+    <b>계획·기억·백로그는 폴더 밖</b>(gstack·claude 시스템 폴더, GitHub)에 있습니다. 그래서 "내 폴더엔 계획 파일이 없네?"가 정상입니다.
+  </div>
+
+  <h2>4곳의 위치</h2>
+  <div class="locs">
+    <div class="loc"><div class="n">jhtechSaaS/</div><div class="d">프로젝트 루트 — <b>코드 + 설정</b>. CLAUDE.md, DESIGN.md, package.json, supabase/, apps/, .env…</div><div class="badge in">● 폴더 안 · git 추적</div></div>
+    <div class="loc"><div class="n">~/.gstack/projects/jhtechSaaS/</div><div class="d"><b>계획 산출물</b> — design doc, spec 아카이브, autoplan 리뷰, 디자인 프리뷰, 복원점</div><div class="badge out">● 폴더 밖 · 로컬</div></div>
+    <div class="loc"><div class="n">~/.claude/…/memory/</div><div class="d"><b>세션 간 기억</b> — 프로젝트 결정·진행 상태(다음 세션이 읽음)</div><div class="badge out">● 폴더 밖 · 로컬</div></div>
+    <div class="loc"><div class="n">GitHub: jhtechsmart-cloud/jhtechSaaS</div><div class="d"><b>백로그</b> — EPIC #1 + child #2~#8(요구사항). 파일 아님, 원격</div><div class="badge out">● 폴더 밖 · 원격</div></div>
+  </div>
+
+  <h2>1. 파일 인벤토리</h2>
+
+  <h3>① 프로젝트 폴더 <span class="tag t-commit">대부분 커밋</span></h3>
+  <table>
+    <tr><th>파일</th><th>목적</th><th>요약</th><th>상태</th></tr>
+    <tr><td class="path">CLAUDE.md</td><td>프로젝트 지침</td><td>작업 원칙 + Design System 규칙(UI 전 DESIGN.md 읽기)</td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">DESIGN.md</td><td>디자인 시스템</td><td>북극성·폰트·색·간격·레이아웃·모션(단일 진실 소스)</td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">package.json</td><td>루트 패키지</td><td>pnpm 워크스페이스 + 스크립트(dev/build/lint/typecheck/test)</td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">pnpm-workspace.yaml</td><td>모노레포 정의</td><td>apps/*, packages/* 워크스페이스</td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">pnpm-lock.yaml</td><td>의존성 잠금</td><td>설치된 패키지 정확한 버전</td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">.gitignore</td><td>git 제외</td><td>node_modules, .next, .env, .devnote-scratch 등</td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">.env.example</td><td>환경변수 템플릿</td><td>Supabase URL/키, Gmail 발신 변수의 빈 예시</td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">supabase/config.toml</td><td>Supabase 로컬 설정</td><td>supabase init 산출, 로컬/링크 설정</td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">apps/web/package.json · tsconfig.json</td><td>web 앱 설정</td><td>Next.js + React + Tailwind + zod 의존성</td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">apps/web/AGENTS.md · CLAUDE.md</td><td>web AI 지침</td><td>"이 Next.js는 학습데이터와 다름, docs 확인" 경고</td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">apps/worker/package.json · tsconfig.json</td><td>워커 설정</td><td>tsx + typescript + @types/node, shared 의존</td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">packages/shared/package.json</td><td>공유 패키지</td><td>web·worker 공유 타입·Zod·Supabase 클라이언트 자리</td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">apps/web/.env.local</td><td>web 실제 환경변수</td><td><b>시크릿</b> — Supabase URL/anon key</td><td><span class="tag t-ignore">gitignore</span></td></tr>
+    <tr><td class="path">apps/worker/.env</td><td>워커 실제 환경변수</td><td><b>시크릿</b> — service_role, Gmail 앱비밀번호</td><td><span class="tag t-ignore">gitignore</span></td></tr>
+    <tr><td class="path">.claude/settings.local.json</td><td>Claude Code 로컬 설정</td><td>권한 허용 목록 등(이 머신 전용)</td><td><span class="tag t-ignore">로컬</span></td></tr>
+    <tr><td class="path">.devnote-scratch/*.jsonl</td><td>dev-note 스크래치</td><td>작업 이벤트·프롬프트 적립(개발노트용)</td><td><span class="tag t-ignore">gitignore</span></td></tr>
+  </table>
+
+  <h3>② <span class="mono">~/.gstack/projects/jhtechSaaS/</span> <span class="tag t-out">폴더 밖 · 로컬</span></h3>
+  <table>
+    <tr><th>파일</th><th>만든 단계</th><th>요약</th></tr>
+    <tr><td class="path">seonjecho-master-design-*.md</td><td>/office-hours</td><td>design doc — 문제·전제·대안·승인 접근("무엇을/왜")</td></tr>
+    <tr><td class="path">specs/…-epic-jhtechsaas-v1.md</td><td>/spec</td><td>EPIC 스펙 아카이브(붙여넣기용 본문 + 이슈번호)</td></tr>
+    <tr><td class="path">main-autoplan-review-*.md</td><td>/autoplan</td><td>CEO·Design·Eng 리뷰 + 결정·해결책 + 감사로그</td></tr>
+    <tr><td class="path">main-autoplan-restore-*.md</td><td>/autoplan</td><td>리뷰 시작 시점 plan 복원점(되돌리기용)</td></tr>
+    <tr><td class="path">designs/…/design-preview.html</td><td>/design-consultation</td><td>디자인 시스템 적용 프리뷰(브라우저로 본 그것)</td></tr>
+  </table>
+
+  <h3>③ <span class="mono">~/.claude/…/memory/</span> <span class="tag t-out">폴더 밖 · 로컬</span></h3>
+  <table>
+    <tr><th>파일</th><th>목적</th><th>요약</th></tr>
+    <tr><td class="path">MEMORY.md</td><td>기억 인덱스</td><td>모든 메모리 파일의 한 줄 목록(항상 로드됨)</td></tr>
+    <tr><td class="path">jhtechsaas-project.md</td><td>이 프로젝트 기억</td><td>핵심 결정(단일테넌트·capability·아키텍처B)·진행 상태·인프라</td></tr>
+    <tr><td class="path">user-language.md 등</td><td>사용자/전역</td><td>언어·피드백 등(다른 프로젝트와 공유)</td></tr>
+  </table>
+
+  <h3>④ GitHub 이슈 <span class="tag t-remote">원격</span></h3>
+  <table>
+    <tr><th>번호</th><th>제목</th><th>의존</th></tr>
+    <tr><td class="path">#1</td><td>[EPIC] v1 재구축(+ autoplan 해결책 코멘트)</td><td>—</td></tr>
+    <tr><td class="path">#2</td><td>E1 Foundation: 스키마+Auth+capability RLS+Storage</td><td>—</td></tr>
+    <tr><td class="path">#3</td><td>E2 장비·옵션 관리 admin</td><td>#2</td></tr>
+    <tr><td class="path">#4</td><td>E3 견적요청서(공개 폼→DB)</td><td>#2,#3</td></tr>
+    <tr><td class="path">#5</td><td>E4 관리자 콘솔</td><td>#2,#4</td></tr>
+    <tr><td class="path">#6</td><td>E5 견적 작성+통합 PDF(워커)</td><td>#2,#3,#5</td></tr>
+    <tr><td class="path">#7</td><td>E6 메일 발송(워커)</td><td>#2,#6</td></tr>
+    <tr><td class="path">#8</td><td>E7 업체 이력</td><td>#4~#7</td></tr>
+  </table>
+
+  <h2>2. 단계별 파일 생성 맵</h2>
+  <p class="note">각 단계를 진행하면 → 어디에 어떤 파일이 생기고 무슨 내용이 담기는지.</p>
+
+  <div class="flow">
+    <span class="step done">① 기획</span><span class="arr">→</span>
+    <span class="step done">② 셋업</span><span class="arr">→</span>
+    <span class="step done">③ 스펙</span><span class="arr">→</span>
+    <span class="step done">④ 검토</span><span class="arr">→</span>
+    <span class="step done">⑤ 디자인</span><span class="arr">→</span>
+    <span class="step next">⑥ 구현(다음)</span><span class="arr">→</span>
+    <span class="step">⑦ 코드리뷰</span><span class="arr">→</span>
+    <span class="step">⑧ QA</span><span class="arr">→</span>
+    <span class="step">⑨ 배포</span>
+  </div>
+
+  <table>
+    <tr><th>단계</th><th>명령어</th><th>생기는 파일 (위치)</th><th>담기는 내용</th></tr>
+    <tr><td><b>① 기획</b></td><td class="mono">/office-hours</td><td class="path">~/.gstack/…/…-design-*.md</td><td>문제·전제·대안·승인된 접근. "무엇을/왜"</td></tr>
+    <tr><td><b>② 셋업</b><br>(Phase 0)</td><td>대화/수동</td><td class="path">루트: package.json, pnpm-workspace.yaml, apps/, packages/, supabase/config.toml, .env.example, apps/web/.env.local, apps/worker/.env<br>전역: ~/.ssh/config</td><td>모노레포 골격, Supabase 연결, SSH 다계정 인증</td></tr>
+    <tr><td><b>③ 스펙</b></td><td class="mono">/spec</td><td class="path">~/.gstack/…/specs/*.md<br>+ GitHub 이슈 #1~#8</td><td>EPIC + child 요구사항·수용기준(AC)·의존성</td></tr>
+    <tr><td><b>④ 검토</b></td><td class="mono">/autoplan</td><td class="path">~/.gstack/…/main-autoplan-review-*.md, …-restore-*.md<br>+ EPIC #1 코멘트</td><td>CEO·Design·Eng 리뷰, 미해결 설계 해결책, 결정 로그</td></tr>
+    <tr><td><b>⑤ 디자인</b></td><td class="mono">/design-consultation</td><td class="path">루트: DESIGN.md<br>~/.gstack/…/designs/…/design-preview.html</td><td>디자인 시스템(폰트·색·간격·레이아웃) + 프리뷰</td></tr>
+    <tr><td>(상시) <b>기억</b></td><td>자동</td><td class="path">~/.claude/…/memory/jhtechsaas-project.md, MEMORY.md</td><td>세션 간 핵심 결정·진행 상태</td></tr>
+    <tr><td>(상시) <b>지도</b></td><td class="mono">/map</td><td class="path">루트: PROJECT-MAP.html</td><td>이 문서(4곳 인벤토리 + 단계 맵)</td></tr>
+    <tr><td><b>⑥ 구현</b><br>(다음)</td><td>Superpowers TDD</td><td class="path">apps/web/src/…, apps/worker/src/…, supabase/migrations/…, *.test.*</td><td>실제 코드·DB 마이그레이션·테스트</td></tr>
+    <tr><td><b>⑦~⑨</b></td><td class="mono">/review · /qa · /ship</td><td class="path">git 커밋·PR(원격)</td><td>코드리뷰·QA·배포</td></tr>
+  </table>
+
+  <h2>3. 문제 시 어디를 보나 (빠른 참조)</h2>
+  <table>
+    <tr><th>알고 싶은 것 / 증상</th><th>볼 곳</th></tr>
+    <tr><td>"이 계획·결정이 왜 이렇게 됐지?"</td><td class="path">~/.gstack/…/…-design-*.md + main-autoplan-review-*.md + EPIC #1 코멘트</td></tr>
+    <tr><td>"무엇을 만들어야 하지? 할 일 목록"</td><td class="path">GitHub 이슈 #2~#8</td></tr>
+    <tr><td>"디자인(폰트·색·간격) 규칙"</td><td class="path">DESIGN.md (루트)</td></tr>
+    <tr><td>"다음 세션이 기억하는 상태"</td><td class="path">~/.claude/…/memory/jhtechsaas-project.md</td></tr>
+    <tr><td>"환경변수·시크릿(키·비번)"</td><td class="path">apps/web/.env.local · apps/worker/.env (gitignore, 로컬만)</td></tr>
+    <tr><td>"Supabase 연결 설정"</td><td class="path">supabase/config.toml + 위 .env 값</td></tr>
+    <tr><td>"빌드/의존성 문제"</td><td class="path">package.json · pnpm-workspace.yaml · pnpm-lock.yaml</td></tr>
+    <tr><td>"GitHub 인증(다계정)"</td><td class="path">~/.ssh/config (Host github-jhtech)</td></tr>
+  </table>
+
+  <footer>
+    <b>jhtechSaaS</b> · 이 문서는 <code>/map</code> 명령어로 언제든 재생성됩니다(4곳 재스캔). 프로젝트가 진행되며 단계·파일이 늘면 자동 반영됩니다.<br>
+    디자인: DESIGN.md 기준(Pretendard · 명료함 · 상태 색).
+  </footer>
+</div>
+</body>
+</html>
