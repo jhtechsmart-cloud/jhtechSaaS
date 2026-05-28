@@ -1,0 +1,27 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# next.js / build
+.next/
+out/
+dist/
+build/
+
+# env (시크릿 — 절대 커밋 금지)
+.env
+.env.local
+.env*.local
+
+# supabase
+supabase/.branches/
+supabase/.temp/
+
+# vercel / railway
+.vercel/
+
+# misc
+.DS_Store
+*.log
+npm-debug.log*
+coverage/
