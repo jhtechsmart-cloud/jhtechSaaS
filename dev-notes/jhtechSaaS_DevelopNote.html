@@ -1,0 +1,1980 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>jhtechSaaS — Develop Note</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github.min.css" id="hljs-light">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css" id="hljs-dark" disabled>
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+  :root {
+    --bg: #ffffff;
+    --bg-secondary: #f8fafc;
+    --bg-tertiary: #f1f5f9;
+    --border: #e2e8f0;
+    --border-strong: #cbd5e1;
+    --text: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #64748b;
+    --text-faint: #94a3b8;
+    --accent: #2563eb;
+    --accent-soft: #eff6ff;
+    --accent-strong: #1d4ed8;
+    --success: #16a34a;
+    --warning: #d97706;
+    --danger: #dc2626;
+    --info: #0891b2;
+    --code-bg: #f6f8fa;
+    --code-text: #1f2328;
+    --path-bg: #f1f5f9;
+    --path-text: #64748b;
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.04);
+    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.06);
+    --sidebar-w: 320px;
+    /* Typography scale - 명확한 위계 */
+    --fs-xs: 11px;
+    --fs-sm: 12px;
+    --fs-base: 14px;
+    --fs-md: 15px;
+    --fs-lg: 16px;
+    --fs-xl: 18px;
+    --fs-2xl: 22px;
+    --fs-3xl: 28px;
+    --lh-tight: 1.35;
+    --lh-base: 1.65;
+    --lh-loose: 1.8;
+  }
+  [data-theme="dark"] {
+    --bg: #0a0a0a;
+    --bg-secondary: #111111;
+    --bg-tertiary: #1a1a1a;
+    --border: #262626;
+    --border-strong: #404040;
+    --text: #fafafa;
+    --text-secondary: #d4d4d8;
+    --text-muted: #a1a1aa;
+    --text-faint: #71717a;
+    --accent: #60a5fa;
+    --accent-soft: #1e293b;
+    --accent-strong: #93c5fd;
+    --code-bg: #161b22;
+    --code-text: #e6edf3;
+    --path-bg: #1e293b;
+    --path-text: #94a3b8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    overflow: hidden;
+    font-feature-settings: "ss06" on, "cv11" on;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    word-break: keep-all;
+    overflow-wrap: break-word;
+  }
+  .app { display: flex; height: 100vh; }
+
+  /* ═══════════════ Sidebar ═══════════════ */
+  .sidebar {
+    width: var(--sidebar-w);
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    flex-shrink: 0;
+  }
+  .sidebar-header {
+    padding: 22px 20px 18px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar-title {
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 6px;
+  }
+  .sidebar-project {
+    font-size: var(--fs-xl);
+    font-weight: 700;
+    color: var(--text);
+    line-height: var(--lh-tight);
+    word-break: keep-all;
+  }
+  .sidebar-stats {
+    margin-top: 14px;
+    display: flex;
+    gap: 14px;
+    font-size: var(--fs-sm);
+    color: var(--text-muted);
+  }
+  .sidebar-stats span strong { color: var(--text-secondary); font-weight: 600; }
+
+  .sidebar-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar-tab {
+    flex: 1;
+    padding: 10px 8px;
+    text-align: center;
+    font-size: var(--fs-sm);
+    color: var(--text-muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+    background: none;
+    border-top: 0;
+    border-left: 0;
+    border-right: 0;
+    font-family: inherit;
+  }
+  .sidebar-tab:hover { color: var(--text); background: var(--bg-tertiary); }
+  .sidebar-tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+    font-weight: 600;
+  }
+
+  .search-box {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .search-input {
+    width: 100%;
+    padding: 9px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: var(--fs-sm);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .search-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+  .sidebar-list { flex: 1; overflow-y: auto; padding: 8px 0; }
+  .sidebar-list::-webkit-scrollbar { width: 8px; }
+  .sidebar-list::-webkit-scrollbar-track { background: transparent; }
+  .sidebar-list::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+
+  .date-group { margin-bottom: 4px; }
+  .date-header {
+    display: flex; align-items: center; gap: 6px;
+    padding: 9px 16px;
+    cursor: pointer;
+    user-select: none;
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    color: var(--text);
+    transition: background 0.15s;
+  }
+  .date-header:hover { background: var(--bg-tertiary); }
+  .date-toggle {
+    display: inline-block;
+    width: 12px; height: 12px;
+    transition: transform 0.2s;
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+  .date-group.collapsed .date-toggle { transform: rotate(-90deg); }
+  .date-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .date-count {
+    font-size: 10px;
+    color: var(--text-muted);
+    background: var(--bg-tertiary);
+    padding: 2px 7px;
+    border-radius: 10px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .feature-list {
+    list-style: none;
+    overflow: hidden;
+    max-height: 2000px;
+    transition: max-height 0.25s ease;
+  }
+  .date-group.collapsed .feature-list { max-height: 0; }
+  .feature-item {
+    padding: 9px 16px 9px 36px;
+    cursor: pointer;
+    font-size: var(--fs-sm);
+    color: var(--text-secondary);
+    display: flex; align-items: center; gap: 8px;
+    transition: background 0.12s, color 0.12s;
+    border-left: 3px solid transparent;
+    line-height: var(--lh-tight);
+  }
+  .feature-item:hover { background: var(--bg-tertiary); color: var(--text); }
+  .feature-item.active {
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-left-color: var(--accent);
+    font-weight: 600;
+  }
+  .feature-type-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    flex-shrink: 0;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  .feature-type-badge.feat { background: #dcfce7; color: #166534; }
+  .feature-type-badge.fix { background: #fee2e2; color: #991b1b; }
+  .feature-type-badge.refactor { background: #fef3c7; color: #92400e; }
+  .feature-type-badge.docs { background: #dbeafe; color: #1e40af; }
+  .feature-type-badge.test { background: #f3e8ff; color: #6b21a8; }
+  .feature-type-badge.chore { background: #f1f5f9; color: #475569; }
+  .feature-type-badge.perf { background: #ccfbf1; color: #115e59; }
+  .feature-type-badge.style { background: #fce7f3; color: #9d174d; }
+  .feature-type-badge.build, .feature-type-badge.ci { background: #e0e7ff; color: #3730a3; }
+  [data-theme="dark"] .feature-type-badge.feat { background: #14532d; color: #86efac; }
+  [data-theme="dark"] .feature-type-badge.fix { background: #7f1d1d; color: #fca5a5; }
+  [data-theme="dark"] .feature-type-badge.refactor { background: #78350f; color: #fcd34d; }
+  [data-theme="dark"] .feature-type-badge.docs { background: #1e3a8a; color: #93c5fd; }
+  [data-theme="dark"] .feature-type-badge.test { background: #581c87; color: #d8b4fe; }
+  [data-theme="dark"] .feature-type-badge.chore { background: #1e293b; color: #cbd5e1; }
+  [data-theme="dark"] .feature-type-badge.perf { background: #134e4a; color: #5eead4; }
+  [data-theme="dark"] .feature-type-badge.style { background: #831843; color: #f9a8d4; }
+  [data-theme="dark"] .feature-type-badge.build,
+  [data-theme="dark"] .feature-type-badge.ci { background: #312e81; color: #a5b4fc; }
+  .feature-title-text {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .sidebar-footer {
+    border-top: 1px solid var(--border);
+    padding: 12px 16px;
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 10px;
+    color: var(--text-faint);
+  }
+  .theme-toggle {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: var(--fs-xs);
+    transition: all 0.15s;
+  }
+  .theme-toggle:hover { background: var(--bg-tertiary); color: var(--text); }
+
+  /* ═══════════════ Main content ═══════════════ */
+  .main {
+    flex: 1;
+    overflow-y: auto;
+    background: var(--bg);
+  }
+  .main::-webkit-scrollbar { width: 10px; }
+  .main::-webkit-scrollbar-track { background: transparent; }
+  .main::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 5px; }
+
+  .content {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 48px 60px 96px;
+  }
+
+  .empty-state {
+    height: 100%;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    color: var(--text-muted);
+    text-align: center;
+    padding: 40px;
+  }
+  .empty-state h2 { font-size: var(--fs-2xl); font-weight: 600; color: var(--text-secondary); margin-bottom: 12px; }
+  .empty-state p { font-size: var(--fs-base); max-width: 460px; line-height: var(--lh-base); }
+
+  /* ─── Feature header ─── */
+  .feature-header { margin-bottom: 36px; padding-bottom: 28px; border-bottom: 1px solid var(--border); }
+  .breadcrumb {
+    font-size: var(--fs-sm);
+    color: var(--text-muted);
+    margin-bottom: 14px;
+    display: flex; align-items: center; gap: 8px;
+    flex-wrap: wrap;
+    line-height: var(--lh-tight);
+  }
+  .breadcrumb-item { color: var(--text-muted); }
+  .breadcrumb-sep { color: var(--border-strong); }
+  .feature-h1 {
+    font-size: var(--fs-3xl);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.25;
+    margin-bottom: 18px;
+    color: var(--text);
+  }
+  .meta-row {
+    display: flex; flex-wrap: wrap; gap: 10px 16px;
+    font-size: var(--fs-sm);
+    color: var(--text-muted);
+    align-items: center;
+    line-height: var(--lh-tight);
+  }
+  .meta-row .status-badge {
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: var(--fs-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .status-badge.completed { background: #dcfce7; color: #166534; }
+  .status-badge.in-progress { background: #fef3c7; color: #92400e; }
+  .status-badge.blocked { background: #fee2e2; color: #991b1b; }
+  [data-theme="dark"] .status-badge.completed { background: #14532d; color: #86efac; }
+  [data-theme="dark"] .status-badge.in-progress { background: #78350f; color: #fcd34d; }
+  [data-theme="dark"] .status-badge.blocked { background: #7f1d1d; color: #fca5a5; }
+
+  .tags-row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tag {
+    font-size: var(--fs-xs);
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+
+  /* ─── Section ─── */
+  .section { margin-top: 40px; }
+  .section-title {
+    font-size: var(--fs-xs);
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 16px;
+    display: flex; align-items: center; gap: 10px;
+    line-height: var(--lh-tight);
+  }
+  .section-title::before {
+    content: '';
+    display: inline-block;
+    width: 3px; height: 16px;
+    background: var(--accent);
+    border-radius: 2px;
+  }
+
+  /* ─── Prose — 가독성 중심 ─── */
+  .prose {
+    line-height: var(--lh-base);
+    color: var(--text);
+    font-size: var(--fs-md);
+  }
+  .prose p { margin-bottom: 14px; }
+  .prose p:last-child { margin-bottom: 0; }
+  .prose strong { font-weight: 600; color: var(--text); }
+  .prose em { color: var(--text-secondary); font-style: italic; }
+  /* 인라인 코드 — 명확하게 구분되는 스타일 */
+  .prose code, .card-row code, .claude-hint-body code, .prompt-text code {
+    background: var(--code-bg);
+    color: var(--code-text);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', 'SF Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.88em;
+    border: 1px solid var(--border);
+    font-weight: 500;
+    word-break: break-all;
+  }
+  /* 파일 경로 — 별도의 부드러운 스타일 */
+  .file-path {
+    display: inline-block;
+    background: var(--path-bg);
+    color: var(--path-text);
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.82em;
+    border: 1px solid var(--border);
+    margin-top: 2px;
+    word-break: break-all;
+    line-height: 1.5;
+  }
+  .prose pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 18px;
+    overflow-x: auto;
+    margin: 16px 0;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .prose pre code {
+    background: transparent;
+    padding: 0;
+    border: 0;
+    color: var(--code-text);
+    font-size: 13px;
+  }
+  /* 리스트 — 들여쓰기 명확하게 */
+  .prose ul, .prose ol {
+    margin: 10px 0 16px 0;
+    padding-left: 28px;
+  }
+  .prose li {
+    margin-bottom: 6px;
+    line-height: var(--lh-base);
+  }
+  .prose li:last-child { margin-bottom: 0; }
+  /* 중첩 리스트 더 깊이 들여쓰기 */
+  .prose ul ul, .prose ul ol, .prose ol ul, .prose ol ol {
+    margin: 6px 0 6px 0;
+    padding-left: 24px;
+  }
+  .prose blockquote {
+    border-left: 3px solid var(--accent);
+    padding: 12px 18px;
+    background: var(--bg-secondary);
+    margin: 16px 0;
+    color: var(--text-secondary);
+    border-radius: 0 6px 6px 0;
+    line-height: var(--lh-base);
+  }
+  .prose h3 { margin-top: 28px; margin-bottom: 12px; font-size: var(--fs-xl); font-weight: 600; line-height: var(--lh-tight); }
+  .prose h4 { margin-top: 20px; margin-bottom: 10px; font-size: var(--fs-lg); color: var(--text-secondary); font-weight: 600; line-height: var(--lh-tight); }
+  .prose a { color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 0.15s; }
+  .prose a:hover { border-bottom-color: var(--accent); }
+
+  /* ─── Code snippet ─── */
+  .code-snippet {
+    margin-top: 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .code-snippet-header {
+    background: var(--bg-tertiary);
+    padding: 10px 16px;
+    font-size: var(--fs-sm);
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+    line-height: var(--lh-tight);
+  }
+  .code-snippet pre { margin: 0; border: 0; border-radius: 0; }
+  .code-snippet-caption {
+    padding: 10px 16px;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border);
+    font-size: var(--fs-sm);
+    color: var(--text-muted);
+    font-style: italic;
+    line-height: var(--lh-base);
+  }
+  .copy-btn {
+    background: none; border: 0; color: var(--text-muted); cursor: pointer;
+    font-size: var(--fs-xs); font-family: inherit; padding: 3px 10px; border-radius: 4px;
+    transition: all 0.15s;
+  }
+  .copy-btn:hover { background: var(--bg); color: var(--text); }
+
+  /* ═══════════════ ADR / Problem cards — 들여쓰기 수정 ═══════════════ */
+  .decision-card, .problem-card {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 22px;
+    margin-bottom: 16px;
+    background: var(--bg-secondary);
+  }
+  .decision-card { border-left: 4px solid var(--info); }
+  .problem-card { border-left: 4px solid var(--warning); }
+  .card-title {
+    font-size: var(--fs-lg);
+    font-weight: 600;
+    margin-bottom: 14px;
+    color: var(--text);
+    line-height: var(--lh-tight);
+  }
+  /* 카드 내부 행 — 라벨과 값을 명확히 분리, 자식은 들여쓰기 */
+  .card-row {
+    margin-bottom: 12px;
+    font-size: var(--fs-base);
+    line-height: var(--lh-base);
+    color: var(--text);
+  }
+  .card-row:last-child { margin-bottom: 0; }
+  .card-row .label {
+    display: block;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+    font-size: var(--fs-sm);
+    letter-spacing: 0.01em;
+  }
+  .card-row .value {
+    color: var(--text);
+    padding-left: 0;
+  }
+  /* 카드 내부 리스트 — 명확한 들여쓰기 */
+  .card-row ul {
+    margin: 6px 0 0 0;
+    padding-left: 24px;
+    list-style: disc;
+  }
+  .card-row ul li {
+    margin-bottom: 4px;
+    line-height: var(--lh-base);
+    color: var(--text);
+  }
+  .card-row ul li:last-child { margin-bottom: 0; }
+
+  /* ═══════════════ Changelog grid ═══════════════ */
+  .changelog-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+  .changelog-card {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    background: var(--bg-secondary);
+  }
+  .changelog-card h4 {
+    margin: 0 0 12px;
+    font-size: var(--fs-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 700;
+  }
+  .changelog-card.added h4 { color: var(--success); }
+  .changelog-card.changed h4 { color: var(--info); }
+  .changelog-card.fixed h4 { color: var(--warning); }
+  .changelog-card.removed h4 { color: var(--danger); }
+  .changelog-card ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .changelog-card li {
+    font-size: var(--fs-sm);
+    color: var(--text);
+    padding: 8px 0;
+    line-height: var(--lh-base);
+    border-bottom: 1px dashed var(--border);
+  }
+  .changelog-card li:last-child { border-bottom: 0; padding-bottom: 0; }
+  .changelog-card li:first-child { padding-top: 0; }
+  .changelog-card code {
+    background: var(--code-bg);
+    color: var(--code-text);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.88em;
+    border: 1px solid var(--border);
+  }
+
+  /* ═══════════════ Next steps ═══════════════ */
+  .next-steps {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .next-steps li {
+    display: flex; gap: 12px; align-items: flex-start;
+    padding: 10px 0;
+    font-size: var(--fs-base);
+    color: var(--text);
+    line-height: var(--lh-base);
+    border-bottom: 1px dashed var(--border);
+  }
+  .next-steps li:last-child { border-bottom: 0; }
+  .next-steps li::before {
+    content: '☐';
+    color: var(--text-muted);
+    font-family: monospace;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  /* ═══════════════ Claude hints — 디자인 개선 ═══════════════ */
+  .claude-hints {
+    background: linear-gradient(135deg, #fef9e7 0%, #fef3c7 100%);
+    border: 1px solid #fcd34d;
+    border-radius: 12px;
+    padding: 24px 28px;
+    margin-top: 40px;
+  }
+  [data-theme="dark"] .claude-hints {
+    background: linear-gradient(135deg, #2a2206 0%, #3d2f04 100%);
+    border-color: #a16207;
+  }
+  .claude-hints h3 {
+    color: #92400e;
+    font-size: var(--fs-md);
+    margin-bottom: 14px;
+    display: flex; align-items: center; gap: 10px;
+    font-weight: 700;
+    line-height: var(--lh-tight);
+  }
+  [data-theme="dark"] .claude-hints h3 { color: #fde68a; }
+  .claude-hint-body {
+    color: #78350f;
+    font-size: var(--fs-base);
+    line-height: var(--lh-loose);
+  }
+  [data-theme="dark"] .claude-hint-body { color: #fef3c7; }
+  .claude-hint-body p { margin-bottom: 12px; }
+  .claude-hint-body p:last-child { margin-bottom: 0; }
+  /* For Future Claude 박스 내 코드 — 더 진한 배경으로 구분 */
+  .claude-hint-body code {
+    background: rgba(180, 83, 9, 0.12);
+    color: #78350f;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.86em;
+    border: 1px solid rgba(180, 83, 9, 0.25);
+    font-weight: 500;
+  }
+  [data-theme="dark"] .claude-hint-body code {
+    background: rgba(252, 211, 77, 0.12);
+    color: #fde68a;
+    border-color: rgba(252, 211, 77, 0.25);
+  }
+
+  .claude-patterns-title {
+    margin-top: 18px;
+    margin-bottom: 10px;
+    font-weight: 700;
+    color: #92400e;
+    font-size: var(--fs-base);
+  }
+  [data-theme="dark"] .claude-patterns-title { color: #fde68a; }
+  .claude-patterns {
+    list-style: none;
+    padding-left: 0;
+    margin: 0;
+  }
+  .claude-patterns > li {
+    padding: 10px 0;
+    border-bottom: 1px dashed rgba(180, 83, 9, 0.2);
+    font-size: var(--fs-base);
+    line-height: var(--lh-base);
+  }
+  [data-theme="dark"] .claude-patterns > li {
+    border-color: rgba(252, 211, 77, 0.2);
+  }
+  .claude-patterns > li:last-child { border-bottom: 0; }
+  .claude-patterns > li:first-child { padding-top: 0; }
+  .pattern-name {
+    display: inline-block;
+    color: #78350f;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  [data-theme="dark"] .pattern-name { color: #fde68a; }
+  .pattern-desc {
+    color: #78350f;
+    margin-left: 0;
+  }
+  [data-theme="dark"] .pattern-desc { color: #fef3c7; }
+  .pattern-file {
+    display: block;
+    margin-top: 6px;
+    padding: 3px 8px;
+    background: rgba(180, 83, 9, 0.08);
+    border: 1px solid rgba(180, 83, 9, 0.2);
+    border-radius: 3px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.82em;
+    color: #92400e;
+    word-break: break-all;
+    line-height: 1.5;
+  }
+  [data-theme="dark"] .pattern-file {
+    background: rgba(252, 211, 77, 0.08);
+    border-color: rgba(252, 211, 77, 0.25);
+    color: #fde68a;
+  }
+
+  /* ═══════════════ Prompt Library ═══════════════ */
+  .prompt-card {
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 18px 22px;
+    margin-bottom: 14px;
+    background: var(--bg-secondary);
+  }
+  .prompt-card.verdict-good { border-left-color: var(--success); }
+  .prompt-card.verdict-bad { border-left-color: var(--danger); }
+  .prompt-card.verdict-neutral { border-left-color: var(--info); }
+  .prompt-header {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 12px;
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+  .prompt-verdict-icon { font-size: var(--fs-md); }
+  .prompt-label { color: var(--text); }
+  .prompt-text {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 16px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 13px;
+    color: var(--code-text);
+    white-space: pre-wrap;
+    word-break: break-word;
+    line-height: 1.6;
+    margin-bottom: 12px;
+  }
+  .prompt-lesson {
+    font-size: var(--fs-base);
+    color: var(--text);
+    line-height: var(--lh-base);
+    padding-top: 10px;
+    border-top: 1px dashed var(--border);
+  }
+  .prompt-lesson strong {
+    color: var(--text-secondary);
+    font-weight: 600;
+  }
+
+  /* ═══════════════ Reference items ═══════════════ */
+  .ref-item {
+    display: block;
+    padding: 14px 18px;
+    margin-bottom: 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.15s;
+  }
+  .ref-item:hover {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .ref-title {
+    font-size: var(--fs-base);
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 4px;
+    line-height: var(--lh-tight);
+  }
+  .ref-url {
+    font-size: var(--fs-xs);
+    color: var(--text-faint);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    word-break: break-all;
+    margin-bottom: 6px;
+    line-height: 1.5;
+  }
+  .ref-note {
+    font-size: var(--fs-sm);
+    color: var(--text-secondary);
+    line-height: var(--lh-base);
+    margin-top: 6px;
+  }
+  .ref-tags {
+    display: flex; gap: 5px; flex-wrap: wrap;
+    margin-top: 8px;
+  }
+  .ref-tag {
+    font-size: 10px;
+    background: var(--bg-tertiary);
+    color: var(--text-muted);
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+  }
+
+  /* ═══════════════ Mermaid diagram ═══════════════ */
+  .mermaid-container {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+    background: var(--bg-secondary);
+    overflow-x: auto;
+    text-align: center;
+  }
+  .mermaid-container svg { max-width: 100%; height: auto; }
+
+  /* ═══════════════ Prompts panel (sidebar tab #2) ═══════════════ */
+  .prompts-panel {
+    padding: 16px;
+  }
+  .prompts-panel h3 {
+    font-size: var(--fs-xs);
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 12px;
+    margin-top: 12px;
+  }
+  .prompts-panel h3:first-child { margin-top: 0; }
+  .mini-prompt-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--border-strong);
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    font-size: var(--fs-sm);
+    line-height: var(--lh-base);
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .mini-prompt-card:hover { border-color: var(--accent); }
+  .mini-prompt-card.verdict-good { border-left-color: var(--success); }
+  .mini-prompt-card.verdict-bad { border-left-color: var(--danger); }
+  .mini-prompt-card .label {
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .mini-prompt-card .preview {
+    color: var(--text-muted);
+    font-size: var(--fs-xs);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.5;
+  }
+
+  /* ═══════════════ Mobile responsive ═══════════════ */
+  .mobile-toggle {
+    display: none;
+    position: fixed;
+    top: 12px; left: 12px;
+    z-index: 100;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 13px;
+    cursor: pointer;
+    color: var(--text);
+    box-shadow: var(--shadow);
+    font-family: inherit;
+    font-size: var(--fs-sm);
+  }
+  @media (max-width: 768px) {
+    .mobile-toggle { display: block; }
+    .sidebar {
+      position: fixed;
+      left: -100%;
+      top: 0;
+      height: 100vh;
+      z-index: 99;
+      transition: left 0.25s;
+      box-shadow: 0 0 20px rgba(0,0,0,0.1);
+    }
+    .sidebar.open { left: 0; }
+    .content { padding: 64px 24px 80px; }
+    .feature-h1 { font-size: var(--fs-2xl); }
+  }
+
+  /* ═══════════════ Functions panel (sidebar tab — 함수 사전) ═══════════════ */
+  .functions-panel { padding: 12px 16px; }
+  .functions-filter {
+    display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 12px;
+  }
+  .func-cat-chip {
+    font-size: 10px; padding: 3px 8px; border-radius: 11px;
+    border: 1px solid var(--border); background: var(--bg);
+    color: var(--text-muted); cursor: pointer; font-family: inherit;
+    transition: all 0.12s;
+  }
+  .func-cat-chip:hover { background: var(--bg-tertiary); color: var(--text); }
+  .func-cat-chip.active {
+    background: var(--accent); color: white; border-color: var(--accent);
+  }
+  .func-cat-chip .count { opacity: 0.7; margin-left: 2px; font-weight: 500; }
+  .functions-group-label {
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--text-faint); margin: 14px 0 4px; padding: 0 2px;
+  }
+  .functions-group-label:first-child { margin-top: 0; }
+  .func-item {
+    padding: 6px 10px; border-radius: 5px; cursor: pointer;
+    border-left: 2px solid transparent;
+    transition: background 0.1s, border-color 0.1s;
+    display: flex; align-items: baseline; gap: 8px; min-width: 0;
+  }
+  .func-item:hover {
+    background: var(--bg-tertiary); border-left-color: var(--accent);
+  }
+  .func-item.active {
+    background: var(--accent-soft); border-left-color: var(--accent);
+  }
+  .func-name {
+    font-family: var(--font-mono); font-size: 12px; font-weight: 600;
+    color: var(--text); flex-shrink: 0; max-width: 60%;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .func-desc-mini {
+    font-size: 11px; color: var(--text-muted); line-height: 1.35;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0;
+  }
+  .func-cat-badge {
+    font-size: 9px; padding: 1px 5px; border-radius: 7px;
+    background: var(--border); color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.03em; flex-shrink: 0;
+  }
+  .func-cat-badge.cat-test { background: #f59e0b22; color: #b45309; }
+  .func-cat-badge.cat-internal { background: #6366f122; color: #4338ca; }
+  .func-cat-badge.cat-legacy { background: #94a3b822; color: #475569; }
+  .func-cat-badge.cat-migration { background: #ec489922; color: #be185d; }
+  .func-cat-badge.cat-cleanup { background: #06b6d422; color: #0e7490; }
+
+  /* Main 영역의 함수 상세 표시 */
+  .func-detail { max-width: 980px; }
+  .func-detail-name {
+    font-family: var(--font-mono); font-size: var(--fs-2xl); font-weight: 700;
+    margin: 0 0 6px; color: var(--text);
+  }
+  .func-detail-meta {
+    display: flex; flex-wrap: wrap; gap: 10px; font-size: var(--fs-sm); color: var(--text-muted);
+    margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--border);
+  }
+  .func-detail-meta code {
+    font-family: var(--font-mono); background: var(--bg-tertiary);
+    padding: 2px 6px; border-radius: 3px;
+  }
+  .func-section {
+    margin: 18px 0;
+  }
+  .func-section h3 {
+    font-size: var(--fs-sm); font-weight: 700; color: var(--text-muted);
+    margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .func-description-box {
+    padding: 14px 18px; background: var(--bg-secondary);
+    border-left: 3px solid var(--accent); border-radius: 5px;
+    line-height: 1.65; color: var(--text);
+  }
+  .func-trigger-row {
+    padding: 10px 14px; background: var(--bg-secondary);
+    border: 1px solid var(--border); border-radius: 6px;
+    margin-bottom: 6px; font-size: var(--fs-sm);
+  }
+  .func-trigger-row .trigger-type {
+    display: inline-block; padding: 2px 8px; border-radius: 9px;
+    background: var(--accent); color: white;
+    font-size: 10px; font-weight: 700; margin-right: 8px; vertical-align: middle;
+  }
+  .func-caller-row {
+    padding: 6px 12px; background: var(--bg-secondary);
+    border-radius: 4px; margin-bottom: 4px;
+    font-family: var(--font-mono); font-size: 12px;
+    overflow-x: auto; white-space: nowrap;
+  }
+  .func-caller-row .caller-file {
+    color: var(--text-muted); margin-right: 8px;
+  }
+  .func-empty {
+    color: var(--text-faint); font-size: var(--fs-sm); padding: 8px 0;
+  }
+</style>
+</head>
+<body>
+<button class="mobile-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open')">☰ Menu</button>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-title">Develop Note</div>
+      <div class="sidebar-project" id="sidebar-project">jhtechSaaS</div>
+      <div class="sidebar-stats" id="sidebar-stats">
+        <span><strong id="stat-days">0</strong> days</span>
+        <span><strong id="stat-features">0</strong> features</span>
+        <span><strong id="stat-prompts">0</strong> prompts</span>
+      </div>
+    </div>
+    <div class="sidebar-tabs">
+      <button class="sidebar-tab active" data-tab="functions">📚 함수</button>
+      <button class="sidebar-tab" data-tab="features">📋 Features</button>
+      <button class="sidebar-tab" data-tab="prompts">🎯 Prompts</button>
+    </div>
+    <div class="search-box">
+      <input type="text" class="search-input" id="search-input" placeholder="검색...">
+    </div>
+    <nav class="sidebar-list" id="sidebar-list"></nav>
+    <div class="sidebar-footer">
+      <span id="last-updated">—</span>
+      <button class="theme-toggle" id="theme-toggle">🌙 Dark</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="content" id="content">
+      <div class="empty-state">
+        <h2>📓 개발 노트에 오신 것을 환영합니다</h2>
+        <p>왼쪽 사이드바에서 날짜와 기능을 선택하면 상세 내용을 볼 수 있습니다.<br>
+        매일매일 작성된 개발 기록이 누적됩니다.</p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- BEGIN_DEV_NOTES_DATA -->
+<script type="application/json" id="dev-notes-data">
+{
+  "project": "jhtechSaaS",
+  "entries": [
+    {
+      "tldr": "재현테크 견적관리 SaaS(jhtechSaaS) v1의 전 계획 단계 완주 — 기획(office-hours)→스펙(/spec)→검토(/autoplan)→디자인 시스템(/design-consultation)→프로젝트 지도(/map). 단일테넌트·아키텍처B(Vercel+Supabase+Railway 워커)·capability 권한 확정. 기능 코드 0줄, 인프라·계획·디자인 토대 완성. 다음은 E1 구현.",
+      "tags": [
+        "planning",
+        "architecture",
+        "gstack",
+        "supabase",
+        "monorepo",
+        "design-system",
+        "permissions",
+        "phase-0"
+      ],
+      "features": [
+        {
+          "title": "Phase 0 인프라 셋업 — pnpm 모노레포 + Supabase + 멀티계정 SSH",
+          "type": "chore",
+          "scope": "infra",
+          "status": "completed",
+          "filesChanged": [
+            "package.json",
+            "pnpm-workspace.yaml",
+            "apps/web/*",
+            "apps/worker/*",
+            "packages/shared/*",
+            "supabase/config.toml",
+            ".env.example",
+            "apps/web/src/env.ts",
+            "apps/worker/src/env.ts",
+            "~/.ssh/config"
+          ],
+          "context": "jhtechSaaS는 CLAUDE.md만 있던 그린필드. 기능 구현 전 repo·모노레포·DB·인증 토대가 필요했다.",
+          "implementation": "pnpm 모노레포(apps/web=Next.js→Vercel, apps/worker=Node→Railway, packages/shared=공유). Supabase init + jhtechSaaS 프로젝트(Seoul) 연결. 계정별 SSH 키로 개인(koreakingLab)·업무(jhtechsmart-cloud) 2계정을 전환 없이 분리. 환경변수는 Zod로 검증.",
+          "codeSnippets": [
+            {
+              "file": "apps/web/src/env.ts",
+              "lang": "typescript",
+              "code": "const publicEnvSchema = z.object({\n  NEXT_PUBLIC_SUPABASE_URL: z.string().min(1),\n  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),\n});\n// import 시점 아닌 호출 시점에 parse → 빌드 타임 값 없어도 안전\nexport function getPublicEnv() {\n  return publicEnvSchema.parse({ /* process.env... */ });\n}",
+              "caption": "env는 호출 시점에 parse (lazy) — 빌드 안전"
+            },
+            {
+              "file": "~/.ssh/config",
+              "lang": "bash",
+              "code": "Host github-jhtech\n  HostName github.com\n  IdentityFile ~/.ssh/id_ed25519_jhtech\n  IdentitiesOnly yes\n# remote: git@github-jhtech:jhtechsmart-cloud/jhtechSaaS.git",
+              "caption": "계정별 SSH — push 시 계정 자동 선택, 전환 불필요"
+            }
+          ],
+          "decisions": [
+            {
+              "title": "모노레포(web+worker+shared) — 아키텍처B의 워커가 확정이라 한 번에 구조 잡음"
+            },
+            {
+              "title": "계정별 SSH 키 방식 — gh auth switch는 전역이라 전환 실수 위험, SSH는 repo별 자동"
+            },
+            {
+              "title": "메일 발신 = Gmail SMTP(jhtechsmart@gmail.com) — Resend/SES는 gmail.com 도메인 인증 불가"
+            }
+          ],
+          "problems": [
+            {
+              "description": "gh가 개인계정(koreakingLab)으로 로그인됐는데 repo는 업무계정(jhtechsmart-cloud) 소유 → SSH alias + gh auth login으로 해결. (사용자가 'JHTech'라 한 실제 login명은 jhtechsmart-cloud였음)"
+            },
+            {
+              "description": "create-next-app이 'path not writable'로 실패 → apps/web 디렉터리 선생성 후 재시도"
+            },
+            {
+              "description": "zod 4가 .url()/.email() API 변경 → 스캐폴드는 z.string().min(1)만 사용"
+            },
+            {
+              "description": "worker tsc가 process.env에서 실패 → @types/node 추가"
+            }
+          ],
+          "learnings": [
+            "gh auth switch는 머신 전역(프로젝트별 아님). 멀티 GitHub 계정은 SSH per-account가 정석.",
+            "create-next-app(pnpm10)이 apps/web에 중첩 pnpm-workspace.yaml을 넣음 → 루트로 통합 필요."
+          ],
+          "id": "phase-0-인프라-셋업-pnpm-모노레포-supabase-멀티계정-ssh"
+        },
+        {
+          "title": "/spec — v1 EPIC + 7 child 백로그(GitHub 이슈) 정의",
+          "type": "docs",
+          "scope": "planning",
+          "status": "completed",
+          "filesChanged": [
+            "~/.gstack/projects/jhtechSaaS/specs/20260528-164821-epic-jhtechsaas-v1.md",
+            "GitHub issues #1~#8"
+          ],
+          "context": "office-hours design doc 승인 후, 요구사항을 실행 가능한 백로그로 떨궈야 했다.",
+          "implementation": "EPIC #1 + E1~E7(#2~#8) 이슈를 의존성·수용기준(AC)과 함께 생성. 단일테넌트 Postgres 스키마 스케치(profiles/equipment/applications/quotes/email_log).",
+          "decisions": [
+            {
+              "title": "권한 = capability(데이터 기반). role enum 거부. profiles.permissions[] + 코드 permission registry + RLS has_permission(). 미래 역할(창고/설치팀)은 권한 키만 추가(스키마 변경 0)."
+            },
+            {
+              "title": "핵심 원리: '메커니즘은 지금 확정, taxonomy(권한 종류)는 기능 만들 때마다 1개씩 추가' — 지금 다 못 정해도 됨"
+            }
+          ],
+          "problems": [
+            {
+              "description": "codex 품질 게이트가 계정 모델 제한으로 스킵됨"
+            },
+            {
+              "description": "gh 계정 불일치로 처음엔 이슈 파일링 불가 → 사용자가 업무계정 인증 후 8개 생성"
+            }
+          ],
+          "learnings": [],
+          "id": "spec-v1-epic-7-child-백로그-github-이슈-정의"
+        },
+        {
+          "title": "/autoplan — 계획 검토(CEO/Design/Eng) 및 승인",
+          "type": "docs",
+          "scope": "review",
+          "status": "completed",
+          "filesChanged": [
+            "~/.gstack/projects/jhtechSaaS/main-autoplan-review-20260528-173317.md",
+            "EPIC #1 코멘트"
+          ],
+          "context": "구현 전 아키텍처·범위를 다중 관점으로 검토하고 미해결 설계를 닫아야 했다.",
+          "implementation": "Codex가 계정 모델 제한으로 다운 → Claude 독립 서브에이전트 단일 voice. Eng 리뷰가 EPIC의 미해결 빈칸을 구체적으로 해결.",
+          "decisions": [
+            {
+              "title": "워커 잡 트리거 = jobs 큐 테이블 + Railway 폴링 FOR UPDATE SKIP LOCKED (webhook/Realtime 함정 회피)"
+            },
+            {
+              "title": "has_permission() = SECURITY DEFINER + search_path='' + InitPlan 래핑(재귀·권한상승·성능)"
+            },
+            {
+              "title": "견적 버전 = MAX(version) + UNIQUE(application_id, version) (is_latest 토글 레이스 제거)"
+            },
+            {
+              "title": "row scope = assignee_id=auth.uid() OR has_permission('applications.view_all') 명문화"
+            },
+            {
+              "title": "anon 폼 = INSERT만 + WITH CHECK + Turnstile, service_role 서버 전용, PDF=Puppeteer+Pretendard"
+            },
+            {
+              "title": "UI-SPEC 게이트를 E2 앞에 추가. 사용자는 premise 게이트에서 Railway 워커+capability 유지 선택"
+            }
+          ],
+          "problems": [
+            {
+              "description": "codex가 gpt-5.4/gpt-5 미지원(ChatGPT 계정) → dual-voice 불가, 단일 voice로 진행"
+            }
+          ],
+          "learnings": [],
+          "id": "autoplan-계획-검토-ceo-design-eng-및-승인"
+        },
+        {
+          "title": "/design-consultation — DESIGN.md 디자인 시스템",
+          "type": "docs",
+          "scope": "design",
+          "status": "completed",
+          "filesChanged": [
+            "DESIGN.md",
+            "CLAUDE.md",
+            "~/.gstack/projects/jhtechSaaS/designs/design-system-20260528/design-preview.html"
+          ],
+          "context": "현 174KB 모놀리식 admin.html의 무계획 레이아웃을 대체할 fresh design 시스템이 필요했다.",
+          "implementation": "북극성='복잡한 것을 한눈에'(명료함). industrial-clean. Pretendard(한글 UI)+JetBrains Mono(숫자·식별자 tabular). 중립 그레이+deep teal 액센트+상태 색 스파인. HTML 프리뷰로 관리자 콘솔에 적용해 확인.",
+          "decisions": [
+            {
+              "title": "북극성=명료함 → 장식 최소·강한 위계·색은 의미(상태)로만"
+            },
+            {
+              "title": "상태(신규/배정/견적중/발송완료/실패)를 1급 색 스파인으로, 숫자·식별자는 mono+tabular"
+            }
+          ],
+          "problems": [
+            {
+              "description": "AI 목업($D variants)이 OpenAI 조직 인증(gpt-image-1) 요구 → HTML 프리뷰로 대체. 키는 ~/.gstack/openai.json에 등록됨(인증 후 생성 가능)"
+            }
+          ],
+          "learnings": [],
+          "id": "design-consultation-design-md-디자인-시스템"
+        },
+        {
+          "title": "프로젝트 지도(PROJECT-MAP.html) + /map 명령어",
+          "type": "docs",
+          "scope": "tooling",
+          "status": "completed",
+          "filesChanged": [
+            "PROJECT-MAP.html",
+            ".claude/commands/map.md",
+            ".gitignore"
+          ],
+          "context": "사용자가 산출물이 4곳(프로젝트 폴더·~/.gstack·~/.claude memory·GitHub)에 흩어진 구조와 용어가 낯설어, 단계별 이해 + 문제 시 어디를 볼지 알 수 있는 지도가 필요했다.",
+          "implementation": "4곳 파일 인벤토리 + 단계별 파일 생성 맵 + 문제 시 참조표를 DESIGN.md 스타일 HTML로. /map 슬래시 명령어로 재생성(4곳 재스캔). 표 컬럼 폭은 table-layout:fixed+colgroup으로 단계·명령어 한 줄 고정.",
+          "decisions": [
+            {
+              "title": "반복 정리 작업을 커스텀 슬래시 명령(.claude/commands/map.md)으로 만들어 매번 타이핑 불필요"
+            }
+          ],
+          "problems": [],
+          "learnings": [
+            "gstack 산출물은 프로젝트 폴더 밖(~/.gstack)에 저장됨 — 사용자가 가장 헷갈려한 지점"
+          ],
+          "id": "프로젝트-지도-project-map-html-map-명령어"
+        }
+      ],
+      "prompts": [
+        {
+          "label": "결정 못 할 때 — 메커니즘/taxonomy 분리",
+          "prompt": "관리자가 사용자를 추가할 때 권한을 체크박스로 지정하게 하고 싶은데, 아직 권한 종류를 정확히 모르겠어. 지금 정하기 힘든데 어떻게 하는게 좋을까?",
+          "verdict": "good",
+          "lesson": "'지금 다 못 정하는 결정'은 '메커니즘(어떻게 저장·검사)은 지금 확정, 세부 목록(taxonomy)은 기능 만들 때마다 점진 추가'로 쪼개면 풀린다. → capability 권한 모델."
+        },
+        {
+          "label": "워크플로 정식 루트 묻기",
+          "prompt": "원래 g-stack 개발자가 사용하는 정식 루트는? office-hours 다음에 뭘 해야해?",
+          "verdict": "good",
+          "lesson": "도구 체계가 낯설 때 '정식 루트가 뭐냐'를 먼저 물으면 이후 단계 선택이 쉬워지고 GSD/gstack 혼용 같은 함정을 피한다."
+        },
+        {
+          "label": "구조 이해용 정리 + 명령어화",
+          "prompt": "용어가 낯설어 이해가 안 됨. 지금까지 만든 파일의 위치·목적·내용과 단계별 생성 파일을 HTML로 정리하고, 명령어 하나로 재생성하게 만들어줘.",
+          "verdict": "good",
+          "lesson": "반복할 정리 작업은 '산출물(HTML) + 슬래시 명령어'로 만들면 매번 길게 타이핑할 필요가 없다. 이해를 위한 산출물은 시각화(표·다이어그램)가 효과적."
+        },
+        {
+          "label": "새 도구 도입 전 중복 확인",
+          "prompt": "다른 프로젝트에선 devnote로 그날 개발 내용을 정리하는데, 지금 쓰면 중복일까? 확인해봐.",
+          "verdict": "good",
+          "lesson": "새 도구 도입 전 기존 산출물과 '축'이 겹치는지 확인(시간순 vs 구조 vs 기억). 겹치지 않으면 보완 관계."
+        }
+      ],
+      "references": [],
+      "changelog": {
+        "added": [
+          "pnpm 모노레포 골격(web/worker/shared)",
+          "Supabase 연결(jhtechSaaS 프로젝트)",
+          "계정별 SSH 인증",
+          "v1 EPIC + 7 child 이슈(#1~#8)",
+          "autoplan 리뷰 문서",
+          "DESIGN.md 디자인 시스템",
+          "PROJECT-MAP.html + /map 명령어"
+        ],
+        "changed": [
+          "CLAUDE.md(Design System 규칙 추가)",
+          ".gitignore(.devnote-scratch, settings.local.json)"
+        ],
+        "fixed": [
+          "PROJECT-MAP 단계 맵 표 컬럼 폭(table-layout:fixed)"
+        ],
+        "removed": []
+      },
+      "nextSteps": [
+        "E1(#2) Foundation 구현 — 스키마+Auth+capability RLS+Storage. autoplan E1 게이트(has_permission SECURITY DEFINER·row scope·service_role/anon WITH CHECK) 적용, Superpowers TDD",
+        "E2 착수 전 UI-SPEC(surface별 5-state·콘솔 정보위계·반응형 분리) 작성",
+        "(선택) OpenAI 조직 인증 → AI 목업 생성 / codex 모델 설정 수정 → dual-voice 복구"
+      ],
+      "claudeHints": "jhtechSaaS는 단일테넌트·capability 권한·아키텍처B(Vercel+Supabase+Railway 워커) 전제다. 구현 전 반드시 DESIGN.md와 EPIC #1 코멘트의 autoplan 해결책(워커=jobs 큐+SKIP LOCKED 폴링, has_permission=SECURITY DEFINER+InitPlan, 버전=MAX+UNIQUE, row scope 명문화, anon WITH CHECK)을 따른다. E1(#2)부터 Superpowers TDD로 시작.",
+      "reusablePatterns": [
+        {
+          "name": "호출 시점 env 검증(Zod lazy)",
+          "description": "import 시점 아닌 함수 호출 시 parse → 빌드 타임에 값 없어도 안전",
+          "file": "apps/web/src/env.ts"
+        },
+        {
+          "name": "계정별 SSH 라우팅",
+          "description": "~/.ssh/config Host alias + remote URL로 멀티 GitHub 계정을 전환 없이 push",
+          "file": "~/.ssh/config"
+        },
+        {
+          "name": "큐 테이블 + SKIP LOCKED 폴링(예정)",
+          "description": "워커 잡 트리거 — webhook/Realtime보다 solo 디버깅 쉬움. E5에서 구현",
+          "file": "(E5 구현 예정)"
+        }
+      ],
+      "date": "2026-05-28",
+      "mainTask": "v1-계획-셋업-디자인시스템"
+    }
+  ]
+}
+</script>
+<!-- END_DEV_NOTES_DATA -->
+
+<!-- BEGIN_FUNCTIONS_CATALOG -->
+<script type="application/json" id="functions-catalog">
+{
+  "generated_at": "2026-05-28T19:39:43",
+  "project_root": "/Users/seonjecho/Projects/jhtechSaaS",
+  "total_functions": 0,
+  "categories": {},
+  "functions": []
+}
+</script>
+<!-- END_FUNCTIONS_CATALOG -->
+
+<script>
+(function() {
+  'use strict';
+
+  const dataEl = document.getElementById('dev-notes-data');
+  let data;
+  try {
+    data = JSON.parse(dataEl.textContent);
+  } catch (e) {
+    console.error('Failed to parse dev notes data:', e);
+    data = { project: 'Unknown', entries: [] };
+  }
+
+  // Initialize mermaid
+  if (window.mermaid) {
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default',
+      flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' },
+      fontFamily: 'Pretendard, sans-serif'
+    });
+  }
+
+  // Set project
+  document.getElementById('sidebar-project').textContent = data.project || 'Project';
+  document.title = (data.project || 'Project') + ' — Develop Note';
+
+  // Stats
+  document.getElementById('stat-days').textContent = data.entries.length;
+  let featureCount = 0, promptCount = 0;
+  data.entries.forEach(e => {
+    featureCount += (e.features || []).length;
+    promptCount += (e.prompts || []).length;
+  });
+  document.getElementById('stat-features').textContent = featureCount;
+  document.getElementById('stat-prompts').textContent = promptCount;
+
+  if (data.entries.length > 0) {
+    const dates = data.entries.map(e => e.date).sort();
+    document.getElementById('last-updated').textContent = 'Last: ' + dates[dates.length - 1];
+  }
+
+  // Theme handling
+  const themeToggle = document.getElementById('theme-toggle');
+  const savedTheme = localStorage.getItem('devnote-theme') || 'light';
+  applyTheme(savedTheme);
+  themeToggle.onclick = () => {
+    const cur = document.documentElement.getAttribute('data-theme');
+    const next = cur === 'dark' ? 'light' : 'dark';
+    applyTheme(next);
+    localStorage.setItem('devnote-theme', next);
+  };
+  function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    themeToggle.textContent = theme === 'dark' ? '☀️ Light' : '🌙 Dark';
+    document.getElementById('hljs-light').disabled = theme === 'dark';
+    document.getElementById('hljs-dark').disabled = theme !== 'dark';
+    if (window.mermaid) {
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: theme === 'dark' ? 'dark' : 'default',
+        flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' },
+        fontFamily: 'Pretendard, sans-serif'
+      });
+      // Re-render existing diagrams if any
+      document.querySelectorAll('.mermaid-rendered').forEach(el => {
+        const src = el.dataset.mermaidSrc;
+        if (src) {
+          el.classList.remove('mermaid-rendered');
+          el.removeAttribute('data-processed');
+          el.innerHTML = src;
+          renderMermaid(el);
+        }
+      });
+    }
+  }
+
+  // Sort entries newest first
+  data.entries.sort((a, b) => b.date.localeCompare(a.date));
+
+  let currentTab = 'functions';
+  let currentFeatureId = null;
+  let currentFuncName = null;
+  let currentFuncCat = 'all';
+
+  // ── 함수 카탈로그 로드 (별도 inline JSON)
+  let functionsCatalog = { functions: [], categories: {}, total_functions: 0 };
+  try {
+    const _fcEl = document.getElementById('functions-catalog');
+    if (_fcEl && _fcEl.textContent.trim()) {
+      functionsCatalog = JSON.parse(_fcEl.textContent);
+    }
+  } catch (e) {
+    console.warn('functions-catalog 파싱 실패', e);
+  }
+
+  // Tab switching
+  document.querySelectorAll('.sidebar-tab').forEach(btn => {
+    btn.onclick = () => {
+      document.querySelectorAll('.sidebar-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentTab = btn.dataset.tab;
+      renderSidebar(document.getElementById('search-input').value);
+    };
+  });
+
+  function renderSidebar(filter) {
+    const list = document.getElementById('sidebar-list');
+    list.innerHTML = '';
+    filter = (filter || '').toLowerCase().trim();
+
+    if (currentTab === 'features') {
+      data.entries.forEach((entry, dateIdx) => {
+        const features = (entry.features || []).filter(f => {
+          if (!filter) return true;
+          const hay = [f.title, f.context, f.implementation, (f.tags||[]).join(' '), entry.mainTask].join(' ').toLowerCase();
+          return hay.includes(filter);
+        });
+        if (features.length === 0 && filter) return;
+
+        const group = document.createElement('div');
+        group.className = 'date-group';
+        const header = document.createElement('div');
+        header.className = 'date-header';
+        header.innerHTML = `
+          <svg class="date-toggle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          <span class="date-label">${escapeHtml(entry.date)}${entry.mainTask ? ' · ' + escapeHtml(entry.mainTask) : ''}</span>
+          <span class="date-count">${features.length}</span>
+        `;
+        header.onclick = () => group.classList.toggle('collapsed');
+        group.appendChild(header);
+
+        const ul = document.createElement('ul');
+        ul.className = 'feature-list';
+        features.forEach(f => {
+          const li = document.createElement('li');
+          li.className = 'feature-item';
+          li.dataset.featureId = f.id;
+          li.innerHTML = `
+            <span class="feature-type-badge ${cssClass(f.type||'chore')}">${escapeHtml(f.type||'chore')}</span>
+            <span class="feature-title-text">${escapeHtml(f.title)}</span>
+          `;
+          li.onclick = () => selectFeature(entry, f);
+          ul.appendChild(li);
+        });
+        group.appendChild(ul);
+        list.appendChild(group);
+      });
+    } else if (currentTab === 'functions') {
+      // Render functions panel
+      const panel = document.createElement('div');
+      panel.className = 'functions-panel';
+      const allFuncs = functionsCatalog.functions || [];
+
+      if (allFuncs.length === 0) {
+        panel.innerHTML = '<p style="color:var(--text-muted);font-size:13px;padding:20px 0;line-height:1.6;">함수 카탈로그가 비어있습니다.<br><br><code>extract_functions.py</code>를 실행하세요.</p>';
+        list.appendChild(panel);
+        return;
+      }
+
+      // 카테고리 필터 UI
+      const cats = functionsCatalog.categories || {};
+      const allCount = Object.values(cats).reduce((a, b) => a + b, 0);
+      const filterRow = document.createElement('div');
+      filterRow.className = 'functions-filter';
+      const catOrder = ['all', 'production', 'internal', 'test', 'migration', 'cleanup', 'legacy'];
+      catOrder.forEach(cat => {
+        const count = cat === 'all' ? allCount : (cats[cat] || 0);
+        if (cat !== 'all' && count === 0) return;
+        const chip = document.createElement('button');
+        chip.className = 'func-cat-chip' + (currentFuncCat === cat ? ' active' : '');
+        chip.innerHTML = `${cat}<span class="count">(${count})</span>`;
+        chip.onclick = () => {
+          currentFuncCat = cat;
+          renderSidebar(document.getElementById('search-input').value);
+        };
+        filterRow.appendChild(chip);
+      });
+      panel.appendChild(filterRow);
+
+      // 필터링
+      const filtered = allFuncs.filter(f => {
+        if (currentFuncCat !== 'all' && f.category !== currentFuncCat) return false;
+        if (!filter) return true;
+        const hay = [f.name, f.description, f.file, (f.triggers||[]).map(t => t.description).join(' ')].join(' ').toLowerCase();
+        return hay.includes(filter);
+      });
+
+      // 파일별 그룹화
+      const byFile = {};
+      filtered.forEach(f => {
+        const key = f.file.replace(/^apps_script\//, '🛠 ').replace(/공급기업_관리\.html/, '🖥 공급사').replace(/신청기업_장비신청\.html/, '📝 신청자').replace(/^assets\//, '🎨 ').replace(/\.gs|\.js|\.html/g, '');
+        if (!byFile[key]) byFile[key] = [];
+        byFile[key].push(f);
+      });
+
+      Object.keys(byFile).sort().forEach(fileKey => {
+        const label = document.createElement('div');
+        label.className = 'functions-group-label';
+        label.textContent = fileKey + ' (' + byFile[fileKey].length + ')';
+        panel.appendChild(label);
+
+        byFile[fileKey].forEach(f => {
+          const row = document.createElement('div');
+          row.className = 'func-item' + (currentFuncName === f.name + '@' + f.file ? ' active' : '');
+          const catBadge = f.category && f.category !== 'production'
+            ? `<span class="func-cat-badge cat-${f.category}">${f.category[0].toUpperCase()}</span>`
+            : '';
+          row.innerHTML = `
+            <span class="func-name">${escapeHtml(f.name)}</span>
+            <span class="func-desc-mini">${escapeHtml(f.description || '')}</span>
+            ${catBadge}
+          `;
+          row.onclick = () => selectFunction(f);
+          panel.appendChild(row);
+        });
+      });
+
+      if (filtered.length === 0) {
+        const empty = document.createElement('p');
+        empty.style.cssText = 'color:var(--text-muted);font-size:12px;padding:16px 0;text-align:center;';
+        empty.textContent = '일치하는 함수 없음';
+        panel.appendChild(empty);
+      }
+
+      list.appendChild(panel);
+      return;
+    } else if (currentTab === 'prompts') {
+      // Render prompts panel
+      const panel = document.createElement('div');
+      panel.className = 'prompts-panel';
+
+      const allPrompts = [];
+      data.entries.forEach(e => (e.prompts || []).forEach(p => {
+        allPrompts.push({ ...p, _date: e.date, _entry: e });
+      }));
+
+      if (allPrompts.length === 0) {
+        panel.innerHTML = '<p style="color:var(--text-muted);font-size:13px;padding:20px 0;line-height:1.6;">아직 저장된 프롬프트가 없습니다.<br><br>매일 작업 중 /devnote-prompt 명령어로 잘 통한 프롬프트를 기록해보세요.</p>';
+      } else {
+        const filtered = allPrompts.filter(p => {
+          if (!filter) return true;
+          return [p.label, p.prompt, p.lesson].join(' ').toLowerCase().includes(filter);
+        });
+
+        const goodPrompts = filtered.filter(p => p.verdict === 'good');
+        const badPrompts = filtered.filter(p => p.verdict === 'bad');
+        const neutralPrompts = filtered.filter(p => !p.verdict || p.verdict === 'neutral');
+
+        function appendGroup(title, prompts) {
+          if (prompts.length === 0) return;
+          const h = document.createElement('h3');
+          h.textContent = title + ' (' + prompts.length + ')';
+          panel.appendChild(h);
+          prompts.forEach(p => {
+            const card = document.createElement('div');
+            card.className = 'mini-prompt-card verdict-' + cssClass(p.verdict || 'neutral');
+            card.innerHTML = `
+              <div class="label">${escapeHtml(p.label || '(라벨 없음)')} <span style="font-weight:400;color:var(--text-faint);font-size:10px;">· ${escapeHtml(p._date || '')}</span></div>
+              <div class="preview">${escapeHtml((p.prompt || '').substring(0, 120))}</div>
+            `;
+            card.onclick = () => showPromptDetail(p);
+            panel.appendChild(card);
+          });
+        }
+        appendGroup('✅ 잘 통한 프롬프트', goodPrompts);
+        appendGroup('🔁 참고 프롬프트', neutralPrompts);
+        appendGroup('❌ 잘 안 통한 프롬프트', badPrompts);
+      }
+      list.appendChild(panel);
+    }
+  }
+
+  function selectFeature(entry, feature) {
+    currentFeatureId = feature.id;
+    document.querySelectorAll('.feature-item').forEach(el => {
+      el.classList.toggle('active', el.dataset.featureId === feature.id);
+    });
+    renderContent(entry, feature);
+    if (window.innerWidth <= 768) {
+      document.querySelector('.sidebar').classList.remove('open');
+    }
+    document.querySelector('.main').scrollTop = 0;
+  }
+
+  function selectFunction(func) {
+    currentFuncName = func.name + '@' + func.file;
+    // 사이드바 다시 그려서 active 상태 반영
+    document.querySelectorAll('.func-item').forEach(el => el.classList.remove('active'));
+    // 메인 영역에 함수 상세 표시
+    const content = document.getElementById('content');
+    const catLabels = {
+      production: '운영', internal: '내부 헬퍼', test: '테스트',
+      migration: '마이그레이션', cleanup: '정리', legacy: 'Legacy'
+    };
+    const catLabel = catLabels[func.category] || func.category;
+    const triggersHtml = (func.triggers || []).length === 0
+      ? '<div class="func-empty">UI 또는 doPost 에서 직접 호출되지 않음 (다른 함수에서만 호출)</div>'
+      : (func.triggers || []).map(t => `
+        <div class="func-trigger-row">
+          <span class="trigger-type">${escapeHtml(t.type || '')}</span>
+          ${escapeHtml(t.description || '')}
+          ${t.page ? `<span style="color:var(--text-faint);font-size:11px;margin-left:8px;">📄 ${escapeHtml(t.page)}${t.line ? ':' + t.line : ''}</span>` : ''}
+        </div>
+      `).join('');
+    const callersHtml = (func.callers || []).length === 0
+      ? '<div class="func-empty">호출되지 않음 (또는 entry point)</div>'
+      : (func.callers || []).slice(0, 10).map(c => `
+        <div class="func-caller-row">
+          <span class="caller-file">${escapeHtml(c.file)}:${c.line}</span>
+          ${escapeHtml(c.snippet || '')}
+        </div>
+      `).join('') + (func.callers_more ? `<div class="func-empty">… 외 ${func.callers_more}개 호출처</div>` : '');
+
+    content.innerHTML = `
+      <div class="feature-header">
+        <div class="breadcrumb">
+          <span class="breadcrumb-item">${escapeHtml(data.project)}</span>
+          <span class="breadcrumb-sep">/</span>
+          <span class="breadcrumb-item">함수 사전</span>
+          <span class="breadcrumb-sep">/</span>
+          <span class="breadcrumb-item">${escapeHtml(catLabel)}</span>
+        </div>
+        <h1 class="func-detail-name">${escapeHtml(func.name)}()</h1>
+        <div class="func-detail-meta">
+          <span><code>${escapeHtml(func.file)}:${func.line}</code></span>
+          <span>${escapeHtml(catLabel)}</span>
+          ${func.is_async ? '<span style="color:var(--accent);font-weight:600;">async</span>' : ''}
+        </div>
+      </div>
+      <section class="func-section">
+        <h3>📌 기능 설명</h3>
+        <div class="func-description-box">${escapeHtml(func.description || '(설명 없음)')}</div>
+      </section>
+      <section class="func-section">
+        <h3>📝 시그니처</h3>
+        <pre class="code-snippet"><code>${escapeHtml(func.signature || '')}</code></pre>
+      </section>
+      <section class="func-section">
+        <h3>🖱 호출 트리거 (사용자 동작 / 라우팅)</h3>
+        ${triggersHtml}
+      </section>
+      <section class="func-section">
+        <h3>↪ 이 함수를 호출하는 곳 (${(func.callers || []).length}${func.callers_more ? '+' : ''})</h3>
+        ${callersHtml}
+      </section>
+      ${func.body_preview ? `
+        <section class="func-section">
+          <h3>👁 본문 미리보기</h3>
+          <pre class="code-snippet"><code>${escapeHtml(func.body_preview)}</code></pre>
+        </section>
+      ` : ''}
+    `;
+    window.scrollTo(0, 0);
+  }
+
+  function showPromptDetail(prompt) {
+    const content = document.getElementById('content');
+    const verdictEmoji = { good: '✅', bad: '❌', neutral: '🔁' };
+    const verdictLabel = { good: '잘 통한 프롬프트', bad: '잘 안 통한 프롬프트', neutral: '참고 프롬프트' };
+    const v = prompt.verdict || 'neutral';
+
+    content.innerHTML = `
+      <div class="feature-header">
+        <div class="breadcrumb">
+          <span class="breadcrumb-item">${escapeHtml(data.project)}</span>
+          <span class="breadcrumb-sep">/</span>
+          <span class="breadcrumb-item">Prompt Library</span>
+          <span class="breadcrumb-sep">/</span>
+          <span class="breadcrumb-item">${escapeHtml(prompt._date || '')}</span>
+        </div>
+        <h1 class="feature-h1">${verdictEmoji[v]} ${escapeHtml(prompt.label || '(라벨 없음)')}</h1>
+        <div class="meta-row">
+          <span style="font-weight:600;color:var(--text-secondary);">${verdictLabel[v]}</span>
+          ${prompt._date ? `<span>${escapeHtml(prompt._date)}</span>` : ''}
+        </div>
+      </div>
+      <section class="section">
+        <div class="section-title">프롬프트 원문</div>
+        <div class="prompt-text">${escapeHtml(prompt.prompt || '')}</div>
+      </section>
+      ${prompt.lesson ? `
+        <section class="section">
+          <div class="section-title">교훈 · 메모</div>
+          <div class="prose">${md(prompt.lesson)}</div>
+        </section>
+      ` : ''}
+      ${prompt.context ? `
+        <section class="section">
+          <div class="section-title">상황</div>
+          <div class="prose">${md(prompt.context)}</div>
+        </section>
+      ` : ''}
+    `;
+    document.querySelector('.main').scrollTop = 0;
+  }
+
+  function md(s) {
+    if (!s) return '';
+    return marked.parse(s, { breaks: true });
+  }
+
+  function renderContent(entry, feature) {
+    const content = document.getElementById('content');
+
+    let html = `
+      <div class="feature-header">
+        <div class="breadcrumb">
+          <span class="breadcrumb-item">${escapeHtml(data.project)}</span>
+          <span class="breadcrumb-sep">/</span>
+          <span class="breadcrumb-item">${escapeHtml(entry.date)}</span>
+          <span class="breadcrumb-sep">/</span>
+          <span class="breadcrumb-item">${escapeHtml(entry.mainTask || '')}</span>
+        </div>
+        <h1 class="feature-h1">${escapeHtml(feature.title)}</h1>
+        <div class="meta-row">
+          <span class="feature-type-badge ${cssClass(feature.type||'chore')}">${escapeHtml(feature.type||'chore')}${feature.scope?'('+escapeHtml(feature.scope)+')':''}</span>
+          <span class="status-badge ${cssClass((feature.status||'completed').replace(/\s+/g,'-'))}">${escapeHtml(feature.status||'completed')}</span>
+          ${(feature.tags && feature.tags.length) ? `<div class="tags-row">${feature.tags.map(t=>`<span class="tag">${escapeHtml(t)}</span>`).join('')}</div>` : ''}
+        </div>
+      </div>
+    `;
+
+    const isFirstFeatureOfDay = (entry.features || [])[0] && (entry.features[0].id === feature.id);
+
+    // TL;DR — only on first feature of the day
+    if (isFirstFeatureOfDay && entry.tldr) {
+      html += `<section class="section"><div class="section-title">📌 TL;DR</div><div class="prose">${md(entry.tldr)}</div></section>`;
+    }
+
+    // Code structure diagram — only on first feature of the day
+    if (isFirstFeatureOfDay && entry.codeDiagram) {
+      html += `<section class="section">
+        <div class="section-title">📊 Code Structure (자동 분석)</div>
+        <div class="mermaid-container" id="mermaid-${escapeAttr(feature.id)}" data-mermaid-src="${escapeAttr(entry.codeDiagram)}">${escapeHtml(entry.codeDiagram)}</div>
+      </section>`;
+    }
+
+    if (feature.context) {
+      html += `<section class="section"><div class="section-title">📋 Context · 왜 (배경)</div><div class="prose">${md(feature.context)}</div></section>`;
+    }
+    if (feature.implementation) {
+      html += `<section class="section"><div class="section-title">🔨 Implementation · 무엇을 어떻게</div><div class="prose">${md(feature.implementation)}</div></section>`;
+    }
+
+    if (feature.codeSnippets && feature.codeSnippets.length) {
+      html += `<section class="section"><div class="section-title">💻 Key Code (기술 구현)</div>`;
+      feature.codeSnippets.forEach((sn, i) => {
+        const code = escapeHtml(sn.code || '');
+        // lang goes into a CSS class — restrict to safe characters only
+        const lang = (sn.lang || 'plaintext').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 30) || 'plaintext';
+        html += `
+          <div class="code-snippet">
+            <div class="code-snippet-header">
+              <span>${escapeHtml(sn.file || '')} · ${escapeHtml(lang)}</span>
+              <button class="copy-btn" data-feat-id="${escapeAttr(feature.id)}" data-code-idx="${i}">Copy</button>
+            </div>
+            <pre><code class="language-${lang}">${code}</code></pre>
+            ${sn.caption ? `<div class="code-snippet-caption">${escapeHtml(sn.caption)}</div>` : ''}
+          </div>
+        `;
+      });
+      html += `</section>`;
+    }
+
+    if (feature.decisions && feature.decisions.length) {
+      html += `<section class="section"><div class="section-title">📐 Architecture Decisions (ADR)</div>`;
+      feature.decisions.forEach(d => {
+        html += `
+          <div class="decision-card">
+            <div class="card-title">📐 ${escapeHtml(d.title || 'Decision')}</div>
+            ${d.context ? `<div class="card-row"><span class="label">Context</span><div class="value">${escapeHtml(d.context)}</div></div>` : ''}
+            ${(d.options && d.options.length) ? `<div class="card-row"><span class="label">Options Considered</span><ul>${d.options.map(o=>`<li>${escapeHtml(o)}</li>`).join('')}</ul></div>` : ''}
+            ${d.chosen ? `<div class="card-row"><span class="label">Chosen</span><div class="value"><strong>${escapeHtml(d.chosen)}</strong></div></div>` : ''}
+            ${d.rationale ? `<div class="card-row"><span class="label">Rationale</span><div class="value">${escapeHtml(d.rationale)}</div></div>` : ''}
+            ${d.consequences ? `<div class="card-row"><span class="label">Consequences</span><div class="value">${escapeHtml(d.consequences)}</div></div>` : ''}
+          </div>
+        `;
+      });
+      html += `</section>`;
+    }
+
+    if (feature.problems && feature.problems.length) {
+      html += `<section class="section"><div class="section-title">🐛 Problems & Solutions</div>`;
+      feature.problems.forEach(p => {
+        html += `
+          <div class="problem-card">
+            <div class="card-title">🐛 ${escapeHtml(p.description || 'Problem')}</div>
+            ${p.cause ? `<div class="card-row"><span class="label">Root Cause</span><div class="value">${escapeHtml(p.cause)}</div></div>` : ''}
+            ${p.solution ? `<div class="card-row"><span class="label">Solution</span><div class="value">${escapeHtml(p.solution)}</div></div>` : ''}
+            ${p.prevention ? `<div class="card-row"><span class="label">Prevention</span><div class="value">${escapeHtml(p.prevention)}</div></div>` : ''}
+          </div>
+        `;
+      });
+      html += `</section>`;
+    }
+
+    if (feature.learnings && feature.learnings.length) {
+      html += `<section class="section"><div class="section-title">💡 Learnings</div><div class="prose"><ul>${feature.learnings.map(l=>`<li>${escapeHtml(l)}</li>`).join('')}</ul></div></section>`;
+    }
+
+    // Day-level sections — only on first feature of the day
+    if (isFirstFeatureOfDay) {
+      // Prompts library section
+      if (entry.prompts && entry.prompts.length) {
+        html += `<section class="section"><div class="section-title">🎯 Prompt Library (오늘의 프롬프트)</div>`;
+        entry.prompts.forEach(p => {
+          const v = p.verdict || 'neutral';
+          const vEmoji = { good: '✅', bad: '❌', neutral: '🔁' };
+          const vLabel = { good: '잘 통한 프롬프트', bad: '잘 안 통한 프롬프트', neutral: '참고 프롬프트' };
+          html += `
+            <div class="prompt-card verdict-${cssClass(v)}">
+              <div class="prompt-header">
+                <span class="prompt-verdict-icon">${vEmoji[v]}</span>
+                <span>${vLabel[v]}</span>
+                ${p.label ? `<span>·</span><span class="prompt-label">${escapeHtml(p.label)}</span>` : ''}
+              </div>
+              <div class="prompt-text">${escapeHtml(p.prompt || '')}</div>
+              ${p.lesson ? `<div class="prompt-lesson"><strong>교훈:</strong> ${escapeHtml(p.lesson)}</div>` : ''}
+            </div>
+          `;
+        });
+        html += `</section>`;
+      }
+
+      // References
+      if (entry.references && entry.references.length) {
+        html += `<section class="section"><div class="section-title">📚 References & 외부 학습</div>`;
+        entry.references.forEach(r => {
+          html += `
+            <a class="ref-item" href="${escapeAttr(r.url || '#')}" target="_blank" rel="noopener">
+              <div class="ref-title">${escapeHtml(r.title || r.url || 'Untitled')}</div>
+              ${r.url ? `<div class="ref-url">${escapeHtml(r.url)}</div>` : ''}
+              ${r.note ? `<div class="ref-note">${escapeHtml(r.note)}</div>` : ''}
+              ${(r.tags && r.tags.length) ? `<div class="ref-tags">${r.tags.map(t=>`<span class="ref-tag">${escapeHtml(t)}</span>`).join('')}</div>` : ''}
+            </a>
+          `;
+        });
+        html += `</section>`;
+      }
+
+      // Changelog
+      const cl = entry.changelog || {};
+      const hasChangelog = ['added','changed','fixed','removed'].some(k => (cl[k]||[]).length);
+      if (hasChangelog) {
+        html += `<section class="section"><div class="section-title">📋 Changes Summary</div><div class="changelog-grid">`;
+        ['added','changed','fixed','removed'].forEach(k => {
+          if ((cl[k]||[]).length) {
+            html += `<div class="changelog-card ${k}"><h4>${k}</h4><ul>${cl[k].map(i=>`<li>${escapeHtml(i)}</li>`).join('')}</ul></div>`;
+          }
+        });
+        html += `</div></section>`;
+      }
+
+      // Next steps
+      if (entry.nextSteps && entry.nextSteps.length) {
+        html += `<section class="section"><div class="section-title">⏭️ Next Steps</div><ul class="next-steps">${entry.nextSteps.map(s=>`<li>${escapeHtml(s)}</li>`).join('')}</ul></section>`;
+      }
+
+      // Claude hints + reusable patterns
+      if (entry.claudeHints || (entry.reusablePatterns && entry.reusablePatterns.length)) {
+        html += `<div class="claude-hints">`;
+        html += `<h3>🤖 For Future Claude Code Sessions</h3>`;
+        if (entry.claudeHints) {
+          html += `<div class="claude-hint-body">${md(entry.claudeHints)}</div>`;
+        }
+        if (entry.reusablePatterns && entry.reusablePatterns.length) {
+          html += `<div class="claude-patterns-title">Reusable patterns:</div>`;
+          html += `<ul class="claude-patterns">`;
+          entry.reusablePatterns.forEach(p => {
+            html += `
+              <li>
+                <span class="pattern-name">${escapeHtml(p.name || '')}</span>
+                <span class="pattern-desc"> — ${escapeHtml(p.description || '')}</span>
+                ${p.file ? `<span class="pattern-file">${escapeHtml(p.file)}</span>` : ''}
+              </li>
+            `;
+          });
+          html += `</ul>`;
+        }
+        html += `</div>`;
+      }
+    }
+
+    content.innerHTML = html;
+
+    // Highlight code
+    content.querySelectorAll('pre code').forEach(b => {
+      try { hljs.highlightElement(b); } catch(e) {}
+    });
+
+    // Render mermaid diagrams
+    content.querySelectorAll('.mermaid-container').forEach(el => renderMermaid(el));
+
+    // Copy buttons
+    content.querySelectorAll('.copy-btn').forEach(btn => {
+      btn.onclick = () => {
+        const idx = parseInt(btn.dataset.codeIdx);
+        const code = feature.codeSnippets[idx].code;
+        navigator.clipboard.writeText(code).then(() => {
+          btn.textContent = 'Copied!';
+          setTimeout(() => btn.textContent = 'Copy', 1500);
+        });
+      };
+    });
+  }
+
+  function renderMermaid(el) {
+    if (!window.mermaid || el.classList.contains('mermaid-rendered')) return;
+    const src = el.dataset.mermaidSrc || el.textContent;
+    el.dataset.mermaidSrc = src;
+    try {
+      const id = 'mermaid-svg-' + Math.random().toString(36).slice(2, 9);
+      mermaid.render(id, src).then(({ svg }) => {
+        el.innerHTML = svg;
+        el.classList.add('mermaid-rendered');
+      }).catch(err => {
+        el.innerHTML = '<pre style="color:var(--text-muted);font-size:12px;text-align:left;">' + escapeHtml(src) + '</pre>';
+        console.error('Mermaid render error:', err);
+      });
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  function escapeHtml(s) {
+    if (s == null) return '';
+    return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]);
+  }
+  function escapeAttr(s) { return escapeHtml(s); }
+  // Sanitize for CSS class names — only alphanumeric, hyphen, underscore
+  function cssClass(s) {
+    if (s == null) return '';
+    return String(s).replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 40);
+  }
+
+  // Search
+  document.getElementById('search-input').addEventListener('input', (e) => {
+    renderSidebar(e.target.value);
+  });
+
+  renderSidebar();
+
+  // Auto-select most recent feature
+  if (data.entries.length > 0 && data.entries[0].features && data.entries[0].features.length > 0) {
+    selectFeature(data.entries[0], data.entries[0].features[0]);
+  }
+})();
+</script>
+</body>
+</html>
