@@ -21,3 +21,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - 코드·에러·DB 설정에 근거 없이 추측으로 수정하거나 응답하지 않는다.
 - 이 프로젝트는 초기 단계 — 아키텍처 결정 전에 사용자에게 확인한다.
+
+## Design System
+
+UI·시각 결정 전에 항상 `DESIGN.md`를 먼저 읽는다. 폰트·색·간격·레이아웃·미학 방향이 거기 정의돼 있다.
+사용자 명시 승인 없이 벗어나지 않는다. QA 시 DESIGN.md와 어긋나는 코드를 플래그한다.
+북극성: "복잡한 것을 한눈에"(명료함). 상태 = 색 스파인, 숫자·식별자 = mono tabular.
