@@ -7,6 +7,7 @@
 
 import { createServiceClient } from "@jhtechsaas/shared/supabase";
 import { PERMISSIONS, type PermissionKey } from "@jhtechsaas/shared/permissions";
+import { isLocalSupabaseUrl, resolveSeedPassword } from "@jhtechsaas/shared/seed";
 
 const url = process.env.SUPABASE_URL ?? process.env.API_URL;
 const key =
@@ -21,34 +22,39 @@ if (!url || !key) {
 
 // 프로덕션 가드: 약한 고정 비번 + 전체 권한 관리자를 실 프로젝트에 만들면 백도어가 된다.
 // 로컬(localhost/127.0.0.1/*.local)이 아니면 ALLOW_SEED_PROD=1 명시 없이는 거부한다.
-const isLocal = /(^https?:\/\/)?(localhost|127\.0\.0\.1|\[::1\]|.*\.local)(:|\/|$)/i.test(url);
+const isLocal = isLocalSupabaseUrl(url);
 if (!isLocal && process.env.ALLOW_SEED_PROD !== "1") {
   console.error(
-    `시드 거부: 비로컬 URL(${url})에 고정 비번 관리자 생성은 위험합니다. ` +
-      "의도한 경우에만 ALLOW_SEED_PROD=1 + 강한 비번(SEED_ADMIN_PASSWORD 등)으로 실행하세요.",
+    `시드 거부: 비로컬 URL(${url})에 관리자 생성은 위험합니다. ` +
+      "의도한 경우에만 ALLOW_SEED_PROD=1 + 강한 env 비번으로 실행하세요.",
   );
   process.exit(1);
 }
 
 interface SeedUser {
   email: string;
-  password: string;
   name: string;
   permissions: PermissionKey[];
+  passwordEnv: string; // 이 사용자 비번을 읽을 env 키
+  devDefault: string; // 로컬 전용 기본 비번
+  localOnly?: boolean; // true면 프로덕션 시드에서 제외(개발 편의 계정)
 }
 
 const SEED_USERS: SeedUser[] = [
   {
     email: "admin@jhtech.local",
-    password: "jhtech-admin-dev",
     name: "관리자",
     permissions: [...PERMISSIONS], // 전체 권한 (users.manage 포함)
+    passwordEnv: "SEED_ADMIN_PASSWORD",
+    devDefault: "jhtech-admin-dev",
   },
   {
     email: "sales@jhtech.local",
-    password: "jhtech-sales-dev",
     name: "영업담당",
     permissions: ["applications.view_all", "quotes.write", "email.send"],
+    passwordEnv: "SEED_SALES_PASSWORD",
+    devDefault: "jhtech-sales-dev",
+    localOnly: true, // 개발 편의 계정 — 프로덕션엔 만들지 않음
   },
 ];
 
@@ -56,10 +62,22 @@ async function main(): Promise<void> {
   const sb = createServiceClient(url!, key!);
 
   for (const u of SEED_USERS) {
+    // 개발 편의 계정은 프로덕션에서 건너뛴다.
+    if (!isLocal && u.localOnly) {
+      console.log(`↷ ${u.email} 건너뜀 (개발 전용 계정)`);
+      continue;
+    }
+    // 비번 해석: 로컬은 dev 기본, 프로덕션은 강한 env 비번 강제(약하면 throw).
+    const password = resolveSeedPassword({
+      isLocal,
+      envPassword: process.env[u.passwordEnv],
+      devDefault: u.devDefault,
+    });
+
     // 멱등: 생성 시도 → 이미 있으면 목록에서 id 조회.
     const created = await sb.auth.admin.createUser({
       email: u.email,
-      password: u.password,
+      password,
       email_confirm: true,
       user_metadata: { name: u.name },
     });

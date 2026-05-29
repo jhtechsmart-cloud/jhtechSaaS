@@ -9,6 +9,7 @@
     ".": "./src/index.ts",
     "./permissions": "./src/permissions.ts",
     "./supabase": "./src/supabase.ts",
+    "./seed": "./src/seed.ts",
     "./types": "./src/types.ts"
   },
   "scripts": {
