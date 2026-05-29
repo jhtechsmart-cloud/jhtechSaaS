@@ -54,11 +54,16 @@ describe("profiles — RLS 가시성", () => {
     });
   });
 
-  test("users.manage 보유자는 모든 profile을 본다", async () => {
+  test("users.manage 보유자는 타인 profile까지 본다", async () => {
     await inRollbackTx(c, async () => {
       await seedThree();
       await asUser(c, UID.admin);
-      const r = await c.query("select id from public.profiles");
+      // 전역 DB 상태(시드 잔존행)에 의존하지 않도록 시드한 3개 UID만 조회 →
+      // 관리자가 자기 외 sales1·sales2 profile도 본다는 걸 증명.
+      const r = await c.query(
+        "select id from public.profiles where id = any($1::uuid[])",
+        [[UID.admin, UID.sales1, UID.sales2]],
+      );
       expect(r.rowCount).toBe(3);
     });
   });
