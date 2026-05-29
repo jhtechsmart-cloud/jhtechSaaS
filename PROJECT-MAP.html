@@ -69,7 +69,7 @@
 <div class="wrap">
   <h1>프로젝트 지도</h1>
   <div class="sub">지금까지 만들어진 파일이 <b>어디에</b> 있고, <b>각 단계가 어떤 파일을 만드는지</b>, 문제 시 <b>어디를 봐야 하는지</b>.</div>
-  <div class="upd">갱신: 2026-05-28 · 명령어 <code>/map</code> 으로 재생성</div>
+  <div class="upd">갱신: 2026-05-29 · 명령어 <code>/map</code> 으로 재생성</div>
 
   <div class="lead">
     <b>핵심:</b> 이 프로젝트의 산출물은 <b>4곳에 흩어져</b> 있습니다. 코드·설정만 프로젝트 폴더 안에 있고,
@@ -100,7 +100,14 @@
     <tr><td class="path">apps/web/package.json · tsconfig.json</td><td>web 앱 설정</td><td>Next.js + React + Tailwind + zod 의존성</td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">apps/web/AGENTS.md · CLAUDE.md</td><td>web AI 지침</td><td>"이 Next.js는 학습데이터와 다름, docs 확인" 경고</td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">apps/worker/package.json · tsconfig.json</td><td>워커 설정</td><td>tsx + typescript + @types/node, shared 의존</td><td><span class="tag t-commit">커밋</span></td></tr>
-    <tr><td class="path">packages/shared/package.json</td><td>공유 패키지</td><td>web·worker 공유 타입·Zod·Supabase 클라이언트 자리</td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">packages/shared/package.json</td><td>공유 패키지</td><td>permissions registry·Supabase 팩토리·도메인 타입·seed 가드</td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">VERSION · CHANGELOG.md</td><td>버전·변경이력</td><td>4자리 버전(현재 0.1.0.1) + Keep a Changelog</td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">supabase/migrations/*.sql</td><td>DB 마이그레이션</td><td>E1 7종(profiles·권한·equipment·applications·quotes·email_log·storage). 원격 적용됨</td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">supabase/rollback/*.sql · seed/seed-local.sh</td><td>롤백·시드</td><td>마이그레이션 역스크립트 + 로컬 시드 헬퍼</td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">packages/db-tests/</td><td>RLS 통합 테스트</td><td>pg set role+jwt 하니스(Supabase 로컬), 47 RLS 단언</td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">apps/worker/src/seed-admin.ts</td><td>관리자 시드</td><td>service_role 부트스트랩(프로덕션 비번 가드)</td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">dev-notes/</td><td>개발 일지</td><td>일별 노트(.md) + 대시보드(HTML, /devnote)</td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">supabase/.temp/linked-project.json</td><td>원격 링크 기록</td><td>supabase link 산출(원격 프로젝트 ref)</td><td><span class="tag t-ignore">로컬</span></td></tr>
     <tr><td class="path">apps/web/.env.local</td><td>web 실제 환경변수</td><td><b>시크릿</b> — Supabase URL/anon key</td><td><span class="tag t-ignore">gitignore</span></td></tr>
     <tr><td class="path">apps/worker/.env</td><td>워커 실제 환경변수</td><td><b>시크릿</b> — service_role, Gmail 앱비밀번호</td><td><span class="tag t-ignore">gitignore</span></td></tr>
     <tr><td class="path">.claude/settings.local.json</td><td>Claude Code 로컬 설정</td><td>권한 허용 목록 등(이 머신 전용)</td><td><span class="tag t-ignore">로컬</span></td></tr>
@@ -112,6 +119,8 @@
     <tr><th>파일</th><th>만든 단계</th><th>요약</th></tr>
     <tr><td class="path">seonjecho-master-design-*.md</td><td>/office-hours</td><td>design doc — 문제·전제·대안·승인 접근("무엇을/왜")</td></tr>
     <tr><td class="path">specs/…-epic-jhtechsaas-v1.md</td><td>/spec</td><td>EPIC 스펙 아카이브(붙여넣기용 본문 + 이슈번호)</td></tr>
+    <tr><td class="path">specs/…-e1-foundation.md</td><td>/spec</td><td>E1 스펙 아카이브(스키마·RLS·결정 D1~D5)</td></tr>
+    <tr><td class="path">specs/…-e2-equipment-admin.md</td><td>/spec</td><td>E2 스펙 아카이브(장비 admin + 웹 인증, 결정 D1~D4)</td></tr>
     <tr><td class="path">main-autoplan-review-*.md</td><td>/autoplan</td><td>CEO·Design·Eng 리뷰 + 결정·해결책 + 감사로그</td></tr>
     <tr><td class="path">main-autoplan-restore-*.md</td><td>/autoplan</td><td>리뷰 시작 시점 plan 복원점(되돌리기용)</td></tr>
     <tr><td class="path">designs/…/design-preview.html</td><td>/design-consultation</td><td>디자인 시스템 적용 프리뷰(브라우저로 본 그것)</td></tr>
@@ -129,25 +138,32 @@
   <table>
     <tr><th>번호</th><th>제목</th><th>의존</th></tr>
     <tr><td class="path">#1</td><td>[EPIC] v1 재구축(+ autoplan 해결책 코멘트)</td><td>—</td></tr>
-    <tr><td class="path">#2</td><td>E1 Foundation: 스키마+Auth+capability RLS+Storage</td><td>—</td></tr>
-    <tr><td class="path">#3</td><td>E2 장비·옵션 관리 admin</td><td>#2</td></tr>
-    <tr><td class="path">#4</td><td>E3 견적요청서(공개 폼→DB)</td><td>#2,#3</td></tr>
+    <tr><td class="path">#2</td><td>E1 Foundation <span class="tag t-commit">CLOSED ✓</span></td><td>—</td></tr>
+    <tr><td class="path">#3</td><td>E2 장비 admin + 웹 인증 토대 <span class="tag t-remote">진행중</span></td><td>#2</td></tr>
+    <tr><td class="path">#4</td><td>E3 견적요청서(공개 폼→DB) + 공개 장비 카탈로그/상세</td><td>#2,#3</td></tr>
     <tr><td class="path">#5</td><td>E4 관리자 콘솔</td><td>#2,#4</td></tr>
     <tr><td class="path">#6</td><td>E5 견적 작성+통합 PDF(워커)</td><td>#2,#3,#5</td></tr>
     <tr><td class="path">#7</td><td>E6 메일 발송(워커)</td><td>#2,#6</td></tr>
     <tr><td class="path">#8</td><td>E7 업체 이력</td><td>#4~#7</td></tr>
+    <tr><td class="path">#11</td><td>2FA/MFA 2단계 인증 (백로그, v1.1+)</td><td>—</td></tr>
+    <tr><td class="path">#12</td><td>장비 사양 카테고리 템플릿 (백로그, 후속)</td><td>—</td></tr>
   </table>
 
   <h2>2. 단계별 파일 생성 맵</h2>
   <p class="note">각 단계를 진행하면 → 어디에 어떤 파일이 생기고 무슨 내용이 담기는지.</p>
 
+  <div class="lead" style="border-left-color:var(--sent)">
+    <b>진행 현황 (2026-05-29):</b> <b>E1 Foundation 완료</b> — 구현(TDD)→코드리뷰→배포(v0.1.0.1)→<b>원격 Supabase 적용</b>·첫 관리자 시드까지. 이슈 #2 닫힘.
+    현재 <b>E2(장비 admin + 웹 인증)</b> — 스펙 확정(#3), <b>다음 = UI-SPEC → 구현</b>.
+  </div>
+  <p class="note">아래 단계 바 = 한 phase의 생애주기. E1은 ①~⑨ 1회 완주. E2는 ③스펙까지 done, ⑤(UI-SPEC)이 다음.</p>
   <div class="flow">
     <span class="step done">① 기획</span><span class="arr">→</span>
     <span class="step done">② 셋업</span><span class="arr">→</span>
     <span class="step done">③ 스펙</span><span class="arr">→</span>
     <span class="step done">④ 검토</span><span class="arr">→</span>
-    <span class="step done">⑤ 디자인</span><span class="arr">→</span>
-    <span class="step next">⑥ 구현(다음)</span><span class="arr">→</span>
+    <span class="step next">⑤ 디자인/UI-SPEC(다음)</span><span class="arr">→</span>
+    <span class="step">⑥ 구현</span><span class="arr">→</span>
     <span class="step">⑦ 코드리뷰</span><span class="arr">→</span>
     <span class="step">⑧ QA</span><span class="arr">→</span>
     <span class="step">⑨ 배포</span>
