@@ -2,6 +2,11 @@
 
 이 프로젝트의 주요 변경 사항을 기록한다. [Keep a Changelog](https://keepachangelog.com/) 형식, [Semantic Versioning](https://semver.org/)(4자리 MAJOR.MINOR.PATCH.MICRO).
 
+## [0.1.0.1] - 2026-05-29
+
+### Fixed
+- seed-admin 프로덕션 비밀번호 가드 — 비로컬(프로덕션) 시드는 `SEED_*_PASSWORD` env(≥16자) 필수, 약한 dev 기본 비번 사용 차단. 개발 전용 계정은 프로덕션 시드에서 제외. (코드리뷰 후속 보안 보완)
+
 ## [0.1.0.0] - 2026-05-29
 
 ### Added
