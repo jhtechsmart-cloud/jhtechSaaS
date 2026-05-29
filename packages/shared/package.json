@@ -8,9 +8,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./permissions": "./src/permissions.ts",
-    "./env": "./src/env.ts",
     "./supabase": "./src/supabase.ts",
-    "./seq": "./src/seq.ts",
     "./types": "./src/types.ts"
   },
   "scripts": {

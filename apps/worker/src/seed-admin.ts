@@ -14,7 +14,18 @@ const key =
 
 if (!url || !key) {
   console.error(
-    "환경변수 SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY 필요. 로컬은 scripts/seed-local.sh 사용.",
+    "환경변수 SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY 필요. 로컬은 supabase/seed/seed-local.sh 사용.",
+  );
+  process.exit(1);
+}
+
+// 프로덕션 가드: 약한 고정 비번 + 전체 권한 관리자를 실 프로젝트에 만들면 백도어가 된다.
+// 로컬(localhost/127.0.0.1/*.local)이 아니면 ALLOW_SEED_PROD=1 명시 없이는 거부한다.
+const isLocal = /(^https?:\/\/)?(localhost|127\.0\.0\.1|\[::1\]|.*\.local)(:|\/|$)/i.test(url);
+if (!isLocal && process.env.ALLOW_SEED_PROD !== "1") {
+  console.error(
+    `시드 거부: 비로컬 URL(${url})에 고정 비번 관리자 생성은 위험합니다. ` +
+      "의도한 경우에만 ALLOW_SEED_PROD=1 + 강한 비번(SEED_ADMIN_PASSWORD 등)으로 실행하세요.",
   );
   process.exit(1);
 }
@@ -55,7 +66,15 @@ async function main(): Promise<void> {
 
     let id = created.data?.user?.id;
     if (!id) {
-      const { data } = await sb.auth.admin.listUsers();
+      // 이미 존재(중복 이메일)면 조회로 폴백. 그 외 에러는 삼키지 않고 던진다.
+      const dup = created.error?.message
+        ?.toLowerCase()
+        .match(/already|registered|exist/);
+      if (created.error && !dup) {
+        throw new Error(`사용자 생성 실패 ${u.email}: ${created.error.message}`);
+      }
+      const { data, error } = await sb.auth.admin.listUsers();
+      if (error) throw new Error(`사용자 조회 실패 ${u.email}: ${error.message}`);
       id = data.users.find((x) => x.email === u.email)?.id;
     }
     if (!id) throw new Error(`사용자 생성/조회 실패: ${u.email}`);

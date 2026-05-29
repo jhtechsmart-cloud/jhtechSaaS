@@ -26,7 +26,7 @@ create index on public.equipment_option (equipment_id);
 
 -- D5: 공개 뷰 — definer 권한(postgres 소유)으로 RLS 우회, active만, 가격·옵션 컬럼 제외.
 -- security_barrier로 술어 누수 방지. anon 상세 페이지가 이 뷰만 읽는다.
-create view public.equipment_public with (security_barrier) as
+create view public.equipment_public with (security_invoker = false, security_barrier = true) as
   select id, name, model, category, photos, specs, youtube_url, created_at
   from public.equipment
   where status = 'active';
