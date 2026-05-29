@@ -26,6 +26,9 @@ supabase/.temp/
 npm-debug.log*
 coverage/
 
+# Claude Code 세션 트랜스크립트(머신 전용 — repo에 커밋 금지)
+*.jsonl
+
 # dev-note 로컬 스크래치
 .devnote-scratch/
 

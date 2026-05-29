@@ -1,0 +1,20 @@
+{
+  "name": "@jhtechsaas/db-tests",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:rls": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@jhtechsaas/shared": "workspace:*",
+    "pg": "^8.13.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.41",
+    "@types/pg": "^8.11.10",
+    "typescript": "^5",
+    "vitest": "^3.2.4"
+  }
+}
