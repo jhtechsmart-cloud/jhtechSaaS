@@ -1655,7 +1655,15 @@ Expected: "✅". 발견 시 즉시 보고(env 경계 위반).
 | `pnpm -r typecheck` | GREEN (4 패키지 모두 0 errors) |
 | `pnpm --filter web build` | GREEN (Next.js 16 Turbopack, 7 routes 생성) |
 | `pnpm -r test` | GREEN — shared 24, web 30 = **총 54 테스트 PASS** |
-| `pnpm --filter db-tests test:rls` | 55 PASS / 4 FAIL — **실패 4건 전부 선행 로컬 DB 상태 이슈** (P3 이전 커밋 체크아웃 시 동일 4건 실패 확인, P3 코드와 무관) |
+| `pnpm --filter db-tests test:rls` | **59 PASS (clean DB 검증 완료)** — T11 중 일시 4 FAIL 관측됐으나 원인 규명·해소(아래) |
+
+#### db-tests 4건 실패 → 59 GREEN 규명 (T11 후속)
+
+T9 직후엔 59 GREEN였으나 T11 게이트에서 동일 RLS 4건 FAIL. 근본 원인 추적 결과 **P3 코드 무관 = T10 E2E의 로컬 공유 DB 오염**으로 확정하고 정리함:
+- 실패 4건은 전부 **전역 카운트 절대값 단언**(E1 선행 테스트): `equipment.test.ts:41` `rowCount toBe(2)`·`:71` `toBe(3)`, `storage.test.ts:52`·`:72` `toBe(1)`.
+- T10 Playwright E2E가 **로컬 DB에 커밋 데이터**를 남김: `equipment` 행 1건("E2E 포장기") + `equipment-images` 객체 5건(AC3 반복 실행분). `inRollbackTx` 격리라도 트랜잭션이 **사전 커밋된 행을 보므로** 카운트가 어긋남.
+- 정리: `public.equipment`의 E2E 행 직접 삭제 + `storage.objects`는 `protect_delete` 트리거로 직접 SQL 삭제 불가 → **로컬 Storage REST API(DELETE)** 로 5건 제거. 이후 재실행 → **59 PASS (10 files)** 재확인.
+- ⚠️ **재발 papercut + 후속 권고(P3 스코프 외)**: E2E `beforeAll`은 `equipment` 행만(이름 기준) 정리하고 **Storage 객체는 누적** → E2E 실행 후 db-tests storage 카운트 테스트가 다시 깨짐. 항구 해결: ① E2E에 `afterAll`로 생성 `equipment`(cascade)+업로드 객체 정리, 또는 ② E1 카운트 단언을 시드 고정 ID 부분집합(`where id in (...)`)으로 강건화. memory의 "전역 카운트 단언 금지" 노트와 동일 맥락.
 
 #### lint 수정 상세 (`fix(web): P3 lint 정리`)
 
