@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { requireEquipmentManage } from "@/lib/auth/guard";
 import { signOut } from "@/app/login/actions";
 
@@ -30,12 +31,12 @@ export default async function AdminLayout({
       <aside className="w-[196px] shrink-0 border-r border-border bg-surface p-4">
         <p className="mb-4 text-small font-semibold text-muted">재현테크</p>
         <nav className="flex flex-col gap-1">
-          <a
+          <Link
             href="/admin/equipment"
             className="rounded-md bg-surface-2 px-3 py-2 text-body font-medium text-text"
           >
             장비
-          </a>
+          </Link>
         </nav>
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">

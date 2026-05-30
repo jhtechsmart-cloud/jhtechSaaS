@@ -1,5 +1,6 @@
 "use client";
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import type { Equipment } from "@jhtechsaas/shared";
@@ -17,6 +18,7 @@ const STATUS_BADGE: Record<Equipment["status"], { label: string; cls: string }> 
 };
 
 export function EquipmentTable({ items }: { items: Equipment[] }) {
+  const router = useRouter();
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<StatusFilter>("all");
 
@@ -105,7 +107,8 @@ export function EquipmentTable({ items }: { items: Equipment[] }) {
               return (
                 <tr
                   key={it.id}
-                  className="border-b border-border hover:bg-surface-2"
+                  className="cursor-pointer border-b border-border hover:bg-surface-2"
+                  onClick={() => router.push(`/admin/equipment/${it.id}/edit`)}
                 >
                   <td className="py-2">
                     {it.photos[0] ? (

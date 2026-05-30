@@ -1,6 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireEquipmentManage } from "@/lib/auth/guard";
 import { equipmentFormSchema, type EquipmentFormValues } from "@/lib/equipment/schema";
@@ -13,6 +14,10 @@ export async function createEquipment(
 ): Promise<EquipmentActionResult> {
   const access = await requireEquipmentManage();
   if (access.status === "forbidden") return { error: "권한이 없습니다." };
+
+  if (!z.string().uuid().safeParse(id).success) {
+    return { error: "잘못된 요청입니다." };
+  }
 
   const parsed = equipmentFormSchema.safeParse(values);
   if (!parsed.success) return { error: "입력값을 확인하세요." };
