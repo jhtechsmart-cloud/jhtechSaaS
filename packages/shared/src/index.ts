@@ -4,6 +4,7 @@
 export const SHARED_PACKAGE = "@jhtechsaas/shared";
 
 export * from "./permissions";
+export * from "./specs";
 export * from "./supabase";
 export * from "./seed";
 export * from "./types";
