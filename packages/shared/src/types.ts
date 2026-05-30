@@ -2,6 +2,7 @@
 // 단일테넌트라 tenant_id 없음. 권한 키는 PermissionKey(permissions.ts) 참조.
 
 import type { PermissionKey } from "./permissions";
+import type { Spec } from "./specs";
 
 export type ApplicationStatus = "new" | "assigned" | "quoted" | "closed";
 export type QuoteStatus = "draft" | "issued";
@@ -24,7 +25,7 @@ export interface Equipment {
   category: string | null;
   base_price: number;
   photos: string[];
-  specs: Record<string, unknown>;
+  specs: Spec[];
   youtube_url: string | null;
   status: EquipmentStatus;
   created_at: string;
@@ -37,7 +38,7 @@ export interface EquipmentPublic {
   model: string | null;
   category: string | null;
   photos: string[];
-  specs: Record<string, unknown>;
+  specs: Spec[];
   youtube_url: string | null;
   created_at: string;
 }

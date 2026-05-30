@@ -1,0 +1,50 @@
+import { notFound } from "next/navigation";
+import { parseSpecs } from "@jhtechsaas/shared";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { EquipmentForm } from "../../_components/EquipmentForm";
+import type { EquipmentFormValues } from "@/lib/equipment/schema";
+
+// Next 16: params는 Promise.
+export default async function EditEquipmentPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("equipment")
+    .select("name, model, category, base_price, status, youtube_url, specs, photos")
+    .eq("id", id)
+    .single();
+  if (error || !data) notFound();
+
+  const { data: optionRows } = await supabase
+    .from("equipment_option")
+    .select("kind, name, price")
+    .eq("equipment_id", id)
+    .order("id", { ascending: true });
+
+  const initial: EquipmentFormValues = {
+    name: data.name,
+    model: data.model ?? "",
+    category: data.category ?? "",
+    base_price: Number(data.base_price),
+    status: data.status,
+    youtube_url: data.youtube_url ?? "",
+    specs: parseSpecs(data.specs),
+    photos: (data.photos ?? []) as string[],
+    options: (optionRows ?? []).map((o) => ({
+      kind: o.kind as "included" | "extra",
+      name: o.name,
+      price: Number(o.price),
+    })),
+  };
+
+  return (
+    <section className="flex flex-col gap-4">
+      <h1 className="text-h1 font-semibold text-text">장비 수정</h1>
+      <EquipmentForm mode="edit" id={id} initial={initial} />
+    </section>
+  );
+}
