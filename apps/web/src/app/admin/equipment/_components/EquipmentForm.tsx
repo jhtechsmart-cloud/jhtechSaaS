@@ -8,15 +8,15 @@ import {
   equipmentFormSchema,
   type EquipmentFormValues,
 } from "@/lib/equipment/schema";
-
-// RHF는 입력 타입(optional defaults)으로 제어, 액션은 출력 타입(EquipmentFormValues)으로 전달.
-type EquipmentFormInput = z.input<typeof equipmentFormSchema>;
 import {
   createEquipment,
   updateEquipment,
   deleteEquipment,
   type EquipmentActionResult,
 } from "../actions";
+
+// RHF는 입력 타입(optional defaults)으로 제어, 액션은 출력 타입(EquipmentFormValues)으로 전달.
+type EquipmentFormInput = z.input<typeof equipmentFormSchema>;
 
 type Props =
   | { mode: "create" }

@@ -23,7 +23,7 @@ export default async function EditEquipmentPage({
     model: data.model ?? "",
     category: data.category ?? "",
     base_price: Number(data.base_price),
-    status: data.status,
+    status: data.status === "inactive" ? "inactive" : "active",
     youtube_url: data.youtube_url ?? "",
   };
 
