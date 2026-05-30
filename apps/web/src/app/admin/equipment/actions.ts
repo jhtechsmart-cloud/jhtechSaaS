@@ -61,10 +61,20 @@ export async function createEquipment(
     specs: serializeSpecs(v.specs),
     photos: v.photos,
   });
-  if (error) return { error: `저장하지 못했습니다: ${error.message}` };
+  // 원시 DB 메시지는 스키마 fingerprinting 노출이라 서버 로그로만 남기고 일반 메시지 반환.
+  if (error) {
+    console.error("[equipment.create] insert 실패", error);
+    return { error: "저장하지 못했습니다." };
+  }
 
   const optErr = await replaceOptions(supabase, id, v);
-  if (optErr) return { error: `옵션 저장 실패: ${optErr}` };
+  if (optErr) {
+    // 보상 삭제: 옵션 저장 실패 시 방금 만든 장비 row 제거.
+    // 고아 row 방지 + 동일 id 재시도가 duplicate-key로 막히지 않게 함(F1).
+    console.error("[equipment.create] 옵션 저장 실패, 장비 row 보상 삭제", optErr);
+    await supabase.from("equipment").delete().eq("id", id);
+    return { error: "옵션을 저장하지 못했습니다." };
+  }
 
   revalidatePath("/admin/equipment");
   redirect("/admin/equipment");
@@ -102,13 +112,19 @@ export async function updateEquipment(
     })
     .eq("id", id)
     .select("id");
-  if (error) return { error: `저장하지 못했습니다: ${error.message}` };
+  if (error) {
+    console.error("[equipment.update] update 실패", error);
+    return { error: "저장하지 못했습니다." };
+  }
   if (!data || data.length === 0) {
     return { error: "이미 삭제되었거나 없는 항목입니다." };
   }
 
   const optErr = await replaceOptions(supabase, id, v);
-  if (optErr) return { error: `옵션 저장 실패: ${optErr}` };
+  if (optErr) {
+    console.error("[equipment.update] 옵션 저장 실패", optErr);
+    return { error: "옵션을 저장하지 못했습니다." };
+  }
 
   revalidatePath("/admin/equipment");
   redirect("/admin/equipment");
@@ -129,7 +145,10 @@ export async function deleteEquipment(id: string): Promise<EquipmentActionResult
     .delete()
     .eq("id", id)
     .select("id");
-  if (error) return { error: `삭제하지 못했습니다: ${error.message}` };
+  if (error) {
+    console.error("[equipment.delete] delete 실패", error);
+    return { error: "삭제하지 못했습니다." };
+  }
   if (!data || data.length === 0) return { error: "이미 삭제되었거나 없는 항목입니다." };
 
   // Storage 폴더 best-effort 정리(고아 방지). 실패는 무시.

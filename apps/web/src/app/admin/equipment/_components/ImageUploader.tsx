@@ -32,6 +32,8 @@ export function ImageUploader({
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   // 이 세션에 업로드한 경로(취소/실패 시 best-effort 삭제 대상). 기존 사진은 미포함.
   const sessionUploads = useRef<Set<string>>(new Set());
+  // 진행 중 업로드 프로미스. 취소 정리가 끝나길 기다려 in-flight 고아를 막는다(F2).
+  const inflight = useRef<Set<Promise<void>>>(new Set());
   // valueRef: 비동기 handleFiles 클로저가 최신 value를 참조하도록 렌더마다 동기화.
   // 렌더 중 ref 쓰기이지만 순수 동기화 목적이므로 인라인 예외 처리.
   const valueRef = useRef(value);
@@ -46,6 +48,9 @@ export function ImageUploader({
     // 폼에 정리 함수 등록(취소·저장 실패 시 호출). 세션 업로드분만 삭제.
     registerCleanup(async () => {
       const supabase = createSupabaseBrowserClient();
+      // 진행 중 업로드가 끝나길 먼저 기다린다 — 안 그러면 취소 시점에 아직
+      // sessionUploads에 안 들어간 in-flight 객체가 고아로 남는다(F2).
+      await Promise.allSettled(Array.from(inflight.current));
       const paths = Array.from(sessionUploads.current);
       if (paths.length > 0) {
         await supabase.storage.from("equipment-images").remove(paths).catch(() => {});
@@ -68,18 +73,30 @@ export function ImageUploader({
         continue;
       }
       const path = equipmentImageObjectPath(equipmentId, file, crypto.randomUUID());
-      setUploadingCount((n) => n + 1);
-      const { error } = await supabase.storage
-        .from("equipment-images")
-        .upload(path, file, { contentType: file.type, upsert: false });
-      setUploadingCount((n) => n - 1);
-      if (error) {
-        nextErrors.push(`${file.name}: 업로드 실패`);
-        continue;
-      }
+      // 업로드 시작 전 정리 대상에 등록 — await 도중 취소돼도 고아가 안 남게(F2).
+      // 실패분은 아래에서 다시 제거(객체가 없으므로 정리 불필요).
       sessionUploads.current.add(path);
-      acc = [...acc, path];
-      onChange(acc);
+      setUploadingCount((n) => n + 1);
+      const task = supabase.storage
+        .from("equipment-images")
+        .upload(path, file, { contentType: file.type, upsert: false })
+        .then(({ error }) => {
+          if (error) {
+            sessionUploads.current.delete(path);
+            nextErrors.push(`${file.name}: 업로드 실패`);
+            return;
+          }
+          acc = [...acc, path];
+          onChange(acc);
+        })
+        .catch(() => {
+          sessionUploads.current.delete(path);
+          nextErrors.push(`${file.name}: 업로드 실패`);
+        });
+      inflight.current.add(task);
+      await task;
+      inflight.current.delete(task);
+      setUploadingCount((n) => n - 1);
     }
     setErrors(nextErrors);
     if (inputRef.current) inputRef.current.value = "";

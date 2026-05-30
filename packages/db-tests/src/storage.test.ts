@@ -39,6 +39,18 @@ describe("storage 버킷 (D4)", () => {
       { id: "quote-pdfs", public: false },
     ]);
   });
+
+  test("equipment-images 버킷이 5MB·jpg/png/webp 서버측 제한을 강제(AC4)", async () => {
+    const r = await c.query(
+      "select file_size_limit, allowed_mime_types from storage.buckets where id='equipment-images'",
+    );
+    expect(Number(r.rows[0].file_size_limit)).toBe(5242880); // 5 MiB (bigint → 문자열 반환)
+    expect(r.rows[0].allowed_mime_types).toEqual([
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+    ]);
+  });
 });
 
 describe("equipment-images — 공개 읽기, 쓰기는 equipment.manage", () => {
