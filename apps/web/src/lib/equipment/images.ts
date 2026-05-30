@@ -4,6 +4,7 @@ import { getPublicEnv } from "@/env";
 export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 export const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 export const IMAGE_ACCEPT = ALLOWED_IMAGE_TYPES.join(",");
+const ALLOWED_TYPE_SET = new Set<string>(ALLOWED_IMAGE_TYPES);
 
 const EXT_BY_TYPE: Record<string, string> = {
   "image/jpeg": "jpg",
@@ -15,7 +16,7 @@ export type ImageValidation = { ok: true } | { ok: false; error: string };
 
 // 형식·크기 검증. 거부 시 "파일명: 사유" 메시지(인라인 칩에 그대로 노출).
 export function validateImageFile(file: { type: string; size: number; name: string }): ImageValidation {
-  if (!(ALLOWED_IMAGE_TYPES as readonly string[]).includes(file.type)) {
+  if (!ALLOWED_TYPE_SET.has(file.type)) {
     return { ok: false, error: `${file.name}: 지원하지 않는 형식` };
   }
   if (file.size > MAX_IMAGE_BYTES) {
@@ -30,6 +31,7 @@ export function equipmentImageObjectPath(
   file: { type: string },
   uuid: string,
 ): string {
+  // EXT_BY_TYPE에 없는 타입은 validateImageFile을 건너뛴 오용 케이스의 안전망.
   const ext = EXT_BY_TYPE[file.type] ?? "bin";
   return `equipment/${equipmentId}/${uuid}.${ext}`;
 }
