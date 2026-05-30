@@ -30,8 +30,9 @@ export function EquipmentForm(props: Props) {
   const [serverError, setServerError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   // create 모드는 진입 시 id 확정(이미지 경로 안정화). edit은 props.id.
-  const equipmentId = useRef(
-    props.mode === "edit" ? props.id : crypto.randomUUID(),
+  // useState 초기값으로 고정 — useRef.current 를 렌더 중 읽으면 react-hooks/refs 위반.
+  const [equipmentId] = useState(
+    () => props.mode === "edit" ? props.id : crypto.randomUUID(),
   );
   const cleanupRef = useRef<(() => Promise<void>) | null>(null);
 
@@ -80,7 +81,7 @@ export function EquipmentForm(props: Props) {
     startTransition(async () => {
       let result: EquipmentActionResult;
       if (props.mode === "create") {
-        result = await createEquipment(equipmentId.current, values);
+        result = await createEquipment(equipmentId, values);
       } else {
         result = await updateEquipment(props.id, values);
       }
@@ -108,6 +109,8 @@ export function EquipmentForm(props: Props) {
 
   return (
     <form
+      // cleanupRef.current는 startTransition 내부(비동기)에서만 읽힘 — 렌더 중 읽기 아님.
+      // eslint-disable-next-line react-hooks/refs
       onSubmit={handleSubmit(onSubmit)}
       className="flex max-w-[720px] flex-col gap-6"
     >
@@ -161,7 +164,7 @@ export function EquipmentForm(props: Props) {
 
       {/* §3 이미지 */}
       <ImageUploader
-        equipmentId={equipmentId.current}
+        equipmentId={equipmentId}
         value={photos ?? []}
         onChange={setPhotos}
         onUploadingChange={setUploading}

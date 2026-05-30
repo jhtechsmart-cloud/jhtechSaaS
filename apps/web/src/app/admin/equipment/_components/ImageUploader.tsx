@@ -32,8 +32,11 @@ export function ImageUploader({
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   // 이 세션에 업로드한 경로(취소/실패 시 best-effort 삭제 대상). 기존 사진은 미포함.
   const sessionUploads = useRef<Set<string>>(new Set());
+  // valueRef: 비동기 handleFiles 클로저가 최신 value를 참조하도록 렌더마다 동기화.
+  // 렌더 중 ref 쓰기이지만 순수 동기화 목적이므로 인라인 예외 처리.
   const valueRef = useRef(value);
-  valueRef.current = value;
+  // eslint-disable-next-line react-hooks/refs
+  valueRef.current = value; // 렌더마다 최신값 동기화(stale 클로저 방지)
 
   useEffect(() => {
     onUploadingChange(uploadingCount > 0);
