@@ -95,15 +95,16 @@ export function ImageUploader({
     <section className="flex flex-col gap-2">
       <h2 className="text-h2 font-semibold text-text">이미지</h2>
 
-      {/* 드롭존 */}
+      {/* 드롭존 — 업로드 진행 중엔 새 파일 진입 차단(동시 배치 경쟁 방지) */}
       <div
-        onClick={() => inputRef.current?.click()}
+        onClick={() => { if (uploadingCount === 0) inputRef.current?.click(); }}
         onDragOver={(e) => e.preventDefault()}
         onDrop={(e) => {
           e.preventDefault();
+          if (uploadingCount > 0) return; // 업로드 중 드롭 무시
           handleFiles(e.dataTransfer.files);
         }}
-        className="flex cursor-pointer flex-col items-center gap-1 rounded-md border border-dashed border-border bg-surface-2 p-6 text-center"
+        className={`flex cursor-pointer flex-col items-center gap-1 rounded-md border border-dashed border-border bg-surface-2 p-6 text-center${uploadingCount > 0 ? " pointer-events-none opacity-60" : ""}`}
       >
         <p className="text-body text-text">⬆ 이미지를 끌어다 놓거나 클릭해서 선택</p>
         <p className="text-micro text-muted">jpg · png · webp · 최대 5MB</p>
@@ -112,6 +113,7 @@ export function ImageUploader({
           type="file"
           accept={IMAGE_ACCEPT}
           multiple
+          disabled={uploadingCount > 0}
           className="hidden"
           onChange={(e) => handleFiles(e.target.files)}
         />
