@@ -2,6 +2,27 @@
 
 이 프로젝트의 주요 변경 사항을 기록한다. [Keep a Changelog](https://keepachangelog.com/) 형식, [Semantic Versioning](https://semver.org/)(4자리 MAJOR.MINOR.PATCH.MICRO).
 
+## [0.2.0.0] - 2026-05-30
+
+### Added
+- **E2 장비·옵션 관리 admin** (GitHub #3) — 영업/관리자가 웹에서 장비 카탈로그를 생성·조회·수정·삭제.
+  - 웹 인증 토대: `@supabase/ssr` 쿠키 세션, `proxy.ts` 라우트 가드(미인증 → `/login`), 이메일·비번 로그인/로그아웃, admin 콘솔 셸(권한 없으면 403). E4 콘솔에서 재사용.
+  - 장비 목록 `/admin/equipment`: 서버 읽기 + 클라 검색·상태 필터·카드뷰 + 5-state(로딩/빈/에러/조회/부분).
+  - 장비 폼(생성·수정): react-hook-form + zod 공유 스키마. 사양·옵션·이미지 리치 에디터 포함.
+  - 사양 에디터: `{항목, 값}` 행 추가·삭제·순서변경(↑↓ 버튼 + 드래그), jsonb 순서 보존.
+  - 옵션 에디터: 포함/추가(included/extra) 옵션 행 인라인 편집.
+  - 이미지 업로더: 브라우저에서 Storage로 직접 업로드(다중·드래그 순서·대표 지정·삭제 동기). 저장 실패·취소 시 이번 세션 업로드분을 best-effort 정리.
+  - 쓰기 = Server Actions(권한 3중 가드: proxy + layout + 액션 재검증, RLS 최종 강제), 옵션은 replace 전략.
+  - 첫 Playwright E2E 도입: 미인증 리다이렉트·생성 플로우·inactive 토글(로컬 Supabase 기반).
+  - DESIGN.md 디자인 토큰을 globals.css `@theme`로 확립(Pretendard · JetBrains Mono · deep teal accent).
+
+### Changed
+- `Equipment.specs`를 자유형 객체에서 `Spec[]`(항목+값 배열)로 구체화 + jsonb 직렬화/역직렬화 방어 헬퍼.
+- `equipment-images` 버킷에 서버측 업로드 제한(5MB · jpg/png/webp) 적용 — 클라이언트 검증 우회 차단(AC4 서버 강제).
+
+### Fixed
+- 리뷰 보강: `youtube_url`을 YouTube 호스트로 제한(`javascript:`/`data:` 등 위험 스킴 차단), `photos` 경로 형식 강제(타 장비 객체 삭제·경로조작 방지), update/delete 0행 감지 + id UUID 검증, 생성 원자성(옵션 저장 실패 시 보상 삭제), DB 에러 메시지 일반화(스키마 노출 방지).
+
 ## [0.1.0.1] - 2026-05-29
 
 ### Fixed
