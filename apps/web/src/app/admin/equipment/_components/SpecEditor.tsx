@@ -48,6 +48,7 @@ export function SpecEditor({
                 if (dragIndex !== null && dragIndex !== index) move(dragIndex, index);
                 setDragIndex(null);
               }}
+              onDragEnd={() => setDragIndex(null)}
               className="flex items-center gap-2 rounded-md border border-border bg-surface p-2"
             >
               <span className="cursor-grab select-none text-muted" aria-hidden>⋮⋮</span>
