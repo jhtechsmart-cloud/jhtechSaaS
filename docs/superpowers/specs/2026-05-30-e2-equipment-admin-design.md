@@ -37,7 +37,7 @@ apps/web/src/
   lib/supabase/server.ts    @supabase/ssr createServerClient (쿠키, RLS=세션)
   lib/supabase/browser.ts   @supabase/ssr createBrowserClient (이미지 직접 업로드)
   lib/auth/guard.ts         requireEquipmentManage(): 세션+권한 서버 검증 (단위 테스트)
-  middleware.ts             세션 갱신 + /admin/* 미인증 → /login
+  proxy.ts                  세션 갱신 + /admin/* 미인증 → /login  (⚠️ Next 16: 구 middleware.ts가 proxy.ts로 rename, 함수명도 proxy)
   app/login/page.tsx + actions.ts        signInWithPassword / signOut
   app/admin/layout.tsx                    콘솔 셸(사이드바196+툴바) + 가드
   app/admin/equipment/page.tsx            목록(서버 컴포넌트 fetch)
@@ -47,7 +47,7 @@ apps/web/src/
 ```
 
 - `@supabase/ssr` 클라이언트는 apps/web 전용(Next 종속) — shared에 두지 않음. shared의 anon/service 팩토리와 역할 분리.
-- ⚠️ Next 16 breaking changes: 코드 전 `node_modules/next/dist/docs/01-app`의 middleware·server-actions·async `cookies()` 가이드 확인(`apps/web/AGENTS.md`).
+- ⚠️ Next 16 breaking changes (docs 확인 완료): **`middleware.ts`→`proxy.ts` rename**(함수명 `proxy`), **`cookies()` async**(`await cookies()`), Server Action은 직접 POST 도달 가능 → **각 action 내부 권한 재검증 필수**(proxy만 신뢰 금지).
 
 ### 데이터 흐름
 
