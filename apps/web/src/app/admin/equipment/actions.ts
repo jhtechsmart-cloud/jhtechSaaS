@@ -77,6 +77,11 @@ export async function updateEquipment(
   const access = await requireEquipmentManage();
   if (access.status === "forbidden") return { error: "권한이 없습니다." };
 
+  // create와 동일하게 id를 검증(직접 POST의 잘못된 id로 DB 캐스트 에러 노출 방지).
+  if (!z.string().uuid().safeParse(id).success) {
+    return { error: "잘못된 요청입니다." };
+  }
+
   const parsed = equipmentFormSchema.safeParse(values);
   if (!parsed.success) return { error: "입력값을 확인하세요." };
   const v = parsed.data;
@@ -107,6 +112,10 @@ export async function updateEquipment(
 export async function deleteEquipment(id: string): Promise<EquipmentActionResult> {
   const access = await requireEquipmentManage();
   if (access.status === "forbidden") return { error: "권한이 없습니다." };
+
+  if (!z.string().uuid().safeParse(id).success) {
+    return { error: "잘못된 요청입니다." };
+  }
 
   const supabase = await createSupabaseServerClient();
   // 0행 삭제 감지를 위해 select 반환(이월 ③). equipment_option은 FK cascade.
