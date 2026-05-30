@@ -69,7 +69,7 @@
 <div class="wrap">
   <h1>프로젝트 지도</h1>
   <div class="sub">지금까지 만들어진 파일이 <b>어디에</b> 있고, <b>각 단계가 어떤 파일을 만드는지</b>, 문제 시 <b>어디를 봐야 하는지</b>.</div>
-  <div class="upd">갱신: 2026-05-29 · 명령어 <code>/map</code> 으로 재생성</div>
+  <div class="upd">갱신: 2026-05-30 · 명령어 <code>/map</code> 으로 재생성</div>
 
   <div class="lead">
     <b>핵심:</b> 이 프로젝트의 산출물은 <b>4곳에 흩어져</b> 있습니다. 코드·설정만 프로젝트 폴더 안에 있고,
@@ -91,6 +91,9 @@
     <tr><th>파일</th><th>목적</th><th>요약</th><th>상태</th></tr>
     <tr><td class="path">CLAUDE.md</td><td>프로젝트 지침</td><td>작업 원칙 + Design System 규칙(UI 전 DESIGN.md 읽기)</td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">DESIGN.md</td><td>디자인 시스템</td><td>북극성·폰트·색·간격·레이아웃·모션(단일 진실 소스)</td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">UI-SPEC.md</td><td>화면 레벨 계약</td><td>E2 장비 admin 3화면(목록/폼/업로더) 레이아웃·5-state·반응형. DESIGN.md 상속(리빙 문서)</td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">docs/superpowers/specs/*-e2-*-design.md</td><td>E2 설계 문서</td><td>brainstorming 산출 — 구현 접근·결정·TDD 순서(Next16 정정 포함)</td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">docs/superpowers/plans/*-e2-p1·p2-*.md</td><td>E2 구현 계획</td><td>P1 인증·P2 CRUD bite-sized TDD 계획(subagent-driven 실행 단위)</td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">package.json</td><td>루트 패키지</td><td>pnpm 워크스페이스 + 스크립트(dev/build/lint/typecheck/test)</td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">pnpm-workspace.yaml</td><td>모노레포 정의</td><td>apps/*, packages/* 워크스페이스</td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">pnpm-lock.yaml</td><td>의존성 잠금</td><td>설치된 패키지 정확한 버전</td><td><span class="tag t-commit">커밋</span></td></tr>
@@ -104,7 +107,8 @@
     <tr><td class="path">VERSION · CHANGELOG.md</td><td>버전·변경이력</td><td>4자리 버전(현재 0.1.0.1) + Keep a Changelog</td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">supabase/migrations/*.sql</td><td>DB 마이그레이션</td><td>E1 7종(profiles·권한·equipment·applications·quotes·email_log·storage). 원격 적용됨</td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">supabase/rollback/*.sql · seed/seed-local.sh</td><td>롤백·시드</td><td>마이그레이션 역스크립트 + 로컬 시드 헬퍼</td><td><span class="tag t-commit">커밋</span></td></tr>
-    <tr><td class="path">packages/db-tests/</td><td>RLS 통합 테스트</td><td>pg set role+jwt 하니스(Supabase 로컬), 47 RLS 단언</td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">packages/db-tests/</td><td>RLS 통합 테스트</td><td>pg set role+jwt 하니스(Supabase 로컬), 55 RLS 단언(+E2 equipment CRUD 권한별)</td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">apps/web/src/{lib,app,proxy.ts}</td><td>web 구현(E2~)</td><td>인증 토대(@supabase/ssr·proxy 가드·로그인)·장비 admin(목록·폼·Server Actions). <i>코드 — 상세는 코드 직접</i></td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">apps/worker/src/seed-admin.ts</td><td>관리자 시드</td><td>service_role 부트스트랩(프로덕션 비번 가드)</td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">dev-notes/</td><td>개발 일지</td><td>일별 노트(.md) + 대시보드(HTML, /devnote)</td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">supabase/.temp/linked-project.json</td><td>원격 링크 기록</td><td>supabase link 산출(원격 프로젝트 ref)</td><td><span class="tag t-ignore">로컬</span></td></tr>
@@ -153,17 +157,17 @@
   <p class="note">각 단계를 진행하면 → 어디에 어떤 파일이 생기고 무슨 내용이 담기는지.</p>
 
   <div class="lead" style="border-left-color:var(--sent)">
-    <b>진행 현황 (2026-05-29):</b> <b>E1 Foundation 완료</b> — 구현(TDD)→코드리뷰→배포(v0.1.0.1)→<b>원격 Supabase 적용</b>·첫 관리자 시드까지. 이슈 #2 닫힘.
-    현재 <b>E2(장비 admin + 웹 인증)</b> — 스펙 확정(#3), <b>다음 = UI-SPEC → 구현</b>.
+    <b>진행 현황 (2026-05-30):</b> <b>E1 Foundation 완료</b>(이슈 #2 닫힘). 현재 <b>E2(장비 admin + 웹 인증)</b> 구현 중 —
+    UI-SPEC·설계 done → <b>3개 sub-plan 분해(P1 인증 / P2 CRUD / P3 리치)</b>, <b>P1·P2 완주</b>(subagent-driven TDD, 리뷰 APPROVED, 테스트 GREEN, 브랜치 <span class="mono">feat/e2-equipment-admin</span> push). <b>다음 = E2 P3</b>(이미지 업로더·사양/옵션 에디터·E2E).
   </div>
-  <p class="note">아래 단계 바 = 한 phase의 생애주기. E1은 ①~⑨ 1회 완주. E2는 ③스펙까지 done, ⑤(UI-SPEC)이 다음.</p>
+  <p class="note">아래 단계 바 = 한 phase의 생애주기. E1은 ①~⑨ 1회 완주. E2는 ⑤(UI-SPEC) done, ⑥구현이 P1·P2 done·P3 진행 예정.</p>
   <div class="flow">
     <span class="step done">① 기획</span><span class="arr">→</span>
     <span class="step done">② 셋업</span><span class="arr">→</span>
     <span class="step done">③ 스펙</span><span class="arr">→</span>
     <span class="step done">④ 검토</span><span class="arr">→</span>
-    <span class="step next">⑤ 디자인/UI-SPEC(다음)</span><span class="arr">→</span>
-    <span class="step">⑥ 구현</span><span class="arr">→</span>
+    <span class="step done">⑤ UI-SPEC</span><span class="arr">→</span>
+    <span class="step next">⑥ 구현(P1·P2 done · P3 다음)</span><span class="arr">→</span>
     <span class="step">⑦ 코드리뷰</span><span class="arr">→</span>
     <span class="step">⑧ QA</span><span class="arr">→</span>
     <span class="step">⑨ 배포</span>
@@ -189,6 +193,7 @@
     <tr><td>"이 계획·결정이 왜 이렇게 됐지?"</td><td class="path">~/.gstack/…/…-design-*.md + main-autoplan-review-*.md + EPIC #1 코멘트</td></tr>
     <tr><td>"무엇을 만들어야 하지? 할 일 목록"</td><td class="path">GitHub 이슈 #2~#8</td></tr>
     <tr><td>"디자인(폰트·색·간격) 규칙"</td><td class="path">DESIGN.md (루트)</td></tr>
+    <tr><td>"화면 레이아웃·5-state·구현 계획"</td><td class="path">UI-SPEC.md + docs/superpowers/{specs,plans}/ (루트)</td></tr>
     <tr><td>"다음 세션이 기억하는 상태"</td><td class="path">~/.claude/…/memory/jhtechsaas-project.md</td></tr>
     <tr><td>"환경변수·시크릿(키·비번)"</td><td class="path">apps/web/.env.local · apps/worker/.env (gitignore, 로컬만)</td></tr>
     <tr><td>"Supabase 연결 설정"</td><td class="path">supabase/config.toml + 위 .env 값</td></tr>
