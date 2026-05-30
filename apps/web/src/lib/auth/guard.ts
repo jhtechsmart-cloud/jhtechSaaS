@@ -22,12 +22,21 @@ export async function requirePermission(
     redirect("/login"); // never 반환 — 아래로 진행 안 함
   }
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("permissions")
     .eq("id", user.id)
     .single();
-  const permissions = profile?.permissions ?? null;
+
+  if (profileError) {
+    // 행 없음(PGRST116)은 조용히 forbidden. 그 외(DB·RLS·네트워크)는 로그 후 forbidden(fail-closed).
+    if (profileError.code !== "PGRST116") {
+      console.error("[requirePermission] profile 조회 실패", profileError);
+    }
+    return { status: "forbidden" };
+  }
+
+  const permissions = profile.permissions ?? null;
 
   const access = resolveAccess(user.id, permissions, required);
   if (access.status === "ok") {
