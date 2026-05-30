@@ -37,6 +37,27 @@ describe("equipmentFormSchema", () => {
       equipmentFormSchema.safeParse({ ...base, youtube_url: "not a url" }).success,
     ).toBe(false);
   });
+  it("youtube_url 유튜브 호스트만 허용", () => {
+    expect(
+      equipmentFormSchema.safeParse({ ...base, youtube_url: "https://youtu.be/abc" })
+        .success,
+    ).toBe(true);
+    expect(
+      equipmentFormSchema.safeParse({
+        ...base,
+        youtube_url: "https://www.youtube.com/watch?v=abc",
+      }).success,
+    ).toBe(true);
+    // 비-유튜브·위험 스킴 거부(stored-XSS 방지)
+    expect(
+      equipmentFormSchema.safeParse({ ...base, youtube_url: "https://evil.com/x" })
+        .success,
+    ).toBe(false);
+    expect(
+      equipmentFormSchema.safeParse({ ...base, youtube_url: "javascript:alert(1)" })
+        .success,
+    ).toBe(false);
+  });
   it("model·category 선택(빈값 허용)", () => {
     expect(
       equipmentFormSchema.safeParse({ ...base, model: "", category: "" }).success,
@@ -61,10 +82,16 @@ describe("equipmentFormSchema — 동적 필드(P3)", () => {
     });
     expect(r.success).toBe(true);
   });
-  it("photos는 문자열 배열", () => {
+  it("photos는 equipment/{uuid}/{uuid}.{ext} 형식만 허용", () => {
+    const valid =
+      "equipment/00000000-0000-0000-0000-000000000000/11111111-1111-1111-1111-111111111111.jpg";
+    expect(
+      equipmentFormSchema.safeParse({ ...base, photos: [valid] }).success,
+    ).toBe(true);
+    // 형식 불일치 경로 거부(경로조작·타 객체 삭제 방지)
     expect(
       equipmentFormSchema.safeParse({ ...base, photos: ["equipment/x/y.jpg"] }).success,
-    ).toBe(true);
+    ).toBe(false);
     expect(
       equipmentFormSchema.safeParse({ ...base, photos: [1] }).success,
     ).toBe(false);

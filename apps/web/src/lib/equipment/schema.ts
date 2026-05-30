@@ -24,12 +24,33 @@ export const equipmentFormSchema = z.object({
     .number({ message: "올바른 금액을 입력하세요" })
     .min(0, "올바른 금액을 입력하세요"),
   status: z.enum(["active", "inactive"]),
+  // 선택값. .url()은 javascript:/data: 등 임의 스킴을 통과시키므로 YouTube 호스트로 제한
+  // (E3 공개 페이지에서 링크로 렌더 시 stored-XSS 방지).
   youtube_url: z
-    .union([z.literal(""), z.string().url("유효한 YouTube 링크가 아닙니다")])
+    .union([
+      z.literal(""),
+      z
+        .string()
+        .regex(
+          /^https:\/\/(www\.)?(youtube\.com|youtu\.be)\//,
+          "유효한 YouTube 링크가 아닙니다",
+        ),
+    ])
     .default(""),
   // P3 동적 필드
   specs: z.array(specEntrySchema).default([]),
-  photos: z.array(z.string()).default([]), // Storage 객체 경로
+  // Storage 객체 경로. 형식 강제(타 장비 경로·경로조작으로 임의 객체 삭제 방지):
+  // equipment/{uuid}/{uuid}.{ext}. 업로더가 항상 이 형식으로 생성한다.
+  photos: z
+    .array(
+      z
+        .string()
+        .regex(
+          /^equipment\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.(jpg|png|webp)$/i,
+          "잘못된 이미지 경로",
+        ),
+    )
+    .default([]),
   options: z.array(optionEntrySchema).default([]),
 });
 

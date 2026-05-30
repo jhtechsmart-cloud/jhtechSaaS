@@ -87,7 +87,8 @@ export async function updateEquipment(
   const v = parsed.data;
 
   const supabase = await createSupabaseServerClient();
-  const { error } = await supabase
+  // delete와 동일하게 select로 0행 갱신 감지(동시 삭제·없는 id로 무음 성공 방지).
+  const { data, error } = await supabase
     .from("equipment")
     .update({
       name: v.name,
@@ -99,8 +100,12 @@ export async function updateEquipment(
       specs: serializeSpecs(v.specs),
       photos: v.photos,
     })
-    .eq("id", id);
+    .eq("id", id)
+    .select("id");
   if (error) return { error: `저장하지 못했습니다: ${error.message}` };
+  if (!data || data.length === 0) {
+    return { error: "이미 삭제되었거나 없는 항목입니다." };
+  }
 
   const optErr = await replaceOptions(supabase, id, v);
   if (optErr) return { error: `옵션 저장 실패: ${optErr}` };
