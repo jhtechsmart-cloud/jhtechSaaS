@@ -39,6 +39,8 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // 세션 갱신 응답은 Set-Cookie를 실으므로 CDN/엣지(Vercel)에서 캐시되면 안 됨.
+  response.headers.set("Cache-Control", "private, no-store");
   return response;
 }
 
