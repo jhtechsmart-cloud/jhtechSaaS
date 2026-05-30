@@ -29,9 +29,14 @@ pnpm --filter web build 2>&1 | tail -5
 
 dev-note-manager 스킬로 오늘 일지 생성. 주의: 프롬프트는 **학습 가치 있는 것만 큐레이션**(트리비얼·시크릿 붙여넣기 제외), `functions_catalog`가 `.next`/`node_modules`(빌드 산출물)를 긁지 않게 스캔 전 `apps/*/.next`·`dist` 제거. 노트에 시크릿 값 절대 기재 금지.
 
-## 4. memory '다음 액션' 갱신 (다음 세션 연결)
+## 4. memory '다음 액션' 갱신 (다음 세션 연결) — ⚠️ 파일 2개 모두
 
-`~/.claude/projects/-Users-seonjecho-Projects-jhtechSaaS/memory/jhtechsaas-project.md`의 진행 상태/다음 액션을 오늘 끝난 지점 기준으로 갱신. **"다음 = …"이 명확**해야 아침 `start`가 바로 이어간다.
+아침 `start`가 자동 로드하는 건 **`MEMORY.md` 인덱스 한 줄**뿐이다. 상세 파일만 고치면 `start`가 낡은 인덱스를 읽고 엉뚱한 소리를 한다 → **반드시 둘 다 갱신**.
+
+1. **상세**: `~/.claude/projects/-Users-seonjecho-Projects-jhtechSaaS/memory/jhtechsaas-project.md`의 진행 상태/다음 액션을 오늘 끝난 지점 기준으로 갱신.
+2. **인덱스**(필수): 같은 폴더의 `MEMORY.md`에서 이 파일을 가리키는 줄의 **꼬리말(`— …`)을 오늘 기준으로 다시 씀**. 형식: `완료 요약 + "다음: start 시 <구체적 다음 액션>부터"`. 이 한 줄만 봐도 내일 무엇을 할지 명확해야 한다.
+
+**"다음 = …"이 명확**해야 아침 `start`가 바로 이어간다. 인덱스 갱신을 빠뜨리지 않았는지 마무리 보고(7단계) 전에 자가 확인.
 
 ## 5. CLAUDE.md 점검 (루트·프로젝트 최신 유지)
 
