@@ -1,6 +1,18 @@
 "use client";
+import { useEffect } from "react";
 // 목록 조회 실패 — 재시도(UI-SPEC: error state).
-export default function Error({ reset }: { error: Error; reset: () => void }) {
+export default function Error({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
+  // 개발 진단용 — 실제 에러 내용을 콘솔에 출력
+  useEffect(() => {
+    console.error(error);
+  }, [error]);
+
   return (
     <section className="flex flex-col items-start gap-3 rounded-md border border-border bg-surface p-6">
       <p className="text-h2 font-semibold text-text">목록을 불러오지 못했습니다</p>

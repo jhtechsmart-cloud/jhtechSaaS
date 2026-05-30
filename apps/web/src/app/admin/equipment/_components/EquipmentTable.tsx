@@ -87,6 +87,7 @@ export function EquipmentTable({ items }: { items: Equipment[] }) {
           </button>
         </div>
       ) : (
+        <div className="overflow-x-auto">
         <table className="w-full border-collapse text-body">
           <thead>
             <tr className="border-b border-border text-left text-small text-muted">
@@ -120,10 +121,10 @@ export function EquipmentTable({ items }: { items: Equipment[] }) {
                       <div className="h-10 w-10 rounded-sm bg-surface-2" />
                     )}
                   </td>
-                  <td className="py-2">
+                  <td className="max-w-xs py-2">
                     <Link
                       href={`/admin/equipment/${it.id}/edit`}
-                      className="font-medium text-text hover:text-accent"
+                      className="block max-w-xs truncate font-medium text-text hover:text-accent"
                     >
                       {it.name}
                     </Link>
@@ -145,6 +146,7 @@ export function EquipmentTable({ items }: { items: Equipment[] }) {
             })}
           </tbody>
         </table>
+        </div>
       )}
     </div>
   );
