@@ -25,6 +25,10 @@ export default async function EditEquipmentPage({
     base_price: Number(data.base_price),
     status: data.status === "inactive" ? "inactive" : "active",
     youtube_url: data.youtube_url ?? "",
+    // P3 동적 필드 — DB에서 별도 로드(T7/T8). 여기서는 빈 배열로 초기화.
+    specs: [],
+    photos: [],
+    options: [],
   };
 
   return (

@@ -43,3 +43,52 @@ describe("equipmentFormSchema", () => {
     ).toBe(true);
   });
 });
+
+describe("equipmentFormSchema — 동적 필드(P3)", () => {
+  it("specs·photos·options 미지정 시 기본값(빈 배열)", () => {
+    const r = equipmentFormSchema.safeParse(base);
+    expect(r.success).toBe(true);
+    if (r.success) {
+      expect(r.data.specs).toEqual([]);
+      expect(r.data.photos).toEqual([]);
+      expect(r.data.options).toEqual([]);
+    }
+  });
+  it("specs 행(빈 값 허용)", () => {
+    const r = equipmentFormSchema.safeParse({
+      ...base,
+      specs: [{ label: "전압", value: "220V" }, { label: "", value: "" }],
+    });
+    expect(r.success).toBe(true);
+  });
+  it("photos는 문자열 배열", () => {
+    expect(
+      equipmentFormSchema.safeParse({ ...base, photos: ["equipment/x/y.jpg"] }).success,
+    ).toBe(true);
+    expect(
+      equipmentFormSchema.safeParse({ ...base, photos: [1] }).success,
+    ).toBe(false);
+  });
+  it("option kind는 included/extra만", () => {
+    expect(
+      equipmentFormSchema.safeParse({
+        ...base,
+        options: [{ kind: "included", name: "받침대", price: 0 }],
+      }).success,
+    ).toBe(true);
+    expect(
+      equipmentFormSchema.safeParse({
+        ...base,
+        options: [{ kind: "foo", name: "x", price: 0 }],
+      }).success,
+    ).toBe(false);
+  });
+  it("option price 음수 거부", () => {
+    expect(
+      equipmentFormSchema.safeParse({
+        ...base,
+        options: [{ kind: "extra", name: "x", price: -1 }],
+      }).success,
+    ).toBe(false);
+  });
+});
