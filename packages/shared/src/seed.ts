@@ -16,7 +16,7 @@ export function resolveSeedPassword(opts: {
   devDefault: string;
   minProdLength?: number;
 }): string {
-  const { isLocal, envPassword, devDefault, minProdLength = 16 } = opts;
+  const { isLocal, envPassword, devDefault, minProdLength = 8 } = opts;
   if (isLocal) {
     return envPassword && envPassword.length > 0 ? envPassword : devDefault;
   }

@@ -29,13 +29,13 @@ describe("resolveSeedPassword — 프로덕션 비번 가드", () => {
     expect(() => resolveSeedPassword({ isLocal: false, devDefault })).toThrow();
   });
 
-  test("프로덕션: 약한 비번(16자 미만)은 throw", () => {
+  test("프로덕션: 약한 비번(8자 미만)은 throw", () => {
     expect(() =>
       resolveSeedPassword({ isLocal: false, envPassword: "short", devDefault }),
     ).toThrow();
   });
 
-  test("프로덕션: 16자 이상 강한 비번은 통과", () => {
+  test("프로덕션: 8자 이상 강한 비번은 통과", () => {
     const strong = "a-very-strong-prod-password-123";
     expect(
       resolveSeedPassword({ isLocal: false, envPassword: strong, devDefault }),
