@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import type { Equipment } from "@jhtechsaas/shared";
+import { publicImageUrl } from "@/lib/equipment/images";
 
 type StatusFilter = "all" | "active" | "inactive";
 
@@ -113,7 +114,7 @@ export function EquipmentTable({ items }: { items: Equipment[] }) {
                   <td className="py-2">
                     {it.photos[0] ? (
                       <Image
-                        src={it.photos[0]}
+                        src={publicImageUrl(it.photos[0])}
                         alt=""
                         width={40}
                         height={40}

@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { parseSpecs } from "@jhtechsaas/shared";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { EquipmentForm } from "../../_components/EquipmentForm";
 import type { EquipmentFormValues } from "@/lib/equipment/schema";
@@ -13,22 +14,31 @@ export default async function EditEquipmentPage({
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("equipment")
-    .select("name, model, category, base_price, status, youtube_url")
+    .select("name, model, category, base_price, status, youtube_url, specs, photos")
     .eq("id", id)
     .single();
   if (error || !data) notFound();
+
+  const { data: optionRows } = await supabase
+    .from("equipment_option")
+    .select("kind, name, price")
+    .eq("equipment_id", id)
+    .order("id", { ascending: true });
 
   const initial: EquipmentFormValues = {
     name: data.name,
     model: data.model ?? "",
     category: data.category ?? "",
     base_price: Number(data.base_price),
-    status: data.status === "inactive" ? "inactive" : "active",
+    status: data.status,
     youtube_url: data.youtube_url ?? "",
-    // P3 동적 필드 — DB에서 별도 로드(T7/T8). 여기서는 빈 배열로 초기화.
-    specs: [],
-    photos: [],
-    options: [],
+    specs: parseSpecs(data.specs),
+    photos: (data.photos ?? []) as string[],
+    options: (optionRows ?? []).map((o) => ({
+      kind: o.kind as "included" | "extra",
+      name: o.name,
+      price: Number(o.price),
+    })),
   };
 
   return (
