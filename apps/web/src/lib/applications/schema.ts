@@ -23,6 +23,9 @@ export const requestFormSchema = z.object({
 
 export type RequestFormInput = z.infer<typeof requestFormSchema>;
 
+// RHF useForm 입력 타입(검증 전). zodResolver가 출력 타입(RequestFormInput)으로 변환해 전달.
+export type RequestFormInputRaw = z.input<typeof requestFormSchema>;
+
 export interface SubmitPayload {
   company: string;
   ceo: string;
