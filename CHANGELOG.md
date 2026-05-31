@@ -2,6 +2,21 @@
 
 이 프로젝트의 주요 변경 사항을 기록한다. [Keep a Changelog](https://keepachangelog.com/) 형식, [Semantic Versioning](https://semver.org/)(4자리 MAJOR.MINOR.PATCH.MICRO).
 
+## [0.3.0.0] - 2026-05-31
+
+### Added
+- **E3 공개 장비 카탈로그·상세 + 견적요청 폼** (GitHub #4) — 비로그인 고객이 장비를 둘러보고 견적을 요청.
+  - 공개 카탈로그 `/equipment`: active 장비 목록(반응형 그리드, 대표사진·이름·모델·카테고리). `equipment_public` 뷰 경유로 가격·옵션 영구 비노출, inactive 비노출.
+  - 장비 상세 `/equipment/[id]`: 사진 갤러리 · 사양 테이블 · YouTube 임베드(nocookie). 동적 SSR로 admin 수정 즉시 반영. 잘못된/inactive id는 404(not-found).
+  - 견적요청 폼 `/request`: react-hook-form + zod, 상세에서 장비 사전선택(`?equipment=`). 회사명·대표·사업자번호·연락처·이메일·주소 + 요청사항. 제출 시 접수번호(`REQ-…`) 확인. 기존 `quote.html`의 silent-fail 버그 제거(저장 실패 시 명시적 통지).
+  - 접수완료 `/request/success`: 접수번호 표시 + 위조·직접진입 방지(형식 검증 후 미달 시 카탈로그로).
+  - SEO: 동적 `sitemap.xml`(active 장비 포함) · `robots.txt`(admin disallow) · 상세 `generateMetadata`(OpenGraph) · 루트 title template.
+  - 미니멀 홈 `/` + 재사용 카탈로그 버튼.
+  - `submit_application(payload jsonb)` SECURITY DEFINER RPC — anon 견적요청 저장 + 접수번호 반환(anon SELECT 금지 우회). `status='new'`·미배정 서버 강제, 입력 길이 캡.
+
+### Changed
+- `applications` 컬럼 길이 CHECK 제약 추가 — anon이 공개 키로 REST에 직접 INSERT해 RPC 길이 캡을 우회하는 경로를 DB 레벨에서 차단.
+
 ## [0.2.0.0] - 2026-05-30
 
 ### Added

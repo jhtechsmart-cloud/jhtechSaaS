@@ -7,6 +7,7 @@ import { z } from "zod";
 const publicEnvSchema = z.object({
   NEXT_PUBLIC_SUPABASE_URL: z.string().min(1),
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
+  NEXT_PUBLIC_SITE_URL: z.string().optional(), // 공개 사이트 절대 URL(메타·sitemap). 미설정 시 site.ts 기본값.
 });
 
 // 서버 전용 — 클라이언트 번들에 절대 포함 금지.
@@ -18,6 +19,7 @@ export function getPublicEnv() {
   return publicEnvSchema.parse({
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
   });
 }
 
