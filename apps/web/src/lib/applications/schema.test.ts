@@ -34,6 +34,7 @@ describe("requestFormSchema", () => {
     expect(requestFormSchema.safeParse({ ...valid, phone: "abc" }).success).toBe(false);
   });
   test("requirements·equipment_id는 선택", () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { requirements, equipment_id, ...core } = valid;
     expect(requestFormSchema.safeParse(core).success).toBe(true);
   });
