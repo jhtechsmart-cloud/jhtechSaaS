@@ -3,7 +3,7 @@ import { z } from "zod";
 // 견적요청 폼 — 클라이언트(react-hook-form) 검증과 서버액션 재검증이 공유.
 // 코어 6필드 모두 필수(brainstorm 합의), requirements·equipment_id는 선택.
 const bizNoRegex = /^\d{10}$|^\d{3}-\d{2}-\d{5}$/; // 10자리 연속 또는 XXX-XX-XXXXX
-const phoneRegex = /^(?=.*\d)[0-9+\-\s]{9,20}$/; // 숫자·하이픈·공백·+, 최소 1개 숫자 필수
+const phoneRegex = /^(?=(?:[^0-9]*[0-9]){8,})[0-9+\-\s]{9,20}$/; // 숫자·하이픈·공백·+, 숫자 최소 8자리
 
 export const requestFormSchema = z.object({
   company: z.string().trim().min(1, "회사명을 입력하세요").max(200, "200자 이내로 입력하세요"),

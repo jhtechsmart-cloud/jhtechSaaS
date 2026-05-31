@@ -33,6 +33,9 @@ describe("requestFormSchema", () => {
   test("phone 형식 오류 시 실패", () => {
     expect(requestFormSchema.safeParse({ ...valid, phone: "abc" }).success).toBe(false);
   });
+  test("phone 숫자가 너무 적으면(--------1) 실패", () => {
+    expect(requestFormSchema.safeParse({ ...valid, phone: "--------1" }).success).toBe(false);
+  });
   test("requirements·equipment_id는 선택", () => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { requirements, equipment_id, ...core } = valid;

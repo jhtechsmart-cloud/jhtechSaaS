@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { z } from "zod";
 import { getPublicEquipment } from "@/lib/equipment/public-queries";
 import { buildEquipmentMetadata } from "@/lib/seo/equipment-meta";
 import { siteUrl } from "@/lib/seo/site";
@@ -16,6 +17,8 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
+  // UUID 형식이 아니면 DB 조회 없이 404 메타 반환(PostgREST 22P02 예외 방지).
+  if (!z.string().uuid().safeParse(id).success) return { title: "장비를 찾을 수 없습니다" };
   const eq = await getPublicEquipment(id);
   if (!eq) return { title: "장비를 찾을 수 없습니다" };
   return buildEquipmentMetadata(eq, siteUrl(), getPublicEnv().NEXT_PUBLIC_SUPABASE_URL);
@@ -27,6 +30,8 @@ export default async function EquipmentDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  // UUID 형식이 아니면 DB 조회 없이 404(PostgREST 22P02 예외 → 500 방지).
+  if (!z.string().uuid().safeParse(id).success) notFound();
   const eq = await getPublicEquipment(id);
   if (!eq) notFound();
 

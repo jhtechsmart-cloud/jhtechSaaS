@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { getPublicEquipment } from "@/lib/equipment/public-queries";
 import { RequestForm } from "./_components/RequestForm";
 
@@ -10,7 +11,8 @@ export default async function RequestPage({
   const { equipment } = await searchParams;
   let equipmentId: string | undefined;
   let equipmentName: string | undefined;
-  if (equipment) {
+  // UUID 형식이 아닌 ?equipment= 값이 getPublicEquipment에 넘어가면 22P02 예외 발생 → 에러 바운더리 루프 방지.
+  if (equipment && z.string().uuid().safeParse(equipment).success) {
     const eq = await getPublicEquipment(equipment);
     if (eq) {
       equipmentId = eq.id;

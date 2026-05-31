@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import type { EquipmentPublic } from "@jhtechsaas/shared";
 import { parseSpecs } from "@jhtechsaas/shared";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -21,14 +22,17 @@ export async function listPublicEquipment(): Promise<EquipmentPublic[]> {
 }
 
 // 공개 장비 단건. 없거나 inactive면 null(뷰가 active만 노출하므로 자동).
-export async function getPublicEquipment(id: string): Promise<EquipmentPublic | null> {
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from("equipment_public")
-    .select(PUBLIC_COLUMNS)
-    .eq("id", id)
-    .maybeSingle();
-  if (error) throw new Error(`공개 장비 조회 실패: ${error.message}`);
-  if (!data) return null;
-  return { ...data, specs: parseSpecs(data.specs) } as EquipmentPublic;
-}
+// 요청 단위 메모이즈: generateMetadata와 페이지 본문이 같은 id를 두 번 조회하는 중복 제거.
+export const getPublicEquipment = cache(
+  async (id: string): Promise<EquipmentPublic | null> => {
+    const supabase = await createSupabaseServerClient();
+    const { data, error } = await supabase
+      .from("equipment_public")
+      .select(PUBLIC_COLUMNS)
+      .eq("id", id)
+      .maybeSingle();
+    if (error) throw new Error(`공개 장비 조회 실패: ${error.message}`);
+    if (!data) return null;
+    return { ...data, specs: parseSpecs(data.specs) } as EquipmentPublic;
+  },
+);

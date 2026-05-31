@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { seqNoSchema } from "@/lib/applications/schema";
 
 // no(접수번호) 없이 직접 진입하면 카탈로그로. (새로고침·북마크 안전)
 export default async function RequestSuccessPage({
@@ -8,7 +9,8 @@ export default async function RequestSuccessPage({
   searchParams: Promise<{ no?: string }>;
 }) {
   const { no } = await searchParams;
-  if (!no) redirect("/equipment");
+  // 위조/직접진입 방지: 접수번호 형식(REQ-YYYYMMDD-NNNNN)이 아니면 카탈로그로.
+  if (!no || !seqNoSchema.safeParse(no).success) redirect("/equipment");
 
   return (
     <main className="mx-auto w-full max-w-lg px-6 py-16 text-center">
