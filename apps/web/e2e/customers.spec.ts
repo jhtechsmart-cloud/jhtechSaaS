@@ -21,11 +21,16 @@ const LOCAL_SERVICE_ROLE_KEY =
 // E2E 전용 업체명·사업자번호 — 체크섬 검증 통과 확인값.
 // validateBizNo('1234567891') = true  (CRUD 시나리오)
 // validateBizNo('2208162517') = true  (Import 시나리오)
+// validateBizNo('3000000007') = true  (diff-upsert id 보존 시나리오)
 const CRUD_COMPANY_NAME = "E2E고객사";
 const CRUD_BIZ_NO = "1234567891"; // 체크섬 유효 (가중치 알고리즘 검증 완료)
 
 const IMPORT_COMPANY_NAME = "E2E수입사";
 const IMPORT_BIZ_NO = "2208162517"; // 체크섬 유효 (가중치 알고리즘 검증 완료)
+
+// 시나리오 4 전용 — 기존 시나리오와 biz_no 충돌 없는 독립 레코드
+const DIFF_COMPANY_NAME = "E2E보존사";
+const DIFF_BIZ_NO = "3000000007"; // 체크섬 유효 (가중치 알고리즘 검증 완료)
 
 // 서비스롤 REST fetch 헬퍼
 async function serviceRoleFetch(
@@ -75,6 +80,16 @@ test.beforeAll(async () => {
     );
     await serviceRoleFetch(
       `/rest/v1/applications?biz_no=eq.${IMPORT_BIZ_NO}`,
+      { method: "DELETE", headers: { Prefer: "return=minimal" } },
+    );
+
+    // 시나리오 4(diff-upsert id 보존)용 회사 삭제 — company_equipment는 CASCADE로 함께 삭제
+    await serviceRoleFetch(
+      `/rest/v1/companies?biz_no=eq.${DIFF_BIZ_NO}`,
+      { method: "DELETE", headers: { Prefer: "return=minimal" } },
+    );
+    await serviceRoleFetch(
+      `/rest/v1/companies?name=like.${encodeURIComponent("E2E보존%")}`,
       { method: "DELETE", headers: { Prefer: "return=minimal" } },
     );
 
@@ -312,5 +327,127 @@ test.describe("시나리오 3 — 403 (customers.manage 없는 사용자)", () =
     await expect(
       page.getByText("접근 권한이 없습니다"),
     ).toBeVisible({ timeout: 15_000 });
+  });
+});
+
+// ──────────────────────────────────────────────────────────────────────────────
+// 시나리오 4: 편집 시 보유장비 id 보존 (diff-upsert 회귀가드)
+// 핵심 안티버그: 편집 저장은 기존 company_equipment 행을 UPDATE해야 함.
+// delete-all-then-insert 방식으로 구현하면 id가 바뀌어 P-D A/S 이력 FK가 깨진다.
+// 이 테스트는 저장 전후로 동일 row id가 유지되는지를 서비스롤 REST로 직접 검증한다.
+// ──────────────────────────────────────────────────────────────────────────────
+test.describe.serial("시나리오 4 — 편집 시 보유장비 id 보존(diff-upsert)", () => {
+  // 테스트 간 공유 상태 — 생성된 회사 id와 장비 행 id를 시리얼 단계 간 전달
+  let companyId: string;
+  let originalEquipmentId: string;
+
+  // afterAll: 시나리오 4가 만든 회사·장비 정리 (company_equipment는 CASCADE)
+  test.afterAll(async () => {
+    try {
+      await serviceRoleFetch(
+        `/rest/v1/companies?biz_no=eq.${DIFF_BIZ_NO}`,
+        { method: "DELETE", headers: { Prefer: "return=minimal" } },
+      );
+    } catch (e) {
+      console.warn("시나리오 4 cleanup 건너뜀:", e);
+    }
+  });
+
+  // 4-1: 직접입력 모드로 신규 고객 생성 — 장비 행 1개(label=보존프레스) 포함
+  test("4-1: 직접입력 생성 → edit 페이지 리다이렉트", async ({ page }) => {
+    await login(page);
+    await page.goto("/admin/customers/new?mode=direct");
+
+    // React hydration 완료 대기
+    const nameInput = page.getByLabel("업체명 *");
+    await expect(nameInput).toBeEnabled({ timeout: 15_000 });
+
+    await nameInput.fill(DIFF_COMPANY_NAME);
+    await page.getByLabel("사업자등록번호").fill(DIFF_BIZ_NO);
+
+    // 보유장비 1행 추가 — 직접입력 모드(기본)로 장비명 입력
+    await page.getByRole("button", { name: "+ 장비 추가" }).click();
+    await expect(page.getByPlaceholder("장비명 직접 입력")).toBeVisible({
+      timeout: 10_000,
+    });
+    await page.getByPlaceholder("장비명 직접 입력").fill("보존프레스");
+
+    // 저장 → /admin/customers/{uuid}/edit 리다이렉트
+    await page.getByRole("button", { name: "저장" }).click();
+    await page.waitForURL(/\/admin\/customers\/[0-9a-f-]+\/edit$/, {
+      timeout: 20_000,
+    });
+
+    // URL에서 company id 추출 — 이후 단계에서 REST 쿼리에 사용
+    const url = page.url();
+    const match = url.match(/\/admin\/customers\/([0-9a-f-]+)\/edit$/);
+    if (!match) throw new Error(`edit 페이지 URL에서 company id 추출 실패: ${url}`);
+    companyId = match[1];
+  });
+
+  // 4-2: 서비스롤 REST로 company_equipment 행 id 캡처 (ORIGINAL_ID)
+  test("4-2: 서비스롤 REST로 원래 장비 행 id 확인", async () => {
+    // company id는 4-1에서 설정됨 — serial 블록이라 순서 보장
+    expect(companyId).toBeTruthy();
+
+    const res = await serviceRoleFetch(
+      `/rest/v1/company_equipment?company_id=eq.${companyId}&select=id,label`,
+    );
+    expect(res.ok).toBe(true);
+
+    const rows = (await res.json()) as { id: string; label: string }[];
+    // 정확히 1행 존재 확인 — 생성 시 장비 1개 추가
+    expect(rows).toHaveLength(1);
+    expect(rows[0].label).toBe("보존프레스");
+
+    // 원래 id 저장 — 4-4 검증에서 동일성 비교에 사용
+    originalEquipmentId = rows[0].id;
+    expect(originalEquipmentId).toBeTruthy();
+  });
+
+  // 4-3: edit 페이지에서 일련번호(serial_no)만 변경 후 저장
+  // label은 그대로 두어 같은 행을 UPDATE하도록 유도 — id 변경 유발 조건 재현
+  test("4-3: edit 페이지에서 일련번호 변경 → 저장", async ({ page }) => {
+    expect(companyId).toBeTruthy();
+
+    await login(page);
+    // edit 페이지로 직접 이동 (URL 알고 있으므로 목록 경유 불필요)
+    await page.goto(`/admin/customers/${companyId}/edit`);
+
+    // 폼 로드 완료 대기 — 업체명 필드가 기존 값으로 채워져 있어야 함
+    await expect(page.getByLabel("업체명 *")).toHaveValue(DIFF_COMPANY_NAME, {
+      timeout: 15_000,
+    });
+
+    // 일련번호 input에 값 입력 — placeholder="일련번호" (CompanyEquipmentEditor.tsx 확인)
+    // 기존 label·equipment_id는 건드리지 않음(같은 행 UPDATE 경로 유지)
+    await page.getByPlaceholder("일련번호").fill("SN-EDIT-1");
+
+    // 저장 → updateCustomer 액션 성공 시 /admin/customers 목록으로 리다이렉트
+    await page.getByRole("button", { name: "저장" }).click();
+    await page.waitForURL(/\/admin\/customers$/, { timeout: 20_000 });
+  });
+
+  // 4-4: 저장 후 company_equipment 재조회 — id 보존 + serial_no 반영 확인
+  // 이것이 핵심 단언: delete+insert 방식이면 id가 바뀌어 실패함
+  test("4-4: 저장 후 장비 row id 보존 확인 (diff-upsert 핵심 단언)", async () => {
+    expect(companyId).toBeTruthy();
+    expect(originalEquipmentId).toBeTruthy();
+
+    const res = await serviceRoleFetch(
+      `/rest/v1/company_equipment?company_id=eq.${companyId}&select=id,serial_no`,
+    );
+    expect(res.ok).toBe(true);
+
+    const rows = (await res.json()) as { id: string; serial_no: string | null }[];
+
+    // (a) 정확히 1행 — 삭제·추가 없이 기존 행만 UPDATE됐어야 함
+    expect(rows).toHaveLength(1);
+
+    // (b) id 동일성 — UPDATE면 같고, delete+insert면 다름 → 이 단언이 anti-bug 핵심
+    expect(rows[0].id).toBe(originalEquipmentId);
+
+    // (c) serial_no 반영 — 편집 내용이 실제로 저장됐는지 확인
+    expect(rows[0].serial_no).toBe("SN-EDIT-1");
   });
 });
