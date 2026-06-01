@@ -22,9 +22,17 @@ async function applyEquipmentDiff(supabase: SupabaseClient, companyId: string, v
     const { error } = await supabase.from("company_equipment").delete().in("id", toDelete);
     if (error) return error.message;
   }
+  // 제출된 id 중 이 회사 소속 행만 업데이트(cross-company 행 조작 방지).
+  // RLS는 customers.manage만 검사하고 row 소유는 안 보므로 company_id 스코프를 앱에서 강제.
+  const ownedIds = new Set((existingRows ?? []).map((r: { id: string }) => r.id));
   for (const u of toUpdate) {
     const { id, ...rest } = u;
-    const { error } = await supabase.from("company_equipment").update(rest).eq("id", id);
+    if (!ownedIds.has(id)) continue; // 타 회사/위조 id는 무시
+    const { error } = await supabase
+      .from("company_equipment")
+      .update(rest)
+      .eq("id", id)
+      .eq("company_id", companyId);
     if (error) return error.message;
   }
   if (toInsert.length) {
@@ -124,7 +132,10 @@ export async function registerFromApplication(applicationId: string): Promise<{ 
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.rpc("upsert_company_from_application", { p_application_id: applicationId });
   if (error) { console.error("[customers.registerFromApp]", error); return { error: "고객 등록에 실패했습니다." }; }
-  return { company_id: data.company_id as string, created: data.created as boolean };
+  // 외부(RPC) 응답은 직접 신뢰 금지 — Zod로 형태 검증(CLAUDE.md).
+  const parsed = z.object({ company_id: z.string().uuid(), created: z.boolean() }).safeParse(data);
+  if (!parsed.success) { console.error("[customers.registerFromApp] RPC 응답 형식 오류", data); return { error: "고객 등록 응답이 올바르지 않습니다." }; }
+  return parsed.data;
 }
 
 // 견적 신청 검색 서버 액션 — ApplicationPicker(클라이언트)에서 호출.

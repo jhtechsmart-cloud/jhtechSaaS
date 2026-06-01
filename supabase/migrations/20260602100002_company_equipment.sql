@@ -12,7 +12,11 @@ create table public.company_equipment (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint company_equipment_identity
-    check ((equipment_id is not null) <> (nullif(btrim(label), '') is not null))
+    check ((equipment_id is not null) <> (nullif(btrim(label), '') is not null)),
+  constraint company_equipment_label_len check (label is null or char_length(label) <= 200),
+  constraint company_equipment_serial_len check (serial_no is null or char_length(serial_no) <= 100),
+  constraint company_equipment_install_len check (install_address is null or char_length(install_address) <= 500),
+  constraint company_equipment_note_len check (note is null or char_length(note) <= 2000)
 );
 create index company_equipment_company_idx on public.company_equipment (company_id);
 create index company_equipment_equipment_idx on public.company_equipment (equipment_id);

@@ -17,9 +17,13 @@ create table public.companies (
   updated_at timestamptz not null default now(),
   constraint companies_biz_no_format check (biz_no is null or biz_no ~ '^\d{10}$'),
   constraint companies_name_len check (char_length(name) <= 200),
-  constraint companies_address_len check (address is null or char_length(address) <= 500)
+  constraint companies_address_len check (address is null or char_length(address) <= 500),
+  constraint companies_note_len check (note is null or char_length(note) <= 2000)
 );
 create unique index companies_biz_no_unique on public.companies (biz_no) where biz_no is not null;
+-- biz_no 없는 고객의 멱등 dedupe 키 + 동시 double-submit 중복 방지(upsert가 source로 재조회).
+-- 한 신청은 최대 1개 고객을 생성하므로 source_application_id 유일성은 자연스럽다.
+create unique index companies_source_app_unique on public.companies (source_application_id) where source_application_id is not null;
 create index companies_assignee_idx on public.companies (assignee_id);
 create index companies_updated_idx on public.companies (updated_at desc);
 

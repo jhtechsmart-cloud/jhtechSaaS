@@ -36,7 +36,12 @@ begin
       returning id into v_company_id;
       v_created := true;
     exception when unique_violation then
-      select id into v_company_id from public.companies where biz_no = v_biz;
+      -- 동시 삽입 충돌(biz_no 또는 source_application_id 부분 UNIQUE) → 선점된 행 재조회.
+      if v_biz is not null then
+        select id into v_company_id from public.companies where biz_no = v_biz;
+      else
+        select id into v_company_id from public.companies where source_application_id = p_application_id;
+      end if;
     end;
   else
     update public.companies set
@@ -61,16 +66,19 @@ language plpgsql security definer set search_path = '' stable as $$
 declare
   v_q text := btrim(coalesce(p_query, ''));
   v_digits text := regexp_replace(coalesce(p_query, ''), '\D', '', 'g');
+  v_like text;
 begin
   if not public.has_permission((select auth.uid()), 'customers.manage') then
     raise exception 'permission denied: customers.manage required' using errcode = '42501';
   end if;
-  if char_length(v_q) < 2 then return; end if;
+  if char_length(v_q) < 2 or char_length(v_q) > 200 then return; end if;  -- 상한 가드
+  -- LIKE 메타문자(\ % _) 이스케이프 → 와일드카드 주입·전체매칭 풀스캔 방지.
+  v_like := replace(replace(replace(v_q, '\', '\\'), '%', '\%'), '_', '\_');
   return query
     select a.id, a.seq_no, a.company, a.biz_no, a.ceo, a.phone, a.email, a.created_at
     from public.applications a
-    where a.company ilike '%' || v_q || '%'
-       or a.seq_no ilike '%' || v_q || '%'
+    where a.company ilike '%' || v_like || '%' escape '\'
+       or a.seq_no ilike '%' || v_like || '%' escape '\'
        or (char_length(v_digits) >= 3 and a.biz_no ilike '%' || v_digits || '%')
     order by a.created_at desc
     limit 20;
