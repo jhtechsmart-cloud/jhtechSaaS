@@ -11,7 +11,7 @@ declare
   v_company text := nullif(btrim(payload->>'company'), '');
   v_fields jsonb := coalesce(payload->'fields', '{}'::jsonb);
   v_biz text := regexp_replace(coalesce(payload->>'biz_no',''), '-', '', 'g');
-  v_consent boolean := coalesce((payload->>'privacy_consent')::boolean, false);
+  v_consent_type text := jsonb_typeof(payload->'privacy_consent');
   v_consent_ver text := nullif(btrim(payload->>'privacy_consent_version'), '');
   v_equipment_id uuid;
   v_eq_raw text;
@@ -27,8 +27,9 @@ begin
     raise exception '회사명은 필수입니다';
   end if;
 
-  -- 개인정보 동의 필수
-  if v_consent is not true then
+  -- 개인정보 동의 필수 — JSON boolean true만 인정(문자열 'true'·숫자 1 등 느슨한 강제 거부).
+  -- 법적 동의 기록이므로 명시적 boolean true가 아니면 거부.
+  if v_consent_type is distinct from 'boolean' or (payload->'privacy_consent')::boolean is not true then
     raise exception '개인정보 수집·이용 동의가 필요합니다';
   end if;
   if v_consent_ver is null then
@@ -76,7 +77,7 @@ begin
       raise exception '허용되지 않은 사진 슬롯입니다';
     end if;
     v_path := v_photos->>v_slot;
-    if v_path is not null and v_path !~ ('^customer-uploads/[0-9a-f-]{36}/' || v_slot || '\.(jpg|png|webp)$') then
+    if v_path is not null and v_path !~ ('^customer-uploads/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/' || v_slot || '\.(jpg|png|webp)$') then
       raise exception '사진 경로 형식이 올바르지 않습니다';
     end if;
   end loop;

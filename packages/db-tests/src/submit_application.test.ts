@@ -134,6 +134,18 @@ describe("submit_application RPC (E3 P2)", () => {
     });
   });
 
+  test("느슨한 동의값(문자열 'true'·숫자 1)은 거부된다", async () => {
+    await inRollbackTx(c, async () => {
+      await asAnon(c);
+      await expect(
+        c.query("select public.submit_application($1::jsonb)", [payload({ privacy_consent: "true" })]),
+      ).rejects.toThrow();
+      await expect(
+        c.query("select public.submit_application($1::jsonb)", [payload({ privacy_consent: 1 })]),
+      ).rejects.toThrow();
+    });
+  });
+
   test("photos 경로 형식 위반 시 예외", async () => {
     await inRollbackTx(c, async () => {
       await asAnon(c);
