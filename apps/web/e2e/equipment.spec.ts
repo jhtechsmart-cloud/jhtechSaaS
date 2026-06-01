@@ -63,8 +63,10 @@ test("AC1: 미인증 → /admin/equipment 접근 시 /login 리다이렉트", as
 test.describe.serial("E2E 장비 생성·토글 플로우", () => {
   // ──────────────────────────────────────────────────────────────────────────
   // AC3·4·6·7: 로그인 → 생성(사양 2행·옵션 1개·사진 1장) → 목록 노출
-  // EquipmentForm defaultValues: specs = [{label:"",value:""}] (1 빈 행 기본)
-  // "+ 항목 추가" 클릭 시 2번째 행 추가 → nth(0), nth(1) 채움
+  // SpecEditor(P-A1 그룹형): 생성 시 기본 = 그룹 1개 + 항목 1행
+  //   [{group:"", icon:"settings", items:[{label:"",value:""}]}]
+  // 항목 행 placeholder = "항목 (예: 속도)" / "값 (예: 1200매/h)"
+  // "+ 항목" 클릭 시 2번째 항목 행 추가 → nth(0), nth(1) 채움
   // ──────────────────────────────────────────────────────────────────────────
   test("AC3·4·6·7: 로그인→생성(사양2·옵션1·사진1)→목록 노출", async ({ page }) => {
     await login(page);
@@ -74,14 +76,14 @@ test.describe.serial("E2E 장비 생성·토글 플로우", () => {
     await page.getByLabel("장비명").fill(E2E_EQUIPMENT_NAME);
     await page.getByLabel("기본가(₩)").fill("1500000");
 
-    // §2 사양 — SpecEditor: 생성 시 1행 기본 → "+ 항목 추가" 클릭 후 2행
+    // §2 사양 — SpecEditor(그룹형): 기본 그룹 1개·항목 1행 → "+ 항목"으로 2행
     // React 19 / Next.js 16 dev: 클라이언트 핸들러 부착 완료를 보장하기 위해
-    // 첫 번째 spec input이 인터랙터블(enabled)임을 확인 후 클릭.
+    // 첫 번째 항목 input이 인터랙터블(enabled)임을 확인 후 클릭.
     // allowedDevOrigins: ["127.0.0.1"] 필수 — HMR WebSocket 차단 시 React 이벤트 미동작
-    const specLabels = page.getByPlaceholder("항목 (예: 전압)");
-    const specValues = page.getByPlaceholder("값 (예: 220V)");
+    const specLabels = page.getByPlaceholder("항목 (예: 속도)");
+    const specValues = page.getByPlaceholder("값 (예: 1200매/h)");
     await expect(specLabels.first()).toBeEnabled(); // hydration 완료 대기
-    await page.getByRole("button", { name: "+ 항목 추가" }).click();
+    await page.getByRole("button", { name: "+ 항목" }).click();
     await expect(specLabels).toHaveCount(2, { timeout: 10_000 }); // 2행 렌더 완료 대기
     await specLabels.nth(0).fill("전압");
     await specValues.nth(0).fill("220V");

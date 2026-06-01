@@ -72,7 +72,14 @@ test("공개 카탈로그: active 노출 + inactive 비노출 + 상세 진입", 
   await expect(page.getByText(INACTIVE_NAME)).toHaveCount(0);
 
   // 카드 클릭 → 상세
-  await page.getByRole("link", { name: new RegExp(ACTIVE_NAME) }).first().click();
+  // 카드 재설계(P-A2): 카드 전체 <Link>가 아니라 [상세정보]/[장비선택] 2버튼 구조.
+  // 사진 없는 시드는 이미지 링크 접근명이 "이미지 없음"이라 이름 매칭 불가.
+  // 카탈로그에는 active 장비가 모두 노출되므로(타 spec 시드 공존 가능) 전역 .first()는
+  // 불안정 → ACTIVE_NAME 제목을 가진 카드(<li>)로 범위를 좁혀 그 안의 "상세정보" 클릭.
+  const activeCard = page
+    .locator("li")
+    .filter({ has: page.getByRole("heading", { name: ACTIVE_NAME }) });
+  await activeCard.getByRole("link", { name: "상세정보" }).click();
   await page.waitForURL(/\/equipment\/[0-9a-f-]{36}$/, { timeout: 15_000 });
 
   // 상세에 이름(h1)·스펙 노출, 가격 미노출
