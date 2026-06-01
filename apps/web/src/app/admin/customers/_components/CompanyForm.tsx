@@ -58,6 +58,8 @@ export function CompanyForm(props: Props) {
     props.mode === "edit"
       ? {
           ...props.company,
+          // biz_no는 표시용 대시 포맷으로 로드(목록·blur와 일관). 저장 시 actions가 normalize.
+          biz_no: props.company.biz_no ? formatBizNo(props.company.biz_no) : "",
           // equipment 행 타입 변환(CompanyEquipmentRow → FormInput 호환)
           equipment: props.company.equipment.map((r) => ({
             id: r.id,
