@@ -4,7 +4,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { z } from "zod";
-import { formatBizNo } from "@jhtechsaas/shared";
+import { formatBizNo, formatPhone } from "@jhtechsaas/shared";
 import {
   companyFormSchema,
   type CompanyFormValues,
@@ -60,6 +60,8 @@ export function CompanyForm(props: Props) {
           ...props.company,
           // biz_no는 표시용 대시 포맷으로 로드(목록·blur와 일관). 저장 시 actions가 normalize.
           biz_no: props.company.biz_no ? formatBizNo(props.company.biz_no) : "",
+          // 전화번호도 표시용 대시 포맷으로 로드(blur와 일관).
+          phone: props.company.phone ? formatPhone(props.company.phone) : "",
           // equipment 행 타입 변환(CompanyEquipmentRow → FormInput 호환)
           equipment: props.company.equipment.map((r) => ({
             id: r.id,
@@ -111,6 +113,11 @@ export function CompanyForm(props: Props) {
     // 일회성 읽기는 watch(구독) 대신 getValues 사용(메모이즈 경고 회피).
     const raw = getValues("biz_no");
     if (raw) setValue("biz_no", formatBizNo(raw));
+  }
+
+  function onPhoneBlur() {
+    const raw = getValues("phone");
+    if (raw) setValue("phone", formatPhone(raw));
   }
 
   function onSubmit(values: CompanyFormValues) {
@@ -172,7 +179,9 @@ export function CompanyForm(props: Props) {
           <Field label="연락처" error={errors.phone?.message}>
             <input
               {...register("phone")}
-              className="rounded-md border border-border bg-surface px-3 py-2 text-body text-text"
+              onBlur={onPhoneBlur}
+              placeholder="010-1234-5678"
+              className="rounded-md border border-border bg-surface px-3 py-2 font-mono tabular-nums text-body text-text"
             />
           </Field>
           <Field label="이메일" error={errors.email?.message}>
