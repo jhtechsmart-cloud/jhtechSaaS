@@ -1,0 +1,2 @@
+-- rollback: submit_application v2 → E3 원본 함수(20260531120000_submit_application.sql)를 재적용할 것.
+-- create or replace 이므로 원본 파일 내용을 그대로 다시 실행하면 v1으로 원복된다.
