@@ -5,10 +5,11 @@ import Link from "next/link";
 import { formatBizNo } from "@jhtechsaas/shared";
 import { searchApplicationsAction, registerFromApplication } from "@/lib/customers/actions";
 
-// 견적 신청 검색 결과 행 타입 — RPC search_applications_for_customer 반환 형태.
+// 견적 신청 검색 결과 행 타입 — RPC search_applications_for_customer 반환 컬럼명 그대로 사용.
+// RPC returns: id, seq_no, company, biz_no, ceo, phone, email, created_at
 type ApplicationRow = {
-  application_id: string;
-  company_name: string | null;
+  id: string;
+  company: string | null;
   biz_no: string | null;
   seq_no: string | null;
   phone: string | null;
@@ -106,10 +107,10 @@ export function ApplicationPicker() {
             <tbody>
               {results.map((row) => (
                 <tr
-                  key={row.application_id}
+                  key={row.id}
                   className="border-b border-border hover:bg-surface-2"
                 >
-                  <td className="py-2 text-text">{row.company_name ?? "-"}</td>
+                  <td className="py-2 text-text">{row.company ?? "-"}</td>
                   <td className="py-2 font-mono tabular-nums text-text">
                     {row.biz_no ? (
                       formatBizNo(row.biz_no)
@@ -124,7 +125,7 @@ export function ApplicationPicker() {
                   <td className="py-2">
                     <button
                       type="button"
-                      onClick={() => handleSelect(row.application_id)}
+                      onClick={() => handleSelect(row.id)}
                       disabled={registering}
                       className="rounded-sm bg-accent px-2 py-1 text-small font-medium text-white disabled:opacity-60"
                     >
