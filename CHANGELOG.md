@@ -2,6 +2,19 @@
 
 이 프로젝트의 주요 변경 사항을 기록한다. [Keep a Changelog](https://keepachangelog.com/) 형식, [Semantic Versioning](https://semver.org/)(4자리 MAJOR.MINOR.PATCH.MICRO).
 
+## [0.3.1.0] - 2026-06-01
+
+### Added
+- **M2 P-A1 견적요청 v2 — 데이터 기반 + 운영자 입력 UI** (GitHub #19a) — M2 고객 포털의 첫 단계. 공개 흐름(P-A2) 전에 데이터 토대를 깐다.
+  - 장비 사양을 평면 `{label,value}` → **아이콘 그룹 구조**(`{group,icon,items[]}`, 9종 고정 아이콘 enum)로 확장. 기존 평면 데이터는 단일 기본그룹으로 자동 마이그레이션 + 하위호환 파서.
+  - `equipment`에 **요약(highlights) 불릿**·**복수 제품영상(youtube_urls)** 추가. 공개 뷰 재생성(가격·옵션 비노출 유지).
+  - `applications`에 **개인정보 동의 3컬럼**(동의·시각·버전) + **equipment_id FK** 추가. 기존 `fields.equipment_id` 백필.
+  - **`privacy_policies`** 버전 테이블(v1.0 플레이스홀더) + RLS. **`customer-uploads`** 비공개 버킷(현장 사진, anon 업로드·스태프 열람, 경로 형식 강제).
+  - **견적요청 RPC v2**: 개인정보 동의(엄격 boolean·실재 버전 검증)·선택 장비(active 검증)·현장 사진 경로·사업자번호 국세청 체크섬을 서버에서 강제. `status='new'`·미배정 하드코딩 유지(익명 위조 차단).
+  - **운영자 장비 폼 확장**: highlights·복수 youtube·그룹 사양(아이콘 드롭다운, 중첩 편집) 입력.
+  - 사업자등록번호 체크섬 순수함수(`validateBizNo`) 추가(클라+서버 공유, P-A2 폼에서 배선 예정).
+- **M2 고객 포털 마일스톤 등록** — 설계문서·로드맵(roadmap.json/ROADMAP.md)·프로젝트 지도에 M2(P-A~P-G) 반영.
+
 ## [0.3.0.0] - 2026-05-31
 
 ### Added
