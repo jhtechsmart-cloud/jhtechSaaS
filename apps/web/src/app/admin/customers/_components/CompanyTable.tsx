@@ -106,10 +106,10 @@ export function CompanyTable({
           <table className="w-full border-collapse text-body">
             <thead>
               <tr className="border-b border-border text-left text-small text-muted">
-                <th className="py-2 font-medium">업체명</th>
-                <th className="py-2 font-medium">사업자번호</th>
-                <th className="py-2 font-medium">담당영업</th>
-                <th className="py-2 text-right font-medium">보유장비</th>
+                <th className="py-2 pr-4 font-medium">업체명</th>
+                <th className="py-2 pr-4 font-medium">사업자번호</th>
+                <th className="py-2 pr-4 font-medium">담당영업</th>
+                <th className="py-2 pr-4 text-right font-medium">보유장비</th>
                 <th className="py-2 font-medium">최근수정</th>
               </tr>
             </thead>
@@ -121,7 +121,7 @@ export function CompanyTable({
                   onClick={() => router.push(`/admin/customers/${it.id}/edit`)}
                 >
                   {/* 업체명 */}
-                  <td className="max-w-xs py-2">
+                  <td className="max-w-xs py-2 pr-4">
                     <Link
                       href={`/admin/customers/${it.id}/edit`}
                       className="block max-w-xs truncate font-medium text-text hover:text-accent"
@@ -130,7 +130,7 @@ export function CompanyTable({
                     </Link>
                   </td>
                   {/* 사업자번호: mono tabular, null → muted "-" */}
-                  <td className="py-2">
+                  <td className="py-2 pr-4">
                     {it.biz_no ? (
                       <span className="font-mono tabular-nums text-text">
                         {formatBizNo(it.biz_no)}
@@ -140,7 +140,7 @@ export function CompanyTable({
                     )}
                   </td>
                   {/* 담당영업: 미배정(null) → amber soft 배지(색 스파인 alt axis) */}
-                  <td className="py-2">
+                  <td className="py-2 pr-4">
                     {it.assignee_id === null ? (
                       <span className="rounded-sm bg-amber-100 px-2 py-0.5 text-small font-medium text-amber-700">
                         미배정
@@ -150,7 +150,7 @@ export function CompanyTable({
                     )}
                   </td>
                   {/* 보유장비수: mono, 0 → muted */}
-                  <td className="py-2 text-right">
+                  <td className="py-2 pr-4 text-right">
                     {it.equipment_count === 0 ? (
                       <span className="font-mono tabular-nums text-muted">0</span>
                     ) : (
