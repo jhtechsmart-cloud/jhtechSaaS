@@ -13,3 +13,15 @@ export function validateBizNo(input: string): boolean {
   const check = (10 - (sum % 10)) % 10;
   return check === digits[9];
 }
+
+/** 사업자번호 정규화 — 비숫자 전부 제거. 클라/서버 RPC와 동일 규칙으로 단일화. */
+export function normalizeBizNo(input: string): string {
+  return input.replace(/\D/g, "");
+}
+
+/** 표시용 포맷 — 10자리면 3-2-5 대시, 아니면 원본 유지. (mono tabular와 함께 렌더) */
+export function formatBizNo(input: string): string {
+  const d = normalizeBizNo(input);
+  if (d.length !== 10) return input;
+  return `${d.slice(0, 3)}-${d.slice(3, 5)}-${d.slice(5)}`;
+}
