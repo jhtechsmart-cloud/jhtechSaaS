@@ -38,8 +38,15 @@ function parseItems(raw: unknown): SpecItem[] {
 export function parseSpecs(raw: unknown): SpecGroup[] {
   if (!Array.isArray(raw) || raw.length === 0) return [];
   const first = raw[0];
-  // 평면 레거시: 첫 원소가 {label,value} → 단일 기본그룹 래핑
-  if (typeof first === "object" && first !== null && "label" in first && "value" in first) {
+  // 평면 레거시: 첫 원소가 {label,value} 보유 + items 미보유 → 단일 기본그룹 래핑.
+  // items 조건으로 그룹객체에 stray label이 있어도 오분류(전체 평탄화) 방지.
+  if (
+    typeof first === "object" &&
+    first !== null &&
+    "label" in first &&
+    "value" in first &&
+    !("items" in first)
+  ) {
     return [{ group: "", icon: "settings", items: parseItems(raw) }];
   }
   // 그룹형: {group, icon, items} 구조. items 없는 비정형 원소는 제외

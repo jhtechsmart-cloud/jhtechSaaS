@@ -25,7 +25,7 @@ describe("customer-uploads 버킷 RLS", () => {
     });
   });
 
-  test("anon은 customer-uploads에 INSERT 가능", async () => {
+  test("anon은 버킷-상대 <uuid>/<slot>.ext 경로로 INSERT 가능", async () => {
     await inRollbackTx(c, async () => {
       await asAnon(c);
       // storage.test.ts와 동일한 (bucket_id, name) 컬럼 셋 사용
@@ -33,6 +33,23 @@ describe("customer-uploads 버킷 RLS", () => {
         `insert into storage.objects (bucket_id, name) values ('customer-uploads', $1)`,
         ["00000000-0000-0000-0000-0000000000ff/ext_entrance.jpg"],
       );
+    });
+  });
+
+  test("anon은 형식 위반 경로(임의 name·traversal)로는 INSERT 불가", async () => {
+    await inRollbackTx(c, async () => {
+      await asAnon(c);
+      // 임의 경로 — 정책 name 정규식 위반
+      await expect(
+        c.query(`insert into storage.objects (bucket_id, name) values ('customer-uploads', 'x/anything.jpg')`),
+      ).rejects.toThrow();
+      // 허용되지 않은 슬롯명
+      await expect(
+        c.query(
+          `insert into storage.objects (bucket_id, name) values ('customer-uploads', $1)`,
+          ["00000000-0000-0000-0000-0000000000ff/evil_slot.jpg"],
+        ),
+      ).rejects.toThrow();
     });
   });
 

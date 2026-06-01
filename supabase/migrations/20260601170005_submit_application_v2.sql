@@ -35,6 +35,10 @@ begin
   if v_consent_ver is null then
     raise exception '동의 버전이 누락되었습니다';
   end if;
+  -- 동의 버전은 실재하는 정책 버전이어야 함(법적 감사추적 위조 방지: 클라가 임의 버전 못 박음).
+  if not exists (select 1 from public.privacy_policies where version = v_consent_ver) then
+    raise exception '유효하지 않은 동의 버전입니다';
+  end if;
 
   -- 길이 캡(anon 남용·저장소 폭주 방지)
   if length(v_company) > 200
@@ -65,6 +69,10 @@ begin
   -- equipment_id(선택): payload 최상위 우선, 없으면 fields. 형식 + active 검증.
   v_eq_raw := coalesce(nullif(payload->>'equipment_id', ''), nullif(v_fields->>'equipment_id', ''));
   if v_eq_raw is not null then
+    -- 캐스트 전 UUID 형식 검증: 거대/비정형 입력의 raw 22P02 노출(스키마 fingerprinting) 차단.
+    if v_eq_raw !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then
+      raise exception '유효하지 않은 장비입니다';
+    end if;
     v_equipment_id := v_eq_raw::uuid;
     if not exists (select 1 from public.equipment where id = v_equipment_id and status = 'active') then
       raise exception '유효하지 않은 장비입니다';
@@ -77,7 +85,8 @@ begin
       raise exception '허용되지 않은 사진 슬롯입니다';
     end if;
     v_path := v_photos->>v_slot;
-    if v_path is not null and v_path !~ ('^customer-uploads/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/' || v_slot || '\.(jpg|png|webp)$') then
+    -- 버킷-상대 경로(<uuid>/<slot>.ext). storage object name·INSERT 정책과 동일 패턴 → staff 조회 시 해소.
+    if v_path is not null and v_path !~ ('^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/' || v_slot || '\.(jpg|png|webp)$') then
       raise exception '사진 경로 형식이 올바르지 않습니다';
     end if;
   end loop;

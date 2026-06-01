@@ -168,16 +168,38 @@ describe("submit_application RPC (E3 P2)", () => {
     });
   });
 
-  test("유효한 photos 경로는 저장된다", async () => {
+  test("유효한 photos 경로(버킷-상대 <uuid>/<slot>.ext)는 저장된다", async () => {
     await inRollbackTx(c, async () => {
       await asAnon(c);
-      const validPath = "customer-uploads/00000000-0000-0000-0000-0000000000ff/ext_entrance.jpg";
+      const validPath = "00000000-0000-0000-0000-0000000000ff/ext_entrance.jpg";
       await c.query("select public.submit_application($1::jsonb)", [
         payload({ company: "사진상사", fields: { photos: { ext_entrance: validPath } } }),
       ]);
       await asPostgres(c);
       const row = await c.query("select fields from public.applications where company='사진상사'");
       expect(row.rows[0].fields.photos.ext_entrance).toBe(validPath);
+    });
+  });
+
+  test("버킷명 prefix가 붙은 옛 경로(customer-uploads/...)는 거부된다", async () => {
+    await inRollbackTx(c, async () => {
+      await asAnon(c);
+      await expect(
+        c.query("select public.submit_application($1::jsonb)", [
+          payload({
+            fields: { photos: { ext_entrance: "customer-uploads/00000000-0000-0000-0000-0000000000ff/ext_entrance.jpg" } },
+          }),
+        ]),
+      ).rejects.toThrow();
+    });
+  });
+
+  test("존재하지 않는 동의 버전은 거부된다", async () => {
+    await inRollbackTx(c, async () => {
+      await asAnon(c);
+      await expect(
+        c.query("select public.submit_application($1::jsonb)", [payload({ privacy_consent_version: "v999" })]),
+      ).rejects.toThrow();
     });
   });
 

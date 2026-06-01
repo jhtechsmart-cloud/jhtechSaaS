@@ -4,15 +4,18 @@ alter table public.equipment
   add column highlights text[] not null default '{}',
   add column youtube_urls text[] not null default '{}';
 
--- youtube_url 단일 → 배열 백필
-update public.equipment set youtube_urls = array[youtube_url] where youtube_url is not null;
+-- youtube_url 단일 → 배열 백필. 빈 문자열·공백뿐인 값은 phantom [''] 방지 위해 제외.
+update public.equipment set youtube_urls = array[btrim(youtube_url)]
+  where nullif(btrim(youtube_url), '') is not null;
 
 -- specs 평면 [{label,value}] → [{group:'',icon:'settings',items:[...]}]
+-- 판별: 첫 원소가 label 보유 + items 미보유(이미 그룹형이면 재래핑 안 함, 멱등).
 update public.equipment set specs =
   jsonb_build_array(jsonb_build_object('group', '', 'icon', 'settings', 'items', specs))
   where jsonb_typeof(specs) = 'array'
     and jsonb_array_length(specs) > 0
-    and (specs->0) ? 'label';
+    and (specs->0) ? 'label'
+    and not ((specs->0) ? 'items');
 
 -- 공개뷰가 youtube_url 의존 → drop + recreate 후 컬럼 drop
 drop view public.equipment_public;

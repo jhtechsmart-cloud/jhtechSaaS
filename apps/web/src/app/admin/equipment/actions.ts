@@ -57,8 +57,9 @@ export async function createEquipment(
     category: v.category || null,
     base_price: v.base_price,
     status: v.status,
-    highlights: v.highlights,
-    youtube_urls: v.youtube_urls,
+    // 빈 불릿·빈 URL은 저장 단계에서 제거(공개면 phantom 빈 줄/빈 영상섹션 방지).
+    highlights: v.highlights.map((h) => h.trim()).filter(Boolean),
+    youtube_urls: v.youtube_urls.map((u) => u.trim()).filter(Boolean),
     specs: serializeSpecs(v.specs),
     photos: v.photos,
   });
@@ -107,8 +108,9 @@ export async function updateEquipment(
       category: v.category || null,
       base_price: v.base_price,
       status: v.status,
-      highlights: v.highlights,
-      youtube_urls: v.youtube_urls,
+      // 빈 불릿·빈 URL은 저장 단계에서 제거(공개면 phantom 빈 줄/빈 영상섹션 방지).
+      highlights: v.highlights.map((h) => h.trim()).filter(Boolean),
+      youtube_urls: v.youtube_urls.map((u) => u.trim()).filter(Boolean),
       specs: serializeSpecs(v.specs),
       photos: v.photos,
     })
