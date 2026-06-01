@@ -6,6 +6,7 @@ import { getPublicEquipment } from "@/lib/equipment/public-queries";
 import { buildEquipmentMetadata } from "@/lib/seo/equipment-meta";
 import { siteUrl } from "@/lib/seo/site";
 import { getPublicEnv } from "@/env";
+import { HighlightsList } from "./_components/HighlightsList";
 import { PublicGallery } from "./_components/PublicGallery";
 import { SpecTable } from "./_components/SpecTable";
 import { YoutubeEmbed } from "./_components/YoutubeEmbed";
@@ -24,13 +25,8 @@ export async function generateMetadata({
   return buildEquipmentMetadata(eq, siteUrl(), getPublicEnv().NEXT_PUBLIC_SUPABASE_URL);
 }
 
-export default async function EquipmentDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function EquipmentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  // UUID 형식이 아니면 DB 조회 없이 404(PostgREST 22P02 예외 → 500 방지).
   if (!z.string().uuid().safeParse(id).success) notFound();
   const eq = await getPublicEquipment(id);
   if (!eq) notFound();
@@ -40,31 +36,37 @@ export default async function EquipmentDetailPage({
       <Link href="/equipment" className="mb-6 inline-block text-small text-muted hover:text-text">
         ← 카탈로그로
       </Link>
+
+      {/* 상단 2열: 좌 갤러리 / 우 정보+요약+CTA */}
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-2">
         <PublicGallery photos={eq.photos} name={eq.name} />
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-4">
           <header className="flex flex-col gap-1">
             <h1 className="text-display font-semibold text-text">{eq.name}</h1>
             {eq.model && <span className="font-mono text-body text-muted">{eq.model}</span>}
             {eq.category && <span className="text-small text-muted">{eq.category}</span>}
           </header>
-          <section className="flex flex-col gap-3">
-            <h2 className="text-h2 font-medium text-text">사양</h2>
-            <SpecTable specs={eq.specs} />
-          </section>
-          {/* P2에서 /request?equipment=[id] 폼으로 배선(머지 시 P2 동시 존재). */}
+          <HighlightsList items={eq.highlights} />
           <Link
-            href={`/request?equipment=${eq.id}`}
-            className="inline-flex w-fit items-center justify-center rounded-md bg-accent px-6 py-3 text-body font-medium text-white"
+            href={`/request?equipment_id=${eq.id}`}
+            className="mt-2 inline-flex w-fit items-center justify-center rounded-md bg-accent px-6 py-3 text-body font-medium text-white hover:opacity-90"
           >
             이 장비로 견적 요청
           </Link>
         </div>
       </div>
+
+      {/* 중단 전폭: 사양 */}
+      <section className="mt-12 flex flex-col gap-4">
+        <h2 className="text-h2 font-medium text-text">제품 사양</h2>
+        <SpecTable specs={eq.specs} />
+      </section>
+
+      {/* 하단 전폭: 복수 영상(0개 생략) */}
       {eq.youtube_urls.length > 0 && (
-        <section className="mt-10 flex flex-col gap-3">
+        <section className="mt-12 flex flex-col gap-4">
           <h2 className="text-h2 font-medium text-text">제품 영상</h2>
-          <div className="flex flex-col gap-6">
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
             {eq.youtube_urls.map((url, i) => (
               <YoutubeEmbed key={i} url={url} />
             ))}
