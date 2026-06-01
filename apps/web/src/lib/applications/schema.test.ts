@@ -6,15 +6,24 @@ import {
   type RequestFormInput,
 } from "./schema";
 
+// 체크섬 유효한 사업자등록번호로 교체 (1234567891 = 유효, 1234567890 = 무효).
 const valid: RequestFormInput = {
   company: "재현상사",
   ceo: "홍길동",
-  biz_no: "123-45-67890",
+  biz_no: "1234567891",
   phone: "02-1234-5678",
   email: "a@b.com",
   address: "서울시 강남구",
   requirements: "포장기 견적 부탁드립니다",
   equipment_id: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+  privacy_consent: true,
+  building_type: "factory",
+  location: "ground",
+  elevator: "none",
+  handling: [],
+  power: "single_220",
+  pneumatic: "none",
+  survey_extra: "",
 };
 
 describe("requestFormSchema", () => {
@@ -48,8 +57,8 @@ describe("requestFormSchema", () => {
 
 describe("buildSubmitPayload", () => {
   test("biz_no 하이픈 제거 + fields 구성 + equipment_name 병합", () => {
-    const p = buildSubmitPayload(requestFormSchema.parse(valid), "포장기A");
-    expect(p.biz_no).toBe("1234567890");
+    const p = buildSubmitPayload(requestFormSchema.parse(valid), "포장기A", {});
+    expect(p.biz_no).toBe("1234567891");
     expect(p.company).toBe("재현상사");
     expect(p.fields.requirements).toBe("포장기 견적 부탁드립니다");
     expect(p.fields.equipment_id).toBe("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11");
@@ -57,16 +66,19 @@ describe("buildSubmitPayload", () => {
   });
   test("빈 requirements·미선택 장비는 fields에서 생략", () => {
     const input = requestFormSchema.parse({
-      company: "A", ceo: "B", biz_no: "1234567890", phone: "01012345678",
+      company: "A", ceo: "B", biz_no: "1234567891", phone: "01012345678",
       email: "a@b.com", address: "주소",
+      privacy_consent: true,
+      building_type: "factory", location: "ground", elevator: "none",
+      handling: [], power: "single_220", pneumatic: "none",
     });
-    const p = buildSubmitPayload(input);
+    const p = buildSubmitPayload(input, undefined, {});
     expect(p.fields.requirements).toBeUndefined();
     expect(p.fields.equipment_id).toBeUndefined();
     expect(p.fields.equipment_name).toBeUndefined();
   });
   test("phone은 정규화 없이 그대로 전달된다", () => {
-    const p = buildSubmitPayload(requestFormSchema.parse(valid));
+    const p = buildSubmitPayload(requestFormSchema.parse(valid), undefined, {});
     expect(p.phone).toBe("02-1234-5678");
   });
 });
@@ -79,5 +91,46 @@ describe("seqNoSchema", () => {
   test("형식 외 거부", () => {
     expect(seqNoSchema.safeParse("nope").success).toBe(false);
     expect(seqNoSchema.safeParse("").success).toBe(false);
+  });
+});
+
+// ────────────────────────────────────────────────────
+// P-A2 신규 테스트: 동의·체크섬·설문·사진슬롯
+// ────────────────────────────────────────────────────
+
+const base = {
+  company: "재현", ceo: "홍길동", biz_no: "1234567891",
+  phone: "02-1234-5678", email: "a@b.com", address: "서울",
+  privacy_consent: true, requirements: "",
+  building_type: "factory", location: "ground", elevator: "none",
+  handling: [], power: "single_220", pneumatic: "none", survey_extra: "",
+  equipment_id: "",
+};
+
+describe("requestFormSchema (P-A2)", () => {
+  test("동의·체크섬·설문 충족 시 통과", () => {
+    expect(requestFormSchema.safeParse(base).success).toBe(true);
+  });
+  test("동의 미체크는 실패", () => {
+    expect(requestFormSchema.safeParse({ ...base, privacy_consent: false }).success).toBe(false);
+  });
+  test("biz_no 체크섬 불일치는 실패", () => {
+    expect(requestFormSchema.safeParse({ ...base, biz_no: "1234567890" }).success).toBe(false);
+  });
+  test("기타사항 다중 체크(handling 배열) 허용", () => {
+    expect(requestFormSchema.safeParse({ ...base, handling: ["no_vehicle", "manual"] }).success).toBe(true);
+  });
+});
+
+describe("buildSubmitPayload (P-A2)", () => {
+  test("fields.install_survey·photos·동의를 payload에 구성", () => {
+    const input = requestFormSchema.parse({ ...base, handling: ["ladder"] });
+    const payload = buildSubmitPayload(input, "XTRA 5000", { ext_entrance: "uuid1/ext_entrance.jpg" });
+    expect(payload.privacy_consent).toBe(true);
+    expect(payload.privacy_consent_version).toBe("v1.0");
+    expect(payload.fields.install_survey.handling).toEqual(["ladder"]);
+    expect(payload.fields.photos.ext_entrance).toBe("uuid1/ext_entrance.jpg");
+    expect(payload.fields.equipment_name).toBe("XTRA 5000");
+    expect(payload.biz_no).toBe("1234567891");
   });
 });
