@@ -1,32 +1,38 @@
 import { z } from "zod";
 import { getPublicEquipment } from "@/lib/equipment/public-queries";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { RequestForm } from "./_components/RequestForm";
+import { PRIVACY_VERSION } from "@/lib/applications/schema";
 
-// Next 16: searchParams는 Promise. 잘못된/inactive id면 preselection 없이 일반 문의로 동작.
+// 공개 견적요청 페이지. ?equipment_id= 로 장비 사전선택(P-A2 reconcile).
 export default async function RequestPage({
   searchParams,
 }: {
-  searchParams: Promise<{ equipment?: string }>;
+  searchParams: Promise<{ equipment_id?: string }>;
 }) {
-  const { equipment } = await searchParams;
-  let equipmentId: string | undefined;
+  const { equipment_id } = await searchParams;
+  const validId =
+    equipment_id && z.string().uuid().safeParse(equipment_id).success ? equipment_id : undefined;
+
   let equipmentName: string | undefined;
-  // UUID 형식이 아닌 ?equipment= 값이 getPublicEquipment에 넘어가면 22P02 예외 발생 → 에러 바운더리 루프 방지.
-  if (equipment && z.string().uuid().safeParse(equipment).success) {
-    const eq = await getPublicEquipment(equipment);
-    if (eq) {
-      equipmentId = eq.id;
-      equipmentName = eq.name;
-    }
+  if (validId) {
+    const eq = await getPublicEquipment(validId);
+    equipmentName = eq?.name; // inactive·없음이면 이름 없음(폼은 정상 동작)
   }
 
+  const supabase = await createSupabaseServerClient();
+  const { data: policy } = await supabase
+    .from("privacy_policies")
+    .select("body")
+    .eq("version", PRIVACY_VERSION)
+    .maybeSingle();
+  const policyBody = policy?.body ?? "개인정보 처리방침 전문을 불러오지 못했습니다.";
+
   return (
-    <main className="mx-auto w-full max-w-2xl px-6 py-10">
+    <main className="mx-auto w-full max-w-3xl px-6 py-10">
       <h1 className="text-display font-semibold text-text">견적 요청</h1>
-      <p className="mt-2 text-small text-muted">
-        요청 주시면 담당자가 확인 후 연락드립니다.
-      </p>
-      <RequestForm equipmentId={equipmentId} equipmentName={equipmentName} />
+      <p className="mt-2 text-body text-muted">정보를 입력하시면 담당자가 검토 후 연락드립니다.</p>
+      <RequestForm equipmentId={validId} equipmentName={equipmentName} policyBody={policyBody} />
     </main>
   );
 }
