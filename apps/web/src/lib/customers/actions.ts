@@ -25,8 +25,9 @@ function toDbRow(company_id: string, r: CompanyEquipmentRow) {
 }
 
 // id 보존 diff — 삭제·업데이트·신규 삽입을 분리. replace(전량 삭제 후 재삽입) 금지.
-// ⚠️ 순수 함수 — 사이드이펙트 없음. equipment-diff.test.ts에서 단위 테스트.
-export function diffEquipment(company_id: string, existing: string[], submitted: CompanyEquipmentRow[]) {
+// ⚠️ 순수 로직 — 사이드이펙트 없음. equipment-diff.test.ts에서 단위 테스트.
+// "use server" 파일 내 모든 export는 async이어야 함(Next.js 16 제약) → async 래핑.
+export async function diffEquipment(company_id: string, existing: string[], submitted: CompanyEquipmentRow[]) {
   const submittedIds = new Set(submitted.filter((r) => r.id).map((r) => r.id));
   const toDelete = existing.filter((id) => !submittedIds.has(id));
   const toUpdate = submitted.filter((r) => r.id).map((r) => ({ id: r.id, ...toDbRow(company_id, r) }));
@@ -38,7 +39,7 @@ export function diffEquipment(company_id: string, existing: string[], submitted:
 async function applyEquipmentDiff(supabase: SupabaseClient, companyId: string, values: CompanyFormValues): Promise<string | null> {
   const { data: existingRows, error: exErr } = await supabase.from("company_equipment").select("id").eq("company_id", companyId);
   if (exErr) return exErr.message;
-  const { toDelete, toUpdate, toInsert } = diffEquipment(companyId, (existingRows ?? []).map((r: { id: string }) => r.id), values.equipment);
+  const { toDelete, toUpdate, toInsert } = await diffEquipment(companyId, (existingRows ?? []).map((r: { id: string }) => r.id), values.equipment);
   if (toDelete.length) {
     const { error } = await supabase.from("company_equipment").delete().in("id", toDelete);
     if (error) return error.message;
@@ -146,4 +147,13 @@ export async function registerFromApplication(applicationId: string): Promise<{ 
   const { data, error } = await supabase.rpc("upsert_company_from_application", { p_application_id: applicationId });
   if (error) { console.error("[customers.registerFromApp]", error); return { error: "고객 등록에 실패했습니다." }; }
   return { company_id: data.company_id as string, created: data.created as boolean };
+}
+
+// 견적 신청 검색 서버 액션 — ApplicationPicker(클라이언트)에서 호출.
+// queries.ts는 server-only라 직접 import 불가 → server action으로 래핑.
+export async function searchApplicationsAction(query: string): Promise<{ error: string } | unknown[]> {
+  const access = await requireCustomersManage();
+  if (access.status === "forbidden") return { error: "권한이 없습니다." };
+  const { searchApplicationsForCustomer } = await import("@/lib/customers/queries");
+  return searchApplicationsForCustomer(query);
 }
