@@ -17,10 +17,18 @@
     { "id": "E1", "name": "Foundation", "status": "done", "period": "완료 2026-05-29", "deliverable": "스키마·Auth·capability RLS·Storage·트리거", "owner": "조선제", "status_label": "✅ 머지·배포" },
     { "id": "E2", "name": "장비·옵션 관리", "status": "done", "period": "완료 2026-05-30", "deliverable": "admin CRUD·이미지·리치에디터", "owner": "조선제", "status_label": "✅ 머지·배포 v0.2.0.0" },
     { "id": "E3", "name": "공개 카탈로그·상세 + 견적요청 폼", "status": "done", "period": "완료 2026-05-31", "deliverable": "/equipment·[id]·/request·submit RPC", "owner": "조선제", "status_label": "✅ 머지·배포 v0.3.0.0 (라이브)" },
-    { "id": "E4", "name": "관리자 콘솔", "status": "next", "period": "예정 (다음)", "deliverable": "목록·상세·담당자 배정(권한 필터)", "owner": "조선제", "status_label": "⬜ 예정" },
+    { "id": "E4", "name": "관리자 콘솔", "status": "todo", "period": "예정", "deliverable": "목록·상세·담당자 배정(권한 필터)", "owner": "조선제", "status_label": "⬜ 예정" },
     { "id": "E5", "name": "견적 작성 + 통합 PDF", "status": "todo", "period": "예정", "deliverable": "Railway 워커·불변 버전·통합 PDF", "owner": "조선제", "status_label": "⬜ 예정" },
     { "id": "E6", "name": "메일 발송", "status": "todo", "period": "예정", "deliverable": "Gmail SMTP 워커·재전송·email_log", "owner": "조선제", "status_label": "⬜ 예정" },
-    { "id": "E7", "name": "업체 이력 타임라인", "status": "todo", "period": "예정", "deliverable": "요청·견적·발송 이력 뷰", "owner": "조선제", "status_label": "⬜ 예정" }
+    { "id": "E7", "name": "업체 이력 타임라인", "status": "todo", "period": "예정", "deliverable": "요청·견적·발송 이력 뷰", "owner": "조선제", "status_label": "⬜ 예정" },
+
+    { "id": "P-A", "milestone": "M2", "name": "견적요청 v2 (카탈로그·상세 재구성·대형 폼)", "status": "next", "period": "예정 (다음)", "deliverable": "홈 3분기·카탈로그 박스·상세(highlights·그룹사양·youtube복수)·견적폼(동의·업로드·설문·biz_no체크섬)", "owner": "조선제", "status_label": "🔜 다음 (설계 중, #19)" },
+    { "id": "P-B", "milestone": "M2", "name": "고객·구매 마스터", "status": "todo", "period": "예정", "deliverable": "companies·company_equipment·admin·견적확정 자동생성", "owner": "조선제", "status_label": "⬜ 예정 (#20)" },
+    { "id": "P-C", "milestone": "M2", "name": "소모품 카탈로그", "status": "todo", "period": "예정", "deliverable": "장비별 consumables·admin", "owner": "조선제", "status_label": "⬜ 예정 (#21)" },
+    { "id": "P-D", "milestone": "M2", "name": "A/S신청", "status": "todo", "period": "예정", "deliverable": "조회·자동완성·접수증PDF·알림", "owner": "조선제", "status_label": "⬜ 예정 (#22)" },
+    { "id": "P-E", "milestone": "M2", "name": "소모품신청", "status": "todo", "period": "예정", "deliverable": "조회·장비별 소모품 선택(수량)·저장", "owner": "조선제", "status_label": "⬜ 예정 (#23)" },
+    { "id": "P-F", "milestone": "M2", "name": "통합 고객 이력", "status": "todo", "period": "예정", "deliverable": "견적/구입/AS/소모품+완료여부 (관리자)", "owner": "조선제", "status_label": "⬜ 예정 (#24)" },
+    { "id": "P-G", "milestone": "M2", "name": "알림 인프라", "status": "todo", "period": "예정", "deliverable": "관리자 웹알림+카톡/문자(외부)", "owner": "조선제", "status_label": "⬜ 예정 (#25)" }
   ],
   "features": [
     { "id": "F-001", "name": "공개 장비 카탈로그", "scope": "견적요청(고객)", "priority": "P0", "status": "Launched", "phase": "E3" },
