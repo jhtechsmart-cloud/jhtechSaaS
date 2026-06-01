@@ -33,9 +33,15 @@ export default async function AdminLayout({
         <nav className="flex flex-col gap-1">
           <Link
             href="/admin/equipment"
-            className="rounded-md bg-surface-2 px-3 py-2 text-body font-medium text-text"
+            className="rounded-md px-3 py-2 text-body font-medium text-text hover:bg-surface-2"
           >
             장비
+          </Link>
+          <Link
+            href="/admin/customers"
+            className="rounded-md px-3 py-2 text-body font-medium text-text hover:bg-surface-2"
+          >
+            고객
           </Link>
         </nav>
       </aside>
