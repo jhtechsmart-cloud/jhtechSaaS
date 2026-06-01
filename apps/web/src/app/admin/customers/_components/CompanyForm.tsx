@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState, useTransition } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { z } from "zod";
@@ -84,7 +84,7 @@ export function CompanyForm(props: Props) {
     register,
     handleSubmit,
     control,
-    watch,
+    getValues,
     setValue,
     formState: { errors, isDirty },
   } = useForm<FormInput, unknown, CompanyFormValues>({
@@ -106,7 +106,8 @@ export function CompanyForm(props: Props) {
 
   // biz_no blur 시 formatBizNo 적용(표시용) — 저장은 actions에서 normalize.
   function onBizNoBlur() {
-    const raw = watch("biz_no");
+    // 일회성 읽기는 watch(구독) 대신 getValues 사용(메모이즈 경고 회피).
+    const raw = getValues("biz_no");
     if (raw) setValue("biz_no", formatBizNo(raw));
   }
 
@@ -125,8 +126,8 @@ export function CompanyForm(props: Props) {
     router.push("/admin/customers");
   }
 
-  // 보유장비 수: 삭제 confirm 메시지에 사용
-  const currentEquipment = watch("equipment") as CompanyEquipmentRow[];
+  // 보유장비 수: 삭제 confirm 메시지에 사용. useWatch(구독 훅)로 memoize 경고 회피.
+  const currentEquipment = useWatch({ control, name: "equipment" }) as CompanyEquipmentRow[];
 
   return (
     <div className="flex max-w-[720px] flex-col gap-6">
