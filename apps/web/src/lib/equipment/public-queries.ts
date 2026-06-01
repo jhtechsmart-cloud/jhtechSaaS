@@ -5,7 +5,7 @@ import { parseSpecs } from "@jhtechsaas/shared";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 // equipment_public 뷰 = active만, 가격·옵션 비노출. anon 읽기(세션 없으면 anon role).
-const PUBLIC_COLUMNS = "id, name, model, category, photos, specs, youtube_url, created_at";
+const PUBLIC_COLUMNS = "id, name, model, category, photos, highlights, specs, youtube_urls, created_at";
 
 // 공개 카탈로그 목록(최신순).
 export async function listPublicEquipment(): Promise<EquipmentPublic[]> {

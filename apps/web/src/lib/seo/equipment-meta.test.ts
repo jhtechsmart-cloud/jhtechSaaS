@@ -8,12 +8,19 @@ const base: EquipmentPublic = {
   model: "PK-200",
   category: "포장기",
   photos: ["equipment/eq-1/cover.jpg"],
+  highlights: ["고속 포장", "자동 정렬"],
   specs: [
-    { label: "전압", value: "220V" },
-    { label: "출력", value: "3kW" },
-    { label: "무게", value: "120kg" },
+    {
+      group: "기본",
+      icon: "settings",
+      items: [
+        { label: "전압", value: "220V" },
+        { label: "출력", value: "3kW" },
+        { label: "무게", value: "120kg" },
+      ],
+    },
   ],
-  youtube_url: null,
+  youtube_urls: [],
   created_at: "2026-05-30T00:00:00Z",
 };
 

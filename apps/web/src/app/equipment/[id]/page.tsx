@@ -61,10 +61,14 @@ export default async function EquipmentDetailPage({
           </Link>
         </div>
       </div>
-      {eq.youtube_url && (
+      {eq.youtube_urls.length > 0 && (
         <section className="mt-10 flex flex-col gap-3">
           <h2 className="text-h2 font-medium text-text">제품 영상</h2>
-          <YoutubeEmbed url={eq.youtube_url} />
+          <div className="flex flex-col gap-6">
+            {eq.youtube_urls.map((url, i) => (
+              <YoutubeEmbed key={i} url={url} />
+            ))}
+          </div>
         </section>
       )}
     </main>

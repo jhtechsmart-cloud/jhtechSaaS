@@ -57,7 +57,8 @@ export async function createEquipment(
     category: v.category || null,
     base_price: v.base_price,
     status: v.status,
-    youtube_url: v.youtube_url || null,
+    highlights: v.highlights,
+    youtube_urls: v.youtube_urls,
     specs: serializeSpecs(v.specs),
     photos: v.photos,
   });
@@ -106,7 +107,8 @@ export async function updateEquipment(
       category: v.category || null,
       base_price: v.base_price,
       status: v.status,
-      youtube_url: v.youtube_url || null,
+      highlights: v.highlights,
+      youtube_urls: v.youtube_urls,
       specs: serializeSpecs(v.specs),
       photos: v.photos,
     })
