@@ -2,7 +2,7 @@
 // 단일테넌트라 tenant_id 없음. 권한 키는 PermissionKey(permissions.ts) 참조.
 
 import type { PermissionKey } from "./permissions";
-import type { Spec } from "./specs";
+import type { SpecGroup } from "./specs";
 
 export type ApplicationStatus = "new" | "assigned" | "quoted" | "closed";
 export type QuoteStatus = "draft" | "issued";
@@ -25,8 +25,9 @@ export interface Equipment {
   category: string | null;
   base_price: number;
   photos: string[];
-  specs: Spec[];
-  youtube_url: string | null;
+  highlights: string[];      // 요약 불릿(P-A)
+  specs: SpecGroup[];        // 아이콘 그룹 구조(P-A)
+  youtube_urls: string[];    // 복수 영상(P-A)
   status: EquipmentStatus;
   created_at: string;
 }
@@ -38,8 +39,9 @@ export interface EquipmentPublic {
   model: string | null;
   category: string | null;
   photos: string[];
-  specs: Spec[];
-  youtube_url: string | null;
+  highlights: string[];
+  specs: SpecGroup[];
+  youtube_urls: string[];
   created_at: string;
 }
 
@@ -62,6 +64,10 @@ export interface Application {
   address: string | null;
   status: ApplicationStatus;
   assignee_id: string | null;
+  equipment_id: string | null;            // FK(P-A)
+  privacy_consent: boolean;               // 동의 여부(P-A)
+  privacy_consent_at: string | null;      // 동의 시각(P-A)
+  privacy_consent_version: string | null; // 동의 버전(P-A)
   fields: Record<string, unknown>;
   submitted_at: string | null;
   created_at: string;
