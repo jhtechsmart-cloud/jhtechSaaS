@@ -69,7 +69,7 @@
 <div class="wrap">
   <h1>프로젝트 지도</h1>
   <div class="sub">지금까지 만들어진 파일이 <b>어디에</b> 있고, <b>각 단계가 어떤 파일을 만드는지</b>, 문제 시 <b>어디를 봐야 하는지</b>.</div>
-  <div class="upd">갱신: 2026-05-31 · 명령어 <code>/map</code> 으로 재생성</div>
+  <div class="upd">갱신: 2026-06-01 · 명령어 <code>/map</code> 으로 재생성</div>
 
   <div class="lead">
     <b>핵심:</b> 이 프로젝트의 산출물은 <b>4곳에 흩어져</b> 있습니다. 코드·설정만 프로젝트 폴더 안에 있고,
@@ -109,8 +109,12 @@
     <tr><td class="path">supabase/rollback/*.sql · seed/seed-local.sh</td><td>롤백·시드</td><td>마이그레이션 역스크립트 + 로컬 시드 헬퍼</td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">packages/db-tests/</td><td>RLS 통합 테스트</td><td>pg set role+jwt 하니스(Supabase 로컬), 71 RLS 단언(equipment_public·옵션·submit_application·길이CHECK 포함)</td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">apps/web/src/{lib,app,proxy.ts}</td><td>web 구현(E2·E3)</td><td>인증 토대·장비 admin(E2) + <b>공개 카탈로그/상세 /equipment·[id]</b>(E3 P1) + <b>견적요청 /request·success</b>(E3 P2: RHF+zod·submit_application RPC). <i>코드 — 상세는 코드 직접</i></td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">docs/roadmap.json · ROADMAP.md</td><td>로드맵 단일원본·생성물</td><td>단계(E1~E7·M2 P-A~P-G) status 원본 → <span class="mono">pnpm roadmap:sync</span>로 ROADMAP.md 생성 + Notion 동기화</td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">docs/superpowers/{specs,plans}/</td><td>설계·플랜 문서</td><td>E2·E3 spec/plan + <b>M2 고객 포털 설계(2026-06-01)</b></td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">scripts/roadmap-sync.sh</td><td>로드맵 동기화 래퍼</td><td>~/scripts/claude-notion-sync 엔진 호출(토큰 재사용)</td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">.vercel/project.json</td><td>Vercel 링크</td><td>repo 루트 링크(Root Dir=apps/web). vercel link 산출</td><td><span class="tag t-ignore">gitignore</span></td></tr>
     <tr><td class="path">apps/worker/src/seed-admin.ts</td><td>관리자 시드</td><td>service_role 부트스트랩(프로덕션 비번 가드)</td><td><span class="tag t-commit">커밋</span></td></tr>
-    <tr><td class="path">dev-notes/</td><td>개발 일지</td><td>일별 노트 5일치(.md) + 대시보드(HTML, /devnote) — v1셋업·E1·E2·E3 P1·E3 P2/머지</td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">dev-notes/</td><td>개발 일지</td><td>일별 노트 6일치(.md) + 대시보드(HTML, /devnote) — v1셋업·E1·E2·E3 P1·E3 P2/머지·M2 brainstorm</td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">supabase/.temp/linked-project.json</td><td>원격 링크 기록</td><td>supabase link 산출(원격 프로젝트 ref)</td><td><span class="tag t-ignore">로컬</span></td></tr>
     <tr><td class="path">apps/web/.env.local</td><td>web 실제 환경변수</td><td><b>시크릿</b> — Supabase URL/anon key</td><td><span class="tag t-ignore">gitignore</span></td></tr>
     <tr><td class="path">apps/worker/.env</td><td>워커 실제 환경변수</td><td><b>시크릿</b> — service_role, Gmail 앱비밀번호</td><td><span class="tag t-ignore">gitignore</span></td></tr>
@@ -149,6 +153,15 @@
     <tr><td class="path">#6</td><td>E5 견적 작성+통합 PDF(워커)</td><td>#2,#3,#5</td></tr>
     <tr><td class="path">#7</td><td>E6 메일 발송(워커)</td><td>#2,#6</td></tr>
     <tr><td class="path">#8</td><td>E7 업체 이력</td><td>#4~#7</td></tr>
+    <tr><td colspan="3" style="background:var(--surface);font-weight:600">▼ M2 — 고객 포털 & 운영 백본 (신규 마일스톤, 2026-06-01)</td></tr>
+    <tr><td class="path">#18</td><td>[EPIC] M2 고객 포털 (견적v2·고객마스터·AS·소모품·이력·알림)</td><td>—</td></tr>
+    <tr><td class="path">#19</td><td>M2 P-A 견적요청 v2 (카탈로그·상세 재구성·대형 폼) <span style="color:var(--new);font-weight:600">● 다음</span></td><td>E2·E3</td></tr>
+    <tr><td class="path">#20</td><td>M2 P-B 고객·구매 마스터(companies·company_equipment)</td><td>E1</td></tr>
+    <tr><td class="path">#21</td><td>M2 P-C 소모품 카탈로그</td><td>E2·#20</td></tr>
+    <tr><td class="path">#22</td><td>M2 P-D A/S신청(조회·접수증PDF·알림)</td><td>#20·E5</td></tr>
+    <tr><td class="path">#23</td><td>M2 P-E 소모품신청(장비별 소모품·수량)</td><td>#21</td></tr>
+    <tr><td class="path">#24</td><td>M2 P-F 통합 고객 이력</td><td>#20~#23</td></tr>
+    <tr><td class="path">#25</td><td>M2 P-G 알림 인프라(웹+카톡/문자)</td><td>#22</td></tr>
     <tr><td class="path">#11</td><td>2FA/MFA 2단계 인증 (백로그, v1.1+)</td><td>—</td></tr>
     <tr><td class="path">#12</td><td>장비 사양 카테고리 템플릿 (백로그, 후속)</td><td>—</td></tr>
   </table>
@@ -157,20 +170,20 @@
   <p class="note">각 단계를 진행하면 → 어디에 어떤 파일이 생기고 무슨 내용이 담기는지.</p>
 
   <div class="lead" style="border-left-color:var(--sent)">
-    <b>진행 현황 (2026-05-31):</b> <b>E1·E2·E3 완료·머지·배포</b>(이슈 #2·#3·#4 닫힘, v0.3.0.0). E3는 <b>P1 카탈로그/상세 + P2 견적요청 폼+RPC</b>를 subagent-driven(P1 11·P2 7태스크 TDD)으로 완주, <b>/review→/qa→/ship</b> 전 Phase Gate 통과 후 <b>PR #17 한 PR로 머지</b>, 신규 마이그레이션 2건 원격 반영.
-    <b>다음 = 상세페이지 재구성</b>(요약 highlights 신규필드·유튜브 복수화·레이아웃 = 데이터모델+E2 admin+마이그레이션) — 새 brainstorm. ⚠️ 미처리: Vercel Production <span class="mono">NEXT_PUBLIC_SITE_URL</span> 설정.
+    <b>진행 현황 (2026-06-01):</b> <b>M1 E1·E2·E3 완료·머지·배포</b>(이슈 #2·#3·#4 닫힘, v0.3.0.0, 프로덕션 라이브). 오늘: <b>프로덕션 500 복구</b>(Vercel에 Supabase env 통째 누락 → 4종 설정·재배포, 전 라우트 200) + <b>로드맵→Notion 동기화 배선</b> + <b>M2 "고객 포털" 마일스톤 brainstorm·등록</b>(설계문서 + EPIC #18·P-A~P-G #19~#25).
+    <b>다음 = M2 P-A 견적요청 v2</b>(홈 3분기 + 카탈로그 박스 + 상세 재구성[highlights·그룹사양·youtube복수] + 대형 견적폼[동의·이미지업로드·설치설문·biz_no체크섬]) — 자체 spec→plan. ⚠️ 미처리: Vercel <b>Preview</b> env 3종(대시보드), 외부 의존(카톡/문자 발송사·개인정보처리방침 법무).
   </div>
-  <p class="note">아래 단계 바 = 한 phase의 생애주기. E1·E2·E3 모두 ①~⑨ 완주. 다음 작업(상세 재구성)은 ①기획부터 새로 시작.</p>
+  <p class="note">아래 단계 바 = 한 phase의 생애주기. M1 E1·E2·E3 모두 ①~⑨ 완주(E4~E7은 대기). M2는 마일스톤 brainstorm(①기획) 완료, 다음 작업 P-A는 ③스펙부터.</p>
   <div class="flow">
-    <span class="step done">① 기획</span><span class="arr">→</span>
+    <span class="step done">① 기획(M2 brainstorm)</span><span class="arr">→</span>
     <span class="step done">② 셋업</span><span class="arr">→</span>
-    <span class="step done">③ 스펙</span><span class="arr">→</span>
-    <span class="step done">④ 검토</span><span class="arr">→</span>
-    <span class="step done">⑤ 설계/UI-SPEC</span><span class="arr">→</span>
-    <span class="step done">⑥ 구현</span><span class="arr">→</span>
-    <span class="step done">⑦ 코드리뷰</span><span class="arr">→</span>
-    <span class="step done">⑧ QA</span><span class="arr">→</span>
-    <span class="step done">⑨ 배포(E3 머지)</span>
+    <span class="step" style="border-color:var(--new);color:var(--new)">③ 스펙(P-A) ●</span><span class="arr">→</span>
+    <span class="step">④ 검토</span><span class="arr">→</span>
+    <span class="step">⑤ 설계/UI-SPEC</span><span class="arr">→</span>
+    <span class="step">⑥ 구현</span><span class="arr">→</span>
+    <span class="step">⑦ 코드리뷰</span><span class="arr">→</span>
+    <span class="step">⑧ QA</span><span class="arr">→</span>
+    <span class="step">⑨ 배포</span>
   </div>
 
   <table class="pmap">

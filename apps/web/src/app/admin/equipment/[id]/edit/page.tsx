@@ -14,7 +14,7 @@ export default async function EditEquipmentPage({
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("equipment")
-    .select("name, model, category, base_price, status, youtube_url, specs, photos")
+    .select("name, model, category, base_price, status, highlights, youtube_urls, specs, photos")
     .eq("id", id)
     .single();
   if (error || !data) notFound();
@@ -31,7 +31,8 @@ export default async function EditEquipmentPage({
     category: data.category ?? "",
     base_price: Number(data.base_price),
     status: data.status,
-    youtube_url: data.youtube_url ?? "",
+    highlights: (data.highlights ?? []) as string[],
+    youtube_urls: (data.youtube_urls ?? []) as string[],
     specs: parseSpecs(data.specs),
     photos: (data.photos ?? []) as string[],
     options: (optionRows ?? []).map((o) => ({

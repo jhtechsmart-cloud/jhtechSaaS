@@ -36,7 +36,7 @@ async function seedEquipment(): Promise<void> {
     [UID.admin],
   );
   await c.query(
-    "insert into public.equipment (id,name,base_price,status,youtube_url) values ($1,'활성장비',5000,'active','https://youtu.be/x'),($2,'비활성장비',7000,'inactive',null)",
+    "insert into public.equipment (id,name,base_price,status,youtube_urls) values ($1,'활성장비',5000,'active','{\"https://youtu.be/x\"}'),($2,'비활성장비',7000,'inactive','{}')",
     [EQ_ACTIVE, EQ_INACTIVE],
   );
 }

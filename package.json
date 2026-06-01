@@ -1,7 +1,7 @@
 {
   "name": "jhtechsaas",
   "private": true,
-  "version": "0.3.0.0",
+  "version": "0.3.1.0",
   "packageManager": "pnpm@10.33.0",
   "engines": {
     "node": ">=20"
@@ -11,6 +11,7 @@
     "build": "pnpm -r build",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
-    "test": "pnpm -r test"
+    "test": "pnpm -r test",
+    "roadmap:sync": "bash scripts/roadmap-sync.sh"
   }
 }

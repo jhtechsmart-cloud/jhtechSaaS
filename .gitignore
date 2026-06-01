@@ -39,3 +39,4 @@ apps/web/playwright-report/
 # Claude Code 로컬 설정(머신 전용) — commands/ 는 커밋
 .claude/settings.local.json
 .gstack/
+.vercel

@@ -9,7 +9,9 @@ export function buildEquipmentDescription(eq: EquipmentPublic): string {
   const parts: string[] = [];
   if (eq.category) parts.push(eq.category);
   if (eq.model) parts.push(eq.model);
-  for (const s of eq.specs.slice(0, 2)) {
+  // 그룹 사양을 평탄화해 대표 항목 최대 2개를 description에 사용.
+  const items = eq.specs.flatMap((g) => g.items);
+  for (const s of items.slice(0, 2)) {
     if (s.label && s.value) parts.push(`${s.label} ${s.value}`);
   }
   const detail = parts.join(" · ");

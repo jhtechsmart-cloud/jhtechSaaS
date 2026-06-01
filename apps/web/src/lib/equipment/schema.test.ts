@@ -1,13 +1,18 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, test } from "vitest";
 import { equipmentFormSchema } from "./schema";
 
+// 신규 스키마 기준 base: youtube_urls 배열, specs 그룹형
 const base = {
   name: "포장기 A",
   model: "PK-100",
   category: "포장",
   base_price: 1000000,
   status: "active" as const,
-  youtube_url: "",
+  highlights: [] as string[],
+  youtube_urls: [] as string[],
+  specs: [] as Array<{ group: string; icon: string; items: Array<{ label: string; value: string }> }>,
+  photos: [] as string[],
+  options: [] as Array<{ kind: "included" | "extra"; name: string; price: number }>,
 };
 
 describe("equipmentFormSchema", () => {
@@ -27,37 +32,6 @@ describe("equipmentFormSchema", () => {
       equipmentFormSchema.safeParse({ ...base, status: "foo" }).success,
     ).toBe(false);
   });
-  it("youtube_url 빈 문자열 허용(선택)", () => {
-    expect(
-      equipmentFormSchema.safeParse({ ...base, youtube_url: "" }).success,
-    ).toBe(true);
-  });
-  it("youtube_url 잘못된 URL 거부", () => {
-    expect(
-      equipmentFormSchema.safeParse({ ...base, youtube_url: "not a url" }).success,
-    ).toBe(false);
-  });
-  it("youtube_url 유튜브 호스트만 허용", () => {
-    expect(
-      equipmentFormSchema.safeParse({ ...base, youtube_url: "https://youtu.be/abc" })
-        .success,
-    ).toBe(true);
-    expect(
-      equipmentFormSchema.safeParse({
-        ...base,
-        youtube_url: "https://www.youtube.com/watch?v=abc",
-      }).success,
-    ).toBe(true);
-    // 비-유튜브·위험 스킴 거부(stored-XSS 방지)
-    expect(
-      equipmentFormSchema.safeParse({ ...base, youtube_url: "https://evil.com/x" })
-        .success,
-    ).toBe(false);
-    expect(
-      equipmentFormSchema.safeParse({ ...base, youtube_url: "javascript:alert(1)" })
-        .success,
-    ).toBe(false);
-  });
   it("model·category 선택(빈값 허용)", () => {
     expect(
       equipmentFormSchema.safeParse({ ...base, model: "", category: "" }).success,
@@ -65,22 +39,24 @@ describe("equipmentFormSchema", () => {
   });
 });
 
-describe("equipmentFormSchema — 동적 필드(P3)", () => {
-  it("specs·photos·options 미지정 시 기본값(빈 배열)", () => {
-    const r = equipmentFormSchema.safeParse(base);
+describe("equipmentFormSchema — 동적 필드(P-A)", () => {
+  it("specs·photos·options·highlights·youtube_urls 미지정 시 기본값(빈 배열)", () => {
+    // base 없이 최소 필드만 파싱
+    const r = equipmentFormSchema.safeParse({
+      name: "포장기 A",
+      model: "PK-100",
+      category: "포장",
+      base_price: 1000000,
+      status: "active",
+    });
     expect(r.success).toBe(true);
     if (r.success) {
       expect(r.data.specs).toEqual([]);
       expect(r.data.photos).toEqual([]);
       expect(r.data.options).toEqual([]);
+      expect(r.data.highlights).toEqual([]);
+      expect(r.data.youtube_urls).toEqual([]);
     }
-  });
-  it("specs 행(빈 값 허용)", () => {
-    const r = equipmentFormSchema.safeParse({
-      ...base,
-      specs: [{ label: "전압", value: "220V" }, { label: "", value: "" }],
-    });
-    expect(r.success).toBe(true);
   });
   it("photos는 equipment/{uuid}/{uuid}.{ext} 형식만 허용", () => {
     const valid =
@@ -118,4 +94,44 @@ describe("equipmentFormSchema — 동적 필드(P3)", () => {
       }).success,
     ).toBe(false);
   });
+});
+
+// ─── P-A 신규 필드 테스트 ───────────────────────────────────────────────────
+
+test("youtube_urls 배열: YouTube 호스트만 통과", () => {
+  const ok = equipmentFormSchema.safeParse({
+    name: "장비", model: "", category: "", base_price: 0, status: "active",
+    highlights: ["가벼움"], youtube_urls: ["https://youtu.be/abc"],
+    specs: [], photos: [], options: [],
+  });
+  expect(ok.success).toBe(true);
+});
+
+test("youtube_urls에 비유튜브 URL 있으면 실패", () => {
+  const bad = equipmentFormSchema.safeParse({
+    name: "장비", model: "", category: "", base_price: 0, status: "active",
+    highlights: [], youtube_urls: ["https://evil.com/x"],
+    specs: [], photos: [], options: [],
+  });
+  expect(bad.success).toBe(false);
+});
+
+test("specs 그룹형: group+icon(enum)+items 통과", () => {
+  const ok = equipmentFormSchema.safeParse({
+    name: "장비", model: "", category: "", base_price: 0, status: "active",
+    highlights: [], youtube_urls: [],
+    specs: [{ group: "성능", icon: "gauge", items: [{ label: "속도", value: "10" }] }],
+    photos: [], options: [],
+  });
+  expect(ok.success).toBe(true);
+});
+
+test("specs icon이 enum 밖이면 실패", () => {
+  const bad = equipmentFormSchema.safeParse({
+    name: "장비", model: "", category: "", base_price: 0, status: "active",
+    highlights: [], youtube_urls: [],
+    specs: [{ group: "x", icon: "nope", items: [] }],
+    photos: [], options: [],
+  });
+  expect(bad.success).toBe(false);
 });
