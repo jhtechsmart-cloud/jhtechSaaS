@@ -16,10 +16,11 @@ const row = (o: Partial<CompanyEquipmentRow>): CompanyEquipmentRow => ({
 });
 
 describe("diffEquipment — id 보존 diff(replace 금지)", () => {
-  test("신규(id 없음)=insert, 사라진 기존 id=delete, 남은 id=update", () => {
+  // diffEquipment는 "use server" 파일 export 제약으로 async로 변경됨 → await 필요.
+  test("신규(id 없음)=insert, 사라진 기존 id=delete, 남은 id=update", async () => {
     const existing = ["A", "B", "C"];
     const submitted = [row({ id: "A", label: "a2" }), row({ id: "C", label: "c" }), row({ label: "신규" })];
-    const d = diffEquipment("CID", existing, submitted);
+    const d = await diffEquipment("CID", existing, submitted);
     expect(d.toDelete.sort()).toEqual(["B"]);
     expect(d.toUpdate.map((u) => u.id)).toEqual(["A", "C"]);
     expect(d.toInsert).toHaveLength(1);
