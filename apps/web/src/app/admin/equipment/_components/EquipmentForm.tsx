@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { useForm, useController } from "react-hook-form";
+import { useForm, useController, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { z } from "zod";
@@ -15,6 +15,8 @@ import {
   type EquipmentActionResult,
 } from "../actions";
 import { SpecEditor } from "./SpecEditor";
+import { HighlightsEditor } from "./HighlightsEditor";
+import { YoutubeUrlsEditor } from "./YoutubeUrlsEditor";
 import { OptionEditor } from "./OptionEditor";
 import { ImageUploader } from "./ImageUploader";
 
@@ -36,12 +38,7 @@ export function EquipmentForm(props: Props) {
   );
   const cleanupRef = useRef<(() => Promise<void>) | null>(null);
 
-  const {
-    register,
-    handleSubmit,
-    control,
-    formState: { errors, isDirty },
-  } = useForm<EquipmentFormInput, unknown, EquipmentFormValues>({
+  const methods = useForm<EquipmentFormInput, unknown, EquipmentFormValues>({
     resolver: zodResolver(equipmentFormSchema),
     defaultValues:
       props.mode === "edit"
@@ -52,12 +49,20 @@ export function EquipmentForm(props: Props) {
             category: "",
             base_price: 0,
             status: "active",
-            youtube_url: "",
-            specs: [{ label: "", value: "" }], // UI-SPEC: 생성 시 1 빈 행
+            highlights: [],
+            youtube_urls: [],
+            // UI-SPEC: 생성 시 1 빈 그룹(아이템 1 빈 행)
+            specs: [{ group: "", icon: "settings", items: [{ label: "", value: "" }] }],
             photos: [],
             options: [],
           },
   });
+  const {
+    register,
+    handleSubmit,
+    control,
+    formState: { errors, isDirty },
+  } = methods;
 
   // photos는 배열 스칼라 → useController로 value/onChange 연결.
   const {
@@ -108,6 +113,7 @@ export function EquipmentForm(props: Props) {
   }
 
   return (
+    <FormProvider {...methods}>
     <form
       // cleanupRef.current는 startTransition 내부(비동기)에서만 읽힘 — 렌더 중 읽기 아님.
       // eslint-disable-next-line react-hooks/refs
@@ -151,16 +157,12 @@ export function EquipmentForm(props: Props) {
             <option value="inactive">비활성</option>
           </select>
         </Field>
-        <Field label="YouTube URL(선택)" error={errors.youtube_url?.message}>
-          <input
-            {...register("youtube_url")}
-            className="rounded-md border border-border bg-surface px-3 py-2 text-body text-text"
-          />
-        </Field>
       </section>
 
       {/* §2 사양 */}
+      <HighlightsEditor control={control} register={register} />
       <SpecEditor control={control} register={register} />
+      <YoutubeUrlsEditor control={control} register={register} />
 
       {/* §3 이미지 */}
       <ImageUploader
@@ -208,6 +210,7 @@ export function EquipmentForm(props: Props) {
         ) : null}
       </div>
     </form>
+    </FormProvider>
   );
 }
 
