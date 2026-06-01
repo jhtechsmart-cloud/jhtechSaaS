@@ -27,7 +27,7 @@ async function seedEquipment(): Promise<void> {
   await seedAuthUser(c, UID.admin, "eq@jhtech.test");
   await c.query("update public.profiles set permissions='{equipment.manage}' where id=$1", [UID.admin]);
   await c.query(
-    "insert into public.equipment (id,name,base_price,status,youtube_url) values ($1,'활성장비',5000,'active','https://youtu.be/x'),($2,'비활성장비',7000,'inactive',null)",
+    "insert into public.equipment (id,name,base_price,status,youtube_urls) values ($1,'활성장비',5000,'active','{\"https://youtu.be/x\"}'),($2,'비활성장비',7000,'inactive','{}')",
     [EQ_ACTIVE, EQ_INACTIVE],
   );
 }
@@ -90,8 +90,37 @@ describe("equipment_public — 공개 뷰 (D5: 가격 비노출, active만)", ()
       const r = await c.query("select * from public.equipment_public limit 1");
       const cols = r.fields.map((f) => f.name);
       expect(cols).not.toContain("base_price");
-      expect(cols).toContain("youtube_url");
+      expect(cols).not.toContain("youtube_url");
+      expect(cols).toContain("youtube_urls");
       expect(cols).toContain("specs");
+    });
+  });
+});
+
+describe("equipment — M2 P-A 컬럼 구조", () => {
+  test("equipment_public 뷰가 highlights·youtube_urls 노출, youtube_url 컬럼 없음", async () => {
+    await inRollbackTx(c, async () => {
+      await asPostgres(c);
+      const cols = await c.query(
+        "select column_name from information_schema.columns where table_name='equipment_public'",
+      );
+      const names = cols.rows.map((r) => r.column_name);
+      expect(names).toContain("highlights");
+      expect(names).toContain("youtube_urls");
+      expect(names).not.toContain("youtube_url");
+    });
+  });
+
+  test("equipment 본 테이블에 highlights·youtube_urls 존재, youtube_url 제거됨", async () => {
+    await inRollbackTx(c, async () => {
+      await asPostgres(c);
+      const cols = await c.query(
+        "select column_name from information_schema.columns where table_name='equipment' and table_schema='public'",
+      );
+      const names = cols.rows.map((r) => r.column_name);
+      expect(names).toContain("highlights");
+      expect(names).toContain("youtube_urls");
+      expect(names).not.toContain("youtube_url");
     });
   });
 });
