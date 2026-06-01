@@ -1,14 +1,6 @@
-// diffEquipment는 actions.ts에서 export된 순수 함수. 서버 의존성(server-only, supabase, next)은 모킹.
-import { describe, expect, test, vi } from "vitest";
-
-// "use server" 파일의 서버 전용 모듈 격리 — 순수 로직만 테스트.
-vi.mock("server-only", () => ({}));
-vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
-vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
-vi.mock("@/lib/supabase/server", () => ({ createSupabaseServerClient: vi.fn() }));
-vi.mock("@/lib/auth/guard", () => ({ requireCustomersManage: vi.fn() }));
-
-import { diffEquipment } from "./actions";
+// diffEquipment — non-server 순수 함수. 서버 모킹 불필요.
+import { describe, expect, test } from "vitest";
+import { diffEquipment } from "./equipment-diff";
 import type { CompanyEquipmentRow } from "./schema";
 
 const row = (o: Partial<CompanyEquipmentRow>): CompanyEquipmentRow => ({
@@ -16,11 +8,10 @@ const row = (o: Partial<CompanyEquipmentRow>): CompanyEquipmentRow => ({
 });
 
 describe("diffEquipment — id 보존 diff(replace 금지)", () => {
-  // diffEquipment는 "use server" 파일 export 제약으로 async로 변경됨 → await 필요.
-  test("신규(id 없음)=insert, 사라진 기존 id=delete, 남은 id=update", async () => {
+  test("신규(id 없음)=insert, 사라진 기존 id=delete, 남은 id=update", () => {
     const existing = ["A", "B", "C"];
     const submitted = [row({ id: "A", label: "a2" }), row({ id: "C", label: "c" }), row({ label: "신규" })];
-    const d = await diffEquipment("CID", existing, submitted);
+    const d = diffEquipment("CID", existing, submitted);
     expect(d.toDelete.sort()).toEqual(["B"]);
     expect(d.toUpdate.map((u) => u.id)).toEqual(["A", "C"]);
     expect(d.toInsert).toHaveLength(1);

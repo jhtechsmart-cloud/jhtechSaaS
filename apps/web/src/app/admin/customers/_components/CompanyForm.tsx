@@ -125,22 +125,6 @@ export function CompanyForm(props: Props) {
     router.push("/admin/customers");
   }
 
-  function onDelete() {
-    if (props.mode !== "edit") return;
-    const eqCount = props.company.equipment.length;
-    const msg =
-      eqCount > 0
-        ? `보유장비 ${eqCount}대가 함께 삭제됩니다. 계속할까요?`
-        : "이 고객을 삭제할까요?";
-    if (!confirm(msg)) return;
-    // deleteCustomer는 별도 import — props로 주입받지 않으므로 직접 import
-    startTransition(async () => {
-      const { deleteCustomer } = await import("@/lib/customers/actions");
-      const result = await deleteCustomer(props.id);
-      if (result?.error) setServerError(result.error);
-    });
-  }
-
   // 보유장비 수: 삭제 confirm 메시지에 사용
   const currentEquipment = watch("equipment") as CompanyEquipmentRow[];
 
@@ -224,7 +208,12 @@ export function CompanyForm(props: Props) {
         </section>
 
         {/* §2 보유장비 */}
-        <CompanyEquipmentEditor control={control} register={register} catalog={props.catalog} />
+        <CompanyEquipmentEditor
+          control={control}
+          register={register}
+          setValue={setValue}
+          catalog={props.catalog}
+        />
 
         {serverError ? (
           <p className="text-small text-danger">{serverError}</p>

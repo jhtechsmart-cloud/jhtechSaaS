@@ -7,39 +7,17 @@ import { normalizeBizNo } from "@jhtechsaas/shared";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireCustomersManage } from "@/lib/auth/guard";
-import { companyFormSchema, type CompanyFormValues, type CompanyEquipmentRow } from "@/lib/customers/schema";
+import { companyFormSchema, type CompanyFormValues } from "@/lib/customers/schema";
+import { diffEquipment } from "@/lib/customers/equipment-diff";
 
 export type CustomerActionResult = { error: string } | null;
 
-// DB row 변환 — equipment_id·label 중 빈 값은 null로 저장.
-function toDbRow(company_id: string, r: CompanyEquipmentRow) {
-  return {
-    company_id,
-    equipment_id: r.equipment_id || null,
-    // label은 카탈로그 장비 없을 때만(XOR 보장): equipment_id 있으면 null 강제.
-    label: r.equipment_id ? null : (r.label || null),
-    serial_no: r.serial_no || null,
-    purchased_at: r.purchased_at || null,
-    install_address: r.install_address || null,
-  };
-}
-
-// id 보존 diff — 삭제·업데이트·신규 삽입을 분리. replace(전량 삭제 후 재삽입) 금지.
-// ⚠️ 순수 로직 — 사이드이펙트 없음. equipment-diff.test.ts에서 단위 테스트.
-// "use server" 파일 내 모든 export는 async이어야 함(Next.js 16 제약) → async 래핑.
-export async function diffEquipment(company_id: string, existing: string[], submitted: CompanyEquipmentRow[]) {
-  const submittedIds = new Set(submitted.filter((r) => r.id).map((r) => r.id));
-  const toDelete = existing.filter((id) => !submittedIds.has(id));
-  const toUpdate = submitted.filter((r) => r.id).map((r) => ({ id: r.id, ...toDbRow(company_id, r) }));
-  const toInsert = submitted.filter((r) => !r.id).map((r) => toDbRow(company_id, r));
-  return { toDelete, toUpdate, toInsert };
-}
-
 // 보유장비 diff-upsert — 삭제→업데이트→신규 순서로 적용. 에러 시 메시지 반환.
+// diff 순수 로직은 equipment-diff.ts(non-server). 여기선 DB 적용만.
 async function applyEquipmentDiff(supabase: SupabaseClient, companyId: string, values: CompanyFormValues): Promise<string | null> {
   const { data: existingRows, error: exErr } = await supabase.from("company_equipment").select("id").eq("company_id", companyId);
   if (exErr) return exErr.message;
-  const { toDelete, toUpdate, toInsert } = await diffEquipment(companyId, (existingRows ?? []).map((r: { id: string }) => r.id), values.equipment);
+  const { toDelete, toUpdate, toInsert } = diffEquipment(companyId, (existingRows ?? []).map((r: { id: string }) => r.id), values.equipment);
   if (toDelete.length) {
     const { error } = await supabase.from("company_equipment").delete().in("id", toDelete);
     if (error) return error.message;

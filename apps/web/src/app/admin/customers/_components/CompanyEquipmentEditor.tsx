@@ -1,6 +1,12 @@
 "use client";
 import { useState } from "react";
-import { useFieldArray, useWatch, type Control, type UseFormRegister } from "react-hook-form";
+import {
+  useFieldArray,
+  useWatch,
+  type Control,
+  type UseFormRegister,
+  type UseFormSetValue,
+} from "react-hook-form";
 import type { z } from "zod";
 import type { companyFormSchema } from "@/lib/customers/schema";
 import type { Equipment } from "@jhtechsaas/shared";
@@ -16,10 +22,12 @@ type CatalogItem = Pick<Equipment, "id" | "name" | "model">;
 export function CompanyEquipmentEditor({
   control,
   register,
+  setValue,
   catalog,
 }: {
   control: Control<FormInput>;
   register: UseFormRegister<FormInput>;
+  setValue: UseFormSetValue<FormInput>;
   catalog: CatalogItem[];
 }) {
   const { fields, append, remove } = useFieldArray({ control, name: "equipment" });
@@ -56,6 +64,7 @@ export function CompanyEquipmentEditor({
               index={index}
               control={control}
               register={register}
+              setValue={setValue}
               catalog={catalog}
               onRemove={() => remove(index)}
             />
@@ -72,12 +81,14 @@ function EquipmentRow({
   index,
   control,
   register,
+  setValue,
   catalog,
   onRemove,
 }: {
   index: number;
   control: Control<FormInput>;
   register: UseFormRegister<FormInput>;
+  setValue: UseFormSetValue<FormInput>;
   catalog: CatalogItem[];
   onRemove: () => void;
 }) {
@@ -95,7 +106,13 @@ function EquipmentRow({
           <button
             key={m}
             type="button"
-            onClick={() => setMode(m)}
+            onClick={() => {
+              // 반대 필드 초기화 — RHF는 언마운트 input 값을 보존하므로(shouldUnregister=false)
+              // 명시적으로 비워야 XOR(둘 중 하나만)이 submit 시 보장됨.
+              if (m === "catalog") setValue(`equipment.${index}.label`, "");
+              else setValue(`equipment.${index}.equipment_id`, "");
+              setMode(m);
+            }}
             className={`rounded-sm px-2 py-1 text-small font-medium ${
               mode === m ? "bg-accent text-white" : "bg-surface-2 text-muted"
             }`}
@@ -105,8 +122,7 @@ function EquipmentRow({
         ))}
       </div>
 
-      {/* 카탈로그 select — mode=catalog 에만 렌더.
-          mode=direct면 equipment_id는 react-hook-form 기본값("")으로 유지되어 XOR 보장. */}
+      {/* 카탈로그 select — mode=catalog 에만 렌더. 토글 전환 시 반대 필드는 setValue로 초기화됨. */}
       {mode === "catalog" ? (
         <select
           {...register(`equipment.${index}.equipment_id`)}
@@ -121,7 +137,7 @@ function EquipmentRow({
           ))}
         </select>
       ) : (
-        /* 직접입력 — mode=catalog면 label은 기본값("")으로 유지되어 XOR 보장. */
+        /* 직접입력 — 토글 전환 시 equipment_id는 setValue로 초기화됨(XOR 보장). */
         <input
           {...register(`equipment.${index}.label`)}
           placeholder="장비명 직접 입력"
