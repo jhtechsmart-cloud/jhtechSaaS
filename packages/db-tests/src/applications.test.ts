@@ -164,6 +164,27 @@ describe("applications — anon 공개 폼 INSERT (WITH CHECK, E-5)", () => {
   });
 });
 
+describe("applications — 동의 3컬럼 + equipment_id FK (M2 P-A)", () => {
+  test("applications에 동의 3컬럼 + equipment_id FK 존재", async () => {
+    await inRollbackTx(c, async () => {
+      await asPostgres(c);
+      const cols = await c.query(
+        "select column_name from information_schema.columns where table_name='applications' and table_schema='public'",
+      );
+      const names = cols.rows.map((r) => r.column_name);
+      expect(names).toEqual(
+        expect.arrayContaining(["privacy_consent", "privacy_consent_at", "privacy_consent_version", "equipment_id"]),
+      );
+      const fk = await c.query(
+        `select 1 from information_schema.table_constraints tc
+         join information_schema.constraint_column_usage ccu on tc.constraint_name=ccu.constraint_name
+         where tc.table_name='applications' and tc.constraint_type='FOREIGN KEY' and ccu.table_name='equipment'`,
+      );
+      expect(fk.rowCount).toBeGreaterThan(0);
+    });
+  });
+});
+
 describe("applications — assignee row scope (E-4)", () => {
   const APP1 = "00000000-0000-0000-0000-0000000000f1";
   const APP2 = "00000000-0000-0000-0000-0000000000f2";
