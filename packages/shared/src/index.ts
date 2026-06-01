@@ -8,3 +8,4 @@ export * from "./specs";
 export * from "./supabase";
 export * from "./seed";
 export * from "./types";
+export * from "./biz-no";
