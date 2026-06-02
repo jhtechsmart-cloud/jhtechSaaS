@@ -24,7 +24,8 @@ export async function listServiceRequests(): Promise<ServiceRequestListRow[]> {
   const { data, error } = await supabase
     .from("service_requests")
     .select("id,seq_no,status,company_id,contact_company,assignee_id,admin_read_at,created_at,fields,profiles:assignee_id(name)")
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(100);
   if (error) { console.error("[service_requests.list]", error); return []; }
   return (data ?? []).map((r: Record<string, unknown>) => {
     const profiles = r.profiles as { name?: string } | null;

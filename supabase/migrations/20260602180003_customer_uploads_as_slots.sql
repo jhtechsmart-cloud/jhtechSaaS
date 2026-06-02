@@ -8,6 +8,8 @@ create policy "customer_uploads_insert_anon_as" on storage.objects
   );
 
 -- A/S 스태프(service_requests.view_all): 고객 업로드 사진 읽기(기존 applications.view_all read와 OR).
+-- 의도(리뷰 결정): 단일테넌트 내부 신뢰 스태프는 customer-uploads를 폼 종류(견적/AS) 구분 없이 열람 가능.
+-- (견적권한자가 AS사진을, AS권한자가 견적사진을 볼 수 있음. 경로 정규식 분리는 의도적으로 미적용.)
 create policy "customer_uploads_read_staff_as" on storage.objects
   for select to authenticated
   using (

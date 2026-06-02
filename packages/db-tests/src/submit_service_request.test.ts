@@ -132,6 +132,28 @@ describe("submit_service_request RPC — 동의·필드 검증", () => {
     });
   });
 
+  test("희망일 잘못된 형식 → 거부, fields는 화이트리스트만 저장(임의 키 제거)", async () => {
+    await inRollbackTx(c, async () => {
+      await asAnon(c);
+      // 잘못된 preferred_date 형식 (savepoint로 격리 — 예외가 txn abort시키므로)
+      await c.query("savepoint sp");
+      await expect(c.query("select public.submit_service_request($1::jsonb)", [
+        payload({ fields: { symptom: "x", preferred_date: "내일쯤" } }),
+      ])).rejects.toThrow();
+      await c.query("rollback to savepoint sp");
+      // 임의 키(equipment_text·junk)는 저장 안 됨
+      await c.query("select public.submit_service_request($1::jsonb)", [
+        payload({ fields: { symptom: "증상", preferred_date: "2026-07-01", equipment_text: "위조라벨", junk: "x" } }),
+      ]);
+      await asPostgres(c);
+      const row = await c.query("select fields from public.service_requests where biz_no='1234567891'");
+      expect(row.rows[0].fields.symptom).toBe("증상");
+      expect(row.rows[0].fields.preferred_date).toBe("2026-07-01");
+      expect(row.rows[0].fields.equipment_text).toBeUndefined();
+      expect(row.rows[0].fields.junk).toBeUndefined();
+    });
+  });
+
   test("symptom 누락/길이초과 → 거부", async () => {
     await inRollbackTx(c, async () => {
       await asAnon(c);

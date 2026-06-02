@@ -21,6 +21,9 @@ begin
     || case when v >= 100000 then v::text else lpad(v::text, 5, '0') end;
 end;
 $$;
+-- 채번 함수는 트리거(INSERT 시 owner 컨텍스트)만 내부 호출 → 직접 호출 봉쇄.
+-- SECURITY DEFINER 함수의 grant 함정: revoke from public/anon 안 하면 anon이 직접 시퀀스 증가 가능.
+revoke execute on function public.next_service_request_seq_no() from public, anon, authenticated;
 
 create table public.service_requests (
   id uuid primary key default gen_random_uuid(),

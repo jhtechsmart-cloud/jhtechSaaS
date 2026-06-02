@@ -14,6 +14,8 @@ declare
   v_consent_type text := jsonb_typeof(payload->'privacy_consent');
   v_consent_ver text := nullif(btrim(payload->>'privacy_consent_version'), '');
   v_symptom text := nullif(btrim(v_fields->>'symptom'), '');
+  v_pref text := nullif(btrim(v_fields->>'preferred_date'), '');
+  v_clean_fields jsonb;
   v_uuid_re text := '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$';
   v_ce_raw text;
   v_ce_id uuid;
@@ -62,6 +64,10 @@ begin
   if v_symptom is null then
     raise exception '증상 내용은 필수입니다';
   end if;
+  -- 희망일(선택): YYYY-MM-DD 형식만. 임의 텍스트/스크립트 주입 차단.
+  if v_pref is not null and v_pref !~ '^\d{4}-\d{2}-\d{2}$' then
+    raise exception '희망일 형식이 올바르지 않습니다';
+  end if;
   if length(v_symptom) > 2000
      or coalesce(length(v_contact), 0) > 200
      or coalesce(length(payload->>'contact_phone'), 0) > 200
@@ -98,6 +104,12 @@ begin
     end if;
   end loop;
 
+  -- fields 화이트리스트 재구성 — anon이 임의 키(equipment_text 등) 주입 못 하게 서버가 통제.
+  v_clean_fields := jsonb_build_object('symptom', v_symptom, 'photos', v_photos);
+  if v_pref is not null then
+    v_clean_fields := v_clean_fields || jsonb_build_object('preferred_date', v_pref);
+  end if;
+
   insert into public.service_requests
     (biz_no, company_id, company_equipment_id, contact_company, contact_ceo, contact_phone, contact_email, contact_address,
      privacy_consent, privacy_consent_at, privacy_consent_version, fields, status)
@@ -107,7 +119,7 @@ begin
     nullif(btrim(payload->>'contact_phone'), ''),
     nullif(btrim(payload->>'contact_email'), ''),
     nullif(btrim(payload->>'contact_address'), ''),
-    true, now(), v_consent_ver, v_fields, 'received'
+    true, now(), v_consent_ver, v_clean_fields, 'received'
   )
   returning seq_no into v_seq;
 
