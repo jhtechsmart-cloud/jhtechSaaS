@@ -43,6 +43,12 @@ export default async function AdminLayout({
           >
             고객
           </Link>
+          <Link
+            href="/admin/consumables"
+            className="rounded-md px-3 py-2 text-body font-medium text-text hover:bg-surface-2"
+          >
+            소모품
+          </Link>
         </nav>
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
