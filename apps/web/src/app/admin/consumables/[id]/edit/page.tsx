@@ -21,13 +21,18 @@ export default async function EditConsumablePage({ params }: { params: Promise<{
     );
   }
 
-  const [consumable, equipmentAll] = await Promise.all([getConsumable(id), listEquipment()]);
+  // 세 쿼리를 병렬로 실행 — getConsumable·listEquipment·listCategoryTree 모두 독립적
+  const [consumable, equipmentAll, categoryTree] = await Promise.all([
+    getConsumable(id),
+    listEquipment(),
+    listCategoryTree(),
+  ]);
   if (!consumable) notFound();
 
   const active = equipmentAll.filter((e) => e.status === "active");
   const catalog = active.map((e) => ({ id: e.id, name: e.name, model: e.model ?? null }));
   // taxonomy 드롭다운: 분류 트리에서 소모품 범위 선택 옵션 구성
-  const categoryOptions = scopeSelectableOptions(await listCategoryTree());
+  const categoryOptions = scopeSelectableOptions(categoryTree);
 
   const scopesRaw = (consumable as { consumable_scope?: unknown[] }).consumable_scope ?? [];
   const scopes = (scopesRaw as Array<Record<string, unknown>>).map((s) => ({

@@ -15,11 +15,12 @@ export default async function NewConsumablePage() {
       </main>
     );
   }
-  const equipmentAll = await listEquipment();
+  // 두 쿼리를 병렬로 실행 — listEquipment·listCategoryTree 모두 독립적
+  const [equipmentAll, categoryTree] = await Promise.all([listEquipment(), listCategoryTree()]);
   const active = equipmentAll.filter((e) => e.status === "active");
   const catalog = active.map((e) => ({ id: e.id, name: e.name, model: e.model ?? null }));
   // taxonomy 드롭다운: 분류 트리에서 소모품 범위 선택 옵션 구성
-  const categoryOptions = scopeSelectableOptions(await listCategoryTree());
+  const categoryOptions = scopeSelectableOptions(categoryTree);
   return (
     <section className="flex flex-col gap-4">
       <h1 className="text-h1 font-semibold text-text">소모품 추가</h1>
