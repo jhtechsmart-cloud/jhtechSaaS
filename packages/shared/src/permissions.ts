@@ -2,13 +2,14 @@
 // 새 기능 추가 시 키 1개만 추가하면 관리자 권한 체크박스에 자동 노출(스키마 변경 0).
 // SQL has_permission() / RLS 정책과 1:1로 대응한다.
 
-/** v1 권한 키 (7개). 미래 확장: delivery.dispatch, install.manage 등. */
+/** v1 권한 키 (8개). 미래 확장: delivery.dispatch, install.manage 등. */
 export const PERMISSIONS = [
   "applications.view_all", // 전체 신청 조회 (없으면 자기 배정 건만)
   "applications.assign", // 담당자 배정
   "quotes.write", // 견적 작성·확정·재발행
   "equipment.manage", // 장비·옵션 관리
   "customers.manage", // 고객·보유장비 마스터 관리 (P-B)
+  "consumables.manage", // 소모품 카탈로그 관리 (P-C)
   "email.send", // 견적 메일 발송
   "users.manage", // 사용자·권한 관리 (= 관리자, 전체 우회)
 ] as const;
