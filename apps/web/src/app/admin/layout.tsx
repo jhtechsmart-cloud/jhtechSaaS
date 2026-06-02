@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { requireEquipmentManage } from "@/lib/auth/guard";
 import { countUnreadServiceRequests } from "@/lib/service-requests/queries";
+import { countUnreadSupplyRequests } from "@/lib/supply-requests/queries";
 import { signOut } from "@/app/login/actions";
 
 // 콘솔 셸 — 사이드바196 + 상단바. requireEquipmentManage가 미인증을 /login으로 보내고,
@@ -13,6 +14,7 @@ export default async function AdminLayout({
 }) {
   const access = await requireEquipmentManage();
   const unread = access.status === "ok" ? await countUnreadServiceRequests() : 0;
+  const supplyUnread = access.status === "ok" ? await countUnreadSupplyRequests() : 0;
 
   if (access.status === "forbidden") {
     return (
@@ -64,6 +66,15 @@ export default async function AdminLayout({
             <span>A/S</span>
             {unread > 0 && (
               <span className="rounded-full bg-accent px-2 py-0.5 text-micro font-medium text-white">{unread}</span>
+            )}
+          </Link>
+          <Link
+            href="/admin/supply-requests"
+            className="flex items-center justify-between rounded-md px-3 py-2 text-body font-medium text-text hover:bg-surface-2"
+          >
+            <span>소모품신청</span>
+            {supplyUnread > 0 && (
+              <span className="rounded-full bg-accent px-2 py-0.5 text-micro font-medium text-white">{supplyUnread}</span>
             )}
           </Link>
         </nav>
