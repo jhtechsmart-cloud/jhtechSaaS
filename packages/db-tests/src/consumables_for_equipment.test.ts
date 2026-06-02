@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import type { Client } from "pg";
-import { asPostgres, asUser, inRollbackTx, makeClient, seedAuthUser, UID } from "./helpers";
+import { asAnon, asPostgres, asUser, inRollbackTx, makeClient, seedAuthUser, UID } from "./helpers";
 
 let c: Client;
 beforeAll(async () => { c = await makeClient(); });
@@ -70,6 +70,17 @@ describe("consumables_for_equipment — 분류공통 + 장비전용 dedup·activ
       await c.query("insert into public.consumable_scope (consumable_id,equipment_id) values ($1,$2)", [clean, EQ_A]);
       const r = await c.query("select id from public.consumables_for_equipment($1) where id=$2", [EQ_A, clean]);
       expect(r.rowCount).toBe(1);
+    });
+  });
+
+  // 보안 경계 회귀 가드: anon 역할은 consumables_for_equipment GRANT 미부여 → 호출 시 permission denied
+  test("anon은 consumables_for_equipment 호출 불가(authenticated 전용 grant)", async () => {
+    await inRollbackTx(c, async () => {
+      await seed();
+      await asAnon(c);
+      await expect(
+        c.query("select * from public.consumables_for_equipment($1)", [EQ_A]),
+      ).rejects.toThrow(/permission denied/);
     });
   });
 });

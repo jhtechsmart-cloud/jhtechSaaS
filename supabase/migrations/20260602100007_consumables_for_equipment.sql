@@ -22,6 +22,13 @@ as $$
     );
 $$;
 
--- authenticated 역할에 실행 권한 부여(읽기).
+-- Supabase는 두 가지 경로로 EXECUTE를 자동 부여한다:
+--   1) Postgres 기본: 함수 생성 시 PUBLIC에 EXECUTE (=X/postgres 형태)
+--   2) Supabase init: "alter default privileges in schema public grant all on functions to ... anon ..."
+-- 두 경로를 모두 차단하려면 PUBLIC + anon 양쪽을 revoke해야 한다.
+-- PUBLIC revoke → ACL의 =X(PUBLIC grant) 제거, anon revoke → anon=X 직접 부여 제거.
+revoke execute on function public.consumables_for_equipment(uuid) from public, anon;
+
+-- authenticated 역할에만 실행 권한 부여(읽기).
 -- anon(공개) 노출은 P-E에서 별도 RPC로 결정 — 여기선 미부여.
 grant execute on function public.consumables_for_equipment(uuid) to authenticated;
