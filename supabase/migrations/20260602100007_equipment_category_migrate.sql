@@ -6,12 +6,15 @@ alter table public.equipment add column category_id uuid references public.equip
 create index equipment_category_id_idx on public.equipment (category_id);
 
 -- 1) 기존 distinct non-null category → 대분류 노드 보존 생성(중복 안전)
+-- ⚠️ 정규화는 btrim만 — 오타·내부공백·전각 변형은 별개 대분류 노드로 보존된다(데이터 손실 없음).
+--    동일 의도 분류의 중복 노드는 admin에서 병합(T5). on conflict do nothing 멱등(부분 UNIQUE arbiter).
 insert into public.equipment_category (name)
 select distinct btrim(category) from public.equipment
 where nullif(btrim(category), '') is not null
 on conflict do nothing;
 
 -- 2) equipment.category_id 매핑(대분류 노드와 이름 일치)
+-- 최초 적용 시 소분류가 없으므로 대분류 노드와 이름 매칭. (재적용 시 동명 소분류가 있으면 매핑 누락 가능)
 update public.equipment e
 set category_id = ec.id
 from public.equipment_category ec
