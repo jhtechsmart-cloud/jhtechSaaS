@@ -155,8 +155,8 @@
     <tr><td class="path">#8</td><td>E7 업체 이력</td><td>#4~#7</td></tr>
     <tr><td colspan="3" style="background:var(--surface);font-weight:600">▼ M2 — 고객 포털 & 운영 백본 (신규 마일스톤, 2026-06-01)</td></tr>
     <tr><td class="path">#18</td><td>[EPIC] M2 고객 포털 (견적v2·고객마스터·AS·소모품·이력·알림)</td><td>—</td></tr>
-    <tr><td class="path">#19</td><td>M2 P-A 견적요청 v2 (카탈로그·상세 재구성·대형 폼) <span style="color:var(--new);font-weight:600">● 다음</span></td><td>E2·E3</td></tr>
-    <tr><td class="path">#20</td><td>M2 P-B 고객·구매 마스터(companies·company_equipment)</td><td>E1</td></tr>
+    <tr><td class="path">#19</td><td>M2 P-A 견적요청 v2 (카탈로그·상세 재구성·대형 폼) <span style="color:var(--sent);font-weight:600">✅ 머지·배포 v0.4.0.0 (CLOSED, #19a+#19b)</span></td><td>E2·E3</td></tr>
+    <tr><td class="path">#20</td><td>M2 P-B 고객·구매 마스터(companies·company_equipment) <span style="color:var(--new);font-weight:600">● 다음</span></td><td>E1</td></tr>
     <tr><td class="path">#21</td><td>M2 P-C 소모품 카탈로그</td><td>E2·#20</td></tr>
     <tr><td class="path">#22</td><td>M2 P-D A/S신청(조회·접수증PDF·알림)</td><td>#20·E5</td></tr>
     <tr><td class="path">#23</td><td>M2 P-E 소모품신청(장비별 소모품·수량)</td><td>#21</td></tr>
@@ -170,10 +170,10 @@
   <p class="note">각 단계를 진행하면 → 어디에 어떤 파일이 생기고 무슨 내용이 담기는지.</p>
 
   <div class="lead" style="border-left-color:var(--sent)">
-    <b>진행 현황 (2026-06-01):</b> <b>M1 E1·E2·E3 완료·머지·배포</b>(이슈 #2·#3·#4 닫힘, v0.3.0.0, 프로덕션 라이브). 오늘: <b>프로덕션 500 복구</b>(Vercel에 Supabase env 통째 누락 → 4종 설정·재배포, 전 라우트 200) + <b>로드맵→Notion 동기화 배선</b> + <b>M2 "고객 포털" 마일스톤 brainstorm·등록</b>(설계문서 + EPIC #18·P-A~P-G #19~#25).
-    <b>다음 = M2 P-A 견적요청 v2</b>(홈 3분기 + 카탈로그 박스 + 상세 재구성[highlights·그룹사양·youtube복수] + 대형 견적폼[동의·이미지업로드·설치설문·biz_no체크섬]) — 자체 spec→plan. ⚠️ 미처리: Vercel <b>Preview</b> env 3종(대시보드), 외부 의존(카톡/문자 발송사·개인정보처리방침 법무).
+    <b>진행 현황 (2026-06-01):</b> <b>M1 E1·E2·E3 완료·머지·배포</b>(이슈 #2·#3·#4 닫힘, 프로덕션 라이브). <b>M2 P-A 견적요청 v2 전체 완주</b>(이슈 #19 CLOSED): <b>P-A1</b>(#19a, v0.3.1.0) 데이터기반+운영자admin(마이그 5종·shared 그룹specs·validateBizNo·admin 그룹SpecEditor, 원격 db push 완료) + <b>P-A2</b>(#19b, v0.4.0.0) 공개흐름(홈3분기·카탈로그2버튼·상세재구성·대형견적폼[동의·biz_no체크섬·현장사진·설치설문], 마이그 0). 둘 다 spec→plan→subagent-driven→/review→/qa→/ship 완주, PR #26·#27 MERGED, 프로덕션 라이브.
+    <b>다음 = M2 P-B 고객·구매 마스터</b>(#20: companies + company_equipment + admin CRUD + 견적확정 자동생성 훅 + 조회 RPC. AS·소모품[P-D/P-E]의 핵심 전제) — 자체 spec→plan. ⚠️ 미처리: 로드맵 P-A=done sync는 로컬 main 커밋·미push(P-B 브랜치가 운반) · customer-uploads 고아청소 cron P-D 이월 · supabase/rollback(단수)·rollbacks(복수) 디렉토리 정리 · Vercel Preview env 3종 · 게이트 E2E 포함 검토.
   </div>
-  <p class="note">아래 단계 바 = 한 phase의 생애주기. M1 E1·E2·E3 모두 ①~⑨ 완주(E4~E7은 대기). M2는 마일스톤 brainstorm(①기획) 완료, 다음 작업 P-A는 ③스펙부터.</p>
+  <p class="note">아래 단계 바 = 한 phase의 생애주기. M1 E1·E2·E3 + M2 P-A 모두 ①~⑨ 완주. M2는 다음 작업 P-B가 ③스펙부터.</p>
   <div class="flow">
     <span class="step done">① 기획(M2 brainstorm)</span><span class="arr">→</span>
     <span class="step done">② 셋업</span><span class="arr">→</span>

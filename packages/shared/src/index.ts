@@ -9,3 +9,4 @@ export * from "./supabase";
 export * from "./seed";
 export * from "./types";
 export * from "./biz-no";
+export * from "./phone";

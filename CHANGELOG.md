@@ -2,6 +2,25 @@
 
 이 프로젝트의 주요 변경 사항을 기록한다. [Keep a Changelog](https://keepachangelog.com/) 형식, [Semantic Versioning](https://semver.org/)(4자리 MAJOR.MINOR.PATCH.MICRO).
 
+## [0.5.0.0] - 2026-06-02
+
+### Added
+- **M2 P-B 고객·구매 마스터** (GitHub #20) — 고객(업체)과 보유 장비를 정규화된 마스터로 관리. A/S·소모품·통합이력의 전제.
+  - `companies`(고객) 테이블: 사업자번호(부분 UNIQUE)·업체명·대표·연락처·주소·담당영업·자동생성 출처. 서버통제값(created_at·source_application_id) 불변 트리거.
+  - `company_equipment`(보유장비) 테이블: 카탈로그 장비(FK) XOR 자유입력 장비명, 구입일·설치주소·시리얼.
+  - 신규 권한 `customers.manage` — 쓰기 게이트(RLS), 읽기는 로그인 스태프 전원. (관리자는 `users.manage`로 자동 통과.)
+  - admin 고객 관리 콘솔 `/admin/customers` — 목록(담당영업 필터·미배정 amber·사업자번호 mono 포맷·보유장비수), 직접입력/견적요청 가져오기 2모드 신규, 편집(보유장비 인라인 편집기·diff-upsert로 id 보존).
+  - anon 사업자번호 조회 RPC `lookup_company_by_biz_no` — A/S·소모품 폼 자동완성용. 노출 필드 화이트리스트(비활성 장비명 미노출).
+  - 견적요청→고객 멱등 upsert RPC `upsert_company_from_application` — 사업자번호/출처 기준 중복 방지, 신규/기존 배너 피드백.
+- **연락처 자동 대시 포맷** — 고객 폼 연락처가 사업자번호처럼 010-1234-5678 형태로 자동 정리(`formatPhone`).
+- **장비 사양 아이콘 미리보기** — 관리자 장비 폼에서 사양 그룹 아이콘 이름 옆에 실제 아이콘 표시.
+
+### Changed
+- **장비 카탈로그 카드 이미지** — `object-contain`으로 변경, 가로로 긴 장비(프린터) 사진이 잘리지 않고 전체 노출.
+
+### Fixed
+- 로컬 개발 환경에서 Next.js 16 SSRF 가드가 차단하던 private IP(로컬 Supabase Storage) 이미지 최적화 허용(dev 한정, 프로덕션 가드 유지).
+
 ## [0.4.0.0] - 2026-06-01
 
 ### Added
