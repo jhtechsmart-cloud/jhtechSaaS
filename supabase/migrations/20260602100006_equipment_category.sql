@@ -23,9 +23,14 @@ begin
   end if;
   if new.parent_id is not null then
     if new.parent_id = new.id then raise exception '자기 자신을 부모로 지정할 수 없습니다'; end if;
+    -- 지정한 부모가 이미 소분류(부모가 있음)이면 손자 발생 → 거부
     select ec.parent_id into parent_parent from public.equipment_category ec where ec.id = new.parent_id;
     if parent_parent is not null then
       raise exception '분류는 2단계까지만 허용됩니다(손자 금지)';
+    end if;
+    -- 이 노드 자체가 이미 자식을 가지고 있으면 다른 노드의 하위로 이동 시 손자 발생 → 거부
+    if exists (select 1 from public.equipment_category where parent_id = new.id) then
+      raise exception '자식이 있는 분류는 다른 분류의 하위로 옮길 수 없습니다(2단계 초과)';
     end if;
   end if;
   return new;

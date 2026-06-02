@@ -31,6 +31,16 @@ describe("equipment_category — 2단계 taxonomy RLS", () => {
       await expect(c.query("insert into public.equipment_category (parent_id,name) values ($1,'손자')", [ch.rows[0].id])).rejects.toThrow();
     });
   });
+  test("자식 있는 대분류를 다른 대분류 하위로 이동 → 거부(손자 생성 방지)", async () => {
+    await inRollbackTx(c, async () => {
+      await seed(); await asUser(c, UID.admin);
+      const a = await c.query("insert into public.equipment_category (name) values ('프린터') returning id", []);
+      await c.query("insert into public.equipment_category (parent_id,name) values ($1,'UV프린터')", [a.rows[0].id]);
+      const b = await c.query("insert into public.equipment_category (name) values ('커팅기') returning id", []);
+      // 자식(UV프린터)이 있는 '프린터'를 '커팅기' 하위로 이동 시도 → 손자 발생이므로 거부
+      await expect(c.query("update public.equipment_category set parent_id=$1 where id=$2", [b.rows[0].id, a.rows[0].id])).rejects.toThrow();
+    });
+  });
   test("대분류 동명 중복 → 거부", async () => {
     await inRollbackTx(c, async () => {
       await seed(); await asUser(c, UID.admin);
