@@ -52,14 +52,31 @@ describe("consumables_for_equipment — 대분류 커버·소분류·단독대�
     await inRollbackTx(c, async () => {
       await seed(); await asUser(c, UID.admin);
       const r = await c.query("select name from public.consumables_for_equipment($1)", [EQ_SOL]);
-      expect(r.rows.map((x: { name: string }) => x.name)).toEqual(["세정액"]);
+      expect(r.rows.map((x: { name: string }) => x.name).sort()).toEqual(["세정액"].sort());
     });
   });
   test("커팅기 장비(단독 대분류) → 칼날만", async () => {
     await inRollbackTx(c, async () => {
       await seed(); await asUser(c, UID.admin);
       const r = await c.query("select name from public.consumables_for_equipment($1)", [EQ_CUT]);
-      expect(r.rows.map((x: { name: string }) => x.name)).toEqual(["칼날"]);
+      expect(r.rows.map((x: { name: string }) => x.name).sort()).toEqual(["칼날"].sort());
+    });
+  });
+  test("분류 미지정(category_id NULL) 장비 → 직접 매핑만 (분류 매칭 없음)", async () => {
+    await inRollbackTx(c, async () => {
+      const { clean } = await seed(); await asUser(c, UID.admin);
+      // 분류 없는 장비 + 그 장비에 직접 매핑한 소모품
+      const EQ_NONE = "00000000-0000-0000-0000-0000000000e9";
+      await asPostgres(c);
+      await c.query("insert into public.equipment (id,name,base_price,status) values ($1,'분류없음장비',1,'active')", [EQ_NONE]);
+      const direct = (await c.query("insert into public.consumables (name) values ('직접부품') returning id", [])).rows[0].id;
+      await c.query("insert into public.consumable_scope (consumable_id,equipment_id) values ($1,$2)", [direct, EQ_NONE]);
+      await asUser(c, UID.admin);
+      const r = await c.query("select name from public.consumables_for_equipment($1)", [EQ_NONE]);
+      // 직접부품만. 세정액(대분류 프린터)은 이 장비 분류가 없으므로 매칭 안 됨.
+      expect(r.rows.map((x: { name: string }) => x.name)).toEqual(["직접부품"]);
+      expect(r.rows.map((x: { name: string }) => x.name)).not.toContain("세정액");
+      void clean;
     });
   });
   test("dedup: 소분류+대분류 양쪽 매핑돼도 1행", async () => {

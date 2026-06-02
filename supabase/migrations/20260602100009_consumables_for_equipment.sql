@@ -11,7 +11,10 @@ as $$
   select distinct cn.*
   from public.consumables cn
   join public.consumable_scope cs on cs.consumable_id = cn.id
-  join public.equipment e on e.id = p_equipment_id
+  join lateral (
+    -- LATERAL 단일행 조인: 카테시안 곱 방지 + 의도 명시(미래 수정 안전)
+    select category_id from public.equipment where id = p_equipment_id
+  ) e on true
   where cn.status = 'active'
     and (
       -- (a) 직접 장비 매핑
@@ -23,6 +26,7 @@ as $$
     );
 $$;
 
+-- 참고: 이 함수 호출 자체는 authenticated면 충분(consumables.manage 불필요). 쓰기만 manage.
 -- anon/PUBLIC 차단: Supabase는 EXECUTE를 자동으로 PUBLIC에 부여하므로 명시적으로 revoke 필요.
 -- authenticated만 호출 가능 (P-E에서 anon 노출 여부 별도 결정).
 revoke execute on function public.consumables_for_equipment(uuid) from public, anon;
