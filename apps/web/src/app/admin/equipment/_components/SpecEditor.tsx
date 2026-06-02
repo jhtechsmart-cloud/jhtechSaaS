@@ -1,10 +1,18 @@
 "use client";
-import { useFieldArray, useFormContext, type Control, type UseFormRegister } from "react-hook-form";
+import { useFieldArray, useFormContext, useWatch, type Control, type UseFormRegister } from "react-hook-form";
 import { SPEC_ICONS } from "@jhtechsaas/shared";
+import { SpecGroupIcon } from "@/components/SpecGroupIcon";
 import type { equipmentFormSchema } from "@/lib/equipment/schema";
 import type { z } from "zod";
 
 type FormInput = z.input<typeof equipmentFormSchema>;
+
+// 선택된 아이콘 이름 옆에 실제 아이콘 미리보기 — native select는 옵션에 SVG를 못 넣어서.
+// 공개 상세페이지에서 사양 그룹마다 이 아이콘이 표시된다(SpecGroupIcon).
+function IconPreview({ control, gIndex }: { control: Control<FormInput>; gIndex: number }) {
+  const icon = useWatch({ control, name: `specs.${gIndex}.icon` });
+  return <SpecGroupIcon icon={icon ?? "settings"} className="h-5 w-5 shrink-0 text-muted" />;
+}
 
 // 그룹 사양 에디터 — 그룹(이름+아이콘) + 하위 items(label/value). 그룹/아이템 순서 이동.
 export function SpecEditor({ control, register }: { control: Control<FormInput>; register: UseFormRegister<FormInput> }) {
@@ -22,6 +30,7 @@ export function SpecEditor({ control, register }: { control: Control<FormInput>;
           {fields.map((field, gIndex) => (
             <li key={field.id} className="rounded-md border border-border bg-surface p-3">
               <div className="mb-2 flex items-center gap-2">
+                <IconPreview control={control} gIndex={gIndex} />
                 <select {...register(`specs.${gIndex}.icon`)} className="rounded-sm border border-border bg-surface px-2 py-1 text-body text-text">
                   {SPEC_ICONS.map((ic) => (<option key={ic} value={ic}>{ic}</option>))}
                 </select>
