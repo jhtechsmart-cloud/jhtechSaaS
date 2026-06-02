@@ -14,6 +14,7 @@ import {
   deleteEquipment,
   type EquipmentActionResult,
 } from "../actions";
+import { equipmentSelectableOptions, type CategoryNode } from "@/lib/equipment/category-tree";
 import { SpecEditor } from "./SpecEditor";
 import { HighlightsEditor } from "./HighlightsEditor";
 import { YoutubeUrlsEditor } from "./YoutubeUrlsEditor";
@@ -23,8 +24,8 @@ import { ImageUploader } from "./ImageUploader";
 type EquipmentFormInput = z.input<typeof equipmentFormSchema>;
 
 type Props =
-  | { mode: "create" }
-  | { mode: "edit"; id: string; initial: EquipmentFormValues };
+  | { mode: "create"; categories: CategoryNode[] }
+  | { mode: "edit"; id: string; initial: EquipmentFormValues; categories: CategoryNode[] };
 
 export function EquipmentForm(props: Props) {
   const router = useRouter();
@@ -46,7 +47,7 @@ export function EquipmentForm(props: Props) {
         : {
             name: "",
             model: "",
-            category: "",
+            category_id: "",
             base_price: 0,
             status: "active",
             highlights: [],
@@ -134,11 +135,23 @@ export function EquipmentForm(props: Props) {
             className="rounded-md border border-border bg-surface px-3 py-2 font-mono text-body text-text"
           />
         </Field>
-        <Field label="분류" error={errors.category?.message}>
-          <input
-            {...register("category")}
+        <Field label="분류" error={errors.category_id?.message}>
+          {/* equipment_category 드롭다운 — category_id FK 저장 */}
+          <select
+            {...register("category_id")}
             className="rounded-md border border-border bg-surface px-3 py-2 text-body text-text"
-          />
+          >
+            <option value="">미지정</option>
+            {equipmentSelectableOptions(props.categories).map((g, i) =>
+              g.group === null ? (
+                g.options.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)
+              ) : (
+                <optgroup key={`g${i}`} label={g.group}>
+                  {g.options.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+                </optgroup>
+              ),
+            )}
+          </select>
         </Field>
         <Field label="기본가(₩)" error={errors.base_price?.message}>
           <input

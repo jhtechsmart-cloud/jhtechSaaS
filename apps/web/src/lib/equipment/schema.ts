@@ -38,7 +38,7 @@ const youtubeUrl = z.union([
 export const equipmentFormSchema = z.object({
   name: z.string().trim().min(1, "장비명을 입력하세요"),
   model: z.string().trim().default(""),
-  category: z.string().trim().default(""),
+  category_id: z.string().uuid().or(z.literal("")).default(""),
   base_price: z
     .number({ message: "올바른 금액을 입력하세요" })
     .min(0, "올바른 금액을 입력하세요"),
