@@ -1,14 +1,14 @@
 import { z } from "zod";
 
-// 소모품 매핑 행 — 분류(category) 또는 특정 장비(equipment_id) 중 하나만(XOR).
+// 소모품 매핑 행 — 분류 노드(category_id) 또는 특정 장비(equipment_id) 중 하나만(XOR).
 export const consumableScopeRowSchema = z
   .object({
     id: z.string().uuid().or(z.literal("")), // 기존 uuid 또는 "" (신규)
-    category: z.string().trim().max(100, "100자 이내"),
+    category_id: z.string().uuid().or(z.literal("")),
     equipment_id: z.string().uuid().or(z.literal("")),
   })
   .refine(
-    (r) => (r.category !== "") !== (r.equipment_id !== ""),
+    (r) => (r.category_id !== "") !== (r.equipment_id !== ""),
     "분류 또는 특정 장비 중 하나만 지정하세요",
   );
 

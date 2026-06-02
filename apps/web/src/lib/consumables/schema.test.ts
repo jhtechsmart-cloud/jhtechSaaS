@@ -1,16 +1,17 @@
 import { describe, expect, test } from "vitest";
 import { consumableFormSchema, consumableScopeRowSchema } from "./schema";
 
-describe("consumableScopeRowSchema — category XOR equipment_id", () => {
-  const base = { id: "", category: "", equipment_id: "" };
-  test("category만 → 통과", () => {
-    expect(consumableScopeRowSchema.safeParse({ ...base, category: "UV프린터" }).success).toBe(true);
+describe("consumableScopeRowSchema — category_id XOR equipment_id", () => {
+  const base = { id: "", category_id: "", equipment_id: "" };
+  const UUID = "11111111-1111-4111-a111-111111111111";
+  test("category_id만 → 통과", () => {
+    expect(consumableScopeRowSchema.safeParse({ ...base, category_id: UUID }).success).toBe(true);
   });
   test("equipment_id만 → 통과", () => {
     expect(consumableScopeRowSchema.safeParse({ ...base, equipment_id: "22222222-2222-4222-a222-222222222222" }).success).toBe(true);
   });
   test("둘 다 → 실패", () => {
-    expect(consumableScopeRowSchema.safeParse({ ...base, category: "UV프린터", equipment_id: "22222222-2222-4222-a222-222222222222" }).success).toBe(false);
+    expect(consumableScopeRowSchema.safeParse({ ...base, category_id: UUID, equipment_id: "22222222-2222-4222-a222-222222222222" }).success).toBe(false);
   });
   test("둘 다 없음 → 실패", () => {
     expect(consumableScopeRowSchema.safeParse(base).success).toBe(false);

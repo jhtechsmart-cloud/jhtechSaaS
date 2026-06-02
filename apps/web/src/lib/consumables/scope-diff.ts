@@ -2,11 +2,11 @@
 // actions.ts("use server")에서 import. P-B equipment-diff.ts 미러.
 import type { ConsumableScopeRow } from "@/lib/consumables/schema";
 
-// DB row 변환 — equipment_id 있으면 category는 null 강제(XOR 보장).
+// DB row 변환 — equipment_id 있으면 category_id는 null 강제(XOR 보장).
 export function toScopeDbRow(consumable_id: string, r: ConsumableScopeRow) {
   return {
     consumable_id,
-    category: r.equipment_id ? null : r.category || null,
+    category_id: r.equipment_id ? null : r.category_id || null,
     equipment_id: r.equipment_id || null,
   };
 }
