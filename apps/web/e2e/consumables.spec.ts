@@ -205,8 +205,8 @@ test.describe.serial("시나리오 1 — CRUD (분류·장비 scope 매핑)", ()
       timeout: 15_000,
     });
 
-    // 삭제 confirm 다이얼로그 — page.on("dialog")로 자동 accept
-    page.on("dialog", (dialog) => dialog.accept());
+    // 삭제 confirm 다이얼로그 — page.once("dialog")로 자동 accept (한 번만 등록, 핸들러 누수 방지)
+    page.once("dialog", (dialog) => dialog.accept());
 
     // 삭제 버튼 클릭 — exact: true로 다른 버튼(저장·취소)과 구분
     await page.getByRole("button", { name: "삭제", exact: true }).click();
