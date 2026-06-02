@@ -3,7 +3,7 @@
   "meta": {
     "updated": "2026-06-02",
     "release_target": "2026-06-07",
-    "version": "v0.6.0.0",
+    "version": "v0.7.0.0",
     "deploy_url": "https://jhtech-saa-s-web.vercel.app",
     "repo": "github.com/jhtechsmart-cloud/jhtechSaaS"
   },
@@ -111,21 +111,21 @@
       "id": "P-D",
       "milestone": "M2",
       "name": "A/S신청",
-      "status": "next",
-      "period": "예정",
-      "deliverable": "조회·자동완성·접수증PDF·알림",
+      "status": "done",
+      "period": "완료 2026-06-02",
+      "deliverable": "조회·자동완성·service_requests 저장·admin 콘솔·관리자 웹알림(PDF·카톡/문자는 후속)",
       "owner": "조선제",
-      "status_label": "🔜 다음 (#22)"
+      "status_label": "✅ 머지·배포 v0.7.0.0 (#22, PR#33)"
     },
     {
       "id": "P-E",
       "milestone": "M2",
       "name": "소모품신청",
-      "status": "todo",
+      "status": "next",
       "period": "예정",
       "deliverable": "조회·장비별 소모품 선택(수량)·저장",
       "owner": "조선제",
-      "status_label": "⬜ 예정 (#23)"
+      "status_label": "🔜 다음 (#23)"
     },
     {
       "id": "P-F",
