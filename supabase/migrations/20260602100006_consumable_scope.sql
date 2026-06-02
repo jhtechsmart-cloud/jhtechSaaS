@@ -9,7 +9,7 @@ create table public.consumable_scope (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint consumable_scope_identity
-    check ((category is not null) <> (equipment_id is not null)),
+    check ((nullif(btrim(category), '') is not null) <> (equipment_id is not null)),
   constraint consumable_scope_category_len
     check (category is null or char_length(category) <= 100)
 );

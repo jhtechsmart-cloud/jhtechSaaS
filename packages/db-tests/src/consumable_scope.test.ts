@@ -52,6 +52,22 @@ describe("consumable_scope — 분류 XOR 장비 CHECK + RLS", () => {
       await expect(c.query("insert into public.consumable_scope (consumable_id,category) values ($1,'UV프린터')", [cid])).rejects.toThrow();
     });
   });
+  test("같은 소모품·장비 중복 → 거부(부분 UNIQUE)", async () => {
+    await inRollbackTx(c, async () => {
+      const cid = await seed(); await asUser(c, UID.admin);
+      await c.query("insert into public.consumable_scope (consumable_id,equipment_id) values ($1,$2)", [cid, EQ]);
+      await expect(c.query("insert into public.consumable_scope (consumable_id,equipment_id) values ($1,$2)", [cid, EQ])).rejects.toThrow();
+    });
+  });
+  test("빈 문자열 category → 거부(XOR 가드)", async () => {
+    await inRollbackTx(c, async () => {
+      const cid = await seed(); await asUser(c, UID.admin);
+      // category = '' → nullif(btrim(''), '') = null → XOR: null <> null = false → CHECK 위반
+      await expect(c.query("insert into public.consumable_scope (consumable_id,category) values ($1,'')", [cid])).rejects.toThrow();
+      // category = '   ' → btrim = '' → 동일하게 거부
+      await expect(c.query("insert into public.consumable_scope (consumable_id,category) values ($1,'   ')", [cid])).rejects.toThrow();
+    });
+  });
   test("무권한 sales INSERT 거부 / anon SELECT 0행", async () => {
     await inRollbackTx(c, async () => {
       const cid = await seed();
