@@ -1,8 +1,7 @@
 "use client";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import type { CategoryTreeNode } from "@/lib/equipment/category-tree";
-import type { CategoryNode } from "@/lib/equipment/category-tree";
+import type { CategoryTreeNode, CategoryNode } from "@/lib/equipment/category-tree";
 import {
   createCategory,
   renameCategory,
