@@ -35,6 +35,9 @@ describe("consumableFormSchema", () => {
     expect(consumableFormSchema.safeParse({ name: "x", price: "-5" }).success).toBe(false);
     expect(consumableFormSchema.safeParse({ name: "x", price: "1500" }).success).toBe(true);
     expect(consumableFormSchema.safeParse({ name: "x", price: "" }).success).toBe(true);
+    // 무료(0) 및 소수점 가격도 허용
+    expect(consumableFormSchema.safeParse({ name: "x", price: "0" }).success).toBe(true);
+    expect(consumableFormSchema.safeParse({ name: "x", price: "0.5" }).success).toBe(true);
   });
   test("status는 active|inactive만", () => {
     expect(consumableFormSchema.safeParse({ name: "x", status: "bogus" }).success).toBe(false);
