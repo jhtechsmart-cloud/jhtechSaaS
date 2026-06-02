@@ -25,6 +25,7 @@
 - **브랜드 액센트:** `#155E75` (deep teal) — SaaS 블루 비껴감, 산업적 신뢰. ⚠️ 재현테크 브랜드/로고 색 확정 시 이 값만 교체.
 - **중립(light):** bg `#FFFFFF` · surface `#F8FAFC` · surface-2 `#F1F5F9` · border `#E2E8F0` · text `#0F172A` · muted `#64748B`
 - **상태(색 스파인):** 신규 `#2563EB` · 배정 `#7C3AED` · 견적중 `#D97706` · 발송완료 `#16A34A` · 실패 `#DC2626` (각 soft 배경 포함)
+  - **A/S status (P-D, 스파인 재사용):** 접수 `#2563EB`(=신규) · 진행중 `#D97706`(=견적중) · 보류 `#64748B`(슬레이트=멈춤/중립) · 완료 `#16A34A`(=발송완료) · 취소 `#DC2626`(=실패). 색 언어 일관: blue=유입, amber=진행, green=성공종결, red=부정종결, slate=멈춤.
 - **다크 모드:** surface 재설계, accent `#22D3EE`(밝게), 채도 10~20% 조정. v1 우선순위 낮음(desktop 주간 사용).
 
 ## Spacing
@@ -54,3 +55,4 @@
 | Date | Decision | Rationale |
 |------|----------|-----------|
 | 2026-05-28 | 디자인 시스템 생성 (industrial-clean, 북극성=명료함) | /design-consultation. 데이터 밀집 B2B 내부 도구. 프리뷰: `~/.gstack/projects/jhtechSaaS/designs/design-system-20260528/design-preview.html` |
+| 2026-06-02 | A/S status 5종 색 매핑(P-D) — 접수=신규블루·진행중=견적앰버·보류=슬레이트회색·완료=발송그린·취소=실패레드 | 색 스파인 재사용으로 도메인 넘는 색 언어 일관(Risk #1). 보류만 신규(멈춤=중립 회색). autoplan Design 리뷰 권고. |
