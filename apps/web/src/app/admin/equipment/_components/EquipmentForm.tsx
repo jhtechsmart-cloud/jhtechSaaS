@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { Fragment, useEffect, useRef, useState, useTransition } from "react";
 import { useForm, useController, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
@@ -113,6 +113,17 @@ export function EquipmentForm(props: Props) {
     });
   }
 
+  // 편집 중인 장비의 현재 분류가 선택 가능한 옵션에 없으면(예: 자식이 생겨 그룹헤더가 된 대분류)
+  // "재배정 필요" 옵션으로 노출해 값 보존(저장 시 조용히 null로 덮어쓰는 사고 방지).
+  const selectableIds = new Set(
+    equipmentSelectableOptions(props.categories).flatMap((g) => g.options.map((o) => o.id)),
+  );
+  const currentCategoryId = props.mode === "edit" ? props.initial.category_id : "";
+  const orphanCategory =
+    currentCategoryId && !selectableIds.has(currentCategoryId)
+      ? props.categories.find((n) => n.id === currentCategoryId)
+      : null;
+
   return (
     <FormProvider {...methods}>
     <form
@@ -142,9 +153,16 @@ export function EquipmentForm(props: Props) {
             className="rounded-md border border-border bg-surface px-3 py-2 text-body text-text"
           >
             <option value="">미지정</option>
+            {/* 현재 category_id가 선택 불가 노드(그룹헤더)면 재배정 필요 옵션으로 노출해 값 보존 */}
+            {orphanCategory ? (
+              <option value={orphanCategory.id}>{orphanCategory.name} (재배정 필요)</option>
+            ) : null}
             {equipmentSelectableOptions(props.categories).map((g, i) =>
               g.group === null ? (
-                g.options.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)
+                // 독립 옵션(최상위 리프 노드)은 Fragment로 래핑해 React key 경고 방지
+                <Fragment key={`standalone-${i}`}>
+                  {g.options.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+                </Fragment>
               ) : (
                 <optgroup key={`g${i}`} label={g.group}>
                   {g.options.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}

@@ -4,6 +4,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { EquipmentForm } from "../../_components/EquipmentForm";
 import type { EquipmentFormValues } from "@/lib/equipment/schema";
 import { listCategoryTree } from "@/lib/equipment/queries";
+import { requireEquipmentManage } from "@/lib/auth/guard";
 
 // Next 16: params는 Promise.
 export default async function EditEquipmentPage({
@@ -12,6 +13,8 @@ export default async function EditEquipmentPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  // new/page.tsx와 대칭적으로 equipment.manage 권한 검증(admin 레이아웃 게이트와 이중 방어)
+  await requireEquipmentManage();
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("equipment")
