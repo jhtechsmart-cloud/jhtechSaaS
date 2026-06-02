@@ -1,7 +1,8 @@
 import { test, expect } from "@playwright/test";
 
 // ──────────────────────────────────────────────────────────────────────────────
-// 소모품 카탈로그 E2E — CRUD(분류+장비 scope) · 403 권한 차단
+// 소모품 카탈로그 E2E — CRUD(taxonomy 분류+장비 scope) · 403 권한 차단
+// taxonomy 기반으로 갱신(B6): 대분류+소분류 시드 → 대분류 공통 scope 선택 검증
 // ──────────────────────────────────────────────────────────────────────────────
 
 // 관리자 계정 (seed-admin.ts 기본값 — consumables.manage 포함)
@@ -20,53 +21,78 @@ const LOCAL_SERVICE_ROLE_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
 
 // E2E 전용 식별값 — 실제 데이터와 충돌 없도록 E2E 전용 prefix 사용
-const E2E_CATEGORY = "E2E분류프린터";
-const E2E_EQUIPMENT_NAME = "E2E장비-소모품용";
+// B6: 대분류·소분류 taxonomy 구조로 갱신
+const E2E_TOP = "E2E대분류프린터";          // 대분류 — scope 선택 시 "E2E대분류프린터 공통"으로 표시
+const E2E_SUB = "E2E소분류UV";              // 소분류 — 대분류의 자식 노드
+const E2E_EQUIPMENT_NAME = "E2E장비-소모품용"; // 특정 장비 scope 검증용 장비(소분류 소속)
 const CONS_NAME = "E2E소모품-테스트잉크";
 
 // ── 서비스롤 REST fetch 헬퍼 ──────────────────────────────────────────────────
-async function serviceRoleFetch(
-  path: string,
-  options: RequestInit = {},
-): Promise<Response> {
+async function sr(path: string, options: RequestInit = {}): Promise<Response> {
   return fetch(`${LOCAL_SUPABASE_URL}${path}`, {
     ...options,
     headers: {
       apikey: LOCAL_SERVICE_ROLE_KEY,
       Authorization: `Bearer ${LOCAL_SERVICE_ROLE_KEY}`,
       "Content-Type": "application/json",
-      ...options.headers,
+      ...((options.headers as Record<string, string>) ?? {}),
     },
   });
 }
 
-// beforeAll: E2E 전용 소모품·장비 정리 후 테스트용 장비 시드.
-// 반환값: 생성된 장비 id(scope 행의 equipment_id로 활용).
-async function resetAndSeed(): Promise<string> {
-  // 이전 실행 잔여 소모품 삭제 (consumable_scope는 FK CASCADE)
-  await serviceRoleFetch(
-    `/rest/v1/consumables?name=eq.${encodeURIComponent(CONS_NAME)}`,
-    { method: "DELETE", headers: { Prefer: "return=minimal" } },
-  );
-  // 이전 실행 잔여 테스트 장비 삭제
-  await serviceRoleFetch(
-    `/rest/v1/equipment?name=eq.${encodeURIComponent(E2E_EQUIPMENT_NAME)}`,
-    { method: "DELETE", headers: { Prefer: "return=minimal" } },
-  );
+// beforeAll: E2E 전용 taxonomy(대분류→소분류) + 장비 시드.
+// 역순 FK 정리 후 생성: 소모품 → 장비 → 소분류 → 대분류 삭제, 반대로 생성.
+// 반환값: { topId, subId } — 필요 시 scope id 검증에 활용 가능.
+async function resetAndSeed(): Promise<{ topId: string; subId: string }> {
+  // 이전 실행 잔여 데이터 역순 FK 삭제
+  // consumable_scope는 FK CASCADE이므로 consumables 먼저 삭제
+  await sr(`/rest/v1/consumables?name=eq.${encodeURIComponent(CONS_NAME)}`, {
+    method: "DELETE",
+    headers: { Prefer: "return=minimal" },
+  });
+  // 장비(소분류 소속) 삭제 전 consumables가 장비 FK를 참조할 경우 대비하여 이미 위에서 처리
+  await sr(`/rest/v1/equipment?name=eq.${encodeURIComponent(E2E_EQUIPMENT_NAME)}`, {
+    method: "DELETE",
+    headers: { Prefer: "return=minimal" },
+  });
+  // 소분류 → 대분류 순으로 삭제(parent_id FK)
+  await sr(`/rest/v1/equipment_category?name=eq.${encodeURIComponent(E2E_SUB)}`, {
+    method: "DELETE",
+    headers: { Prefer: "return=minimal" },
+  });
+  await sr(`/rest/v1/equipment_category?name=eq.${encodeURIComponent(E2E_TOP)}`, {
+    method: "DELETE",
+    headers: { Prefer: "return=minimal" },
+  });
 
-  // 테스트용 장비 생성 — 특정 장비 scope 검증에 필요
-  const res = await serviceRoleFetch(`/rest/v1/equipment`, {
+  // 대분류 생성 → 소분류(parent_id=대분류 id) 생성 → 장비(category_id=소분류 id) 생성
+  const topRes = await sr(`/rest/v1/equipment_category`, {
     method: "POST",
     headers: { Prefer: "return=representation" },
+    body: JSON.stringify({ name: E2E_TOP }),
+  });
+  const top = (await topRes.json()) as Array<{ id: string }>;
+
+  const subRes = await sr(`/rest/v1/equipment_category`, {
+    method: "POST",
+    headers: { Prefer: "return=representation" },
+    body: JSON.stringify({ name: E2E_SUB, parent_id: top[0].id }),
+  });
+  const sub = (await subRes.json()) as Array<{ id: string }>;
+
+  // 소분류 소속 장비 생성 — 특정 장비 scope 검증에 필요
+  await sr(`/rest/v1/equipment`, {
+    method: "POST",
+    headers: { Prefer: "return=minimal" },
     body: JSON.stringify({
       name: E2E_EQUIPMENT_NAME,
-      category: E2E_CATEGORY,
+      category_id: sub[0].id,
       base_price: 1000,
       status: "active",
     }),
   });
-  const rows = (await res.json()) as Array<{ id: string }>;
-  return rows[0].id;
+
+  return { topId: top[0].id, subId: sub[0].id };
 }
 
 // 로그인 헬퍼 — customers.spec.ts 패턴 미러
@@ -85,12 +111,13 @@ async function login(
 
 // ──────────────────────────────────────────────────────────────────────────────
 // 시나리오 1 — CRUD (생성 → scope 매핑 → 목록 확인 → 삭제)
+// B6: scope1 = 대분류 공통(taxonomy node), scope2 = 특정 장비
 // ──────────────────────────────────────────────────────────────────────────────
-test.describe.serial("시나리오 1 — CRUD (분류·장비 scope 매핑)", () => {
+test.describe.serial("시나리오 1 — CRUD (taxonomy 분류·장비 scope 매핑)", () => {
   test.beforeAll(async () => {
     try {
       await resetAndSeed();
-      console.log("소모품 E2E beforeAll 정리+시드 완료");
+      console.log("소모품 E2E beforeAll 정리+시드 완료 (taxonomy 대분류·소분류·장비)");
     } catch (e) {
       // 로컬 Supabase 미가동 시 경고만
       console.warn("소모품 E2E cleanup 건너뜀 (로컬 Supabase 미가동):", e);
@@ -99,23 +126,31 @@ test.describe.serial("시나리오 1 — CRUD (분류·장비 scope 매핑)", ()
 
   test.afterAll(async () => {
     try {
-      // 테스트 후 잔여 소모품·장비 정리
-      await serviceRoleFetch(
-        `/rest/v1/consumables?name=eq.${encodeURIComponent(CONS_NAME)}`,
-        { method: "DELETE", headers: { Prefer: "return=minimal" } },
-      );
-      await serviceRoleFetch(
-        `/rest/v1/equipment?name=eq.${encodeURIComponent(E2E_EQUIPMENT_NAME)}`,
-        { method: "DELETE", headers: { Prefer: "return=minimal" } },
-      );
+      // 테스트 후 잔여 데이터 역순 FK 정리: 소모품 → 장비 → 소분류 → 대분류
+      await sr(`/rest/v1/consumables?name=eq.${encodeURIComponent(CONS_NAME)}`, {
+        method: "DELETE",
+        headers: { Prefer: "return=minimal" },
+      });
+      await sr(`/rest/v1/equipment?name=eq.${encodeURIComponent(E2E_EQUIPMENT_NAME)}`, {
+        method: "DELETE",
+        headers: { Prefer: "return=minimal" },
+      });
+      await sr(`/rest/v1/equipment_category?name=eq.${encodeURIComponent(E2E_SUB)}`, {
+        method: "DELETE",
+        headers: { Prefer: "return=minimal" },
+      });
+      await sr(`/rest/v1/equipment_category?name=eq.${encodeURIComponent(E2E_TOP)}`, {
+        method: "DELETE",
+        headers: { Prefer: "return=minimal" },
+      });
       console.log("소모품 E2E afterAll 정리 완료");
     } catch (e) {
       console.warn("소모품 E2E afterAll cleanup 건너뜀:", e);
     }
   });
 
-  // 1-1: 소모품 신규 생성 — 분류 scope + 특정 장비 scope 동시 추가
-  test("1-1: 생성 → 분류·장비 scope 매핑 → edit 페이지 리다이렉트", async ({
+  // 1-1: 소모품 신규 생성 — 대분류 공통 scope + 특정 장비 scope 동시 추가
+  test("1-1: 생성 → taxonomy 분류·장비 scope 매핑 → edit 페이지 리다이렉트", async ({
     page,
   }) => {
     await login(page);
@@ -131,17 +166,20 @@ test.describe.serial("시나리오 1 — CRUD (분류·장비 scope 매핑)", ()
     // 단위 입력 — Field label "단위" (asterisk 없음)
     await page.getByLabel("단위").fill("병");
 
-    // ── 범위1: 분류 scope ───────────────────────────────────────────────────
+    // ── 범위1: 대분류 공통 scope ────────────────────────────────────────────
     // "+ 범위 추가" 클릭 → ScopeRow 1개 추가 (기본 mode="category")
     await page.getByRole("button", { name: "+ 범위 추가" }).click();
 
-    // 분류 선택 select — placeholder option: "분류 선택…"
-    // 첫 번째 분류 select에서 E2E_CATEGORY 선택
+    // 분류 select — scopeSelectableOptions 결과:
+    //   자식 있는 대분류 → optgroup(label="E2E대분류프린터") 안에
+    //     option: "E2E대분류프린터 공통" (대분류 노드 id)
+    //     option: "E2E소분류UV"         (소분류 노드 id)
+    // "분류 선택…" placeholder가 포함된 첫 번째 select에서 "E2E대분류프린터 공통" 선택
     await page
       .locator("select")
       .filter({ hasText: "분류 선택…" })
       .first()
-      .selectOption(E2E_CATEGORY);
+      .selectOption({ label: `${E2E_TOP} 공통` });
 
     // ── 범위2: 특정 장비 scope ─────────────────────────────────────────────
     // "+ 범위 추가" 클릭 → ScopeRow 2개째 추가
@@ -182,10 +220,12 @@ test.describe.serial("시나리오 1 — CRUD (분류·장비 scope 매핑)", ()
       page.getByRole("link", { name: CONS_NAME }).first(),
     ).toBeVisible({ timeout: 15_000 });
 
-    // scope_summary: labels[0](분류 먼저 추가) + " 외 1건" = "E2E분류프린터 외 1건"
-    // queries.ts: labels = scopes.map(s => s.category ?? s.equipment?.name).filter(非null)
-    // 분류 scope가 먼저 삽입됐으므로 labels[0] = E2E_CATEGORY.
-    // ⚠️ DB 반환 순서가 달라 장비명이 첫 label로 올 경우 regex로 포용 — 핵심은 "외 1건" 포함.
+    // scope_summary 구성(queries.ts):
+    //   labels = scopes.map(s => s.equipment_category?.name ?? s.equipment?.name)
+    //   분류 scope: equipment_category.name = "E2E대분류프린터" (raw node name, "공통" 미포함)
+    //   장비 scope: equipment.name = "E2E장비-소모품용"
+    //   2개 scope → labels[0] + " 외 1건" = "E2E대분류프린터 외 1건" or "E2E장비-소모품용 외 1건"
+    // DB 반환 순서에 무관하게 "외 1건" 포함 여부로 검증
     await expect(
       page.getByText(/외 1건/),
     ).toBeVisible({ timeout: 10_000 });
