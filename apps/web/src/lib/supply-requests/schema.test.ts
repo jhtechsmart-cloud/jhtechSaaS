@@ -24,6 +24,11 @@ describe("supplyRequestFormSchema — 신청자·동의·biz_no", () => {
   test("note 2000자 초과 거부", () => {
     expect(supplyRequestFormSchema.safeParse({ ...base, note: "가".repeat(2001) }).success).toBe(false);
   });
+  test("연락처: 하이픈 포함 정상 통과 / 숫자 8개 미만·문자 포함 거부", () => {
+    expect(supplyRequestFormSchema.safeParse({ ...base, requester_phone: "010-1234-5678" }).success).toBe(true);
+    expect(supplyRequestFormSchema.safeParse({ ...base, requester_phone: "010" }).success).toBe(false);
+    expect(supplyRequestFormSchema.safeParse({ ...base, requester_phone: "abcdefgh" }).success).toBe(false);
+  });
 });
 
 describe("buildSupplyRequestPayload — biz 정규화·items·메모 선택", () => {

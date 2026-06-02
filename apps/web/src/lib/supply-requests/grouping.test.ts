@@ -49,4 +49,32 @@ describe("buildSections — 장비별 그룹 + 공용 분류", () => {
     };
     expect(buildSections(data)[0].title).toBe("기타 장비");
   });
+
+  test("모든 소모품이 공용이면 장비 섹션 0개·공용 섹션만", () => {
+    const shared = item("c0", "공용필터");
+    const data: ListConsumablesResult = {
+      groups: [
+        { equipment_id: "e1", equipment_name: "장비A", consumables: [shared] },
+        { equipment_id: "e2", equipment_name: "장비B", consumables: [shared] },
+      ],
+      consumables: [shared],
+    };
+    const sections = buildSections(data);
+    expect(sections).toHaveLength(1);
+    expect(sections[0].title).toBe("공용 소모품");
+    expect(sections[0].items.map((i) => i.id)).toEqual(["c0"]);
+  });
+
+  test("equipment_id가 null인 그룹 2개 — 각 고유 소모품이 섹션으로(중복 key 안전)", () => {
+    const data: ListConsumablesResult = {
+      groups: [
+        { equipment_id: null, equipment_name: "라벨장비1", consumables: [item("c1", "부품1")] },
+        { equipment_id: null, equipment_name: "라벨장비2", consumables: [item("c2", "부품2")] },
+      ],
+      consumables: [item("c1", "부품1"), item("c2", "부품2")],
+    };
+    const sections = buildSections(data);
+    expect(sections).toHaveLength(2);
+    expect(sections.flatMap((s) => s.items.map((i) => i.id)).sort()).toEqual(["c1", "c2"]);
+  });
 });

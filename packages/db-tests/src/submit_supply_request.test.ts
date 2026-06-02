@@ -152,6 +152,25 @@ describe("submit_supply_request RPC — items 검증", () => {
         ])).rejects.toThrow();
         await c.query("rollback to savepoint sp");
       }
+      // qty 키 자체 누락 → 거부
+      await c.query("savepoint sp2");
+      await expect(c.query("select public.submit_supply_request($1::jsonb)", [
+        payload({ items: [{ consumable_id: ink }] }),
+      ])).rejects.toThrow();
+      await c.query("rollback to savepoint sp2");
+    });
+  });
+
+  test("qty 허용 경계(1·9999) 정상 접수 — 상한 회귀 방지 양성 단언", async () => {
+    await inRollbackTx(c, async () => {
+      const { companyId, ink, clean } = await seed(); await asAnon(c);
+      await c.query("select public.submit_supply_request($1::jsonb)", [
+        payload({ items: [{ consumable_id: ink, qty: 1 }, { consumable_id: clean, qty: 9999 }] }),
+      ]);
+      await asPostgres(c);
+      const reqId = (await c.query("select id from public.supply_requests where company_id=$1", [companyId])).rows[0].id;
+      const qtys = (await c.query("select qty from public.supply_request_items where request_id=$1 order by qty", [reqId])).rows.map((r: { qty: number }) => r.qty);
+      expect(qtys).toEqual([1, 9999]);
     });
   });
 });
@@ -197,6 +216,17 @@ describe("submit_supply_request RPC — 등록·동의·체크섬·신청자", (
       await expect(c.query("select public.submit_supply_request($1::jsonb)", [payload({ items, requester_name: "" })])).rejects.toThrow();
       await c.query("rollback to savepoint sp");
       await expect(c.query("select public.submit_supply_request($1::jsonb)", [payload({ items, requester_phone: "" })])).rejects.toThrow();
+    });
+  });
+
+  test("신청자명>100자 / 연락처>50자 → 거부(서버 길이 가드)", async () => {
+    await inRollbackTx(c, async () => {
+      const { ink } = await seed(); await asAnon(c);
+      const items = [{ consumable_id: ink, qty: 1 }];
+      await c.query("savepoint sp");
+      await expect(c.query("select public.submit_supply_request($1::jsonb)", [payload({ items, requester_name: "가".repeat(101) })])).rejects.toThrow();
+      await c.query("rollback to savepoint sp");
+      await expect(c.query("select public.submit_supply_request($1::jsonb)", [payload({ items, requester_phone: "0".repeat(51) })])).rejects.toThrow();
     });
   });
 

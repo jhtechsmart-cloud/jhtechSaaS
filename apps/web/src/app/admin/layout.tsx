@@ -13,8 +13,11 @@ export default async function AdminLayout({
   children: ReactNode;
 }) {
   const access = await requireEquipmentManage();
-  const unread = access.status === "ok" ? await countUnreadServiceRequests() : 0;
-  const supplyUnread = access.status === "ok" ? await countUnreadSupplyRequests() : 0;
+  // 미열람 카운트는 병렬(요청유형 늘수록 직렬 await가 콘솔 전체를 느리게 함).
+  const [unread, supplyUnread] =
+    access.status === "ok"
+      ? await Promise.all([countUnreadServiceRequests(), countUnreadSupplyRequests()])
+      : [0, 0];
 
   if (access.status === "forbidden") {
     return (

@@ -50,6 +50,12 @@ export function SupplyRequestForm({ policyBody }: { policyBody: string }) {
   const priorAvailable = useMemo(() => prior.filter((p) => allowedIds.has(p.consumable_id)), [prior, allowedIds]);
   const selectedCount = useMemo(() => Object.values(qty).filter((q) => q > 0).length, [qty]);
 
+  // 조회 결과를 초기화하고 사업자번호를 다시 편집 가능하게(오접수·stale 방지: 조회 biz를 잠그고 "다시 조회"로만 변경).
+  function resetLookup() {
+    setStatus("idle"); setCompany(null); setData(null); setPrior([]);
+    setQty({}); setSearch(""); setServerError(null); setItemsError(null);
+  }
+
   async function onLookup() {
     setServerError(null); setItemsError(null);
     if (!(await trigger("biz_no"))) return;
@@ -106,14 +112,25 @@ export function SupplyRequestForm({ policyBody }: { policyBody: string }) {
         <div className="flex gap-2">
           <input
             id="sup-bizno" {...register("biz_no")} inputMode="numeric"
-            placeholder="123-45-67890" className={`${FIELD} flex-1 font-mono`}
+            placeholder="123-45-67890" readOnly={status === "found"}
+            className={`${FIELD} flex-1 font-mono ${status === "found" ? "opacity-70" : ""}`}
           />
-          <button
-            type="button" onClick={onLookup} disabled={status === "loading"}
-            className="rounded-md bg-accent px-4 py-2 text-body font-medium text-white disabled:opacity-60"
-          >
-            {status === "loading" ? "조회 중…" : "조회"}
-          </button>
+          {status === "found" ? (
+            // 조회 성공 후엔 biz를 잠가 조회한 회사와 제출 회사 불일치(오접수)·stale 목록을 차단.
+            <button
+              type="button" onClick={resetLookup}
+              className="rounded-md border border-border px-4 py-2 text-body font-medium text-text"
+            >
+              다시 조회
+            </button>
+          ) : (
+            <button
+              type="button" onClick={onLookup} disabled={status === "loading"}
+              className="rounded-md bg-accent px-4 py-2 text-body font-medium text-white disabled:opacity-60"
+            >
+              {status === "loading" ? "조회 중…" : "조회"}
+            </button>
+          )}
         </div>
         {errors.biz_no && <p className="text-small text-danger">{errors.biz_no.message}</p>}
         {status === "found" && (
@@ -263,7 +280,7 @@ function Stepper({ value, onChange, label }: { value: number; onChange: (n: numb
         className="size-11 rounded-md border border-border text-body text-text disabled:opacity-40"
       >−</button>
       <input
-        type="number" inputMode="numeric" min={0} max={9999} value={value}
+        type="number" inputMode="numeric" min={0} max={QTY_MAX} value={value}
         onChange={(e) => onChange(Number(e.target.value))}
         aria-label={`${label} 수량`}
         className="w-14 rounded-md border border-border bg-surface px-1 py-2 text-center font-mono tabular-nums text-body text-text"
