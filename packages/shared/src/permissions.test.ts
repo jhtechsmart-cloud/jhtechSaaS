@@ -3,7 +3,7 @@ import { PERMISSIONS, can } from "./permissions";
 
 describe("permission registry", () => {
   // v1 capability registry — 새 기능마다 키 1개 추가, 스키마 변경 0.
-  test("registry는 8개 capability 키를 정의한다", () => {
+  test("registry는 10개 capability 키를 정의한다", () => {
     expect([...PERMISSIONS].sort()).toEqual(
       [
         "applications.assign",
@@ -13,6 +13,8 @@ describe("permission registry", () => {
         "email.send",
         "equipment.manage",
         "quotes.write",
+        "service_requests.manage",
+        "service_requests.view_all",
         "users.manage",
       ].sort()
     );
@@ -61,5 +63,20 @@ describe("consumables.manage capability (P-C)", () => {
   test("consumables.manage만 보유 시 통과, customers.manage 불가", () => {
     expect(can(["consumables.manage"], "consumables.manage")).toBe(true);
     expect(can(["consumables.manage"], "customers.manage")).toBe(false);
+  });
+});
+
+describe("service_requests capabilities (P-D)", () => {
+  test("view_all·manage 키가 registry에 존재", () => {
+    expect(PERMISSIONS).toContain("service_requests.view_all");
+    expect(PERMISSIONS).toContain("service_requests.manage");
+  });
+  test("users.manage 보유자는 둘 다 통과(슈퍼권한)", () => {
+    expect(can(["users.manage"], "service_requests.view_all")).toBe(true);
+    expect(can(["users.manage"], "service_requests.manage")).toBe(true);
+  });
+  test("view_all만 보유 시 view_all 통과, manage 불가", () => {
+    expect(can(["service_requests.view_all"], "service_requests.view_all")).toBe(true);
+    expect(can(["service_requests.view_all"], "service_requests.manage")).toBe(false);
   });
 });

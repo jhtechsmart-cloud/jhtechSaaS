@@ -2,6 +2,21 @@
 
 이 프로젝트의 주요 변경 사항을 기록한다. [Keep a Changelog](https://keepachangelog.com/) 형식, [Semantic Versioning](https://semver.org/)(4자리 MAJOR.MINOR.PATCH.MICRO).
 
+## [0.7.0.0] - 2026-06-02
+
+### Added
+- **M2 P-D A/S신청** (GitHub #22) — 기존 장비 구매 고객이 사업자등록번호로 조회해 A/S(고장 수리)를 웹에서 직접 신청하고, 내부 담당자가 콘솔에서 접수·처리하는 흐름.
+  - 공개 `/support` 폼 — 사업자번호 조회 → 등록 고객은 보유장비·연락처 자동완성, 미등록은 직접 입력. 고장 증상·희망 방문일·증상 사진(최대 3장, 모바일 카메라 직행) 제출 → 접수번호(`AS-YYYYMMDD-NNNNN`)와 담당자·영업일 1일 SLA 안내 완료화면.
+  - `service_requests` 테이블 — 접수번호 채번·생성시각·담당자 자동배정·완료/취소 종결잠금을 트리거로 강제. 담당자 본인 또는 전체조회 권한자만 열람(RLS).
+  - `submit_service_request()` 익명 제출 함수 — 동의·사업자번호 체크섬·보유장비 소유검증·증상/사진 형식·길이 제한을 서버가 전량 검증(미등록도 접수, 담당자 콜백으로 검증).
+  - admin `/admin/service-requests` — 접수 목록(검색·상태필터·미확인 태그·미열람 표시), 상세(증상사진 보기·상태 변경), 좌측 네비 미열람 배지.
+  - 신규 권한 `service_requests.view_all`(전체 조회)·`service_requests.manage`(상태 변경).
+  - `customer-uploads` 버킷에 A/S 증상사진 슬롯 추가.
+
+### Changed
+- 고객 신원 모델 확정: 사업자번호 조회 + 담당자 콜백 검증(고객 로그인 도입 안 함). `/support`는 비로그인 공개 흐름.
+- DESIGN.md: A/S 상태 5종(접수·진행중·보류·완료·취소) 색 매핑을 기존 색 스파인 재사용으로 추가.
+
 ## [0.6.0.0] - 2026-06-02
 
 ### Added

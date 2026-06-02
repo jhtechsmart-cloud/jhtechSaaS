@@ -104,17 +104,17 @@
     <tr><td class="path">apps/web/AGENTS.md · CLAUDE.md</td><td>web AI 지침</td><td>"이 Next.js는 학습데이터와 다름, docs 확인" 경고</td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">apps/worker/package.json · tsconfig.json</td><td>워커 설정</td><td>tsx + typescript + @types/node, shared 의존</td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">packages/shared/package.json</td><td>공유 패키지</td><td>permissions registry·Supabase 팩토리·도메인 타입·seed 가드</td><td><span class="tag t-commit">커밋</span></td></tr>
-    <tr><td class="path">VERSION · CHANGELOG.md</td><td>버전·변경이력</td><td>4자리 버전(현재 0.5.0.0, M2 P-B 머지) + Keep a Changelog</td><td><span class="tag t-commit">커밋</span></td></tr>
-    <tr><td class="path">supabase/migrations/*.sql</td><td>DB 마이그레이션</td><td>E1 7 + E2 1 + E3 2 + M2 P-A 5(equipment/applications PA·privacy·버킷·submit v2) + <b>P-B 4</b>(companies·company_equipment·lookup RPC·upsert/search). 원격 19종 적용됨</td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">VERSION · CHANGELOG.md</td><td>버전·변경이력</td><td>4자리 버전(현재 0.6.0.0, M2 P-C 소모품+분류체계 머지) + Keep a Changelog</td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">supabase/migrations/*.sql</td><td>DB 마이그레이션</td><td>E1 7 + E2 1 + E3 2 + M2 P-A 5 + P-B 4 + <b>P-C/분류체계 5</b>(consumables·equipment_category 2단계·equipment category_id 전환·consumable_scope·해석함수). 원격 24종 적용됨(v0.6.0.0)</td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">supabase/rollback/*.sql · seed/seed-local.sh</td><td>롤백·시드</td><td>마이그레이션 역스크립트 + 로컬 시드 헬퍼</td><td><span class="tag t-commit">커밋</span></td></tr>
-    <tr><td class="path">packages/db-tests/</td><td>RLS 통합 테스트</td><td>pg set role+jwt 하니스(Supabase 로컬), <b>114 RLS 단언</b>(+P-B companies·company_equipment XOR·lookup 노출·upsert 멱등)</td><td><span class="tag t-commit">커밋</span></td></tr>
-    <tr><td class="path">apps/web/src/{lib,app,proxy.ts}</td><td>web 구현(E2·E3·M2)</td><td>인증·장비 admin(E2) + 공개 카탈로그/상세/견적요청(E3·P-A) + <b>고객 마스터 admin /admin/customers</b>(P-B: lib/customers schema·queries·actions[diff-upsert]·equipment-diff). <i>코드 — 상세는 코드 직접</i></td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">packages/db-tests/</td><td>RLS 통합 테스트</td><td>pg set role+jwt 하니스(Supabase 로컬), <b>144 RLS 단언</b>(+P-C consumables·consumable_scope·equipment_category 손자금지·해석함수 대분류커버)</td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">apps/web/src/{lib,app,proxy.ts}</td><td>web 구현(E2·E3·M2)</td><td>인증·장비 admin(E2) + 공개 카탈로그/상세/견적요청(E3·P-A) + 고객 마스터(P-B) + <b>소모품 /admin/consumables · 분류 /admin/categories</b>(P-C: lib/consumables·lib/categories·lib/equipment/category-tree). <i>코드 — 상세는 코드 직접</i></td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">docs/roadmap.json · ROADMAP.md</td><td>로드맵 단일원본·생성물</td><td>단계(E1~E7·M2 P-A~P-G) status 원본 → <span class="mono">pnpm roadmap:sync</span>로 ROADMAP.md 생성 + Notion 동기화</td><td><span class="tag t-commit">커밋</span></td></tr>
-    <tr><td class="path">docs/superpowers/{specs,plans}/</td><td>설계·플랜 문서</td><td>E2·E3 spec/plan + <b>M2 고객 포털 설계(2026-06-01)</b></td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">docs/superpowers/{specs,plans}/</td><td>설계·플랜 문서</td><td>E2·E3 spec/plan + M2 고객 포털 설계 + <b>P-C 소모품·장비 분류체계 spec/plan(2026-06-02)</b></td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">scripts/roadmap-sync.sh</td><td>로드맵 동기화 래퍼</td><td>~/scripts/claude-notion-sync 엔진 호출(토큰 재사용)</td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">.vercel/project.json</td><td>Vercel 링크</td><td>repo 루트 링크(Root Dir=apps/web). vercel link 산출</td><td><span class="tag t-ignore">gitignore</span></td></tr>
     <tr><td class="path">apps/worker/src/seed-admin.ts</td><td>관리자 시드</td><td>service_role 부트스트랩(프로덕션 비번 가드)</td><td><span class="tag t-commit">커밋</span></td></tr>
-    <tr><td class="path">dev-notes/</td><td>개발 일지</td><td>일별 노트 6일치(.md) + 대시보드(HTML, /devnote) — v1셋업·E1·E2·E3 P1·E3 P2/머지·M2 brainstorm</td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">dev-notes/</td><td>개발 일지</td><td>일별 노트 9일치(.md) + 대시보드(HTML, /devnote) — …M2 P-A·P-B·P-C/분류체계</td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">supabase/.temp/linked-project.json</td><td>원격 링크 기록</td><td>supabase link 산출(원격 프로젝트 ref)</td><td><span class="tag t-ignore">로컬</span></td></tr>
     <tr><td class="path">apps/web/.env.local</td><td>web 실제 환경변수</td><td><b>시크릿</b> — Supabase URL/anon key</td><td><span class="tag t-ignore">gitignore</span></td></tr>
     <tr><td class="path">apps/worker/.env</td><td>워커 실제 환경변수</td><td><b>시크릿</b> — service_role, Gmail 앱비밀번호</td><td><span class="tag t-ignore">gitignore</span></td></tr>
@@ -140,6 +140,8 @@
     <tr><td class="path">MEMORY.md</td><td>기억 인덱스</td><td>모든 메모리 파일의 한 줄 목록(항상 로드됨)</td></tr>
     <tr><td class="path">jhtechsaas-project.md</td><td>이 프로젝트 기억</td><td>핵심 결정(단일테넌트·capability·아키텍처B)·진행 상태·인프라</td></tr>
     <tr><td class="path">language-korean.md</td><td>피드백</td><td>모든 응답을 한국어로(서브에이전트 영어 보고도 번역 전달)</td></tr>
+    <tr><td class="path">supabase-function-grant-anon-gotcha.md</td><td>프로젝트</td><td>authenticated 전용 SQL 함수는 grant만으론 anon 못 막음 → revoke from public,anon 필수</td></tr>
+    <tr><td class="path">canary-depth-trigger.md</td><td>피드백</td><td>트래픽 늘기 전엔 canary 단발 점검, active 장비≥1/실고객 제출/포털오픈 시 10분 연속감시로 전환</td></tr>
   </table>
 
   <h3>④ GitHub 이슈 <span class="tag t-remote">원격</span></h3>
@@ -157,9 +159,9 @@
     <tr><td class="path">#18</td><td>[EPIC] M2 고객 포털 (견적v2·고객마스터·AS·소모품·이력·알림)</td><td>—</td></tr>
     <tr><td class="path">#19</td><td>M2 P-A 견적요청 v2 (카탈로그·상세 재구성·대형 폼) <span style="color:var(--sent);font-weight:600">✅ 머지·배포 v0.4.0.0 (CLOSED, #19a+#19b)</span></td><td>E2·E3</td></tr>
     <tr><td class="path">#20</td><td>M2 P-B 고객·구매 마스터(companies·company_equipment) <span style="color:var(--sent);font-weight:600">✅ 머지·배포 v0.5.0.0 (CLOSED)</span></td><td>E1</td></tr>
-    <tr><td class="path">#21</td><td>M2 P-C 소모품 카탈로그(consumables) <span style="color:var(--new);font-weight:600">● 다음</span></td><td>E2·#20</td></tr>
+    <tr><td class="path">#21</td><td>M2 P-C 소모품 카탈로그 + 장비 분류체계 <span style="color:var(--sent);font-weight:600">✅ 머지·배포 v0.6.0.0 (CLOSED, PR#32)</span></td><td>E2·#20</td></tr>
     <tr><td class="path">#28·#29·#30</td><td>백로그: 고객인증→lookup 게이트 / admin layout capability / 장비 CSV 일괄</td><td>P-B 이월</td></tr>
-    <tr><td class="path">#22</td><td>M2 P-D A/S신청(조회·접수증PDF·알림)</td><td>#20·E5</td></tr>
+    <tr><td class="path">#22</td><td>M2 P-D A/S신청(조회·접수증PDF·알림) <span style="color:var(--new);font-weight:600">● 다음</span></td><td>#20·E5</td></tr>
     <tr><td class="path">#23</td><td>M2 P-E 소모품신청(장비별 소모품·수량)</td><td>#21</td></tr>
     <tr><td class="path">#24</td><td>M2 P-F 통합 고객 이력</td><td>#20~#23</td></tr>
     <tr><td class="path">#25</td><td>M2 P-G 알림 인프라(웹+카톡/문자)</td><td>#22</td></tr>
@@ -171,10 +173,10 @@
   <p class="note">각 단계를 진행하면 → 어디에 어떤 파일이 생기고 무슨 내용이 담기는지.</p>
 
   <div class="lead" style="border-left-color:var(--sent)">
-    <b>진행 현황 (2026-06-02):</b> <b>M1 E1·E2·E3 + M2 P-A·P-B 완료·머지·배포</b>(프로덕션 라이브). <b>M2 P-B 고객·구매 마스터 완주</b>(이슈 #20 CLOSED, v0.5.0.0): companies·company_equipment·customers.manage·anon biz_no 조회 RPC·멱등 upsert·/admin/customers admin CRUD. spec→autoplan→TDD(14task subagent-driven)→review(cross-company IDOR 수정)→qa→ship→머지(PR #31)→<b>supabase db push(원격 마이그4종 적용·REST검증)</b>→canary(프로덕션 200). 게이트 GREEN(shared36·db-tests114·web71·E2E18).
-    <b>다음 = M2 P-C 소모품 카탈로그</b>(#21: equipment별 consumables[M:1/M:N 결정]·admin CRUD) — 자체 spec→plan, P-B 패턴 재사용. ⚠️ 백로그 #28(고객인증→lookup 게이트)·#29(admin layout capability)·#30(장비 CSV 일괄)·applyEquipmentDiff 비트랜잭션 · 프로덕션 admin UI 수동검증 권장.
+    <b>진행 현황 (2026-06-02):</b> <b>M1 E1·E2·E3 + M2 P-A·P-B·P-C 완료·머지·배포</b>(프로덕션 라이브 v0.6.0.0). <b>M2 P-C 소모품 카탈로그 + 장비 분류체계 완주</b>(이슈 #21, PR#32): consumables·consumable_scope(분류 XOR 장비)·consumables.manage·해석함수 + equipment_category 2단계 taxonomy·equipment category_id 전환·/admin/consumables·/admin/categories. QA 중 사용자가 자유텍스트 분류 오타 위험 지적 → 분류체계 즉석 추가. spec→plan→subagent-driven(태스크별 3단계 리뷰)→최종 종합리뷰→ship→머지→<b>supabase db push(마이그5종 적용)</b>→canary(프로덕션 HEALTHY). 게이트 GREEN(shared39·db-tests144·web87·E2E23).
+    <b>다음 = M2 P-D A/S신청</b>(#22) 또는 P-E 소모품신청(#23, 해석함수 재사용). ⚠️ 프로덕션 실제 장비 분류 입력 필요(현재 장비 0행) · 백로그 #28·#29·#30 + applyScopeDiff/applyEquipmentDiff 비트랜잭션·방어적 DELETE 스코프.
   </div>
-  <p class="note">아래 단계 바 = 한 phase의 생애주기. M1 E1·E2·E3 + M2 P-A·P-B 모두 ①~⑨ 완주(P-B는 머지·db push·canary까지). M2는 다음 작업 P-C가 ③스펙부터.</p>
+  <p class="note">아래 단계 바 = 한 phase의 생애주기. M1 E1·E2·E3 + M2 P-A·P-B·P-C 모두 ①~⑨ 완주(P-C는 머지·db push·canary까지). M2는 다음 작업 P-D가 ③스펙부터.</p>
   <div class="flow">
     <span class="step done">① 기획(M2 brainstorm)</span><span class="arr">→</span>
     <span class="step done">② 셋업</span><span class="arr">→</span>
