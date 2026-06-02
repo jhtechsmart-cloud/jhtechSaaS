@@ -22,7 +22,8 @@ export interface Equipment {
   id: string;
   name: string;
   model: string | null;
-  category: string | null;
+  category_id: string | null;   // 분류 노드 FK (소스)
+  category: string | null;      // 분류명(조인 결과, listEquipment가 채움). 표시 전용.
   base_price: number;
   photos: string[];
   highlights: string[];      // 요약 불릿(P-A)
