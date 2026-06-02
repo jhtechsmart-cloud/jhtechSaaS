@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import { requireConsumablesManage } from "@/lib/auth/guard";
 import { getConsumable } from "@/lib/consumables/queries";
-import { listEquipment } from "@/lib/equipment/queries";
+import { listEquipment, listCategoryTree } from "@/lib/equipment/queries";
+import { scopeSelectableOptions } from "@/lib/equipment/category-tree";
 import { updateConsumable } from "@/lib/consumables/actions";
 import type { ConsumableFormValues } from "@/lib/consumables/schema";
 import { ConsumableForm } from "../../_components/ConsumableForm";
@@ -25,12 +26,13 @@ export default async function EditConsumablePage({ params }: { params: Promise<{
 
   const active = equipmentAll.filter((e) => e.status === "active");
   const catalog = active.map((e) => ({ id: e.id, name: e.name, model: e.model ?? null }));
-  const categories = [...new Set(active.map((e) => e.category).filter((x): x is string => !!x))].sort();
+  // taxonomy 드롭다운: 분류 트리에서 소모품 범위 선택 옵션 구성
+  const categoryOptions = scopeSelectableOptions(await listCategoryTree());
 
   const scopesRaw = (consumable as { consumable_scope?: unknown[] }).consumable_scope ?? [];
   const scopes = (scopesRaw as Array<Record<string, unknown>>).map((s) => ({
     id: (s.id as string) ?? "",
-    category: (s.category as string) ?? "",
+    category_id: (s.category_id as string) ?? "",
     equipment_id: (s.equipment_id as string) ?? "",
   }));
 
@@ -48,7 +50,7 @@ export default async function EditConsumablePage({ params }: { params: Promise<{
   return (
     <section className="flex flex-col gap-4">
       <h1 className="text-h1 font-semibold text-text">소모품 수정</h1>
-      <ConsumableForm mode="edit" id={id} onSubmit={updateConsumable} catalog={catalog} categories={categories} consumable={values} />
+      <ConsumableForm mode="edit" id={id} onSubmit={updateConsumable} catalog={catalog} categoryOptions={categoryOptions} consumable={values} />
     </section>
   );
 }

@@ -7,6 +7,7 @@ import { z } from "zod";
 import { consumableFormSchema, type ConsumableFormValues } from "@/lib/consumables/schema";
 import type { ConsumableActionResult } from "@/lib/consumables/actions";
 import { ConsumableScopeEditor } from "./ConsumableScopeEditor";
+import { type OptGroup } from "@/lib/equipment/category-tree";
 
 // 카탈로그(active 장비만)
 type CatalogItem = { id: string; name: string; model: string | null };
@@ -20,7 +21,7 @@ type Props =
       id: string;
       onSubmit: ConsumableAction;
       catalog: CatalogItem[];
-      categories: string[];
+      categoryOptions: OptGroup[];
       consumable?: never;
     }
   | {
@@ -28,7 +29,7 @@ type Props =
       id: string;
       onSubmit: ConsumableAction;
       catalog: CatalogItem[];
-      categories: string[];
+      categoryOptions: OptGroup[];
       // edit 모드: 초기값 포함
       consumable: ConsumableFormValues;
     };
@@ -48,7 +49,7 @@ export function ConsumableForm(props: Props) {
           // scopes 행 타입 변환(ConsumableScopeRow → FormInput 호환)
           scopes: props.consumable.scopes.map((s) => ({
             id: s.id,
-            category: s.category,
+            category_id: s.category_id,
             equipment_id: s.equipment_id,
           })),
         }
@@ -152,7 +153,7 @@ export function ConsumableForm(props: Props) {
           register={register}
           setValue={setValue}
           catalog={props.catalog}
-          categories={props.categories}
+          categoryOptions={props.categoryOptions}
         />
 
         {serverError ? (

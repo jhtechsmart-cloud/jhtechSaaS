@@ -1,5 +1,6 @@
 import { requireConsumablesManage } from "@/lib/auth/guard";
-import { listEquipment } from "@/lib/equipment/queries";
+import { listEquipment, listCategoryTree } from "@/lib/equipment/queries";
+import { scopeSelectableOptions } from "@/lib/equipment/category-tree";
 import { NewConsumableClient } from "./NewConsumableClient";
 import { signOut } from "@/app/login/actions";
 
@@ -17,11 +18,12 @@ export default async function NewConsumablePage() {
   const equipmentAll = await listEquipment();
   const active = equipmentAll.filter((e) => e.status === "active");
   const catalog = active.map((e) => ({ id: e.id, name: e.name, model: e.model ?? null }));
-  const categories = [...new Set(active.map((e) => e.category).filter((x): x is string => !!x))].sort();
+  // taxonomy 드롭다운: 분류 트리에서 소모품 범위 선택 옵션 구성
+  const categoryOptions = scopeSelectableOptions(await listCategoryTree());
   return (
     <section className="flex flex-col gap-4">
       <h1 className="text-h1 font-semibold text-text">소모품 추가</h1>
-      <NewConsumableClient catalog={catalog} categories={categories} />
+      <NewConsumableClient catalog={catalog} categoryOptions={categoryOptions} />
     </section>
   );
 }

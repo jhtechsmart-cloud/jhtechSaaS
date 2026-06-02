@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import {
   useFieldArray,
   useWatch,
@@ -9,25 +9,26 @@ import {
 } from "react-hook-form";
 import type { z } from "zod";
 import type { consumableFormSchema } from "@/lib/consumables/schema";
+import { type OptGroup } from "@/lib/equipment/category-tree";
 
 type FormInput = z.input<typeof consumableFormSchema>;
 type CatalogItem = { id: string; name: string; model: string | null };
 
-// 매핑 에디터 — 분류(category) vs 특정 장비(equipment_id) 토글.
-// XOR 보장: 분류 선택 시 equipment_id 무효화, 장비 선택 시 category 무효화.
+// 매핑 에디터 — 분류(category_id) vs 특정 장비(equipment_id) 토글.
+// XOR 보장: 분류 선택 시 equipment_id 무효화, 장비 선택 시 category_id 무효화.
 // 기존 행은 hidden input으로 id 보존 → diff-upsert 키.
 export function ConsumableScopeEditor({
   control,
   register,
   setValue,
   catalog,
-  categories,
+  categoryOptions,
 }: {
   control: Control<FormInput>;
   register: UseFormRegister<FormInput>;
   setValue: UseFormSetValue<FormInput>;
   catalog: CatalogItem[];
-  categories: string[];
+  categoryOptions: OptGroup[];
 }) {
   const { fields, append, remove } = useFieldArray({ control, name: "scopes" });
 
@@ -37,7 +38,7 @@ export function ConsumableScopeEditor({
         <h2 className="text-h2 font-semibold text-text">적용 범위</h2>
         <button
           type="button"
-          onClick={() => append({ id: "", category: "", equipment_id: "" })}
+          onClick={() => append({ id: "", category_id: "", equipment_id: "" })}
           className="text-small font-medium text-accent hover:underline"
         >
           + 범위 추가
@@ -61,7 +62,7 @@ export function ConsumableScopeEditor({
               register={register}
               setValue={setValue}
               catalog={catalog}
-              categories={categories}
+              categoryOptions={categoryOptions}
               onRemove={() => remove(index)}
             />
           ))}
@@ -79,7 +80,7 @@ function ScopeRow({
   register,
   setValue,
   catalog,
-  categories,
+  categoryOptions,
   onRemove,
 }: {
   index: number;
@@ -87,7 +88,7 @@ function ScopeRow({
   register: UseFormRegister<FormInput>;
   setValue: UseFormSetValue<FormInput>;
   catalog: CatalogItem[];
-  categories: string[];
+  categoryOptions: OptGroup[];
   onRemove: () => void;
 }) {
   // 현재 행의 equipment_id를 구독 — 초기 모드 계산용(한 번만 읽으면 됨).
@@ -108,7 +109,7 @@ function ScopeRow({
               // 반대 필드 초기화 — RHF는 언마운트 input 값을 보존하므로(shouldUnregister=false)
               // 명시적으로 비워야 XOR(둘 중 하나만)이 submit 시 보장됨.
               if (m === "category") setValue(`scopes.${index}.equipment_id`, "");
-              else setValue(`scopes.${index}.category`, "");
+              else setValue(`scopes.${index}.category_id`, "");
               setMode(m);
             }}
             className={`rounded-sm px-2 py-1 text-small font-medium ${
@@ -123,18 +124,33 @@ function ScopeRow({
       {/* 분류 select — mode=category 에만 렌더. 토글 전환 시 equipment_id는 setValue로 초기화됨. */}
       {mode === "category" ? (
         <select
-          {...register(`scopes.${index}.category`)}
+          {...register(`scopes.${index}.category_id`)}
           className="min-w-[180px] rounded-sm border border-border bg-surface px-2 py-1 text-body text-text"
         >
           <option value="">분류 선택…</option>
-          {categories.map((cat) => (
-            <option key={cat} value={cat}>
-              {cat}
-            </option>
-          ))}
+          {categoryOptions.map((g, gi) =>
+            g.group === null ? (
+              // 그룹 없는 단독 옵션들 — Fragment로 키 부여
+              <Fragment key={`sg${gi}`}>
+                {g.options.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.name}
+                  </option>
+                ))}
+              </Fragment>
+            ) : (
+              <optgroup key={`g${gi}`} label={g.group}>
+                {g.options.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.name}
+                  </option>
+                ))}
+              </optgroup>
+            ),
+          )}
         </select>
       ) : (
-        /* 특정 장비 select — 토글 전환 시 category는 setValue로 초기화됨(XOR 보장). */
+        /* 특정 장비 select — 토글 전환 시 category_id는 setValue로 초기화됨(XOR 보장). */
         <select
           {...register(`scopes.${index}.equipment_id`)}
           className="min-w-[180px] rounded-sm border border-border bg-surface px-2 py-1 text-body text-text"
