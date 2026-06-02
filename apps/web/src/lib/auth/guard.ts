@@ -47,3 +47,4 @@ export async function requirePermission(
 
 export const requireEquipmentManage = () => requirePermission("equipment.manage");
 export const requireCustomersManage = () => requirePermission("customers.manage");
+export const requireConsumablesManage = () => requirePermission("consumables.manage");
