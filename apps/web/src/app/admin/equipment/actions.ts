@@ -11,6 +11,24 @@ import { serializeOptions } from "@/lib/equipment/options";
 
 export type EquipmentActionResult = { error: string } | null;
 
+// 선택한 분류가 "자식 있는 대분류"(그룹헤더)면 장비를 직접 붙일 수 없다 — 소분류를 골라야 한다.
+// 폼 드롭다운이 1차로 막지만, 직접 POST 우회 방지를 위해 서버에서도 재검증한다.
+async function categoryIsAttachable(
+  supabase: SupabaseClient,
+  categoryId: string,
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("equipment_category")
+    .select("id")
+    .eq("parent_id", categoryId)
+    .limit(1);
+  if (error) {
+    console.error("[equipment.categoryCheck]", error);
+    return false; // 조회 실패 시 안전하게 거부(fail-closed)
+  }
+  return (data ?? []).length === 0; // 자식 없으면 부착 가능
+}
+
 // 옵션 = replace 전략(전량 삭제 후 재삽입). 단일 관리자 admin 흐름이라 충분.
 async function replaceOptions(
   supabase: SupabaseClient,
@@ -50,6 +68,12 @@ export async function createEquipment(
   const v = parsed.data;
 
   const supabase = await createSupabaseServerClient();
+
+  // 자식 있는 대분류(그룹헤더)에 직접 부착 시도를 서버에서 재차 거부(§4.2 재검증).
+  if (v.category_id && !(await categoryIsAttachable(supabase, v.category_id))) {
+    return { error: "하위 분류가 있는 대분류엔 장비를 직접 지정할 수 없습니다. 소분류를 선택하세요." };
+  }
+
   const { error } = await supabase.from("equipment").insert({
     id,
     name: v.name,
@@ -99,6 +123,12 @@ export async function updateEquipment(
   const v = parsed.data;
 
   const supabase = await createSupabaseServerClient();
+
+  // 자식 있는 대분류(그룹헤더)에 직접 부착 시도를 서버에서 재차 거부(§4.2 재검증).
+  if (v.category_id && !(await categoryIsAttachable(supabase, v.category_id))) {
+    return { error: "하위 분류가 있는 대분류엔 장비를 직접 지정할 수 없습니다. 소분류를 선택하세요." };
+  }
+
   // delete와 동일하게 select로 0행 갱신 감지(동시 삭제·없는 id로 무음 성공 방지).
   const { data, error } = await supabase
     .from("equipment")
