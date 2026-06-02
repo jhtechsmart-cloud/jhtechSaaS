@@ -106,4 +106,14 @@ describe("consumable_scope — category_id XOR equipment_id + RLS", () => {
       await expect(c.query("delete from public.equipment_category where id=$1", [catId])).rejects.toThrow();
     });
   });
+  // 사용 중 장비 삭제 → restrict 차단 (category restrict 대칭 검증)
+  // postgres 역할로 RLS 우회 후 equipment FK restrict 자체를 검증
+  test("사용 중 장비 삭제 차단(restrict)", async () => {
+    await inRollbackTx(c, async () => {
+      const { cid } = await seed(); await asUser(c, UID.admin);
+      await c.query("insert into public.consumable_scope (consumable_id,equipment_id) values ($1,$2)", [cid, EQ]);
+      await asPostgres(c);
+      await expect(c.query("delete from public.equipment where id=$1", [EQ])).rejects.toThrow();
+    });
+  });
 });
