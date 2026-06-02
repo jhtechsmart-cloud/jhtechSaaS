@@ -2,6 +2,24 @@
 
 이 프로젝트의 주요 변경 사항을 기록한다. [Keep a Changelog](https://keepachangelog.com/) 형식, [Semantic Versioning](https://semver.org/)(4자리 MAJOR.MINOR.PATCH.MICRO).
 
+## [0.6.0.0] - 2026-06-02
+
+### Added
+- **M2 P-C 소모품 카탈로그** (GitHub #21) — 장비별 소모품을 분류·장비 단위로 매핑하는 카탈로그와 admin 관리. A/S·소모품 신청(P-D·P-E)의 토대.
+  - `consumables`(소모품 마스터) 테이블: 이름·단위·품번·가격(내부용)·상태. 서버통제값 불변 트리거.
+  - `consumable_scope`(매핑) 테이블: 분류(category_id) XOR 특정 장비(equipment_id) — 소모품 하나가 "프린터 공통" 같은 분류나 특정 모델에 연결. id 보존 diff-upsert.
+  - 신규 권한 `consumables.manage` — 쓰기 게이트(RLS), 읽기는 로그인 스태프 전원.
+  - `consumables_for_equipment()` 해석 함수 — 장비를 고르면 매칭 소모품을 반환(대분류 scope가 하위 소분류 장비까지 커버). P-E 재사용.
+  - admin 소모품 콘솔 `/admin/consumables` — 목록(검색·상태필터·적용범위 요약), 생성·수정(범위 에디터: 분류/특정 장비 토글), 삭제.
+- **장비 분류 체계(taxonomy)** — 기존 자유텍스트 분류를 관리형 2단계 구조로 전환(오타·동의어 분산 제거).
+  - `equipment_category`(2단계) 테이블: 대분류(프린터·커팅기) → 소분류(UV프린터·솔벤트프린터…). 손자(3단계) 금지 트리거, 참조 중 분류 삭제 차단.
+  - admin 분류 관리 `/admin/categories` — 대분류/소분류 트리 CRUD.
+  - 장비 등록 폼: 분류 자유입력 → 드롭다운(자식 있는 대분류는 그룹헤더, 소분류·단독 대분류만 선택). 선택 불가가 된 분류는 "재배정 필요"로 보존.
+  - 소모품 범위 에디터: 분류를 taxonomy 드롭다운(대분류=공통 / 소분류)으로 선택.
+
+### Changed
+- **`equipment.category`(자유텍스트) → `category_id`(FK)** — 기존 분류 텍스트를 대분류 노드로 보존 마이그레이션. 공개 카탈로그 뷰는 분류명을 조인해 노출(호환 유지).
+
 ## [0.5.0.0] - 2026-06-02
 
 ### Added

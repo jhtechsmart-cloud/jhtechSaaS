@@ -3,11 +3,12 @@ import { PERMISSIONS, can } from "./permissions";
 
 describe("permission registry", () => {
   // v1 capability registry — 새 기능마다 키 1개 추가, 스키마 변경 0.
-  test("v1 registry는 7개 capability 키를 정의한다", () => {
+  test("registry는 8개 capability 키를 정의한다", () => {
     expect([...PERMISSIONS].sort()).toEqual(
       [
         "applications.assign",
         "applications.view_all",
+        "consumables.manage",
         "customers.manage",
         "email.send",
         "equipment.manage",
@@ -47,5 +48,18 @@ describe("customers.manage capability (P-B)", () => {
   test("customers.manage만 보유 시 customers.manage 통과, equipment.manage 불가", () => {
     expect(can(["customers.manage"], "customers.manage")).toBe(true);
     expect(can(["customers.manage"], "equipment.manage")).toBe(false);
+  });
+});
+
+describe("consumables.manage capability (P-C)", () => {
+  test("consumables.manage 키가 registry에 존재", () => {
+    expect(PERMISSIONS).toContain("consumables.manage");
+  });
+  test("users.manage 보유자는 consumables.manage도 통과(슈퍼권한)", () => {
+    expect(can(["users.manage"], "consumables.manage")).toBe(true);
+  });
+  test("consumables.manage만 보유 시 통과, customers.manage 불가", () => {
+    expect(can(["consumables.manage"], "consumables.manage")).toBe(true);
+    expect(can(["consumables.manage"], "customers.manage")).toBe(false);
   });
 });

@@ -55,7 +55,7 @@ test.describe.serial("대형 견적폼 E2E", () => {
       method: "POST",
       headers: { Prefer: "return=representation" },
       body: JSON.stringify([
-        { name: EQ_NAME, base_price: 1000000, status: "active", model: "REQ-E2E", category: "포장기", specs: [] },
+        { name: EQ_NAME, base_price: 1000000, status: "active", model: "REQ-E2E", specs: [] },
       ]),
     });
     if (!res.ok) throw new Error(`E2E 시드 실패: ${res.status} ${await res.text()}`);

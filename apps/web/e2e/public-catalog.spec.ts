@@ -41,7 +41,6 @@ test.beforeAll(async () => {
         base_price: 1000000,
         status: "active",
         model: "PK-E2E",
-        category: "포장기",
         specs: [{ label: "전압", value: "220V" }],
       },
       {
@@ -49,7 +48,6 @@ test.beforeAll(async () => {
         base_price: 2000000,
         status: "inactive",
         model: null,
-        category: null,
         specs: [],
       },
     ]),
