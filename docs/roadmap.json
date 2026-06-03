@@ -131,21 +131,21 @@
       "id": "P-F",
       "milestone": "M2",
       "name": "통합 고객 이력",
-      "status": "next",
-      "period": "예정",
+      "status": "done",
+      "period": "완료 2026-06-03",
       "deliverable": "견적/구입/AS/소모품+완료여부 (관리자)",
       "owner": "조선제",
-      "status_label": "🔜 다음 (#24)"
+      "status_label": "✅ 머지·배포 v0.9.0.0 (#24, PR#35)"
     },
     {
       "id": "P-G",
       "milestone": "M2",
       "name": "알림 인프라",
-      "status": "todo",
+      "status": "next",
       "period": "예정",
       "deliverable": "관리자 웹알림+카톡/문자(외부)",
       "owner": "조선제",
-      "status_label": "⬜ 예정 (#25)"
+      "status_label": "🔜 다음 (#25)"
     }
   ],
   "features": [
