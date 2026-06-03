@@ -2,6 +2,15 @@
 
 이 프로젝트의 주요 변경 사항을 기록한다. [Keep a Changelog](https://keepachangelog.com/) 형식, [Semantic Versioning](https://semver.org/)(4자리 MAJOR.MINOR.PATCH.MICRO).
 
+## [0.9.0.0] - 2026-06-03
+
+### Added
+- **M2 P-F 통합 고객 이력** (GitHub #24) — 관리자가 고객(업체) 한 곳을 열면 그 고객의 견적·구입·AS·소모품 활동을 완료 여부와 함께 한 화면에서 본다.
+  - 신규 고객 상세 뷰 `/admin/customers/[id]` — 업체 헤더(업체명·사업자번호·대표·연락처·담당영업) + 견적/구입(보유장비)/AS/소모품 4개 카테고리 섹션. 각 섹션 헤더에 `전체 N · 완료 M` 카운트, 상태 색 배지, 접수번호·날짜 mono 표기. AS·소모품 행은 기존 상세로 딥링크, 견적·구입은 인라인 표시. 이력 0건이면 "내역 없음".
+  - 고객 목록(`/admin/customers`)에서 업체명·행 클릭 시 상세 뷰로 이동(기존 바로 수정 → 상세 경유로 변경). 상세의 [수정] 버튼으로 편집 진입.
+  - `get_company_request_history` SECURITY DEFINER RPC — `customers.manage` 권한 게이트로 담당자와 무관하게 해당 고객의 전체 이력 조회(테이블 RLS 정책은 변경하지 않음). 견적은 사업자번호 정규화 매칭 또는 `source_application_id`로 연결(사업자번호 없는 고객도 출처 견적 표시), 소모품은 품목수·품목 스냅샷까지 집계.
+  - 견적 전용 상태 배지 모듈(`application-status.tsx`, `new·assigned·quoted·closed`) — AS·소모품 공용 배지와 별도. 완료 집계는 견적=`closed`, AS·소모품=`done`(취소 제외).
+
 ## [0.8.0.0] - 2026-06-03
 
 ### Added
