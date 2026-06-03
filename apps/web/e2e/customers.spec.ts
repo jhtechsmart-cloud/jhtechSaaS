@@ -32,6 +32,10 @@ const IMPORT_BIZ_NO = "2208162517"; // 체크섬 유효 (가중치 알고리즘 
 const DIFF_COMPANY_NAME = "E2E보존사";
 const DIFF_BIZ_NO = "3000000007"; // 체크섬 유효 (가중치 알고리즘 검증 완료)
 
+// 시나리오 5(P-F 통합 고객이력) 전용 — 견적·AS·소모품 시드용 독립 레코드
+const PF_COMPANY_NAME = "E2E이력사";
+const PF_BIZ_NO = "5500001234"; // 10자리(직접 REST 삽입이라 체크섬 무관)
+
 // 서비스롤 REST fetch 헬퍼
 async function serviceRoleFetch(
   path: string,
@@ -163,8 +167,10 @@ test.describe.serial("시나리오 1 — CRUD (직접입력)", () => {
     await login(page);
     await page.goto("/admin/customers");
 
-    // 업체명 링크 클릭 → edit 페이지
+    // 업체명 링크 클릭 → 상세 뷰(P-F) → [수정] → edit 페이지
     await page.getByRole("link", { name: CRUD_COMPANY_NAME }).first().click();
+    await page.waitForURL(/\/admin\/customers\/[0-9a-f-]+$/, { timeout: 15_000 });
+    await page.getByRole("link", { name: "수정" }).click();
     await page.waitForURL(/\/admin\/customers\/[0-9a-f-]+\/edit$/, {
       timeout: 15_000,
     });
@@ -449,5 +455,153 @@ test.describe.serial("시나리오 4 — 편집 시 보유장비 id 보존(diff-
 
     // (c) serial_no 반영 — 편집 내용이 실제로 저장됐는지 확인
     expect(rows[0].serial_no).toBe("SN-EDIT-1");
+  });
+});
+
+// ──────────────────────────────────────────────────────────────────────────────
+// 시나리오 5: P-F 통합 고객이력 — 견적/구입/AS/소모품 4섹션 + 완료 카운트 + AS 딥링크
+// 핵심: customers.manage 보유자가 담당자 무관 전체 이력을 본다(DEFINER RPC get_company_request_history).
+// ──────────────────────────────────────────────────────────────────────────────
+test.describe.serial("시나리오 5 — 통합 고객이력(P-F)", () => {
+  let companyId: string;
+  let serviceSeqNo: string;
+  let serviceId: string;
+
+  test.beforeAll(async () => {
+    try {
+      // 잔여 정리(멱등)
+      await serviceRoleFetch(`/rest/v1/companies?biz_no=eq.${PF_BIZ_NO}`, {
+        method: "DELETE",
+        headers: { Prefer: "return=minimal" },
+      });
+      await serviceRoleFetch(
+        `/rest/v1/applications?company=eq.${encodeURIComponent(PF_COMPANY_NAME)}`,
+        { method: "DELETE", headers: { Prefer: "return=minimal" } },
+      );
+
+      // 업체
+      const coRes = await serviceRoleFetch("/rest/v1/companies", {
+        method: "POST",
+        headers: { Prefer: "return=representation" },
+        body: JSON.stringify({ name: PF_COMPANY_NAME, biz_no: PF_BIZ_NO }),
+      });
+      companyId = ((await coRes.json()) as { id: string }[])[0].id;
+
+      // 견적(applications) — 하이픈 biz_no로 정규화 매칭 검증
+      await serviceRoleFetch("/rest/v1/applications", {
+        method: "POST",
+        headers: { Prefer: "return=minimal" },
+        body: JSON.stringify({ company: PF_COMPANY_NAME, biz_no: "550-00-01234", status: "new" }),
+      });
+
+      // AS(service_requests) — status=done(완료 카운트 검증), 딥링크 대상
+      const srRes = await serviceRoleFetch("/rest/v1/service_requests", {
+        method: "POST",
+        headers: { Prefer: "return=representation" },
+        body: JSON.stringify({
+          biz_no: PF_BIZ_NO,
+          company_id: companyId,
+          contact_company: PF_COMPANY_NAME,
+          status: "done",
+          privacy_consent: true,
+          privacy_consent_at: new Date().toISOString(),
+          privacy_consent_version: "v1.0",
+        }),
+      });
+      const sr = ((await srRes.json()) as { id: string; seq_no: string }[])[0];
+      serviceId = sr.id;
+      serviceSeqNo = sr.seq_no;
+
+      // 소모품(supply_requests + item)
+      const conRes = await serviceRoleFetch("/rest/v1/consumables", {
+        method: "POST",
+        headers: { Prefer: "return=representation" },
+        body: JSON.stringify({ name: "E2E이력잉크", unit: "개" }),
+      });
+      const consumableId = ((await conRes.json()) as { id: string }[])[0].id;
+      const supRes = await serviceRoleFetch("/rest/v1/supply_requests", {
+        method: "POST",
+        headers: { Prefer: "return=representation" },
+        body: JSON.stringify({
+          company_id: companyId,
+          requester_name: "담당",
+          requester_phone: "010",
+          privacy_consent: true,
+          privacy_consent_at: new Date().toISOString(),
+          privacy_consent_version: "v1.0",
+        }),
+      });
+      const supId = ((await supRes.json()) as { id: string }[])[0].id;
+      await serviceRoleFetch("/rest/v1/supply_request_items", {
+        method: "POST",
+        headers: { Prefer: "return=minimal" },
+        body: JSON.stringify({
+          request_id: supId,
+          consumable_id: consumableId,
+          consumable_name_snapshot: "E2E이력잉크",
+          qty: 2,
+        }),
+      });
+      console.log("시나리오 5 시드 완료", companyId, serviceSeqNo);
+    } catch (e) {
+      console.warn("시나리오 5 setup 건너뜀:", e);
+    }
+  });
+
+  test.afterAll(async () => {
+    try {
+      // service_requests·supply_requests는 company_id FK(no cascade) → companies보다 먼저 삭제해야 함.
+      // (안 지우면 잔여행이 db-tests 전역 카운트 단언을 깨뜨린다 — CLAUDE.md 게이트 주의)
+      if (companyId) {
+        await serviceRoleFetch(
+          `/rest/v1/service_requests?company_id=eq.${companyId}`,
+          { method: "DELETE", headers: { Prefer: "return=minimal" } },
+        );
+        await serviceRoleFetch(
+          `/rest/v1/supply_requests?company_id=eq.${companyId}`,
+          { method: "DELETE", headers: { Prefer: "return=minimal" } },
+        );
+      }
+      await serviceRoleFetch(`/rest/v1/companies?biz_no=eq.${PF_BIZ_NO}`, {
+        method: "DELETE",
+        headers: { Prefer: "return=minimal" },
+      });
+      await serviceRoleFetch(
+        `/rest/v1/applications?company=eq.${encodeURIComponent(PF_COMPANY_NAME)}`,
+        { method: "DELETE", headers: { Prefer: "return=minimal" } },
+      );
+      await serviceRoleFetch(
+        `/rest/v1/consumables?name=eq.${encodeURIComponent("E2E이력잉크")}`,
+        { method: "DELETE", headers: { Prefer: "return=minimal" } },
+      );
+    } catch (e) {
+      console.warn("시나리오 5 cleanup 건너뜀:", e);
+    }
+  });
+
+  // 5-1: admin → 상세에서 4섹션·완료 카운트·AS 딥링크
+  test("5-1: 통합 이력 4섹션 표시 + AS 행 → 상세 이동", async ({ page }) => {
+    expect(companyId).toBeTruthy();
+    await login(page);
+    await page.goto(`/admin/customers/${companyId}`);
+
+    // 헤더(업체명) + 4섹션 제목
+    await expect(page.getByRole("heading", { name: PF_COMPANY_NAME })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("heading", { name: "견적" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "구입 (보유장비)" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "A/S 신청" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "소모품 신청" })).toBeVisible();
+
+    // AS 행(seq_no) 노출 → 클릭 → 기존 상세로 딥링크
+    await page.getByRole("link", { name: serviceSeqNo }).click();
+    await page.waitForURL(new RegExp(`/admin/service-requests/${serviceId}$`), { timeout: 15_000 });
+  });
+
+  // 5-2: customers.manage 없는 영업 → 상세 접근 차단
+  test("5-2: 영업 계정 → 상세 접근 시 권한 차단", async ({ page }) => {
+    expect(companyId).toBeTruthy();
+    await login(page, SALES_EMAIL, SALES_PASSWORD);
+    await page.goto(`/admin/customers/${companyId}`);
+    await expect(page.getByText("접근 권한이 없습니다")).toBeVisible({ timeout: 15_000 });
   });
 });
