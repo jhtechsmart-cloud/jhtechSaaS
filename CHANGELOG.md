@@ -2,6 +2,21 @@
 
 이 프로젝트의 주요 변경 사항을 기록한다. [Keep a Changelog](https://keepachangelog.com/) 형식, [Semantic Versioning](https://semver.org/)(4자리 MAJOR.MINOR.PATCH.MICRO).
 
+## [0.8.0.0] - 2026-06-03
+
+### Added
+- **M2 P-E 소모품신청** (GitHub #23) — 기존 장비 구매 고객이 사업자등록번호로 조회해 보유 장비에 맞는 소모품을 골라 수량을 신청하고, 내부 담당자가 콘솔에서 접수·처리하는 흐름.
+  - 공개 `/supply` 폼 — 사업자번호 조회(자동 하이픈) → 등록 고객 정보 표시(보유 장비·모델명 포함) → 보유 장비에 매칭되는 소모품을 **장비별 그룹·공용 섹션**으로 보여주고 수량 스테퍼로 선택 → 신청자·메모·개인정보 동의 → 접수번호(`SUP-YYYYMMDD-NNNNN`) 완료화면. 직전 신청을 한 번에 채우는 "지난 신청과 동일" 재주문 + 내용 미리보기.
+  - 미등록 사업자번호는 담당자 안내(보유장비 매칭이 전제라 신청 차단), 조회 실패와 일시 네트워크 오류를 구분.
+  - `supply_requests` + `supply_request_items` 테이블 — 접수번호 채번·생성시각·담당자 자동배정·company_id·완료/취소 종결잠금을 트리거로 강제. 담당자 본인 또는 전체조회 권한자만 열람(RLS), 자식 아이템은 부모 권한을 따르고 직접 쓰기 차단.
+  - anon RPC 3개 — `list_consumables_for_company`(보유장비 매칭 소모품, 가격 미반환), `last_supply_request_for_company`(직전 신청 프리필), `submit_supply_request`(동의·체크섬·보유장비 매칭·수량 1~9999·신청자 필수를 서버가 전량 검증, 등록 고객만 신청).
+  - admin `/admin/supply-requests` — 접수 목록(검색·상태필터·미배정필터·품목수·대표품목·미열람 표시), 상세(소모품 라인·상태 변경), 좌측 네비 미열람 배지.
+  - 신규 권한 `supply_requests.view_all`(전체 조회)·`supply_requests.manage`(상태 변경).
+
+### Changed
+- `lookup_company_by_biz_no` 응답에 보유 장비 `equipment_model` 추가(A/S `/support`는 영향 없음).
+- 요청 status 색 배지를 `request-status` 공통 모듈로 승격(A/S·소모품 단일 출처).
+
 ## [0.7.0.0] - 2026-06-02
 
 ### Added
