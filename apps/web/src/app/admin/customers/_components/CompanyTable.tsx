@@ -118,12 +118,12 @@ export function CompanyTable({
                 <tr
                   key={it.id}
                   className="cursor-pointer border-b border-border hover:bg-surface-2"
-                  onClick={() => router.push(`/admin/customers/${it.id}/edit`)}
+                  onClick={() => router.push(`/admin/customers/${it.id}`)}
                 >
                   {/* 업체명 */}
                   <td className="max-w-xs py-2 pr-4">
                     <Link
-                      href={`/admin/customers/${it.id}/edit`}
+                      href={`/admin/customers/${it.id}`}
                       className="block max-w-xs truncate font-medium text-text hover:text-accent"
                     >
                       {it.name}
