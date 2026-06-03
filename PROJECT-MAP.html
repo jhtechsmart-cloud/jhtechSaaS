@@ -69,7 +69,7 @@
 <div class="wrap">
   <h1>프로젝트 지도</h1>
   <div class="sub">지금까지 만들어진 파일이 <b>어디에</b> 있고, <b>각 단계가 어떤 파일을 만드는지</b>, 문제 시 <b>어디를 봐야 하는지</b>.</div>
-  <div class="upd">갱신: 2026-06-02 · 명령어 <code>/map</code> 으로 재생성</div>
+  <div class="upd">갱신: 2026-06-03 · 명령어 <code>/map</code> 으로 재생성</div>
 
   <div class="lead">
     <b>핵심:</b> 이 프로젝트의 산출물은 <b>4곳에 흩어져</b> 있습니다. 코드·설정만 프로젝트 폴더 안에 있고,
@@ -104,17 +104,17 @@
     <tr><td class="path">apps/web/AGENTS.md · CLAUDE.md</td><td>web AI 지침</td><td>"이 Next.js는 학습데이터와 다름, docs 확인" 경고</td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">apps/worker/package.json · tsconfig.json</td><td>워커 설정</td><td>tsx + typescript + @types/node, shared 의존</td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">packages/shared/package.json</td><td>공유 패키지</td><td>permissions registry·Supabase 팩토리·도메인 타입·seed 가드</td><td><span class="tag t-commit">커밋</span></td></tr>
-    <tr><td class="path">VERSION · CHANGELOG.md</td><td>버전·변경이력</td><td>4자리 버전(현재 0.7.0.0, M2 P-D A/S신청 머지) + Keep a Changelog</td><td><span class="tag t-commit">커밋</span></td></tr>
-    <tr><td class="path">supabase/migrations/*.sql</td><td>DB 마이그레이션</td><td>E1 7 + E2 1 + E3 2 + M2 P-A 5 + P-B 4 + P-C/분류체계 5 + <b>P-D 3</b>(service_requests·submit_service_request RPC·customer-uploads as_photo 슬롯). 원격 27종 적용됨(v0.7.0.0)</td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">VERSION · CHANGELOG.md</td><td>버전·변경이력</td><td>4자리 버전(현재 0.8.0.0, M2 P-E 소모품신청 머지) + Keep a Changelog</td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">supabase/migrations/*.sql</td><td>DB 마이그레이션</td><td>E1 7 + E2 1 + E3 2 + M2 P-A 5 + P-B 4 + P-C/분류체계 5 + P-D 3 + <b>P-E 4</b>(supply_requests+items·list/last/submit RPC·lookup model 추가). 원격 31종 적용됨(v0.8.0.0)</td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">supabase/rollback/*.sql · seed/seed-local.sh</td><td>롤백·시드</td><td>마이그레이션 역스크립트 + 로컬 시드 헬퍼</td><td><span class="tag t-commit">커밋</span></td></tr>
-    <tr><td class="path">packages/db-tests/</td><td>RLS 통합 테스트</td><td>pg set role+jwt 하니스(Supabase 로컬), <b>169 RLS 단언</b>(+P-D service_requests 트리거·terminal잠금·assignee row-scope·submit RPC 소유검증·미등록 NULL·정규식 정합)</td><td><span class="tag t-commit">커밋</span></td></tr>
-    <tr><td class="path">apps/web/src/{lib,app,proxy.ts}</td><td>web 구현(E2·E3·M2)</td><td>인증·장비 admin(E2) + 공개 카탈로그/상세/견적요청(E3·P-A) + 고객 마스터(P-B) + 소모품·분류 admin(P-C) + <b>A/S 공개폼 /support · admin /admin/service-requests</b>(P-D: lib/service-requests). <i>코드 — 상세는 코드 직접</i></td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">packages/db-tests/</td><td>RLS 통합 테스트</td><td>pg set role+jwt 하니스(Supabase 로컬), <b>206 RLS 단언</b>(+P-E supply_requests 트리거·items 부모권한·submit RPC 매칭검증·qty경계·C1 anon grant 회귀가드·재주문)</td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">apps/web/src/{lib,app,proxy.ts}</td><td>web 구현(E2·E3·M2)</td><td>인증·장비 admin(E2) + 공개 카탈로그/상세/견적요청(E3·P-A) + 고객 마스터(P-B) + 소모품·분류 admin(P-C) + A/S /support(P-D) + <b>소모품 공개폼 /supply · admin /admin/supply-requests</b>(P-E: lib/supply-requests, request-status 공통 배지). <i>코드 — 상세는 코드 직접</i></td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">docs/roadmap.json · ROADMAP.md</td><td>로드맵 단일원본·생성물</td><td>단계(E1~E7·M2 P-A~P-G) status 원본 → <span class="mono">pnpm roadmap:sync</span>로 ROADMAP.md 생성 + Notion 동기화</td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">docs/superpowers/{specs,plans}/</td><td>설계·플랜 문서</td><td>E2·E3 spec/plan + M2 고객 포털 설계 + P-C 소모품·분류체계 + <b>P-D A/S신청 plan(~/.gstack)·이슈#22 본문 spec(2026-06-02)</b></td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">scripts/roadmap-sync.sh</td><td>로드맵 동기화 래퍼</td><td>~/scripts/claude-notion-sync 엔진 호출(토큰 재사용)</td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">.vercel/project.json</td><td>Vercel 링크</td><td>repo 루트 링크(Root Dir=apps/web). vercel link 산출</td><td><span class="tag t-ignore">gitignore</span></td></tr>
     <tr><td class="path">apps/worker/src/seed-admin.ts</td><td>관리자 시드</td><td>service_role 부트스트랩(프로덕션 비번 가드)</td><td><span class="tag t-commit">커밋</span></td></tr>
-    <tr><td class="path">dev-notes/</td><td>개발 일지</td><td>일별 노트 10일치(.md) + 대시보드(HTML, /devnote) — …M2 P-A·P-B·P-C·P-D</td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">dev-notes/</td><td>개발 일지</td><td>일별 노트 11일치(.md) + 대시보드(HTML, /devnote) — …M2 P-A·P-B·P-C·P-D·P-E</td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">supabase/.temp/linked-project.json</td><td>원격 링크 기록</td><td>supabase link 산출(원격 프로젝트 ref)</td><td><span class="tag t-ignore">로컬</span></td></tr>
     <tr><td class="path">apps/web/.env.local</td><td>web 실제 환경변수</td><td><b>시크릿</b> — Supabase URL/anon key</td><td><span class="tag t-ignore">gitignore</span></td></tr>
     <tr><td class="path">apps/worker/.env</td><td>워커 실제 환경변수</td><td><b>시크릿</b> — service_role, Gmail 앱비밀번호</td><td><span class="tag t-ignore">gitignore</span></td></tr>
@@ -162,8 +162,8 @@
     <tr><td class="path">#21</td><td>M2 P-C 소모품 카탈로그 + 장비 분류체계 <span style="color:var(--sent);font-weight:600">✅ 머지·배포 v0.6.0.0 (CLOSED, PR#32)</span></td><td>E2·#20</td></tr>
     <tr><td class="path">#28·#29·#30</td><td>백로그: 고객인증→lookup 게이트 / admin layout capability / 장비 CSV 일괄</td><td>P-B 이월</td></tr>
     <tr><td class="path">#22</td><td>M2 P-D A/S신청(조회·자동완성·접수·admin·웹알림) <span style="color:var(--sent);font-weight:600">✅ 머지·배포 v0.7.0.0 (CLOSED, PR#33)</span></td><td>#20</td></tr>
-    <tr><td class="path">#23</td><td>M2 P-E 소모품신청(장비별 소모품·수량) <span style="color:var(--new);font-weight:600">● 다음</span></td><td>#21·#22</td></tr>
-    <tr><td class="path">#24</td><td>M2 P-F 통합 고객 이력</td><td>#20~#23</td></tr>
+    <tr><td class="path">#23</td><td>M2 P-E 소모품신청(장비별 소모품·수량·재주문) <span style="color:var(--sent);font-weight:600">✅ 머지·배포 v0.8.0.0 (CLOSED, PR#34)</span></td><td>#21·#22</td></tr>
+    <tr><td class="path">#24</td><td>M2 P-F 통합 고객 이력 <span style="color:var(--new);font-weight:600">● 다음</span></td><td>#20~#23</td></tr>
     <tr><td class="path">#25</td><td>M2 P-G 알림 인프라(웹+카톡/문자)</td><td>#22</td></tr>
     <tr><td class="path">#11</td><td>2FA/MFA 2단계 인증 (백로그, v1.1+)</td><td>—</td></tr>
     <tr><td class="path">#12</td><td>장비 사양 카테고리 템플릿 (백로그, 후속)</td><td>—</td></tr>
@@ -173,14 +173,14 @@
   <p class="note">각 단계를 진행하면 → 어디에 어떤 파일이 생기고 무슨 내용이 담기는지.</p>
 
   <div class="lead" style="border-left-color:var(--sent)">
-    <b>진행 현황 (2026-06-02):</b> <b>M1 E1·E2·E3 + M2 P-A·P-B·P-C·P-D 완료·머지·배포</b>(프로덕션 라이브 v0.7.0.0). <b>M2 P-D A/S신청 완주</b>(이슈 #22 CLOSED, PR#33): /support 공개폼(사업자번호 조회→자동완성/직접입력→증상·사진→접수번호 SLA) + service_requests·submit_service_request anon RPC(동의·체크섬·company_equipment 소유검증·미등록 NULL 접수·fields 화이트리스트) + /admin/service-requests(목록·상세·상태변경·미열람 배지) + 신원모델 A 확정(사업자번호+담당자 콜백, 고객 로그인 폐기). spec→autoplan(독립 3보이스)→TDD→review(CRITICAL 0)→qa(Health 99)→ship→<b>supabase db push(마이그3종 적용)</b>→canary(프로덕션 HEALTHY). 게이트 GREEN(db-tests169·shared42·E2E4).
-    <b>다음 = M2 P-E 소모품신청</b>(#23): consumables_for_equipment(P-C) 재사용 + P-D anon 조회·제출·diff-upsert·RLS·db-tests 패턴 + /support 조회·동의·사진 모듈 공유. ⚠️ 운영: SUPPORT_PHONE 실번호 교체·프로덕션 실고객/보유장비 입력(등록고객 자동완성 조건) · 백로그 #28·#29·고아청소 cron+rate limit·A/S audit.
+    <b>진행 현황 (2026-06-03):</b> <b>M1 E1·E2·E3 + M2 P-A·P-B·P-C·P-D·P-E 완료·머지·배포</b>(프로덕션 라이브 v0.8.0.0). <b>M2 P-E 소모품신청 완주</b>(이슈 #23 CLOSED, PR#34): /supply 공개폼(사업자번호 조회[자동하이픈]→업체·보유장비 모델명→장비별 그룹+공용 소모품 stepper→재주문 프리필+미리보기→신청자·동의→접수번호 SUP-) + supply_requests(+items)·anon RPC 3개(list 가격미반환·last 재주문 직전1건·submit 등록고객전용·매칭검증 단일소스, C1 가격누출함정 차단) + /admin/supply-requests(품목수·대표품목·미배정필터·미열람배지) + StatusBadge request-status 공통모듈 승격. spec→autoplan→TDD→review(CRITICAL 0)→qa(Health 98)→dogfooding 4건→ship→<b>supabase db push(마이그4종 적용)</b>→canary(프로덕션 HEALTHY). 게이트 GREEN(db-tests206·web109·shared45·E2E9).
+    <b>다음 = M2 P-F 통합 고객 이력</b>(#24): 관리자가 한 고객의 견적/구입/AS/소모품+완료여부를 한눈에(E7 확장, P-B~E 조인). 새 anon 경로 없는 내부 admin 뷰. ⚠️ 운영: 프로덕션 실고객/보유장비 입력(현재 빈 DB라 /supply·/support 전 조회 미등록) · 홈 3분기 "소모품/AS 신청" 활성화(cold-start 게이트) · SUPPORT_PHONE 실번호 · 백로그 #28·#29·고아청소 cron+rate limit.
   </div>
-  <p class="note">아래 단계 바 = 한 phase의 생애주기. M1 E1·E2·E3 + M2 P-A·P-B·P-C·P-D 모두 ①~⑨ 완주(P-D는 머지·db push·canary까지). M2는 다음 작업 P-E가 ③스펙부터.</p>
+  <p class="note">아래 단계 바 = 한 phase의 생애주기. M1 E1·E2·E3 + M2 P-A~P-E 모두 ①~⑨ 완주(P-E는 머지·db push·canary까지). M2는 다음 작업 P-F가 ③스펙부터.</p>
   <div class="flow">
     <span class="step done">① 기획(M2 brainstorm)</span><span class="arr">→</span>
     <span class="step done">② 셋업</span><span class="arr">→</span>
-    <span class="step" style="border-color:var(--new);color:var(--new)">③ 스펙(P-E) ●</span><span class="arr">→</span>
+    <span class="step" style="border-color:var(--new);color:var(--new)">③ 스펙(P-F) ●</span><span class="arr">→</span>
     <span class="step">④ 검토</span><span class="arr">→</span>
     <span class="step">⑤ 설계/UI-SPEC</span><span class="arr">→</span>
     <span class="step">⑥ 구현</span><span class="arr">→</span>

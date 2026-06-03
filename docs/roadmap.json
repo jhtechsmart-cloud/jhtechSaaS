@@ -121,21 +121,21 @@
       "id": "P-E",
       "milestone": "M2",
       "name": "소모품신청",
-      "status": "next",
-      "period": "예정",
-      "deliverable": "조회·장비별 소모품 선택(수량)·저장",
+      "status": "done",
+      "period": "완료 2026-06-03",
+      "deliverable": "조회·장비별 소모품 선택(수량)·저장·admin 콘솔·재주문 프리필",
       "owner": "조선제",
-      "status_label": "🔜 다음 (#23)"
+      "status_label": "✅ 머지·배포 v0.8.0.0 (#23, PR#34)"
     },
     {
       "id": "P-F",
       "milestone": "M2",
       "name": "통합 고객 이력",
-      "status": "todo",
+      "status": "next",
       "period": "예정",
       "deliverable": "견적/구입/AS/소모품+완료여부 (관리자)",
       "owner": "조선제",
-      "status_label": "⬜ 예정 (#24)"
+      "status_label": "🔜 다음 (#24)"
     },
     {
       "id": "P-G",
