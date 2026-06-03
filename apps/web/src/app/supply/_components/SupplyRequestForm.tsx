@@ -12,6 +12,7 @@ import {
   type ListConsumablesResult,
 } from "@/lib/supply-requests/schema";
 import { buildSections } from "@/lib/supply-requests/grouping";
+import { formatBizNo, formatPhone } from "@/lib/supply-requests/format";
 import {
   lookupCompanyForSupply,
   listConsumablesForCompany,
@@ -47,8 +48,13 @@ export function SupplyRequestForm({ policyBody }: { policyBody: string }) {
 
   const allowedIds = useMemo(() => new Set((data?.consumables ?? []).map((c) => c.id)), [data]);
   const sections = useMemo(() => (data ? buildSections(data) : []), [data]);
+  const nameById = useMemo(() => new Map((data?.consumables ?? []).map((c) => [c.id, { name: c.name, unit: c.unit }])), [data]);
   const priorAvailable = useMemo(() => prior.filter((p) => allowedIds.has(p.consumable_id)), [prior, allowedIds]);
   const selectedCount = useMemo(() => Object.values(qty).filter((q) => q > 0).length, [qty]);
+
+  // RHF register + 자동 하이픈 포맷(입력 즉시 표시값 재작성, RHF에도 반영).
+  const bizReg = register("biz_no");
+  const phoneReg = register("requester_phone");
 
   // 조회 결과를 초기화하고 사업자번호를 다시 편집 가능하게(오접수·stale 방지: 조회 biz를 잠그고 "다시 조회"로만 변경).
   function resetLookup() {
@@ -111,8 +117,9 @@ export function SupplyRequestForm({ policyBody }: { policyBody: string }) {
         <label className="text-small text-muted" htmlFor="sup-bizno">사업자등록번호로 조회</label>
         <div className="flex gap-2">
           <input
-            id="sup-bizno" {...register("biz_no")} inputMode="numeric"
-            placeholder="123-45-67890" readOnly={status === "found"}
+            id="sup-bizno" {...bizReg}
+            onChange={(e) => { e.target.value = formatBizNo(e.target.value); void bizReg.onChange(e); }}
+            inputMode="numeric" placeholder="123-45-67890" readOnly={status === "found"}
             className={`${FIELD} flex-1 font-mono ${status === "found" ? "opacity-70" : ""}`}
           />
           {status === "found" ? (
@@ -164,6 +171,20 @@ export function SupplyRequestForm({ policyBody }: { policyBody: string }) {
           <div className="mt-2 flex flex-col gap-1 text-small text-muted">
             {company.phone && <span>연락처 <span className="font-mono">{company.phone}</span></span>}
             {company.address && <span>주소 {company.address}</span>}
+            {company.equipment.length > 0 && (
+              <div className="mt-1">
+                <span className="text-muted">보유 장비</span>
+                <ul className="mt-0.5 flex flex-col gap-0.5">
+                  {company.equipment.map((e) => (
+                    <li key={e.id} className="text-text">
+                      · {e.equipment_name ?? e.label ?? "장비"}
+                      {e.equipment_model && <span className="ml-1 font-mono text-muted">{e.equipment_model}</span>}
+                      {e.purchased_at && <span className="ml-1 text-muted">(구입 {e.purchased_at})</span>}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         </details>
       )}
@@ -195,6 +216,15 @@ export function SupplyRequestForm({ policyBody }: { policyBody: string }) {
                 </button>
               )}
             </div>
+            {priorAvailable.length > 0 && (
+              // 지난 신청 내용을 버튼 누르기 전에 확인할 수 있게 품목명·수량 미리보기.
+              <p className="rounded-md bg-surface-2 px-3 py-2 text-small text-muted">
+                지난 신청:{" "}
+                {priorAvailable
+                  .map((p) => `${nameById.get(p.consumable_id)?.name ?? "소모품"} ${p.qty}${nameById.get(p.consumable_id)?.unit ?? "개"}`)
+                  .join(", ")}
+              </p>
+            )}
             {data.consumables.length > 12 && (
               <input
                 value={search} onChange={(e) => setSearch(e.target.value)}
@@ -230,7 +260,11 @@ export function SupplyRequestForm({ policyBody }: { policyBody: string }) {
               <input {...register("requester_name")} className={FIELD} placeholder="담당자 이름" />
             </Field>
             <Field label="연락처" error={errors.requester_phone?.message}>
-              <input {...register("requester_phone")} inputMode="tel" placeholder="010-1234-5678" className={`${FIELD} font-mono`} />
+              <input
+                {...phoneReg}
+                onChange={(e) => { e.target.value = formatPhone(e.target.value); void phoneReg.onChange(e); }}
+                inputMode="tel" placeholder="010-1234-5678" className={`${FIELD} font-mono`}
+              />
             </Field>
           </div>
           <Field label="요청 메모(선택)" error={errors.note?.message}>

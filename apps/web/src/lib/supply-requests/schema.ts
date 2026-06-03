@@ -1,7 +1,27 @@
 import { z } from "zod";
 import { validateBizNo } from "@jhtechsaas/shared";
-// lookup_company_by_biz_no RPC 응답은 P-D와 동일 계약 → 재사용(DRY).
-export { lookupResultSchema, type LookupResult, type LookupEquipment } from "@/lib/service-requests/schema";
+
+// lookup_company_by_biz_no RPC 응답 — P-E는 equipment_model까지 표시하므로 자체 스키마(P-D는 model 미사용).
+export const lookupEquipmentSchema = z.object({
+  id: z.string().uuid(),
+  equipment_id: z.string().uuid().nullable(),
+  equipment_name: z.string().nullable(),
+  equipment_model: z.string().nullable(),
+  label: z.string().nullable(),
+  purchased_at: z.string().nullable(),
+  install_address: z.string().nullable(),
+});
+export const lookupResultSchema = z.object({
+  company_id: z.string().uuid(),
+  name: z.string().nullable(),
+  ceo: z.string().nullable(),
+  phone: z.string().nullable(),
+  email: z.string().nullable(),
+  address: z.string().nullable(),
+  equipment: z.array(lookupEquipmentSchema),
+});
+export type LookupResult = z.infer<typeof lookupResultSchema>;
+export type LookupEquipment = z.infer<typeof lookupEquipmentSchema>;
 
 // 소모품신청(P-E) 공개 폼 — 등록고객 전용(미등록=담당자 안내). 신청자 신원(콜백 검증) + 소모품·수량.
 const bizNoRegex = /^\d{10}$|^\d{3}-\d{2}-\d{5}$/;

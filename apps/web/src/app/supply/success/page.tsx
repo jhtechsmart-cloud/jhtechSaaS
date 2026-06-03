@@ -16,9 +16,9 @@ export default async function SupplySuccessPage({
       <h1 className="text-display font-semibold text-text">소모품 신청이 접수되었습니다</h1>
       <p className="mt-4 text-body text-muted">
         {assignee ? (
-          <>담당 <span className="font-medium text-text">{assignee}</span>이(가) 단가 확인 후 연락드립니다.</>
+          <>담당 <span className="font-medium text-text">{assignee}</span>이(가) 확인 후 연락드리겠습니다.</>
         ) : (
-          <>담당자가 단가 확인 후 연락드립니다.</>
+          <>담당자가 확인 후 연락드리겠습니다.</>
         )}
       </p>
       <div className="mt-8 rounded-md border border-border bg-surface px-4 py-6">
