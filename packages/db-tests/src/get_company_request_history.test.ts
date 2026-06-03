@@ -125,6 +125,23 @@ describe("get_company_request_history — 담당자 무관 전체 조인", () =>
       });
     });
   });
+
+  // coalesce(...,'[]') 회귀가드 — 이력 0건 고객은 null이 아니라 빈 배열을 받아야(프론트 .map 안전).
+  test("이력 0건 고객 → 세 배열 모두 빈 배열(null 아님)", async () => {
+    await inRollbackTx(c, async () => {
+      await asPostgres(c);
+      await seedAuthUser(c, UID.sales1, "gcrh-empty-sales1@jhtech.test");
+      await c.query("update public.profiles set permissions='{customers.manage}' where id=$1", [UID.sales1]);
+      const companyId = (await c.query(
+        "insert into public.companies (name, biz_no) values ('빈이력사','7777777777') returning id",
+      )).rows[0].id;
+      await asUser(c, UID.sales1);
+      const out = (await c.query("select public.get_company_request_history($1) as out", [companyId])).rows[0].out;
+      expect(out.applications).toEqual([]);
+      expect(out.service_requests).toEqual([]);
+      expect(out.supply_requests).toEqual([]);
+    });
+  });
 });
 
 describe("get_company_request_history — NULL biz_no는 source_application_id UNION", () => {

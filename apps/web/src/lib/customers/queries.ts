@@ -68,9 +68,10 @@ export async function getCustomerHistory(id: string): Promise<CustomerHistory> {
   const { data, error } = await supabase.rpc("get_company_request_history", {
     p_company_id: id,
   });
+  // 신뢰 소스 페이지 — 장애를 "내역 없음"으로 위장하면 안 됨(빈 배열 반환 금지). 던져서 에러바운더리로.
   if (error) {
     console.error("[customers.history]", error);
-    return { applications: [], service_requests: [], supply_requests: [] };
+    throw new Error(`고객 이력 조회 실패: ${error.message}`);
   }
   return (data ?? {
     applications: [],
