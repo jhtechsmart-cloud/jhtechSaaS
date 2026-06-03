@@ -86,9 +86,11 @@ test.describe.serial("대형 견적폼 E2E", () => {
     await fillCoreFields(page);
     await page.getByRole("button", { name: "견적 요청 보내기" }).click();
 
-    // 동의 미체크 → /request에 머물고 동의 관련 인라인 에러가 보여야 함.
+    // 동의 미체크 → /request에 머물고, 상단 에러 요약 배너(#4)에 누락 항목이 떠야 함.
+    // role=alert는 Next route-announcer와도 겹쳐 배너 텍스트로 좁힌다.
     await expect(page).toHaveURL(/\/request\?equipment_id=/);
-    await expect(page.getByText("개인정보 수집·이용 동의가 필요합니다")).toBeVisible();
+    const banner = page.getByRole("alert").filter({ hasText: "입력하지 않았거나 잘못된 항목이" });
+    await expect(banner).toContainText("개인정보 수집·이용 동의가 필요합니다");
   });
 
   test("정상 제출 → 접수번호(REQ-) 표시", async ({ page }) => {

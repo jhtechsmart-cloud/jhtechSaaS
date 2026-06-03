@@ -11,8 +11,10 @@ import {
   type AsPhotoSlot,
 } from "@/lib/service-requests/schema";
 import { uploadAsPhotos } from "@/lib/service-requests/upload";
+import { formatBizNo } from "@jhtechsaas/shared";
 import { lookupCompany, submitServiceRequest } from "../actions";
 import { AsPhotoUploader } from "./AsPhotoUploader";
+import { FormErrorSummary } from "@/components/FormErrorSummary";
 
 const FIELD = "rounded-md border border-border bg-surface px-3 py-2 text-body text-text";
 // TODO: 재현테크 대표 A/S 직통번호로 교체.
@@ -27,7 +29,7 @@ export function ServiceRequestForm({ policyBody }: { policyBody: string }) {
     trigger,
     getValues,
     setValue,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, submitCount },
   } = useForm<ServiceRequestFormInputRaw, unknown, ServiceRequestFormInput>({
     resolver: zodResolver(serviceRequestFormSchema),
     defaultValues: {
@@ -85,7 +87,12 @@ export function ServiceRequestForm({ policyBody }: { policyBody: string }) {
         <div className="flex gap-2">
           <input
             id="sr-bizno"
-            {...register("biz_no")}
+            {...register("biz_no", {
+              onBlur: () => {
+                const raw = getValues("biz_no");
+                if (raw) setValue("biz_no", formatBizNo(raw), { shouldValidate: false });
+              },
+            })}
             inputMode="numeric"
             placeholder="123-45-67890"
             className={`${FIELD} flex-1 font-mono`}
@@ -115,6 +122,7 @@ export function ServiceRequestForm({ policyBody }: { policyBody: string }) {
 
       {revealed && (
         <>
+          <FormErrorSummary errors={errors} submitCount={submitCount} />
           {/* 보유장비 선택(등록고객만) */}
           {status === "found" && company && (
             company.equipment.length > 0 ? (

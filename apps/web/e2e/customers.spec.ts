@@ -595,6 +595,9 @@ test.describe.serial("시나리오 5 — 통합 고객이력(P-F)", () => {
     // AS 행(seq_no) 노출 → 클릭 → 기존 상세로 딥링크
     await page.getByRole("link", { name: serviceSeqNo }).click();
     await page.waitForURL(new RegExp(`/admin/service-requests/${serviceId}$`), { timeout: 15_000 });
+
+    // #6 역방향 링크 — AS 상세에서 고객 통합이력으로 되돌아갈 수 있어야 함.
+    await expect(page.getByRole("link", { name: /통합 이력 보기/ })).toBeVisible();
   });
 
   // 5-2: customers.manage 없는 영업 → 상세 접근 차단
