@@ -10,10 +10,12 @@ import {
   type PhotoSlot,
 } from "@/lib/applications/schema";
 import { uploadSitePhotos } from "@/lib/applications/upload";
+import { formatBizNo } from "@jhtechsaas/shared";
 import { submitRequest } from "../actions";
 import { ConsentAccordion } from "./ConsentAccordion";
 import { SitePhotoUploader } from "./SitePhotoUploader";
 import { InstallSurvey } from "./InstallSurvey";
+import { FormErrorSummary } from "@/components/FormErrorSummary";
 
 const FIELD = "rounded-md border border-border bg-surface px-3 py-2 text-body text-text";
 
@@ -29,7 +31,9 @@ export function RequestForm({
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    getValues,
+    setValue,
+    formState: { errors, isSubmitting, submitCount },
   } = useForm<RequestFormInputRaw, unknown, RequestFormInput>({
     resolver: zodResolver(requestFormSchema),
     defaultValues: {
@@ -63,6 +67,7 @@ export function RequestForm({
 
   return (
     <form onSubmit={onSubmit} className="mt-8 flex flex-col gap-6">
+      <FormErrorSummary errors={errors} submitCount={submitCount} />
       <ConsentAccordion register={register} error={errors.privacy_consent} policyBody={policyBody} />
 
       {equipmentName && (
@@ -80,7 +85,18 @@ export function RequestForm({
           <input {...register("ceo")} className={FIELD} />
         </Field>
         <Field label="사업자등록번호" error={errors.biz_no?.message}>
-          <input {...register("biz_no")} inputMode="numeric" placeholder="123-45-67890" className={`${FIELD} font-mono`} />
+          <input
+            {...register("biz_no", {
+              onBlur: () => {
+                // blur 시 대시 포맷(admin 고객폼과 일관). 저장은 서버가 normalize.
+                const raw = getValues("biz_no");
+                if (raw) setValue("biz_no", formatBizNo(raw), { shouldValidate: false });
+              },
+            })}
+            inputMode="numeric"
+            placeholder="123-45-67890"
+            className={`${FIELD} font-mono`}
+          />
         </Field>
         <Field label="연락처" error={errors.phone?.message}>
           <input {...register("phone")} inputMode="tel" placeholder="02-1234-5678" className={`${FIELD} font-mono`} />
@@ -97,8 +113,25 @@ export function RequestForm({
         <textarea {...register("requirements")} rows={4} placeholder="장비 사양·예산·납기 등" className={FIELD} />
       </Field>
 
-      <SitePhotoUploader onChange={setPhotoFiles} />
-      <InstallSurvey register={register} />
+      {/* 선택 입력(사진·설치설문) — 기본 접힘. 안내문구는 접힌 영역 바로 위에 노출.
+          details 내부도 DOM에 마운트되어 설치설문 기본값은 접힌 채로도 제출에 포함됨. */}
+      <div className="flex flex-col gap-2">
+        <p className="text-small text-muted">
+          {/* TODO(문구검토): 재현테크 톤에 맞게 다듬어 주세요. */}
+          더 정확한 견적을 위해 <span className="text-text">설치 장소 사진</span>과{" "}
+          <span className="text-text">설치 환경 정보</span>를 함께 남겨주시면 좋습니다(선택).
+          현장 방문 전에 더 빠르고 정확하게 안내드릴 수 있어요.
+        </p>
+        <details className="rounded-md border border-border bg-surface">
+          <summary className="cursor-pointer px-4 py-3 text-body font-medium text-text">
+            설치 환경 정보·사진 입력하기 <span className="text-small text-muted">(선택)</span>
+          </summary>
+          <div className="flex flex-col gap-6 border-t border-border p-4">
+            <SitePhotoUploader onChange={setPhotoFiles} />
+            <InstallSurvey register={register} />
+          </div>
+        </details>
+      </div>
 
       {serverError && <p className="text-small text-danger">{serverError}</p>}
       <button

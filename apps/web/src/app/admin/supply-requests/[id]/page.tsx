@@ -46,6 +46,14 @@ export default async function SupplyRequestDetailPage({
       </div>
 
       <Section title="고객 정보">
+        {r.company_id != null && (
+          <Link
+            href={`/admin/customers/${r.company_id}`}
+            className="mb-1 inline-block text-small font-medium text-accent hover:underline"
+          >
+            이 고객의 통합 이력 보기 →
+          </Link>
+        )}
         <Row label="업체명" value={company?.name ?? null} />
         <Row label="대표" value={company?.ceo ?? null} />
         <Row label="사업자번호" value={company?.biz_no ?? null} mono />

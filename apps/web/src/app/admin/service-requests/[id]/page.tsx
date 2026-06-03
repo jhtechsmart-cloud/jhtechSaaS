@@ -63,6 +63,14 @@ export default async function ServiceRequestDetailPage({
       </div>
 
       <Section title="고객 정보">
+        {r.company_id != null && (
+          <Link
+            href={`/admin/customers/${r.company_id}`}
+            className="mb-1 inline-block text-small font-medium text-accent hover:underline"
+          >
+            이 고객의 통합 이력 보기 →
+          </Link>
+        )}
         <Row label="회사명" value={str(r.contact_company)} />
         <Row label="대표/담당" value={str(r.contact_ceo)} />
         <Row label="연락처" value={str(r.contact_phone)} mono />

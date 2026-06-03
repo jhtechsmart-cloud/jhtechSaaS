@@ -13,6 +13,7 @@ import {
 } from "@/lib/supply-requests/schema";
 import { buildSections } from "@/lib/supply-requests/grouping";
 import { formatBizNo, formatPhone } from "@/lib/supply-requests/format";
+import { FormErrorSummary } from "@/components/FormErrorSummary";
 import {
   lookupCompanyForSupply,
   listConsumablesForCompany,
@@ -30,7 +31,7 @@ type LookupStatus = "idle" | "loading" | "found" | "notfound" | "error";
 export function SupplyRequestForm({ policyBody }: { policyBody: string }) {
   const {
     register, handleSubmit, trigger, getValues,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, submitCount },
   } = useForm<SupplyRequestFormInputRaw, unknown, SupplyRequestFormInput>({
     resolver: zodResolver(supplyRequestFormSchema),
     defaultValues: { biz_no: "", requester_name: "", requester_phone: "", note: "" },
@@ -207,6 +208,11 @@ export function SupplyRequestForm({ policyBody }: { policyBody: string }) {
       {/* 2단계: 소모품 선택 + 신청자 + 동의 */}
       {status === "found" && !loadingItems && hasConsumables && (
         <>
+          <FormErrorSummary
+            errors={errors}
+            submitCount={submitCount}
+            extraMessages={itemsError ? [itemsError] : []}
+          />
           <div className="flex flex-col gap-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-h2 font-medium text-text">신청 소모품</h2>
