@@ -2,8 +2,8 @@
 
 > ⚙️ **이 파일은 자동 생성됩니다.** 원본은 `docs/roadmap.json` — 거기서 상태를 고치고 `scripts/roadmap-sync.sh`(또는 `pnpm roadmap:sync`)를 실행하면 이 파일과 Notion이 함께 갱신됩니다.
 
-- **마지막 업데이트**: 2026-06-02
-- **목표 릴리즈**: 2026-06-07 · **현재 버전**: v0.7.0.0
+- **마지막 업데이트**: 2026-06-03
+- **목표 릴리즈**: 2026-06-07 · **현재 버전**: v0.9.1.0
 - **프로덕션**: https://jhtech-saa-s-web.vercel.app
 - **저장소**: github.com/jhtechsmart-cloud/jhtechSaaS
 - **Notion PRD**: https://www.notion.so/36d652ff80ae803ea0bceae8c74da5c1
