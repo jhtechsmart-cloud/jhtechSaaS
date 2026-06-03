@@ -8,12 +8,17 @@ import { collectErrorMessages } from "@/lib/forms/error-summary";
 export function FormErrorSummary({
   errors,
   submitCount,
+  extraMessages = [],
 }: {
   errors: FieldErrors;
   submitCount: number;
+  // RHF errors 밖의 수동 검증 메시지(예: 소모품폼 "1개 이상 선택"는 별도 state).
+  extraMessages?: string[];
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const messages = collectErrorMessages(errors);
+  const messages = Array.from(
+    new Set([...collectErrorMessages(errors), ...extraMessages.filter(Boolean)]),
+  );
 
   useEffect(() => {
     if (messages.length > 0) {

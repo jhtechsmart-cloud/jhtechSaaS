@@ -107,6 +107,21 @@ test.describe.serial("P-E 소모품신청 E2E", () => {
     await expect(page.getByText(/보유 장비에 등록된 소모품이 없습니다/)).toBeVisible({ timeout: 15_000 });
   });
 
+  test("소모품 미선택 제출 → 에러 요약 배너에 안내(#1 회귀)", async ({ page }) => {
+    await page.goto("/supply");
+    await page.getByLabel("사업자등록번호로 조회").fill(REG_BIZ);
+    await page.getByRole("button", { name: "조회" }).click();
+    await expect(page.getByText(CONSUMABLE)).toBeVisible({ timeout: 15_000 });
+    // 소모품 0개인 채로 신청자·동의만 채우고 제출 → RHF errors엔 없는 itemsError도 배너에 떠야 함.
+    await page.getByLabel("신청자명").fill(REQUESTER);
+    await page.getByLabel("연락처").fill("010-1234-5678");
+    await page.getByRole("checkbox", { name: /개인정보 수집·이용에 동의합니다/ }).check();
+    await page.getByRole("button", { name: "소모품 신청하기" }).click();
+    const banner = page.getByRole("alert").filter({ hasText: "입력하지 않았거나 잘못된 항목이" });
+    await expect(banner).toContainText("소모품을 1개 이상 선택");
+    await expect(page).toHaveURL(/\/supply$/); // 제출 차단(미이동)
+  });
+
   test("등록 고객 → 소모품 선택(수량)·신청자·동의 → 접수", async ({ page }) => {
     await page.goto("/supply");
     await page.getByLabel("사업자등록번호로 조회").fill(REG_BIZ);

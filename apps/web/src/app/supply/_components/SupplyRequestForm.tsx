@@ -208,7 +208,11 @@ export function SupplyRequestForm({ policyBody }: { policyBody: string }) {
       {/* 2단계: 소모품 선택 + 신청자 + 동의 */}
       {status === "found" && !loadingItems && hasConsumables && (
         <>
-          <FormErrorSummary errors={errors} submitCount={submitCount} />
+          <FormErrorSummary
+            errors={errors}
+            submitCount={submitCount}
+            extraMessages={itemsError ? [itemsError] : []}
+          />
           <div className="flex flex-col gap-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-h2 font-medium text-text">신청 소모품</h2>

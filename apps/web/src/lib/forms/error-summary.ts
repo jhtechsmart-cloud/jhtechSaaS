@@ -10,7 +10,10 @@ export function collectErrorMessages(errors: unknown): string[] {
       messages.push(msg);
       return; // 이 노드는 잎(에러 객체) — 더 내려가지 않음
     }
-    for (const value of Object.values(obj)) walk(value);
+    for (const [key, value] of Object.entries(obj)) {
+      if (key === "ref") continue; // RHF 에러의 DOM ref로는 내려가지 않음(순환·DOM 순회 방지)
+      walk(value);
+    }
   };
   walk(errors);
   return Array.from(new Set(messages)); // 중복 제거
