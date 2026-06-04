@@ -1,9 +1,9 @@
 {
   "_comment": "jhtechSaaS 로드맵 단일 진실 원본. 단계/기능 상태를 여기서 갱신하고 `pnpm roadmap:sync`(또는 scripts/roadmap-sync.sh)를 돌리면 docs/ROADMAP.md 재생성 + Notion 라이브영역(진행현황 콜아웃·14표·기능DB) 동기화. status: done|next|todo / feature status는 Notion status 옵션명(Launched|Spec Needed|In Review|Approved|In Dev|Draft|Dropped).",
   "meta": {
-    "updated": "2026-06-03",
+    "updated": "2026-06-04",
     "release_target": "2026-06-07",
-    "version": "v0.9.1.0",
+    "version": "v0.10.0.0",
     "deploy_url": "https://jhtech-saa-s-web.vercel.app",
     "repo": "github.com/jhtechsmart-cloud/jhtechSaaS"
   },
@@ -43,12 +43,12 @@
     },
     {
       "id": "E4",
-      "name": "관리자 콘솔",
-      "status": "todo",
-      "period": "예정",
-      "deliverable": "목록·상세·담당자 배정(권한 필터)",
+      "name": "견적 트리아지 콘솔",
+      "status": "done",
+      "period": "완료 2026-06-04",
+      "deliverable": "목록·상세·담당배정·상태전이·미등록고객등록·P-F역링크 (트리아지 슬라이스, 마이그 0)",
       "owner": "조선제",
-      "status_label": "⬜ 예정"
+      "status_label": "✅ 머지·배포 v0.10.0.0"
     },
     {
       "id": "E5",
@@ -191,10 +191,10 @@
     },
     {
       "id": "F-006",
-      "name": "관리자 콘솔(목록·상세·배정)",
+      "name": "견적 트리아지 콘솔(목록·상세·배정·상태전이)",
       "scope": "견적관리(내부)",
       "priority": "P0",
-      "status": "Spec Needed",
+      "status": "Launched",
       "phase": "E4"
     },
     {
