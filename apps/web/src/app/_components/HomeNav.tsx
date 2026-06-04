@@ -2,11 +2,11 @@ import Link from "next/link";
 
 const ITEMS = [
   { href: "/equipment", title: "견적 요청", desc: "장비를 둘러보고 온라인으로 견적을 요청하세요.", active: true },
-  { href: "#", title: "A/S 신청", desc: "보유 장비의 수리·점검을 신청하세요.", active: false },
-  { href: "#", title: "소모품 신청", desc: "장비별 소모품을 신청하세요.", active: false },
+  { href: "/support", title: "A/S 신청", desc: "보유 장비의 수리·점검을 신청하세요.", active: true },
+  { href: "/supply", title: "소모품 신청", desc: "장비별 소모품을 신청하세요.", active: true },
 ] as const;
 
-// 홈 3분기 — 견적요청만 활성. A/S·소모품은 준비중(P-D/P-E).
+// 홈 3분기 — 견적요청(/equipment)·A/S(/support)·소모품(/supply) 전부 활성.
 export function HomeNav() {
   return (
     <div className="grid w-full max-w-4xl grid-cols-1 gap-4 sm:grid-cols-3">
