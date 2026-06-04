@@ -53,12 +53,15 @@ export default async function ApplicationDetailPage({
   const canManageCustomers = can(access.permissions, "customers.manage");
 
   // 사진 4슬롯 — 병렬 서명URL. 실패/없음은 슬롯 라벨 유지하며 플레이스홀더(노출 안 함).
+  // ⚠️ anon이 RPC 우회 직접 INSERT로 photos 경로를 주입할 수 있어, RPC와 동일한 경로 정규식
+  // (버킷-상대 `<uuid>/<slot>.ext`)을 admin 렌더 전에도 강제(임의경로 서명 방지·방어심화).
   const supabase = await createSupabaseServerClient();
   const photos = fields.photos ?? {};
   const signed = await Promise.all(
     PHOTO_SLOTS.map(async (slot) => {
       const path = photos[slot];
-      if (!path) return { slot, url: null as string | null };
+      const pathRe = new RegExp(`^[0-9a-f-]{36}/${slot}\\.(jpe?g|png|webp)$`, "i");
+      if (!path || !pathRe.test(path)) return { slot, url: null as string | null };
       const { data } = await supabase.storage.from("customer-uploads").createSignedUrl(path, 600);
       return { slot, url: data?.signedUrl ?? null };
     }),

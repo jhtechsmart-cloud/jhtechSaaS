@@ -3,6 +3,8 @@ import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requirePermission } from "@/lib/auth/guard";
 import { applicationStatusSchema } from "./status-schema";
+import { nextStatusOnAssign } from "./assign-logic";
+import type { ApplicationStatus } from "@/lib/customers/history";
 
 export type ApplicationActionResult = { error: string } | { ok: true; companyId?: string };
 
@@ -23,8 +25,8 @@ export async function assignApplication(
   if (!cur) return { error: "신청을 찾을 수 없습니다" };
 
   const patch: { assignee_id: string | null; status?: string } = { assignee_id: assigneeId };
-  if (assigneeId && cur.status === "new") patch.status = "assigned";        // 배정 시 미처리 해제
-  if (!assigneeId && cur.status === "assigned") patch.status = "new";       // 해제 시 재트리아지 풀로
+  const bumped = nextStatusOnAssign(cur.status as ApplicationStatus, assigneeId);
+  if (bumped) patch.status = bumped; // new→assigned(배정) / assigned→new(해제)
 
   const { data, error } = await supabase
     .from("applications").update(patch).eq("id", id).select("id");

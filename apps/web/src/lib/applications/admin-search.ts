@@ -13,3 +13,9 @@ export function splitOverflow<T>(rows: T[], limit: number): { rows: T[]; overflo
   if (rows.length > limit) return { rows: rows.slice(0, limit), overflow: true };
   return { rows, overflow: false };
 }
+
+// 사업자번호 정규화 — 숫자만 남긴다. companies.biz_no는 upsert RPC가 숫자정규화 저장하므로
+// application쪽(하이픈 잔류 가능)만 정규화해 .eq로 단순 매칭(P-F 역링크 판정).
+export function normalizeBizNo(s: string | null | undefined): string {
+  return (s ?? "").replace(/\D/g, "");
+}

@@ -281,3 +281,36 @@ describe("applications — 배정·상태 UPDATE (E-4 트리아지)", () => {
     });
   });
 });
+
+describe("applications — biz_no 정규화 매칭(P-F 역링크 등록 경로)", () => {
+  const APP_HY = "00000000-0000-0000-0000-0000000000e2";
+
+  test("하이픈 application → upsert → companies 숫자저장 → 정규화 .eq 매칭 성공", async () => {
+    await inRollbackTx(c, async () => {
+      await asPostgres(c);
+      await seedAuthUser(c, UID.admin, "admin@jhtech.test");
+      await c.query("update public.profiles set permissions='{customers.manage}' where id=$1", [UID.admin]);
+      // application은 하이픈 포함 biz_no(anon 직접 POST 잔류 시나리오).
+      await c.query(
+        "insert into public.applications (id,company,biz_no) values ($1,'정규화상사','123-45-67890')",
+        [APP_HY],
+      );
+
+      // upsert_company_from_application(admin, customers.manage) → companies 생성.
+      await asUser(c, UID.admin);
+      await c.query("select public.upsert_company_from_application($1)", [APP_HY]);
+
+      // companies.biz_no는 숫자정규화 저장돼야 한다.
+      await asPostgres(c);
+      const co = await c.query("select biz_no from public.companies where source_application_id=$1", [APP_HY]);
+      expect(co.rows[0].biz_no).toBe("1234567890");
+
+      // getApplicationForAdmin 매칭 등가: application biz_no 정규화('1234567890')로 .eq 조회 → 1행.
+      const match = await c.query(
+        "select id from public.companies where biz_no = regexp_replace($1,'\\D','','g')",
+        ["123-45-67890"],
+      );
+      expect(match.rowCount).toBe(1);
+    });
+  });
+});

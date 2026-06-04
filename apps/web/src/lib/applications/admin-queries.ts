@@ -1,7 +1,7 @@
 import "server-only";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { ApplicationStatus } from "@/lib/customers/history";
-import { buildSearchOr, splitOverflow } from "./admin-search";
+import { buildSearchOr, splitOverflow, normalizeBizNo } from "./admin-search";
 import { applicationStatusSchema } from "./status-schema";
 
 export interface ApplicationListRow {
@@ -90,7 +90,7 @@ export async function getApplicationForAdmin(id: string) {
 
   // companies.biz_no는 upsert RPC가 숫자정규화 저장 → application쪽만 정규화해 단순조회.
   let companyId: string | null = null;
-  const digits = ((data.biz_no as string | null) ?? "").replace(/\D/g, "");
+  const digits = normalizeBizNo(data.biz_no as string | null);
   if (digits) {
     const { data: co } = await supabase
       .from("companies")

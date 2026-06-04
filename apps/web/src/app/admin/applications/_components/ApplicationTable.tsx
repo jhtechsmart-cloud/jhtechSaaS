@@ -99,7 +99,7 @@ export function ApplicationTable({
                       href={`/admin/applications/${it.id}`}
                       className="flex items-center gap-2 font-mono tabular-nums text-text hover:text-accent"
                     >
-                      {it.is_new && <span className="inline-block size-2 rounded-full bg-accent" aria-label="미배정" />}
+                      {it.is_new && <span className="inline-block size-2 rounded-full bg-accent" aria-label="미처리" />}
                       {it.seq_no}
                     </Link>
                   </td>

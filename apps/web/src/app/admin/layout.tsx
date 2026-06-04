@@ -61,7 +61,7 @@ export default async function AdminLayout({
           >
             <span>견적</span>
             {newApps > 0 && (
-              <span className="rounded-full bg-accent px-2 py-0.5 text-micro font-medium text-white" aria-label={`미배정 ${newApps}건`}>{newApps}</span>
+              <span className="rounded-full bg-accent px-2 py-0.5 text-micro font-medium text-white" aria-label={`미처리 ${newApps}건`}>{newApps}</span>
             )}
           </Link>
           <Link

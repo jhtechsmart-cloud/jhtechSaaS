@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { buildSearchOr, splitOverflow } from "./admin-search";
+import { buildSearchOr, splitOverflow, normalizeBizNo } from "./admin-search";
 
 describe("buildSearchOr — PostgREST .or 안전 생성", () => {
   test("빈 검색어는 null(필터 없음)", () => {
@@ -17,6 +17,20 @@ describe("buildSearchOr — PostgREST .or 안전 생성", () => {
 
   test("REQ- 하이픈은 보존(접수번호 검색)", () => {
     expect(buildSearchOr("REQ-2026")).toBe("company.ilike.%REQ-2026%,seq_no.ilike.%REQ-2026%");
+  });
+});
+
+describe("normalizeBizNo — 숫자만 추출", () => {
+  test("하이픈 제거", () => {
+    expect(normalizeBizNo("123-45-67890")).toBe("1234567890");
+  });
+  test("이미 숫자면 그대로", () => {
+    expect(normalizeBizNo("1234567890")).toBe("1234567890");
+  });
+  test("null/undefined/공백 → 빈 문자열", () => {
+    expect(normalizeBizNo(null)).toBe("");
+    expect(normalizeBizNo(undefined)).toBe("");
+    expect(normalizeBizNo("  ")).toBe("");
   });
 });
 
