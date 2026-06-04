@@ -37,6 +37,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   const anyOf = (keys: PermissionKey[]) => keys.some((k) => can(perms, k));
   // nav 데이터화 — 권한별 조건 노출. 신청 도메인은 view_all/status/claim 등 콘솔 키 중 하나.
   const items: { href: string; label: string; show: boolean; badge?: number }[] = [
+    { href: "/admin/dashboard", label: "대시보드", show: true },
     {
       href: "/admin/applications",
       label: "견적",

@@ -28,6 +28,8 @@ export function hasAnyConsoleCapability(permissions: readonly string[]): boolean
 
 // 로그인 후 첫 화면 — 권한 기반 우선순위. applications(운영 허브)를 최우선으로,
 // 매칭 없으면 가진 권한의 도메인으로. (users.manage super는 applications 규칙에 먼저 걸려 허브로.)
+// (E5b: landingPathFor는 더는 사용 안 함 — 우선순위 힌트로 보존)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- 향후 카드/메뉴 우선순위 힌트로 의도적 보존(E5b)
 const LANDING_RULES: { keys: PermissionKey[]; path: string }[] = [
   {
     keys: [
@@ -52,9 +54,8 @@ const LANDING_RULES: { keys: PermissionKey[]; path: string }[] = [
   { keys: ["users.manage"], path: "/admin/users" },
 ];
 
-export function landingPathFor(permissions: readonly string[]): string {
-  for (const rule of LANDING_RULES) {
-    if (rule.keys.some((k) => can(permissions, k))) return rule.path;
-  }
-  return "/admin/applications"; // 콘솔 자격은 있으나 매칭 없음 — 안전 기본
+// 로그인 후 첫 화면 — E5b: 콘솔 자격자는 전원 대시보드. (LANDING_RULES는 보존: 향후 카드/메뉴 우선순위 힌트)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- 호출부 시그니처 유지용 인자(현재 권한 무관 dashboard 고정)
+export function landingPathFor(_permissions: readonly string[]): string {
+  return "/admin/dashboard";
 }
