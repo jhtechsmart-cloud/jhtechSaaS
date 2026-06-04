@@ -24,7 +24,7 @@ export interface PermissionDef {
 }
 
 /**
- * v2 권한 registry (21키 = 기존 12 + E5a 신규 9).
+ * v2 권한 registry (18키). E5a에서 *.manage(customers/service/supply) 3키를 액션 단위로 분해·삭제.
  * 미래 확장: delivery.dispatch, install.manage, notifications.send 등.
  */
 const PERMISSION_REGISTRY_RAW = [
@@ -84,13 +84,6 @@ const PERMISSION_REGISTRY_RAW = [
     description: "담당 무관 모든 고객 조회 (없으면 본인 담당 고객만)",
     group: "고객",
   },
-  {
-    key: "customers.manage",
-    label: "고객 관리(은퇴예정)",
-    description: "구 통합 고객권한 — edit/delete/view_all로 분해됨",
-    group: "고객",
-    deprecated: true,
-  },
   // ── A/S (service_requests) ──
   {
     key: "service_requests.view_all",
@@ -110,13 +103,6 @@ const PERMISSION_REGISTRY_RAW = [
     description: "미배정 A/S를 본인 담당으로 가져오기",
     group: "A/S",
   },
-  {
-    key: "service_requests.manage",
-    label: "A/S 관리(은퇴예정)",
-    description: "구 A/S 권한 — status로 분해됨",
-    group: "A/S",
-    deprecated: true,
-  },
   // ── 소모품신청 (supply_requests) ──
   {
     key: "supply_requests.view_all",
@@ -135,13 +121,6 @@ const PERMISSION_REGISTRY_RAW = [
     label: "소모품신청 맡기",
     description: "미배정 소모품신청을 본인 담당으로 가져오기",
     group: "소모품신청",
-  },
-  {
-    key: "supply_requests.manage",
-    label: "소모품신청 관리(은퇴예정)",
-    description: "구 소모품신청 권한 — status로 분해됨",
-    group: "소모품신청",
-    deprecated: true,
   },
   // ── 카탈로그 ──
   {

@@ -8,33 +8,28 @@ import {
 } from "./permissions";
 
 describe("permission registry", () => {
-  // E5a: capability registry — 기존 12 + 신규 9 = 21키. 새 기능마다 키 추가, 스키마 변경 0.
-  test("registry는 21개 capability 키를 정의한다", () => {
+  // E5a: capability registry — 18키. *.manage 3키는 step6에서 분해·삭제됨. 새 기능마다 키 추가, 스키마 변경 0.
+  test("registry는 18개 capability 키를 정의한다", () => {
     expect([...PERMISSIONS].sort()).toEqual(
       [
-        // 기존 12
-        "applications.assign",
         "applications.view_all",
-        "consumables.manage",
-        "customers.manage",
-        "email.send",
-        "equipment.manage",
-        "quotes.write",
-        "service_requests.manage",
-        "service_requests.view_all",
-        "supply_requests.manage",
-        "supply_requests.view_all",
-        "users.manage",
-        // 신규 9 (E5a)
+        "applications.assign",
         "applications.status",
         "applications.claim",
+        "quotes.write",
+        "email.send",
         "customers.edit",
         "customers.delete",
         "customers.view_all",
+        "service_requests.view_all",
         "service_requests.status",
         "service_requests.claim",
+        "supply_requests.view_all",
         "supply_requests.status",
         "supply_requests.claim",
+        "equipment.manage",
+        "consumables.manage",
+        "users.manage",
       ].sort(),
     );
   });
@@ -69,18 +64,22 @@ describe("registry 메타 ({label, description, group})", () => {
   });
 });
 
-describe("은퇴(deprecated) 키 — E5a step1에선 유지, step6에서 삭제", () => {
-  test("deprecated 키는 정확히 customers/service/supply의 .manage 3종", () => {
+describe("은퇴(deprecated) 키 — E5a step6에서 전부 삭제됨", () => {
+  test("deprecated 키는 더 이상 없다(빈 집합)", () => {
     const deprecated = PERMISSION_REGISTRY.filter((p) => p.deprecated).map(
       (p) => p.key,
     );
-    expect([...deprecated].sort()).toEqual(
-      [
-        "customers.manage",
-        "service_requests.manage",
-        "supply_requests.manage",
-      ].sort(),
-    );
+    expect(deprecated).toEqual([]);
+  });
+
+  test("삭제된 *.manage 3키는 registry에 없다", () => {
+    for (const gone of [
+      "customers.manage",
+      "service_requests.manage",
+      "supply_requests.manage",
+    ]) {
+      expect(PERMISSIONS).not.toContain(gone);
+    }
   });
 
   test("신규 키는 deprecated가 아니다", () => {
@@ -202,16 +201,19 @@ describe("ADMIN_PRESET (관리자 프리셋)", () => {
   });
 });
 
-describe("customers.manage capability (P-B, deprecated)", () => {
-  test("customers.manage 키가 registry에 존재(유지)", () => {
-    expect(PERMISSIONS).toContain("customers.manage");
+describe("customers capabilities (P-B → E5a 분해)", () => {
+  test("edit/delete/view_all 키가 registry에 존재", () => {
+    expect(PERMISSIONS).toContain("customers.edit");
+    expect(PERMISSIONS).toContain("customers.delete");
+    expect(PERMISSIONS).toContain("customers.view_all");
   });
-  test("users.manage 보유자는 customers.manage도 통과(슈퍼권한)", () => {
-    expect(can(["users.manage"], "customers.manage")).toBe(true);
+  test("users.manage 보유자는 전부 통과(슈퍼권한)", () => {
+    expect(can(["users.manage"], "customers.delete")).toBe(true);
   });
-  test("customers.manage만 보유 시 customers.manage 통과, equipment.manage 불가", () => {
-    expect(can(["customers.manage"], "customers.manage")).toBe(true);
-    expect(can(["customers.manage"], "equipment.manage")).toBe(false);
+  test("customers.edit만 보유 시 edit 통과, delete·equipment.manage 불가", () => {
+    expect(can(["customers.edit"], "customers.edit")).toBe(true);
+    expect(can(["customers.edit"], "customers.delete")).toBe(false);
+    expect(can(["customers.edit"], "equipment.manage")).toBe(false);
   });
 });
 
@@ -222,46 +224,40 @@ describe("consumables.manage capability (P-C)", () => {
   test("users.manage 보유자는 consumables.manage도 통과(슈퍼권한)", () => {
     expect(can(["users.manage"], "consumables.manage")).toBe(true);
   });
-  test("consumables.manage만 보유 시 통과, customers.manage 불가", () => {
+  test("consumables.manage만 보유 시 통과, customers.edit 불가", () => {
     expect(can(["consumables.manage"], "consumables.manage")).toBe(true);
-    expect(can(["consumables.manage"], "customers.manage")).toBe(false);
+    expect(can(["consumables.manage"], "customers.edit")).toBe(false);
   });
 });
 
-describe("service_requests capabilities (P-D)", () => {
-  test("view_all·manage 키가 registry에 존재", () => {
+describe("service_requests capabilities (P-D → E5a 분해)", () => {
+  test("view_all·status·claim 키가 registry에 존재(manage 삭제됨)", () => {
     expect(PERMISSIONS).toContain("service_requests.view_all");
-    expect(PERMISSIONS).toContain("service_requests.manage");
+    expect(PERMISSIONS).toContain("service_requests.status");
+    expect(PERMISSIONS).toContain("service_requests.claim");
   });
-  test("users.manage 보유자는 둘 다 통과(슈퍼권한)", () => {
+  test("users.manage 보유자는 전부 통과(슈퍼권한)", () => {
     expect(can(["users.manage"], "service_requests.view_all")).toBe(true);
-    expect(can(["users.manage"], "service_requests.manage")).toBe(true);
+    expect(can(["users.manage"], "service_requests.status")).toBe(true);
   });
-  test("view_all만 보유 시 view_all 통과, manage 불가", () => {
-    expect(can(["service_requests.view_all"], "service_requests.view_all")).toBe(
-      true,
-    );
-    expect(can(["service_requests.view_all"], "service_requests.manage")).toBe(
-      false,
-    );
+  test("view_all만 보유 시 view_all 통과, status 불가(분리)", () => {
+    expect(can(["service_requests.view_all"], "service_requests.view_all")).toBe(true);
+    expect(can(["service_requests.view_all"], "service_requests.status")).toBe(false);
   });
 });
 
-describe("supply_requests capabilities (P-E)", () => {
-  test("view_all·manage 키가 registry에 존재", () => {
+describe("supply_requests capabilities (P-E → E5a 분해)", () => {
+  test("view_all·status·claim 키가 registry에 존재(manage 삭제됨)", () => {
     expect(PERMISSIONS).toContain("supply_requests.view_all");
-    expect(PERMISSIONS).toContain("supply_requests.manage");
+    expect(PERMISSIONS).toContain("supply_requests.status");
+    expect(PERMISSIONS).toContain("supply_requests.claim");
   });
-  test("users.manage 보유자는 둘 다 통과(슈퍼권한)", () => {
+  test("users.manage 보유자는 전부 통과(슈퍼권한)", () => {
     expect(can(["users.manage"], "supply_requests.view_all")).toBe(true);
-    expect(can(["users.manage"], "supply_requests.manage")).toBe(true);
+    expect(can(["users.manage"], "supply_requests.status")).toBe(true);
   });
-  test("view_all만 보유 시 view_all 통과, manage 불가", () => {
-    expect(can(["supply_requests.view_all"], "supply_requests.view_all")).toBe(
-      true,
-    );
-    expect(can(["supply_requests.view_all"], "supply_requests.manage")).toBe(
-      false,
-    );
+  test("view_all만 보유 시 view_all 통과, status 불가(분리)", () => {
+    expect(can(["supply_requests.view_all"], "supply_requests.view_all")).toBe(true);
+    expect(can(["supply_requests.view_all"], "supply_requests.status")).toBe(false);
   });
 });

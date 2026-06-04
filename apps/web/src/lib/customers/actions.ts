@@ -23,7 +23,7 @@ async function applyEquipmentDiff(supabase: SupabaseClient, companyId: string, v
     if (error) return error.message;
   }
   // 제출된 id 중 이 회사 소속 행만 업데이트(cross-company 행 조작 방지).
-  // RLS는 customers.manage만 검사하고 row 소유는 안 보므로 company_id 스코프를 앱에서 강제.
+  // RLS(customers.edit + 부모 company 본인-스코프)도 막지만 company_id 스코프를 앱에서 한 번 더 강제(방어심화).
   const ownedIds = new Set((existingRows ?? []).map((r: { id: string }) => r.id));
   for (const u of toUpdate) {
     const { id, ...rest } = u;

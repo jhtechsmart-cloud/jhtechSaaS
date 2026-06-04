@@ -13,7 +13,7 @@ export interface CompanyListRow {
   updated_at: string;
 }
 
-// 업체 목록 — 최신순. RLS: customers.manage 권한 보유자만 접근 가능.
+// 업체 목록 — 최신순. RLS: 본인 담당 고객(assignee) 또는 customers.view_all 보유자만.
 // profiles 임베드 조인(assignee_id → profiles.name) + company_equipment count 조인.
 // ⚠️ profiles 테이블 display_name 없음 → name 컬럼 사용(20260529150001_auth_profiles.sql 확인).
 export async function listCompanies(): Promise<CompanyListRow[]> {
@@ -61,7 +61,7 @@ export async function getCompanyDetail(id: string) {
   return data;
 }
 
-// 통합 고객이력(P-F) — 견적·AS·소모품을 DEFINER RPC로 한 번에(담당자 무관, customers.manage 게이트).
+// 통합 고객이력(P-F) — 견적·AS·소모품을 DEFINER RPC로 한 번에(customers.view_all 또는 본인 담당 고객 게이트).
 // 견적은 biz_no 정규화 OR source_application_id 매칭. 업체+장비는 getCompany로 별도(병렬 호출 권장).
 export async function getCustomerHistory(id: string): Promise<CustomerHistory> {
   const supabase = await createSupabaseServerClient();
