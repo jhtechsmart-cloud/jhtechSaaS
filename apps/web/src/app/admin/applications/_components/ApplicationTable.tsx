@@ -79,7 +79,7 @@ export function ApplicationTable({
           <table className="w-full border-collapse text-body">
             <thead>
               <tr className="border-b border-border text-left text-small text-muted">
-                <th className="w-[1%] whitespace-nowrap py-2 pr-4 font-medium">접수번호</th>
+                <th className="w-[1%] whitespace-nowrap py-2 pr-10 font-medium">접수번호</th>
                 <th className="py-2 pr-4 font-medium">업체</th>
                 <th className="py-2 pr-4 font-medium">견적 내용</th>
                 <th className="py-2 pr-4 font-medium">담당</th>
@@ -94,7 +94,7 @@ export function ApplicationTable({
                   className={`cursor-pointer border-b border-border hover:bg-surface-2 ${it.is_new ? "bg-blue-50/40" : ""}`}
                   onClick={() => router.push(`/admin/applications/${it.id}`)}
                 >
-                  <td className="w-[1%] whitespace-nowrap py-2 pr-4">
+                  <td className="w-[1%] whitespace-nowrap py-2 pr-10">
                     <Link
                       href={`/admin/applications/${it.id}`}
                       className="flex items-center gap-2 font-mono tabular-nums text-text hover:text-accent"
