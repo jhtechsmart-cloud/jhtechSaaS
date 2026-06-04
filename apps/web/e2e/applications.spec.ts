@@ -100,6 +100,9 @@ test.describe.serial("E4 견적 트리아지 콘솔 E2E", () => {
     await expect(page.getByText("공장")).toBeVisible();
     await expect(page.getByText("3상 380V")).toBeVisible();
 
+    // 미배정 상태에선 상태 변경 불가 — 안내 메시지 노출(담당자 먼저 배정 워크플로 강제).
+    await expect(page.getByText("담당자를 먼저 배정해주세요")).toBeVisible();
+
     // 3) 담당 배정 → status new→assigned 자동 전이. 배지(testid)로 정밀 단언.
     const assign = page.getByRole("combobox").first();
     await assign.selectOption({ index: 1 });

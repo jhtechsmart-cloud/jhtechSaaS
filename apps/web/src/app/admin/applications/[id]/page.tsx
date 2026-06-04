@@ -165,7 +165,12 @@ export default async function ApplicationDetailPage({
           <div>
             <div className="mb-1 text-small text-muted">상태</div>
             {canAssign ? (
-              <StatusControl key={status} id={id} current={status} />
+              <StatusControl
+                key={`${status}-${(r.assignee_id as string | null) ?? "none"}`}
+                id={id}
+                current={status}
+                hasAssignee={r.assignee_id != null}
+              />
             ) : (
               <p className="text-small text-muted">상태 변경 권한(applications.assign)이 없습니다.</p>
             )}

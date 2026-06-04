@@ -47,6 +47,11 @@ export async function updateApplicationStatus(
   const parsed = applicationStatusSchema.safeParse(status);
   if (!parsed.success) return { error: "유효하지 않은 상태입니다" };
   const supabase = await createSupabaseServerClient();
+  // 담당자 미배정이면 상태 변경 차단(UI 가드의 서버 짝 — 직접 POST 방어).
+  const { data: cur } = await supabase
+    .from("applications").select("assignee_id").eq("id", id).maybeSingle();
+  if (!cur) return { error: "신청을 찾을 수 없습니다" };
+  if (!cur.assignee_id) return { error: "담당자를 먼저 배정해주세요" };
   const { data, error } = await supabase
     .from("applications").update({ status: parsed.data }).eq("id", id).select("id");
   if (error || !data || data.length === 0) return { error: FAIL };
