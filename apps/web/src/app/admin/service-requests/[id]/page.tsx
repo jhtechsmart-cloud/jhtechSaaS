@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { can } from "@jhtechsaas/shared";
-import { requirePermission } from "@/lib/auth/guard";
+import { requireServiceConsole } from "@/lib/auth/guard";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getServiceRequest, type ServiceRequestStatus } from "@/lib/service-requests/queries";
+import { claimServiceRequest } from "@/lib/service-requests/admin-actions";
+import { ClaimButton } from "@/app/admin/_components/ClaimButton";
 import { StatusBadge } from "../_components/StatusBadge";
 import { StatusControl } from "./_components/StatusControl";
 import { MarkReadOnView } from "./_components/MarkReadOnView";
@@ -13,7 +15,7 @@ export default async function ServiceRequestDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const access = await requirePermission("service_requests.view_all");
+  const access = await requireServiceConsole();
   if (access.status === "forbidden") {
     return <p className="text-body text-muted">A/S 조회 권한이 없습니다.</p>;
   }
@@ -42,7 +44,9 @@ export default async function ServiceRequestDetailPage({
     if (data?.signedUrl) signedPhotos.push(data.signedUrl);
   }
 
-  const canManage = can(access.permissions, "service_requests.manage");
+  const canStatus = can(access.permissions, "service_requests.status");
+  const canClaim = can(access.permissions, "service_requests.claim");
+  const assigneeId = r.assignee_id as string | null;
 
   return (
     <div className="flex max-w-2xl flex-col gap-6">
@@ -98,11 +102,17 @@ export default async function ServiceRequestDetailPage({
       </Section>
 
       <Section title="처리">
-        {canManage ? (
-          <StatusControl id={id} current={status} />
-        ) : (
-          <p className="text-small text-muted">상태 변경 권한(service_requests.manage)이 없습니다.</p>
-        )}
+        <div className="flex flex-col gap-3">
+          {assigneeId == null && canClaim && (
+            // 영업담당 — 미배정 A/S를 본인으로 가져오기. 맡은 뒤 상태 변경 가능.
+            <ClaimButton id={id} action={claimServiceRequest} />
+          )}
+          {canStatus ? (
+            <StatusControl id={id} current={status} />
+          ) : (
+            <p className="text-small text-muted">상태 변경 권한이 없습니다.</p>
+          )}
+        </div>
       </Section>
     </div>
   );

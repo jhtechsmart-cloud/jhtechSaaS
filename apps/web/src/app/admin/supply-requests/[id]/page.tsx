@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { can } from "@jhtechsaas/shared";
-import { requirePermission } from "@/lib/auth/guard";
+import { requireSupplyConsole } from "@/lib/auth/guard";
 import { getSupplyRequest, type SupplyRequestStatus } from "@/lib/supply-requests/queries";
+import { claimSupplyRequest } from "@/lib/supply-requests/admin-actions";
+import { ClaimButton } from "@/app/admin/_components/ClaimButton";
 import { StatusBadge } from "@/lib/request-status";
 import { StatusControl } from "./_components/StatusControl";
 import { MarkReadOnView } from "./_components/MarkReadOnView";
@@ -12,7 +14,7 @@ export default async function SupplyRequestDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const access = await requirePermission("supply_requests.view_all");
+  const access = await requireSupplyConsole();
   if (access.status === "forbidden") {
     return <p className="text-body text-muted">소모품신청 조회 권한이 없습니다.</p>;
   }
@@ -30,7 +32,9 @@ export default async function SupplyRequestDetailPage({
   const company = r.companies as { name?: string; biz_no?: string; ceo?: string; phone?: string } | null;
   const items = (r.supply_request_items as Array<{ id: string; consumable_name_snapshot: string; consumable_unit_snapshot: string | null; qty: number }> | null) ?? [];
   const status = r.status as SupplyRequestStatus;
-  const canManage = can(access.permissions, "supply_requests.manage");
+  const canStatus = can(access.permissions, "supply_requests.status");
+  const canClaim = can(access.permissions, "supply_requests.claim");
+  const assigneeId = r.assignee_id as string | null;
 
   return (
     <div className="flex max-w-2xl flex-col gap-6">
@@ -92,11 +96,17 @@ export default async function SupplyRequestDetailPage({
       </Section>
 
       <Section title="처리">
-        {canManage ? (
-          <StatusControl id={id} current={status} />
-        ) : (
-          <p className="text-small text-muted">상태 변경 권한(supply_requests.manage)이 없습니다.</p>
-        )}
+        <div className="flex flex-col gap-3">
+          {assigneeId == null && canClaim && (
+            // 영업담당 — 미배정 소모품신청을 본인으로 가져오기. 맡은 뒤 상태 변경 가능.
+            <ClaimButton id={id} action={claimSupplyRequest} />
+          )}
+          {canStatus ? (
+            <StatusControl id={id} current={status} />
+          ) : (
+            <p className="text-small text-muted">상태 변경 권한이 없습니다.</p>
+          )}
+        </div>
       </Section>
     </div>
   );

@@ -15,7 +15,7 @@ async function seed(): Promise<string> {
   await seedAuthUser(c, UID.admin, "sr-admin@jhtech.test");
   await seedAuthUser(c, UID.sales1, "sr-sales1@jhtech.test");
   await seedAuthUser(c, UID.sales2, "sr-sales2@jhtech.test");
-  await c.query("update public.profiles set permissions='{service_requests.view_all,service_requests.manage}' where id=$1", [UID.admin]);
+  await c.query("update public.profiles set permissions='{service_requests.view_all,service_requests.status}' where id=$1", [UID.admin]);
   await c.query("update public.profiles set permissions='{}' where id=$1", [UID.sales1]);
   await c.query("update public.profiles set permissions='{}' where id=$1", [UID.sales2]);
   const r = await c.query(
@@ -171,6 +171,64 @@ describe("service_requests — RLS row-scope", () => {
       await c.query("update public.profiles set permissions='{users.manage}' where id=$1", [UID.sales2]);
       await asUser(c, UID.sales2);
       expect((await c.query("delete from public.service_requests where id=$1", [id])).rowCount).toBe(1);
+    });
+  });
+});
+
+describe("service_requests — self-claim 스코프 (E5a step3)", () => {
+  // sales1 = claim+status만(view_all 없음), sales2 = 권한 없음.
+  async function seedClaim(): Promise<{ pool: string; other: string }> {
+    await asPostgres(c);
+    await seedAuthUser(c, UID.sales1, "sc-sales1@jhtech.test");
+    await seedAuthUser(c, UID.sales2, "sc-sales2@jhtech.test");
+    await c.query("update public.profiles set permissions='{service_requests.claim,service_requests.status}' where id=$1", [UID.sales1]);
+    await c.query("update public.profiles set permissions='{}' where id=$1", [UID.sales2]);
+    const pool = await insertReq({ assignee_id: null }); // 미배정
+    const other = await insertReq({ assignee_id: UID.sales2 }); // 타인 배정
+    return { pool, other };
+  }
+
+  test("claim 보유자는 미배정 A/S를 SELECT로 본다(타인 배정건 제외)", async () => {
+    await inRollbackTx(c, async () => {
+      const { pool } = await seedClaim();
+      await asUser(c, UID.sales1);
+      const r = await c.query("select id from public.service_requests");
+      expect(r.rows.map((x) => x.id)).toEqual([pool]);
+    });
+  });
+
+  test("claim 보유자가 미배정 A/S를 본인으로 가져온다(assignee=uid)", async () => {
+    await inRollbackTx(c, async () => {
+      const { pool } = await seedClaim();
+      await asUser(c, UID.sales1);
+      const r = await c.query(
+        "update public.service_requests set assignee_id=$1 where id=$2 and assignee_id is null returning assignee_id",
+        [UID.sales1, pool],
+      );
+      expect(r.rowCount).toBe(1);
+      expect(r.rows[0].assignee_id).toBe(UID.sales1);
+    });
+  });
+
+  test("claim 보유자가 타인 배정 A/S는 못 가져온다(0행)", async () => {
+    await inRollbackTx(c, async () => {
+      const { other } = await seedClaim();
+      await asUser(c, UID.sales1);
+      const r = await c.query(
+        "update public.service_requests set assignee_id=$1 where id=$2 and assignee_id is null returning id",
+        [UID.sales1, other],
+      );
+      expect(r.rowCount).toBe(0);
+    });
+  });
+
+  test("claim 보유자가 미배정 A/S를 타인에게 배정하면 거부(escalation 방지)", async () => {
+    await inRollbackTx(c, async () => {
+      const { pool } = await seedClaim();
+      await asUser(c, UID.sales1);
+      await expect(
+        c.query("update public.service_requests set assignee_id=$1 where id=$2 and assignee_id is null", [UID.sales2, pool]),
+      ).rejects.toThrow();
     });
   });
 });

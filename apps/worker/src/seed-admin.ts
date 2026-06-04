@@ -6,7 +6,7 @@
 // 멱등 — 이미 있으면 권한만 다시 맞춘다. raw SQL auth.users INSERT보다 버전 견고.
 
 import { createServiceClient } from "@jhtechsaas/shared/supabase";
-import { PERMISSIONS, type PermissionKey } from "@jhtechsaas/shared/permissions";
+import { PERMISSIONS, SALES_PRESET, type PermissionKey } from "@jhtechsaas/shared/permissions";
 import { isLocalSupabaseUrl, resolveSeedPassword } from "@jhtechsaas/shared/seed";
 
 const url = process.env.SUPABASE_URL ?? process.env.API_URL;
@@ -51,7 +51,7 @@ const SEED_USERS: SeedUser[] = [
   {
     email: "sales@jhtech.local",
     name: "영업담당",
-    permissions: ["applications.view_all", "quotes.write", "email.send"],
+    permissions: [...SALES_PRESET], // E5a: 영업담당 표준 프리셋(본인+미배정 스코프·self-claim·견적·메일)
     passwordEnv: "SEED_SALES_PASSWORD",
     devDefault: "jhtech-sales-dev",
     localOnly: true, // 개발 편의 계정 — 프로덕션엔 만들지 않음

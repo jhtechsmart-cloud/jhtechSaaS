@@ -31,4 +31,16 @@ describe("resolveAccess", () => {
       status: "forbidden",
     });
   });
+
+  it("is_active=false면 권한 보유해도 forbidden(비활성 계정 차단)", () => {
+    expect(
+      resolveAccess("u1", ["equipment.manage"], "equipment.manage", false),
+    ).toEqual({ status: "forbidden" });
+  });
+
+  it("is_active=false면 users.manage(슈퍼)도 forbidden", () => {
+    expect(
+      resolveAccess("u1", ["users.manage"], "equipment.manage", false),
+    ).toEqual({ status: "forbidden" });
+  });
 });

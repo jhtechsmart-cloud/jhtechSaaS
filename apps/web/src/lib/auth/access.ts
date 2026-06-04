@@ -11,8 +11,11 @@ export function resolveAccess(
   userId: string | null,
   permissions: readonly string[] | null,
   required: PermissionKey,
+  isActive: boolean = true,
 ): AccessResult {
   if (!userId) return { status: "unauthenticated" };
+  // 비활성 계정은 권한이 있어도(슈퍼 포함) 차단. DB has_permission도 is_active를 보지만 셸 UX 차원.
+  if (!isActive) return { status: "forbidden" };
   if (!permissions || !can(permissions, required)) {
     return { status: "forbidden" };
   }

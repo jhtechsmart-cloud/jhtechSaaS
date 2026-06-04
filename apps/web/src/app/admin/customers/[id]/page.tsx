@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireCustomersManage } from "@/lib/auth/guard";
+import { requireCustomersEdit } from "@/lib/auth/guard";
 import { getCompanyDetail, getCustomerHistory } from "@/lib/customers/queries";
 import {
   summarizeApplications,
@@ -13,20 +13,20 @@ import { ApplicationStatusBadge } from "@/lib/application-status";
 import { signOut } from "@/app/login/actions";
 
 // 통합 고객이력(P-F #24) — 견적/구입/AS/소모품 + 완료여부 한눈에(읽기 전용, E7 확장).
-// ⚠️ admin/layout은 equipment.manage 가드 → customers.manage 별도 확인 필수.
+// ⚠️ admin/layout은 equipment.manage 가드 → customers.edit 별도 확인 필수.
 export default async function CustomerDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const access = await requireCustomersManage();
+  const access = await requireCustomersEdit();
   if (access.status === "forbidden") {
     return (
       <main className="flex min-h-dvh flex-col items-center justify-center gap-3 p-6">
         <p className="text-h2 font-semibold text-text">접근 권한이 없습니다</p>
         <p className="text-small text-muted">
-          고객 관리 권한(customers.manage)이 필요합니다. 관리자에게 문의하세요.
+          고객 관리 권한(customers.edit)이 필요합니다. 관리자에게 문의하세요.
         </p>
         <form action={signOut}>
           <button className="text-small text-accent underline">로그아웃</button>
