@@ -51,3 +51,4 @@ export const requireCustomersEdit = () => requirePermission("customers.edit");
 export const requireCustomersDelete = () => requirePermission("customers.delete");
 export const requireCustomersViewAll = () => requirePermission("customers.view_all");
 export const requireConsumablesManage = () => requirePermission("consumables.manage");
+export const requireUsersManage = () => requirePermission("users.manage");
