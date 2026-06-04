@@ -117,3 +117,23 @@ export function buildSubmitPayload(
 
 // RPC 접수번호 응답 검증 — 외부응답 직접 신뢰 금지(CLAUDE.md).
 export const seqNoSchema = z.string().regex(/^REQ-\d{8}-\d{5,}$/, "접수번호 형식 오류");
+
+// 설치설문 한글 라벨맵 — 공개폼 InstallSurvey.tsx 문구와 동일. admin 상세 렌더의 단일출처.
+export const SURVEY_LABELS = {
+  building_type: { factory: "공장", store: "상가", office: "사무실", etc: "기타" },
+  location: { basement: "지하", ground: "1층", upper: "2층 이상" },
+  elevator: { have: "있음", none: "없음" },
+  handling: { no_vehicle: "차량 진입 곤란", manual: "수작업 운반", ladder: "사다리차 필요" },
+  power: { single_220: "단상 220V", triple_380: "3상 380V" },
+  pneumatic: { have: "있음", none: "없음" },
+} as const;
+
+// 설문 항목 표시 라벨(섹션 좌측 라벨).
+export const SURVEY_FIELD_LABELS: Record<string, string> = {
+  building_type: "건물 유형",
+  location: "설치 위치",
+  elevator: "엘리베이터",
+  power: "전력",
+  pneumatic: "공압",
+  handling: "기타사항",
+};
