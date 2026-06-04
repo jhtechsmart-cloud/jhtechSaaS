@@ -32,9 +32,27 @@ export async function assignApplication(
     .from("applications").update(patch).eq("id", id).select("id");
   if (error || !data || data.length === 0) return { error: FAIL };
 
+  await propagateAssigneeToCompany(supabase, id);
   revalidatePath(`/admin/applications/${id}`);
   revalidatePath("/admin/applications");
   return { ok: true };
+}
+
+// 견적 담당자 → 연결 고객 담당영업 전파(단방향·fill-if-empty). DEFINER RPC가 권한 게이트+RLS 우회.
+// 배정 자체는 이미 성공했으므로 전파 실패는 비치명적(로그만). 채워진 고객 페이지는 재검증.
+async function propagateAssigneeToCompany(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  applicationId: string,
+): Promise<void> {
+  const { data, error } = await supabase.rpc("sync_company_assignee_from_application", {
+    p_application_id: applicationId,
+  });
+  if (error) {
+    console.error("[applications.syncCompanyAssignee]", error);
+    return;
+  }
+  const companyId = data as string | null;
+  if (companyId) revalidatePath(`/admin/customers/${companyId}`);
 }
 
 // 미배정 신청을 본인 담당으로 가져오기(self-claim) — applications.claim 필요.
@@ -58,6 +76,7 @@ export async function claimApplication(id: string): Promise<ApplicationActionRes
     .from("applications").update(patch).eq("id", id).is("assignee_id", null).select("id");
   if (error || !data || data.length === 0) return { error: FAIL };
 
+  await propagateAssigneeToCompany(supabase, id);
   revalidatePath(`/admin/applications/${id}`);
   revalidatePath("/admin/applications");
   return { ok: true };
