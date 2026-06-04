@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { resolveLandingPath } from "@/lib/auth/guard";
 import LoginForm from "./LoginForm";
 
 export default async function LoginPage() {
@@ -7,6 +8,6 @@ export default async function LoginPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (user) redirect("/admin/equipment");
+  if (user) redirect(await resolveLandingPath());
   return <LoginForm />;
 }

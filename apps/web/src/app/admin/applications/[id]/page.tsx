@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { can } from "@jhtechsaas/shared";
-import { requirePermission } from "@/lib/auth/guard";
+import { requireApplicationsConsole } from "@/lib/auth/guard";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getApplicationForAdmin } from "@/lib/applications/admin-queries";
+import { claimApplication } from "@/lib/applications/admin-actions";
 import { listAssignableStaff } from "@/lib/customers/queries";
 import { ApplicationStatusBadge } from "@/lib/application-status";
 import type { ApplicationStatus } from "@/lib/customers/history";
 import { SURVEY_LABELS, SURVEY_FIELD_LABELS, PHOTO_SLOTS, type PhotoSlot } from "@/lib/applications/schema";
+import { ClaimButton } from "@/app/admin/_components/ClaimButton";
 import { StatusControl } from "./_components/StatusControl";
 import { AssignControl } from "./_components/AssignControl";
 import { RegisterCustomerButton } from "./_components/RegisterCustomerButton";
@@ -24,7 +26,7 @@ export default async function ApplicationDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const access = await requirePermission("applications.view_all");
+  const access = await requireApplicationsConsole();
   if (access.status === "forbidden") {
     return <p className="text-body text-muted">견적 조회 권한이 없습니다.</p>;
   }
@@ -50,6 +52,8 @@ export default async function ApplicationDetailPage({
   const survey = fields.install_survey ?? {};
   const staff = await listAssignableStaff();
   const canAssign = can(access.permissions, "applications.assign");
+  const canClaim = can(access.permissions, "applications.claim");
+  const canStatus = can(access.permissions, "applications.status");
   const canManageCustomers = can(access.permissions, "customers.edit");
 
   // 사진 4슬롯 — 병렬 서명URL. 실패/없음은 슬롯 라벨 유지하며 플레이스홀더(노출 안 함).
@@ -158,13 +162,16 @@ export default async function ApplicationDetailPage({
                 currentAssigneeId={r.assignee_id as string | null}
                 staff={staff}
               />
+            ) : r.assignee_id == null && canClaim ? (
+              // 영업담당 — 미배정 건을 본인으로 가져오기(재배정 권한 없음).
+              <ClaimButton id={id} action={claimApplication} />
             ) : (
-              <p className="text-small text-muted">{(r.profiles as { name?: string } | null)?.name ?? "미배정"} (배정 권한 없음)</p>
+              <p className="text-small text-muted">{(r.profiles as { name?: string } | null)?.name ?? "미배정"}</p>
             )}
           </div>
           <div>
             <div className="mb-1 text-small text-muted">상태</div>
-            {canAssign ? (
+            {canStatus ? (
               <StatusControl
                 key={`${status}-${(r.assignee_id as string | null) ?? "none"}`}
                 id={id}
@@ -172,7 +179,7 @@ export default async function ApplicationDetailPage({
                 hasAssignee={r.assignee_id != null}
               />
             ) : (
-              <p className="text-small text-muted">상태 변경 권한(applications.assign)이 없습니다.</p>
+              <p className="text-small text-muted">상태 변경 권한이 없습니다.</p>
             )}
           </div>
         </div>

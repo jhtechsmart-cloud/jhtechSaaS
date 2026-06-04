@@ -1,16 +1,16 @@
-import { requirePermission } from "@/lib/auth/guard";
+import { requireSupplyConsole } from "@/lib/auth/guard";
 import { listSupplyRequests } from "@/lib/supply-requests/queries";
 import { SupplyRequestTable } from "./_components/SupplyRequestTable";
 
-// 소모품신청 목록(admin). 페이지 가드: supply_requests.view_all.
-// ⚠️ admin layout이 equipment.manage로 콘솔 전체를 게이트(백로그 #29) → 둘 다 필요(또는 admin).
+// 소모품신청 목록(admin). 페이지 가드: 소모품신청 콘솔 키 중 하나(view_all/status/claim).
+// RLS가 행 스코프(본인 배정+미배정 풀+view_all) 강제 → 영업담당도 진입.
 export default async function SupplyRequestsPage() {
-  const access = await requirePermission("supply_requests.view_all");
+  const access = await requireSupplyConsole();
   if (access.status === "forbidden") {
     return (
       <div className="flex flex-col items-center gap-2 rounded-md border border-border bg-surface p-10">
         <p className="text-h2 font-semibold text-text">접근 권한이 없습니다</p>
-        <p className="text-small text-muted">소모품신청 조회 권한(supply_requests.view_all)이 필요합니다.</p>
+        <p className="text-small text-muted">소모품신청 조회 권한이 필요합니다.</p>
       </div>
     );
   }
