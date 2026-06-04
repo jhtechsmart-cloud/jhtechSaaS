@@ -37,12 +37,38 @@ export async function assignApplication(
   return { ok: true };
 }
 
-// 상태 변경 — applications.assign 필요. 자유전이(4상태). 0행이면 거짓성공 대신 에러.
+// 미배정 신청을 본인 담당으로 가져오기(self-claim) — applications.claim 필요.
+// assignee_id IS NULL 가드로 이미 배정된 건은 0행(거짓성공 방지). new면 assigned로 auto-bump.
+export async function claimApplication(id: string): Promise<ApplicationActionResult> {
+  const access = await requirePermission("applications.claim");
+  if (access.status === "forbidden") return { error: "권한이 없습니다" };
+  const supabase = await createSupabaseServerClient();
+
+  const { data: cur } = await supabase
+    .from("applications").select("status,assignee_id").eq("id", id).maybeSingle();
+  if (!cur) return { error: "신청을 찾을 수 없습니다" };
+  if (cur.assignee_id) return { error: "이미 다른 담당자가 배정된 신청입니다" };
+
+  const patch: { assignee_id: string; status?: string } = { assignee_id: access.userId };
+  const bumped = nextStatusOnAssign(cur.status as ApplicationStatus, access.userId);
+  if (bumped) patch.status = bumped; // new→assigned
+
+  // .is(assignee_id,null) = 동시 claim 원자 가드(둘이 동시에 눌러도 한쪽만 1행).
+  const { data, error } = await supabase
+    .from("applications").update(patch).eq("id", id).is("assignee_id", null).select("id");
+  if (error || !data || data.length === 0) return { error: FAIL };
+
+  revalidatePath(`/admin/applications/${id}`);
+  revalidatePath("/admin/applications");
+  return { ok: true };
+}
+
+// 상태 변경 — applications.status 필요. 자유전이(4상태). 0행이면 거짓성공 대신 에러.
 export async function updateApplicationStatus(
   id: string,
   status: string,
 ): Promise<ApplicationActionResult> {
-  const access = await requirePermission("applications.assign");
+  const access = await requirePermission("applications.status");
   if (access.status === "forbidden") return { error: "권한이 없습니다" };
   const parsed = applicationStatusSchema.safeParse(status);
   if (!parsed.success) return { error: "유효하지 않은 상태입니다" };
