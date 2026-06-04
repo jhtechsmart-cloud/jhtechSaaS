@@ -15,7 +15,7 @@ async function seed(): Promise<string> {
   await seedAuthUser(c, UID.admin, "sr-admin@jhtech.test");
   await seedAuthUser(c, UID.sales1, "sr-sales1@jhtech.test");
   await seedAuthUser(c, UID.sales2, "sr-sales2@jhtech.test");
-  await c.query("update public.profiles set permissions='{service_requests.view_all,service_requests.manage}' where id=$1", [UID.admin]);
+  await c.query("update public.profiles set permissions='{service_requests.view_all,service_requests.status}' where id=$1", [UID.admin]);
   await c.query("update public.profiles set permissions='{}' where id=$1", [UID.sales1]);
   await c.query("update public.profiles set permissions='{}' where id=$1", [UID.sales2]);
   const r = await c.query(
