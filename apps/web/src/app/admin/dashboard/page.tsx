@@ -10,6 +10,7 @@ import {
   countCustomers,
   countCompanyEquipment,
   countActiveEquipment,
+  assigneeLoad,
 } from "@/lib/dashboard/aggregates";
 import { toBarSegments, isDashboardEmpty } from "@/lib/dashboard/bars";
 import { APPLICATION_STATUS_META, APPLICATION_STATUSES } from "@/lib/application-status";
@@ -20,6 +21,7 @@ import { ActionQueue } from "./_components/ActionQueue";
 import { StatusBar } from "./_components/StatusBar";
 import { ReferenceCounts } from "./_components/ReferenceCounts";
 import { EmptyOnboarding } from "./_components/EmptyOnboarding";
+import { AssigneeLoad } from "./_components/AssigneeLoad";
 
 // settled 결과 → 값 또는 null(실패). 블록별 에러 흡수(한 집계 실패가 전체를 무너뜨리지 않음).
 function val<T>(r: PromiseSettledResult<T>): T | null {
@@ -60,6 +62,11 @@ export default async function DashboardPage() {
   const allFetched = appCounts != null && svcCounts != null && supCounts != null;
   const empty = allFetched && isDashboardEmpty(totals);
 
+  // 담당자별 부하 — users.manage만(profiles 이름 RLS). 실패는 null로 흡수.
+  const loadRows = can(access.permissions, "users.manage")
+    ? await assigneeLoad().catch(() => null)
+    : null;
+
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-h1 font-semibold text-text">대시보드</h1>
@@ -88,6 +95,7 @@ export default async function DashboardPage() {
           segments={supCounts ? toBarSegments(supCounts, STATUS_META, SUPPLY_REQUEST_STATUSES) : []}
         />
         <ReferenceCounts customers={val(customers)} equipment={val(equipment)} catalog={val(catalog)} />
+        {can(access.permissions, "users.manage") && loadRows && <AssigneeLoad rows={loadRows} />}
       </section>
     </div>
   );

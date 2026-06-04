@@ -41,3 +41,24 @@ async function countTable(table: string, filter?: { col: string; val: unknown })
 export const countCustomers = () => countTable("companies");
 export const countCompanyEquipment = () => countTable("company_equipment");
 export const countActiveEquipment = () => countTable("equipment", { col: "status", val: "active" });
+
+// 담당자별 미완료 부하 — users.manage 전용(이름 RLS). listAssignableStaff(한 자릿수) × 도메인 미완료 count.
+// ⚠️ RLS상 viewer가 view_all 없는 도메인은 본인 배정분만 집계됨(프로덕션 admin은 견적만 view_all) → 부분집계.
+// 무제한 row pull 금지 → 담당자 목록(소수) 기준으로 도메인별 count head 쿼리.
+export async function assigneeLoad(): Promise<{ id: string; name: string; applications: number; service: number; supply: number }[]> {
+  const supabase = await createSupabaseServerClient();
+  const { data: staff } = await supabase.from("profiles").select("id,name").eq("is_active", true).order("name");
+  const rows = staff ?? [];
+  const APP_OPEN = ["new", "assigned", "quoted"]; // 미완료(closed 제외)
+  const REQ_OPEN = ["received", "in_progress", "on_hold"]; // 미완료(done/canceled 제외)
+  return Promise.all(
+    rows.map(async (s) => {
+      const [a, sv, su] = await Promise.all([
+        supabase.from("applications").select("id", { count: "exact", head: true }).eq("assignee_id", s.id).in("status", APP_OPEN),
+        supabase.from("service_requests").select("id", { count: "exact", head: true }).eq("assignee_id", s.id).in("status", REQ_OPEN),
+        supabase.from("supply_requests").select("id", { count: "exact", head: true }).eq("assignee_id", s.id).in("status", REQ_OPEN),
+      ]);
+      return { id: s.id as string, name: (s.name as string) ?? "?", applications: a.count ?? 0, service: sv.count ?? 0, supply: su.count ?? 0 };
+    }),
+  );
+}
