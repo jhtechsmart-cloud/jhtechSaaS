@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { can } from "@jhtechsaas/shared";
 import { requireEquipmentManage } from "@/lib/auth/guard";
 import { countUnreadServiceRequests } from "@/lib/service-requests/queries";
 import { countUnreadSupplyRequests } from "@/lib/supply-requests/queries";
@@ -23,6 +24,8 @@ export default async function AdminLayout({
           countNewApplications(),
         ])
       : [0, 0, 0];
+  // 사용자 관리 메뉴는 users.manage 보유 시만 노출(전체 nav 데이터화는 step5).
+  const canManageUsers = access.status === "ok" && can(access.permissions, "users.manage");
 
   if (access.status === "forbidden") {
     return (
@@ -94,6 +97,14 @@ export default async function AdminLayout({
               <span className="rounded-full bg-accent px-2 py-0.5 text-micro font-medium text-white">{supplyUnread}</span>
             )}
           </Link>
+          {canManageUsers && (
+            <Link
+              href="/admin/users"
+              className="rounded-md px-3 py-2 text-body font-medium text-text hover:bg-surface-2"
+            >
+              사용자
+            </Link>
+          )}
         </nav>
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
