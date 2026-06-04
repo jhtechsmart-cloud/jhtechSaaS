@@ -2,6 +2,11 @@
 
 이 프로젝트의 주요 변경 사항을 기록한다. [Keep a Changelog](https://keepachangelog.com/) 형식, [Semantic Versioning](https://semver.org/)(4자리 MAJOR.MINOR.PATCH.MICRO).
 
+## [0.11.0.4] - 2026-06-04
+
+### Fixed
+- 장비 상세 갤러리 메인 이미지에 여백(`p-8`, 32px) 추가 — 카탈로그 카드와 일관되게, 여백 없는 원본 사진의 답답함 해소(썸네일은 object-cover 유지).
+
 ## [0.11.0.3] - 2026-06-04
 
 ### Fixed
