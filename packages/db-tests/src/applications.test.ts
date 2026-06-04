@@ -314,3 +314,65 @@ describe("applications — biz_no 정규화 매칭(P-F 역링크 등록 경로)"
     });
   });
 });
+
+describe("applications — self-claim 스코프 (E5a step3)", () => {
+  const POOL = "00000000-0000-0000-0000-0000000000c1"; // 미배정 'new'
+  const OTHER = "00000000-0000-0000-0000-0000000000c2"; // 타인(sales2) 배정
+
+  // sales1 = claim+status만(view_all·assign 없음), sales2 = 권한 없음.
+  async function seedClaim(): Promise<void> {
+    await asPostgres(c);
+    await seedAuthUser(c, UID.sales1, "c-sales1@jhtech.test");
+    await seedAuthUser(c, UID.sales2, "c-sales2@jhtech.test");
+    await c.query("update public.profiles set permissions='{applications.claim,applications.status}' where id=$1", [UID.sales1]);
+    await c.query("update public.profiles set permissions='{}' where id=$1", [UID.sales2]);
+    await c.query("insert into public.applications (id,company,status) values ($1,'미배정상사','new')", [POOL]);
+    await c.query("insert into public.applications (id,company,status,assignee_id) values ($1,'타인상사','assigned',$2)", [OTHER, UID.sales2]);
+  }
+
+  test("claim 보유자는 미배정 신청을 SELECT로 본다(타인 배정건은 안 보임)", async () => {
+    await inRollbackTx(c, async () => {
+      await seedClaim();
+      await asUser(c, UID.sales1);
+      const r = await c.query("select id from public.applications");
+      expect(r.rows.map((x) => x.id)).toEqual([POOL]);
+    });
+  });
+
+  test("claim 보유자가 미배정 신청을 본인으로 가져온다(assignee=uid, new→assigned)", async () => {
+    await inRollbackTx(c, async () => {
+      await seedClaim();
+      await asUser(c, UID.sales1);
+      const r = await c.query(
+        "update public.applications set assignee_id=$1, status='assigned' where id=$2 and assignee_id is null returning assignee_id,status",
+        [UID.sales1, POOL],
+      );
+      expect(r.rowCount).toBe(1);
+      expect(r.rows[0].assignee_id).toBe(UID.sales1);
+      expect(r.rows[0].status).toBe("assigned");
+    });
+  });
+
+  test("claim 보유자가 타인 배정 신청은 못 가져온다(IS NULL 가드 → 0행)", async () => {
+    await inRollbackTx(c, async () => {
+      await seedClaim();
+      await asUser(c, UID.sales1);
+      const r = await c.query(
+        "update public.applications set assignee_id=$1 where id=$2 and assignee_id is null returning id",
+        [UID.sales1, OTHER],
+      );
+      expect(r.rowCount).toBe(0);
+    });
+  });
+
+  test("claim 보유자가 미배정 행을 타인에게 배정하면 거부(escalation 방지)", async () => {
+    await inRollbackTx(c, async () => {
+      await seedClaim();
+      await asUser(c, UID.sales1);
+      // USING(claim·null)은 통과하나 NEW.assignee=sales2가 WITH CHECK(본인 OR assign)에 막혀 에러.
+      await expect(
+        c.query("update public.applications set assignee_id=$1 where id=$2 and assignee_id is null", [UID.sales2, POOL]),
+      ).rejects.toThrow();
+    });
+  });
+});

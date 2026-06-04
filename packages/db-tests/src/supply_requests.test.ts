@@ -242,3 +242,64 @@ describe("supply_request_items — RLS는 부모 따라감, 직접 write 차단"
     });
   });
 });
+
+describe("supply_requests — self-claim 스코프 (E5a step3)", () => {
+  // sales1 = claim+status만(view_all 없음), sales2 = 권한 없음.
+  // 미배정 풀 = assignee null 회사, 타인 배정 = assignee=sales2 회사(트리거가 회사에서 채움).
+  async function seedClaim(): Promise<{ pool: string; other: string }> {
+    await asPostgres(c);
+    await seedAuthUser(c, UID.sales1, "supc-sales1@jhtech.test");
+    await seedAuthUser(c, UID.sales2, "supc-sales2@jhtech.test");
+    await c.query("update public.profiles set permissions='{supply_requests.claim,supply_requests.status}' where id=$1", [UID.sales1]);
+    await c.query("update public.profiles set permissions='{}' where id=$1", [UID.sales2]);
+    const coNull = (await c.query("insert into public.companies (name, biz_no) values ('미배정상사','1234567891') returning id")).rows[0].id as string;
+    const coS2 = (await c.query("insert into public.companies (name, biz_no, assignee_id) values ('타인상사','1234567892',$1) returning id", [UID.sales2])).rows[0].id as string;
+    const pool = await insertReq(coNull);
+    const other = await insertReq(coS2);
+    return { pool, other };
+  }
+
+  test("claim 보유자는 미배정 소모품신청을 SELECT로 본다(타인 배정건 제외)", async () => {
+    await inRollbackTx(c, async () => {
+      const { pool } = await seedClaim();
+      await asUser(c, UID.sales1);
+      const r = await c.query("select id from public.supply_requests");
+      expect(r.rows.map((x) => x.id)).toEqual([pool]);
+    });
+  });
+
+  test("claim 보유자가 미배정 소모품신청을 본인으로 가져온다(assignee=uid)", async () => {
+    await inRollbackTx(c, async () => {
+      const { pool } = await seedClaim();
+      await asUser(c, UID.sales1);
+      const r = await c.query(
+        "update public.supply_requests set assignee_id=$1 where id=$2 and assignee_id is null returning assignee_id",
+        [UID.sales1, pool],
+      );
+      expect(r.rowCount).toBe(1);
+      expect(r.rows[0].assignee_id).toBe(UID.sales1);
+    });
+  });
+
+  test("claim 보유자가 타인 배정 소모품신청은 못 가져온다(0행)", async () => {
+    await inRollbackTx(c, async () => {
+      const { other } = await seedClaim();
+      await asUser(c, UID.sales1);
+      const r = await c.query(
+        "update public.supply_requests set assignee_id=$1 where id=$2 and assignee_id is null returning id",
+        [UID.sales1, other],
+      );
+      expect(r.rowCount).toBe(0);
+    });
+  });
+
+  test("claim 보유자가 미배정 소모품신청을 타인에게 배정하면 거부(escalation 방지)", async () => {
+    await inRollbackTx(c, async () => {
+      const { pool } = await seedClaim();
+      await asUser(c, UID.sales1);
+      await expect(
+        c.query("update public.supply_requests set assignee_id=$1 where id=$2 and assignee_id is null", [UID.sales2, pool]),
+      ).rejects.toThrow();
+    });
+  });
+});
