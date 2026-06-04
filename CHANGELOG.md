@@ -2,6 +2,14 @@
 
 이 프로젝트의 주요 변경 사항을 기록한다. [Keep a Changelog](https://keepachangelog.com/) 형식, [Semantic Versioning](https://semver.org/)(4자리 MAJOR.MINOR.PATCH.MICRO).
 
+## [0.12.0.1] - 2026-06-05
+
+### Fixed
+- 견적 담당자 배정이 연결 고객의 담당영업에 반영되지 않던 버그 수정. 견적 배정/claim 시 SECURITY DEFINER RPC `sync_company_assignee_from_application`로 연결 고객(`source_application_id`)의 담당영업이 비어있을 때만 채운다(단방향·fill-if-empty — 고객 담당영업 수정은 견적 담당자에 영향 없음, 이미 정해진 담당영업은 안 덮음). 도그푸딩 발견: 고객 등록이 배정보다 먼저면 담당영업이 영영 미배정으로 남았음.
+
+### Security
+- 전파 매칭을 `source_application_id`(서버 생성 링크)로만 제한 — biz_no 매칭은 claim 영업이 견적 biz_no를 변조해 임의 고객 담당영업을 탈취할 수 있는 IDOR 경로라 제외(DEFINER가 companies RLS 우회).
+
 ## [0.12.0.0] - 2026-06-05
 
 ### Added
