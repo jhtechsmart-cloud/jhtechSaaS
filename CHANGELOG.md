@@ -2,6 +2,11 @@
 
 이 프로젝트의 주요 변경 사항을 기록한다. [Keep a Changelog](https://keepachangelog.com/) 형식, [Semantic Versioning](https://semver.org/)(4자리 MAJOR.MINOR.PATCH.MICRO).
 
+## [0.11.0.2] - 2026-06-04
+
+### Performance
+- Vercel 함수 리전을 서울(`icn1`)로 고정(`apps/web/vercel.json`). 함수가 기본 미국(iad1)에서 실행돼 서울 Supabase와 태평양 왕복(쿼리당 ~180ms)하던 것을 DB와 같은 리전에 두어 제거 — admin SSR(레이아웃 auth+프로필+카운트 다중 쿼리) 체감 속도 대폭 개선.
+
 ## [0.11.0.1] - 2026-06-04
 
 ### Changed
