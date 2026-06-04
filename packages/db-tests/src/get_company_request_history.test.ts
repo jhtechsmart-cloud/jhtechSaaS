@@ -9,13 +9,14 @@ let c: Client;
 beforeAll(async () => { c = await makeClient(); });
 afterAll(async () => { await c.end(); });
 
-// caller=sales1(customers.manage). 데이터 담당=sales2(남) → 담당자 무관 열람 검증.
+// E5a: customers.manage → customers.view_all(담당 무관 전체 이력 열람) 게이트.
+// caller=sales1(customers.view_all). 데이터 담당=sales2(남) → 담당자 무관 열람 검증.
 // 회사 biz='1234567890', 담당 sales2. 견적: 하이픈매칭 1 + 미매칭 1. AS 1(sales2 담당). 소모품 1 + items 2.
 async function seed(): Promise<{ companyId: string; matchedApp: string; unmatchedApp: string; ink: string }> {
   await asPostgres(c);
   await seedAuthUser(c, UID.sales1, "gcrh-sales1@jhtech.test");
   await seedAuthUser(c, UID.sales2, "gcrh-sales2@jhtech.test");
-  await c.query("update public.profiles set permissions='{customers.manage}' where id=$1", [UID.sales1]);
+  await c.query("update public.profiles set permissions='{customers.view_all}' where id=$1", [UID.sales1]);
   await c.query("update public.profiles set permissions='{}' where id=$1", [UID.sales2]);
 
   const companyId = (await c.query(
@@ -55,13 +56,13 @@ async function seed(): Promise<{ companyId: string; matchedApp: string; unmatche
 }
 
 describe("get_company_request_history — 권한 게이트", () => {
-  test("customers.manage 없으면 raise", async () => {
+  test("customers.view_all 없으면 raise", async () => {
     await inRollbackTx(c, async () => {
       const { companyId } = await seed();
-      await asUser(c, UID.sales2); // 담당이지만 customers.manage 없음
+      await asUser(c, UID.sales2); // 담당이지만 customers.view_all 없음
       await expect(
         c.query("select public.get_company_request_history($1)", [companyId]),
-      ).rejects.toThrow(/customers.manage/);
+      ).rejects.toThrow(/customers.view_all/);
     });
   });
 
@@ -76,6 +77,38 @@ describe("get_company_request_history — 권한 게이트", () => {
       expect(out).toHaveProperty("applications");
       expect(out).toHaveProperty("service_requests");
       expect(out).toHaveProperty("supply_requests");
+    });
+  });
+
+  test("customers.edit 보유자는 본인 담당 고객 이력 조회 성공", async () => {
+    await inRollbackTx(c, async () => {
+      await asPostgres(c);
+      await seedAuthUser(c, UID.sales1, "gcrh-own@jhtech.test");
+      await c.query("update public.profiles set permissions='{customers.edit}' where id=$1", [UID.sales1]);
+      const companyId = (await c.query(
+        "insert into public.companies (name, assignee_id) values ('내담당사',$1) returning id",
+        [UID.sales1],
+      )).rows[0].id;
+      await asUser(c, UID.sales1);
+      const out = (await c.query("select public.get_company_request_history($1) as out", [companyId])).rows[0].out;
+      expect(out.applications).toEqual([]); // 이력 0건이지만 접근은 허용(raise 안 됨)
+    });
+  });
+
+  test("customers.edit 보유자는 타인 담당 고객 이력 거부", async () => {
+    await inRollbackTx(c, async () => {
+      await asPostgres(c);
+      await seedAuthUser(c, UID.sales1, "gcrh-other1@jhtech.test");
+      await seedAuthUser(c, UID.sales2, "gcrh-other2@jhtech.test");
+      await c.query("update public.profiles set permissions='{customers.edit}' where id=$1", [UID.sales1]);
+      const companyId = (await c.query(
+        "insert into public.companies (name, assignee_id) values ('남담당사',$1) returning id",
+        [UID.sales2],
+      )).rows[0].id;
+      await asUser(c, UID.sales1);
+      await expect(
+        c.query("select public.get_company_request_history($1)", [companyId]),
+      ).rejects.toThrow(/view_all or owning/);
     });
   });
 });
@@ -131,7 +164,7 @@ describe("get_company_request_history — 담당자 무관 전체 조인", () =>
     await inRollbackTx(c, async () => {
       await asPostgres(c);
       await seedAuthUser(c, UID.sales1, "gcrh-empty-sales1@jhtech.test");
-      await c.query("update public.profiles set permissions='{customers.manage}' where id=$1", [UID.sales1]);
+      await c.query("update public.profiles set permissions='{customers.view_all}' where id=$1", [UID.sales1]);
       const companyId = (await c.query(
         "insert into public.companies (name, biz_no) values ('빈이력사','7777777777') returning id",
       )).rows[0].id;
@@ -149,7 +182,7 @@ describe("get_company_request_history — NULL biz_no는 source_application_id U
     await inRollbackTx(c, async () => {
       await asPostgres(c);
       await seedAuthUser(c, UID.sales1, "gcrh-null-sales1@jhtech.test");
-      await c.query("update public.profiles set permissions='{customers.manage}' where id=$1", [UID.sales1]);
+      await c.query("update public.profiles set permissions='{customers.view_all}' where id=$1", [UID.sales1]);
       const srcApp = (await c.query(
         "insert into public.applications (company, biz_no, phone) values ('무번호상사', null, '010-9') returning id",
       )).rows[0].id;

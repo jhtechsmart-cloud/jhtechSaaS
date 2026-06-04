@@ -10,7 +10,8 @@ async function seed(): Promise<void> {
   await asPostgres(c);
   await seedAuthUser(c, UID.admin, "up-admin@jhtech.test");
   await seedAuthUser(c, UID.sales1, "up-sales@jhtech.test");
-  await c.query("update public.profiles set permissions='{customers.manage}' where id=$1", [UID.admin]);
+  // E5a: customers.manage(통합) → edit(upsert)·view_all(search). admin에 둘 다 부여.
+  await c.query("update public.profiles set permissions='{customers.edit,customers.view_all}' where id=$1", [UID.admin]);
   await c.query("update public.profiles set permissions='{}' where id=$1", [UID.sales1]);
 }
 async function mkApp(biz: string | null, company = "신청사"): Promise<string> {
@@ -22,7 +23,7 @@ describe("upsert_company_from_application", () => {
   test("권한 없으면 raise", async () => {
     await inRollbackTx(c, async () => {
       await seed(); const app = await mkApp("1234567890"); await asUser(c, UID.sales1);
-      await expect(c.query("select public.upsert_company_from_application($1)", [app])).rejects.toThrow(/customers.manage/);
+      await expect(c.query("select public.upsert_company_from_application($1)", [app])).rejects.toThrow(/customers.edit/);
     });
   });
   test("신규 → created=true, 고객 생성 + source 연결", async () => {
@@ -62,10 +63,10 @@ describe("search_applications_for_customer", () => {
   test("권한 없으면 raise", async () => {
     await inRollbackTx(c, async () => {
       await seed(); await mkApp("1234567890", "검색대상"); await asUser(c, UID.sales1);
-      await expect(c.query("select * from public.search_applications_for_customer('검색')")).rejects.toThrow(/customers.manage/);
+      await expect(c.query("select * from public.search_applications_for_customer('검색')")).rejects.toThrow(/customers.view_all/);
     });
   });
-  test("회사명 검색(권한자, view_all 불필요)", async () => {
+  test("회사명 검색(customers.view_all 권한자)", async () => {
     await inRollbackTx(c, async () => {
       await seed(); await mkApp("1234567890", "유니크검색사"); await asUser(c, UID.admin);
       const r = await c.query("select * from public.search_applications_for_customer('유니크검색')");

@@ -289,14 +289,14 @@ describe("applications — biz_no 정규화 매칭(P-F 역링크 등록 경로)"
     await inRollbackTx(c, async () => {
       await asPostgres(c);
       await seedAuthUser(c, UID.admin, "admin@jhtech.test");
-      await c.query("update public.profiles set permissions='{customers.manage}' where id=$1", [UID.admin]);
+      await c.query("update public.profiles set permissions='{customers.edit}' where id=$1", [UID.admin]); // E5a: upsert 게이트 = customers.edit
       // application은 하이픈 포함 biz_no(anon 직접 POST 잔류 시나리오).
       await c.query(
         "insert into public.applications (id,company,biz_no) values ($1,'정규화상사','123-45-67890')",
         [APP_HY],
       );
 
-      // upsert_company_from_application(admin, customers.manage) → companies 생성.
+      // upsert_company_from_application(admin, customers.edit) → companies 생성.
       await asUser(c, UID.admin);
       await c.query("select public.upsert_company_from_application($1)", [APP_HY]);
 
