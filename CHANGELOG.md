@@ -2,6 +2,11 @@
 
 이 프로젝트의 주요 변경 사항을 기록한다. [Keep a Changelog](https://keepachangelog.com/) 형식, [Semantic Versioning](https://semver.org/)(4자리 MAJOR.MINOR.PATCH.MICRO).
 
+## [0.11.0.1] - 2026-06-04
+
+### Changed
+- 공개 홈 3분기 — A/S(`/support`)·소모품(`/supply`) 박스의 "준비중" 해제, 실제 페이지로 연결(견적요청 포함 3개 전부 활성). 홈 진입 e2e 추가.
+
 ## [0.11.0.0] - 2026-06-04
 
 ### Added
