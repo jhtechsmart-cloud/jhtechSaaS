@@ -108,6 +108,9 @@ test.describe.serial("E4 견적 트리아지 콘솔 E2E", () => {
 
     // 4) 상태 변경: 견적중.
     const statusSelect = page.getByRole("combobox").nth(1);
+    // Regression: QA-001 — 배정 auto-bump 후 상태 드롭다운이 stale '접수'로 남지 않고
+    // 서버값('assigned')으로 동기화됐는지(서버값 key remount). Found by /qa 2026-06-04.
+    await expect(statusSelect).toHaveValue("assigned");
     await statusSelect.selectOption({ label: "견적중" });
     await page.getByRole("button", { name: "상태 변경" }).click();
     await expect(page.getByTestId("app-status")).toHaveText("견적중", { timeout: 15_000 });
