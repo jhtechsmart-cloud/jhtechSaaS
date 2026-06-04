@@ -11,8 +11,8 @@ export const APPLICATION_STATUSES: readonly ApplicationStatus[] = [
 
 export const APPLICATION_STATUS_META: Record<ApplicationStatus, { label: string; color: string }> = {
   new: { label: "접수", color: "#2563EB" },
-  assigned: { label: "배정", color: "#D97706" },
-  quoted: { label: "견적발송", color: "#7C3AED" },
+  assigned: { label: "배정", color: "#7C3AED" },
+  quoted: { label: "견적중", color: "#D97706" },
   closed: { label: "완료", color: "#16A34A" },
 };
 
@@ -20,6 +20,7 @@ export function ApplicationStatusBadge({ status }: { status: ApplicationStatus }
   const m = APPLICATION_STATUS_META[status];
   return (
     <span
+      data-testid="app-status"
       className="inline-block rounded-sm px-2 py-0.5 text-small font-medium"
       style={{ color: m.color, backgroundColor: `${m.color}1A` }}
     >

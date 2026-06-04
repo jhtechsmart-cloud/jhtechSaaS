@@ -3,6 +3,7 @@ import Link from "next/link";
 import { requireEquipmentManage } from "@/lib/auth/guard";
 import { countUnreadServiceRequests } from "@/lib/service-requests/queries";
 import { countUnreadSupplyRequests } from "@/lib/supply-requests/queries";
+import { countNewApplications } from "@/lib/applications/admin-queries";
 import { signOut } from "@/app/login/actions";
 
 // 콘솔 셸 — 사이드바196 + 상단바. requireEquipmentManage가 미인증을 /login으로 보내고,
@@ -14,10 +15,14 @@ export default async function AdminLayout({
 }) {
   const access = await requireEquipmentManage();
   // 미열람 카운트는 병렬(요청유형 늘수록 직렬 await가 콘솔 전체를 느리게 함).
-  const [unread, supplyUnread] =
+  const [unread, supplyUnread, newApps] =
     access.status === "ok"
-      ? await Promise.all([countUnreadServiceRequests(), countUnreadSupplyRequests()])
-      : [0, 0];
+      ? await Promise.all([
+          countUnreadServiceRequests(),
+          countUnreadSupplyRequests(),
+          countNewApplications(),
+        ])
+      : [0, 0, 0];
 
   if (access.status === "forbidden") {
     return (
@@ -49,6 +54,15 @@ export default async function AdminLayout({
             className="rounded-md px-3 py-2 text-body font-medium text-text hover:bg-surface-2"
           >
             고객
+          </Link>
+          <Link
+            href="/admin/applications"
+            className="flex items-center justify-between rounded-md px-3 py-2 text-body font-medium text-text hover:bg-surface-2"
+          >
+            <span>견적</span>
+            {newApps > 0 && (
+              <span className="rounded-full bg-accent px-2 py-0.5 text-micro font-medium text-white" aria-label={`미처리 ${newApps}건`}>{newApps}</span>
+            )}
           </Link>
           <Link
             href="/admin/consumables"
