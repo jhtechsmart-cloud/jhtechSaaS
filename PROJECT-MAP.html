@@ -69,7 +69,7 @@
 <div class="wrap">
   <h1>프로젝트 지도</h1>
   <div class="sub">지금까지 만들어진 파일이 <b>어디에</b> 있고, <b>각 단계가 어떤 파일을 만드는지</b>, 문제 시 <b>어디를 봐야 하는지</b>.</div>
-  <div class="upd">갱신: 2026-06-03 · 명령어 <code>/map</code> 으로 재생성</div>
+  <div class="upd">갱신: 2026-06-04 · 명령어 <code>/map</code> 으로 재생성</div>
 
   <div class="lead">
     <b>핵심:</b> 이 프로젝트의 산출물은 <b>4곳에 흩어져</b> 있습니다. 코드·설정만 프로젝트 폴더 안에 있고,
@@ -104,17 +104,17 @@
     <tr><td class="path">apps/web/AGENTS.md · CLAUDE.md</td><td>web AI 지침</td><td>"이 Next.js는 학습데이터와 다름, docs 확인" 경고</td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">apps/worker/package.json · tsconfig.json</td><td>워커 설정</td><td>tsx + typescript + @types/node, shared 의존</td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">packages/shared/package.json</td><td>공유 패키지</td><td>permissions registry·Supabase 팩토리·도메인 타입·seed 가드</td><td><span class="tag t-commit">커밋</span></td></tr>
-    <tr><td class="path">VERSION · CHANGELOG.md</td><td>버전·변경이력</td><td>4자리 버전(현재 <b>0.9.1.0</b>, P-F 통합이력 v0.9.0.0 + 공개폼 UX개선 v0.9.1.0) + Keep a Changelog</td><td><span class="tag t-commit">커밋</span></td></tr>
-    <tr><td class="path">supabase/migrations/*.sql</td><td>DB 마이그레이션</td><td>E1 7 + E2 1 + E3 2 + M2 P-A 5 + P-B 4 + P-C/분류체계 5 + P-D 3 + P-E 4 + <b>P-F 1</b>(get_company_request_history DEFINER RPC). 원격 적용됨(v0.9.0.0). v0.9.1.0 UX개선은 <b>DB변경 0</b></td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">VERSION · CHANGELOG.md</td><td>버전·변경이력</td><td>4자리 버전(현재 <b>0.10.0.0</b>, E4 견적 트리아지 콘솔 v0.10.0.0 + 공개폼 UX개선 v0.9.1.0) + Keep a Changelog</td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">supabase/migrations/*.sql</td><td>DB 마이그레이션</td><td>E1 7 + E2 1 + E3 2 + M2 P-A 5 + P-B 4 + P-C/분류체계 5 + P-D 3 + P-E 4 + <b>P-F 1</b>(get_company_request_history DEFINER RPC). 원격 적용됨. v0.9.1.0 UX개선·<b>E4 견적콘솔 모두 DB변경 0</b>(E1 RLS·capability 재사용)</td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">supabase/rollback/*.sql · seed/seed-local.sh</td><td>롤백·시드</td><td>마이그레이션 역스크립트 + 로컬 시드 헬퍼</td><td><span class="tag t-commit">커밋</span></td></tr>
-    <tr><td class="path">packages/db-tests/</td><td>RLS 통합 테스트</td><td>pg set role+jwt 하니스(Supabase 로컬), <b>214 RLS 단언</b>(+P-F get_company_request_history RPC 권한·완료카운트)</td><td><span class="tag t-commit">커밋</span></td></tr>
-    <tr><td class="path">apps/web/src/{lib,app,proxy.ts}</td><td>web 구현(E2·E3·M2)</td><td>인증·장비 admin(E2) + 공개 카탈로그/상세/견적요청(E3·P-A) + 고객 마스터(P-B) + 소모품·분류 admin(P-C) + A/S(P-D) + 소모품 공개폼(P-E) + <b>고객 통합이력 /admin/customers/[id]</b>(P-F: lib/customers/history) + <b>공개폼 UX(lib/forms/error-summary·FormErrorSummary 에러배너·아코디언)</b>(v0.9.1.0). <i>코드 — 상세는 코드 직접</i></td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">packages/db-tests/</td><td>RLS 통합 테스트</td><td>pg set role+jwt 하니스(Supabase 로컬), <b>219 RLS 단언</b>(+E4 배정·0행거부·트리거불변·biz_no 매칭)</td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">apps/web/src/{lib,app,proxy.ts}</td><td>web 구현(E2·E3·M2)</td><td>인증·장비 admin(E2) + 공개 카탈로그/상세/견적요청(E3·P-A) + 고객 마스터(P-B) + 소모품·분류 admin(P-C) + A/S(P-D) + 소모품 공개폼(P-E) + <b>고객 통합이력 /admin/customers/[id]</b>(P-F: lib/customers/history) + 공개폼 UX(v0.9.1.0) + <b>E4 견적 트리아지 콘솔(/admin/applications: lib/applications/{admin-queries,admin-actions,admin-search,assign-logic}·목록·상세·배정·상태전이)</b>(v0.10.0.0). <i>코드 — 상세는 코드 직접</i></td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">docs/roadmap.json · ROADMAP.md</td><td>로드맵 단일원본·생성물</td><td>단계(E1~E7·M2 P-A~P-G) status 원본 → <span class="mono">pnpm roadmap:sync</span>로 ROADMAP.md 생성 + Notion 동기화</td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">docs/superpowers/{specs,plans}/</td><td>설계·플랜 문서</td><td>E2·E3 spec/plan + M2 고객 포털 설계 + P-C 소모품·분류체계. <b>P-D~P-F는 spec/plan이 ~/.gstack·이슈 본문</b>(P-F=이슈#24·main-pf 리뷰)</td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">scripts/roadmap-sync.sh</td><td>로드맵 동기화 래퍼</td><td>~/scripts/claude-notion-sync 엔진 호출(토큰 재사용)</td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">.vercel/project.json</td><td>Vercel 링크</td><td>repo 루트 링크(Root Dir=apps/web). vercel link 산출</td><td><span class="tag t-ignore">gitignore</span></td></tr>
     <tr><td class="path">apps/worker/src/seed-admin.ts</td><td>관리자 시드</td><td>service_role 부트스트랩(프로덕션 비번 가드)</td><td><span class="tag t-commit">커밋</span></td></tr>
-    <tr><td class="path">dev-notes/</td><td>개발 일지</td><td>일별 노트 12일치(.md) + 대시보드(HTML, /devnote) — …M2 P-D·P-E·P-F + v0.9.1.0 공개폼 UX개선</td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">dev-notes/</td><td>개발 일지</td><td>일별 노트 13일치(.md) + 대시보드(HTML, /devnote) — …P-F + v0.9.1.0 공개폼 UX + E4 견적콘솔</td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">supabase/.temp/linked-project.json</td><td>원격 링크 기록</td><td>supabase link 산출(원격 프로젝트 ref)</td><td><span class="tag t-ignore">로컬</span></td></tr>
     <tr><td class="path">apps/web/.env.local</td><td>web 실제 환경변수</td><td><b>시크릿</b> — Supabase URL/anon key</td><td><span class="tag t-ignore">gitignore</span></td></tr>
     <tr><td class="path">apps/worker/.env</td><td>워커 실제 환경변수</td><td><b>시크릿</b> — service_role, Gmail 앱비밀번호</td><td><span class="tag t-ignore">gitignore</span></td></tr>
@@ -154,7 +154,7 @@
     <tr><td class="path">#2</td><td>E1 Foundation <span class="tag t-commit">CLOSED ✓</span></td><td>—</td></tr>
     <tr><td class="path">#3</td><td>E2 장비 admin + 웹 인증 토대 <span class="tag t-commit">CLOSED ✓</span></td><td>#2</td></tr>
     <tr><td class="path">#4</td><td>E3 공개 카탈로그/상세 + 견적요청 폼 <span class="tag t-commit">CLOSED ✓</span></td><td>#2,#3</td></tr>
-    <tr><td class="path">#5</td><td>E4 관리자 콘솔</td><td>#2,#4</td></tr>
+    <tr><td class="path">#5</td><td>E4 견적 트리아지 콘솔 <span style="color:var(--sent);font-weight:600">✅ 머지·배포 v0.10.0.0 (CLOSED, PR#37)</span></td><td>#2,#4</td></tr>
     <tr><td class="path">#6</td><td>E5 견적 작성+통합 PDF(워커)</td><td>#2,#3,#5</td></tr>
     <tr><td class="path">#7</td><td>E6 메일 발송(워커)</td><td>#2,#6</td></tr>
     <tr><td class="path">#8</td><td>E7 업체 이력</td><td>#4~#7</td></tr>
@@ -176,20 +176,21 @@
   <p class="note">각 단계를 진행하면 → 어디에 어떤 파일이 생기고 무슨 내용이 담기는지.</p>
 
   <div class="lead" style="border-left-color:var(--sent)">
-    <b>진행 현황 (2026-06-03 저녁):</b> <b>M1 E1·E2·E3 + M2 P-A~P-F 완료·머지·배포</b>(프로덕션 라이브 <b>v0.9.1.0</b>). <b>오후: P-F 통합 고객 이력</b>(#24 CLOSED, PR#35, v0.9.0.0) — 고객 상세 /admin/customers/[id](견적/구입/AS/소모품 4섹션 전체N·완료M) + DEFINER RPC get_company_request_history(customers.manage 게이트 전체조회·테이블정책 무변경 회귀0). <b>저녁: v0.9.1.0 공개폼 UX 개선</b>(PR#36, DB변경0) — P-F 배포 후 전체 도그푸딩서 나온 마찰 4건: M4 에러요약 배너(collectErrorMessages+FormErrorSummary, 누락 N개+스크롤)·M5 사진/설치설문 아코디언(코어만 노출, 안내문구 초안 TODO)·M8 biz_no 자동하이픈·M6 AS/소모품→고객 P-F 역링크. 게이트 GREEN(web118·e2e34·db-tests214·shared45·tsc·lint·build·as any 0).
-    <b>다음 = M2 P-G 알림 인프라</b>(#25, M2 마지막 단계): 관리자 웹알림(미열람 배지는 이미 있음) + 카톡/문자(외부 발송사 준비 후). <b>OR</b> 도그푸딩 H1("견적 들어온 뒤 담당배정→견적서→발송 본업 루프 없음")로 견적콘솔(E4~E6)을 P-G보다 먼저 당길지 사업판단 먼저. ⚠️ 운영: SUPPORT_PHONE 실번호 · 프로덕션 실고객/보유장비 입력(빈 DB라 조회 미등록) · 홈 3분기 활성화(cold-start) · 백로그 #28·#29·고아청소 cron+rate limit. 남은 도그푸딩 todo: M7·P10~14.
+    <b>진행 현황 (2026-06-04):</b> <b>M1 E1·E2·E3 + M2 P-A~P-F + E4 완료·머지·배포</b>(프로덕션 라이브 <b>v0.10.0.0</b>). <b>오늘: E4 견적 트리아지 콘솔</b>(#5 CLOSED, PR#37, v0.10.0.0, 마이그0) — `/admin/applications` 목록(서버검색·미처리강조)·상세(설치설문 라벨맵·라벨캡션 사진·biz_no 정규화 P-F역링크)·배정(new→assigned 자동전이)·상태 자유전이·미등록고객등록. 색 스파인 스왑 수정(배정=보라·견적중=앰버). 파이프라인 full(office-hours→spec→/autoplan 3보이스→TDD 13태스크→/review clean→/qa 버그1수정→/ship). /qa 핵심버그=배정 후 상태드롭다운 stale(서버값 key remount). 게이트 GREEN(web141·e2e36·db-tests219·shared45·tsc·lint·build·as any 0). 앞서 P-F 통합이력 v0.9.0.0·공개폼 UX v0.9.1.0.
+    <b>다음 = 대시보드 + #29(admin layout 권한모델) 새 phase</b> — `/office-hours`부터. 누가 로그인하든 첫 화면=대시보드 요약통계(상태별 카운트·AS/소모품 신청·최근 고객·견적 진행), 영업담당도 셸 진입·본인 고객 조회. 현재 login→/admin/equipment 하드코딩 + layout 전체 equipment.manage 게이트(#29)라 영업담당 403. <b>후속</b>: E5(견적서+PDF·jobs큐·Railway워커)·E6(메일)·M2 P-G 알림(#25). E5 착수 시 "quoted인데 quote행 없음" 정합 청소. ⚠️ 운영: SUPPORT_PHONE 실번호 · 프로덕션 실고객/보유장비 입력 · 홈 cold-start · 고아청소 cron. 남은 도그푸딩: M7·P10~14.
   </div>
-  <p class="note">아래 단계 바 = 한 phase의 생애주기. M1 E1·E2·E3 + M2 P-A~P-F 모두 ①~⑨ 완주. M2는 다음 작업 P-G(또는 사업판단 후 견적콘솔)가 ③스펙부터.</p>
+  <p class="note">아래 단계 바 = 한 phase의 생애주기. M1 E1·E2·E3 + M2 P-A~P-F + E4 모두 ①~⑨ 완주. 다음 작업(대시보드+#29)은 ①기획(/office-hours)부터.</p>
   <div class="flow">
-    <span class="step done">① 기획(M2 brainstorm)</span><span class="arr">→</span>
-    <span class="step done">② 셋업</span><span class="arr">→</span>
-    <span class="step" style="border-color:var(--new);color:var(--new)">③ 스펙(P-G) ●</span><span class="arr">→</span>
+    <span class="step" style="border-color:var(--new);color:var(--new)">① 기획(대시보드) ●</span><span class="arr">→</span>
+    <span class="step">② 셋업</span><span class="arr">→</span>
+    <span class="step">③ 스펙</span><span class="arr">→</span>
     <span class="step">④ 검토</span><span class="arr">→</span>
     <span class="step">⑤ 설계/UI-SPEC</span><span class="arr">→</span>
     <span class="step">⑥ 구현</span><span class="arr">→</span>
     <span class="step">⑦ 코드리뷰</span><span class="arr">→</span>
     <span class="step">⑧ QA</span><span class="arr">→</span>
     <span class="step">⑨ 배포</span>
+    <span class="arr" style="margin-left:8px">|</span> <span style="color:var(--muted);font-size:12px">E4 ①~⑨ 완주·배포 v0.10.0.0</span>
   </div>
 
   <table class="pmap">
