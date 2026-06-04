@@ -26,10 +26,9 @@ export function hasAnyConsoleCapability(permissions: readonly string[]): boolean
   return CONSOLE_CAPABILITIES.some((k) => can(permissions, k));
 }
 
-// 로그인 후 첫 화면 — 권한 기반 우선순위. applications(운영 허브)를 최우선으로,
-// 매칭 없으면 가진 권한의 도메인으로. (users.manage super는 applications 규칙에 먼저 걸려 허브로.)
-// (E5b: landingPathFor는 더는 사용 안 함 — 우선순위 힌트로 보존)
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- 향후 카드/메뉴 우선순위 힌트로 의도적 보존(E5b)
+// 권한 기반 랜딩 우선순위 테이블. (E5b 이후 landingPathFor는 사용 안 함 —
+// 향후 대시보드 카드/메뉴 우선순위 힌트로 의도적 보존.)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- 향후 우선순위 힌트로 의도적 보존(E5b)
 const LANDING_RULES: { keys: PermissionKey[]; path: string }[] = [
   {
     keys: [

@@ -67,18 +67,26 @@ export default async function DashboardPage() {
     ? await assigneeLoad().catch(() => null)
     : null;
 
+  // 현황 라벨은 가시 범위에 정직하게 — view_all 보유자는 "전체", 본인 스코프 영업은 "내".
+  // (RLS가 영업에겐 본인+미배정 풀만 보여주므로 "전체"라 적으면 거짓 현황이 된다.)
+  const hasFullView =
+    can(access.permissions, "applications.view_all") ||
+    can(access.permissions, "service_requests.view_all") ||
+    can(access.permissions, "supply_requests.view_all");
+  const statusTitle = hasFullView ? "전체 현황" : "내 현황";
+
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-h1 font-semibold text-text">대시보드</h1>
 
       {empty ? (
-        <EmptyOnboarding canManageUsers={can(access.permissions, "users.manage")} />
+        <EmptyOnboarding permissions={access.permissions} />
       ) : (
         <ActionQueue counts={{ applications: val(newApps), service: val(unreadSvc), supply: val(unreadSup) }} />
       )}
 
       <section className="flex flex-col gap-4 rounded-md border border-border bg-surface p-5">
-        <p className="text-small font-semibold text-muted">전체 현황</p>
+        <p className="text-small font-semibold text-muted">{statusTitle}</p>
         <StatusBar
           title="견적"
           error={appCounts == null}

@@ -17,7 +17,7 @@ export function StatusBar({
       <div className="flex items-baseline justify-between">
         <span className="text-small font-medium text-text">{title}</span>
         {error ? (
-          <span className="text-micro text-[#DC2626]">집계 실패</span>
+          <span className="text-micro text-danger">집계 실패</span>
         ) : (
           <span className="font-mono text-micro tabular-nums text-muted">{total}건</span>
         )}
