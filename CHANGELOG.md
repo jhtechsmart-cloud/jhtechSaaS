@@ -2,6 +2,20 @@
 
 이 프로젝트의 주요 변경 사항을 기록한다. [Keep a Changelog](https://keepachangelog.com/) 형식, [Semantic Versioning](https://semver.org/)(4자리 MAJOR.MINOR.PATCH.MICRO).
 
+## [0.11.0.0] - 2026-06-04
+
+### Added
+- **E5a 권한 모델 + 관리자 사용자관리** (이슈 #38, #29 해소) — 여러 명이 나눠 쓰는 운영의 토대. capability(권한=키 목록) 모델을 액션 단위로 분해하고, 영업담당 role·관리자 계정관리 UI를 신설했다.
+  - **권한 registry 키화**: 굵게 묶였던 `*.manage`(생성+수정+삭제 한묶음)를 액션 키로 분해 — `customers.edit/delete/view_all`, `applications/service/supply.status/claim`. 한글 메타(label·description·group) 단일 출처, `SALES_PRESET`(영업 9키)·`ADMIN_PRESET`(users.manage super).
+  - **영업담당 self-claim**: 미배정 신청(견적·A/S·소모품)을 "내가 맡기"로 본인 담당에 가져온다. RLS에 `(미배정 AND claim)` 절 추가(SELECT·UPDATE USING), WITH CHECK엔 미포함 → 본인 배정만 허용·타인 배정/권한 상승 차단. 견적은 `new→assigned` 자동 전이.
+  - **관리자 사용자관리** (`/admin/users`): 계정 목록·생성(임시 PW 1회 노출 모달)·권한 편집(영업/관리자/직접설정 프리셋 2단)·활성/비활성 토글. `server-only` service_role admin 클라이언트(`auth.admin.createUser`).
+  - **콘솔 게이트 느슨화**(#29): 레이아웃 가드 `equipment.manage` → "콘솔 키 중 하나라도"(영업담당도 셸 진입). nav 권한별 노출. 로그인 첫 화면 role-aware(`resolveLandingPath`, 운영 허브 `/admin/applications`).
+  - **비활성 계정 차단**: `requirePermission`에 is_active 체크 추가(비활성 계정 콘솔 진입 차단). 관리자 **자가 락아웃 방어 트리거**(본인 users.manage 회수·본인 비활성화를 DB레벨 거부).
+- 마이그레이션 4건: customers 스코프 분해·신청 3종 claim·deprecated 키 데이터 remap·profiles 자가락아웃 트리거(모두 +rollback).
+
+### Changed
+- deprecated `customers/service/supply.manage` 3키 삭제(registry 18키). 라이브 RLS·RPC·액션은 신규 키로 재배선, 기존 운영 계정 권한은 데이터 마이그레이션으로 보수적 remap.
+
 ## [0.10.0.0] - 2026-06-04
 
 ### Added
