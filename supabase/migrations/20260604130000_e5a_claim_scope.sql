@@ -5,6 +5,12 @@
 -- 미배정 행을 타인에게 배정하거나 인플레이스 수정하는 권한 상승(escalation)은 막힌다.
 -- service/supply UPDATE WITH CHECK 게이트는 deprecated 'manage' → 'view_all'로 교체
 -- (step6에서 *.manage 키 삭제 예정. admin=users.manage super는 전부 자동 통과).
+--
+-- ⚠️ 설계 결정(/review D2, 수용): `*.status` 권한은 **앱레이어 게이트**(updateXStatus 액션)이고
+--    RLS의 쓰기 경계는 **소유권**(assignee=self)이다. 즉 본인 배정/맡은 행은 RLS상 모든 컬럼
+--    수정 가능 → status 권한 없이도 본인 행 status를 직접 PATCH할 수 있다(특히 claim 시 동시 변경).
+--    표준 SALES_PRESET은 claim+status를 묶어 부여하므로 실사용 영향 0. status를 RLS 경계로 승격하려면
+--    별도 BEFORE 트리거(claim의 new→assigned 자동범프 예외 처리 포함)가 필요 — 향후 필요 시 도입.
 -- rollback: supabase/rollback/20260604130000_e5a_claim_scope_down.sql
 
 -- ── applications ──
