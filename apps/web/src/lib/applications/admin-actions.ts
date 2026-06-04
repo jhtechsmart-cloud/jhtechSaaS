@@ -60,11 +60,11 @@ export async function updateApplicationStatus(
   return { ok: true };
 }
 
-// 미등록 고객 등록 — customers.manage 필요(RPC 내부에서도 재검증). 반환 company_id로 즉시 P-F 링크.
+// 미등록 고객 등록 — customers.edit 필요(RPC 내부에서도 재검증). 반환 company_id로 즉시 P-F 링크.
 export async function registerCustomerFromApplication(
   id: string,
 ): Promise<ApplicationActionResult> {
-  const access = await requirePermission("customers.manage");
+  const access = await requirePermission("customers.edit");
   if (access.status === "forbidden") return { error: "권한이 없습니다" };
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.rpc("upsert_company_from_application", {

@@ -50,7 +50,7 @@ export default async function ApplicationDetailPage({
   const survey = fields.install_survey ?? {};
   const staff = await listAssignableStaff();
   const canAssign = can(access.permissions, "applications.assign");
-  const canManageCustomers = can(access.permissions, "customers.manage");
+  const canManageCustomers = can(access.permissions, "customers.edit");
 
   // 사진 4슬롯 — 병렬 서명URL. 실패/없음은 슬롯 라벨 유지하며 플레이스홀더(노출 안 함).
   // ⚠️ anon이 RPC 우회 직접 INSERT로 photos 경로를 주입할 수 있어, RPC와 동일한 경로 정규식

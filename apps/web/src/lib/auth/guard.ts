@@ -46,5 +46,8 @@ export async function requirePermission(
 }
 
 export const requireEquipmentManage = () => requirePermission("equipment.manage");
-export const requireCustomersManage = () => requirePermission("customers.manage");
+// E5a: customers.manage(통합) → 액션별 분해. 등록·수정=edit, 삭제=delete, 전체조회=view_all.
+export const requireCustomersEdit = () => requirePermission("customers.edit");
+export const requireCustomersDelete = () => requirePermission("customers.delete");
+export const requireCustomersViewAll = () => requirePermission("customers.view_all");
 export const requireConsumablesManage = () => requirePermission("consumables.manage");

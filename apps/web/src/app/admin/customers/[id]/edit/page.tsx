@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { requireCustomersManage } from "@/lib/auth/guard";
+import { requireCustomersEdit } from "@/lib/auth/guard";
 import { getCompany, listAssignableStaff } from "@/lib/customers/queries";
 import { listEquipment } from "@/lib/equipment/queries";
 import { updateCustomer } from "@/lib/customers/actions";
@@ -22,14 +22,14 @@ export default async function EditCustomerPage({
   const registered =
     registeredRaw === "new" ? "new" : registeredRaw === "existing" ? "existing" : null;
 
-  // customers.manage 권한 확인 — layout은 equipment.manage 전용이므로 페이지 레벨에서 재검사.
-  const access = await requireCustomersManage();
+  // customers.edit 권한 확인 — layout은 equipment.manage 전용이므로 페이지 레벨에서 재검사.
+  const access = await requireCustomersEdit();
   if (access.status === "forbidden") {
     return (
       <main className="flex min-h-dvh flex-col items-center justify-center gap-3 p-6">
         <p className="text-h2 font-semibold text-text">접근 권한이 없습니다</p>
         <p className="text-small text-muted">
-          고객 관리 권한(customers.manage)이 필요합니다. 관리자에게 문의하세요.
+          고객 관리 권한(customers.edit)이 필요합니다. 관리자에게 문의하세요.
         </p>
         <form action={signOut}>
           <button className="text-small text-accent underline">로그아웃</button>
