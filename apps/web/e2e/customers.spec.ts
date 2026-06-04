@@ -115,7 +115,7 @@ async function login(
   await page.getByLabel("비밀번호").fill(password);
   await page.getByRole("button", { name: "로그인" }).click();
   // 로그인 성공 → /admin/equipment 목록으로 리다이렉트 (모든 계정 공통)
-  await page.waitForURL(/\/admin\/equipment/, { timeout: 20_000 });
+  await page.waitForURL(/\/admin\//, { timeout: 20_000 });
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -315,23 +315,21 @@ test.describe.serial("시나리오 2 — 견적 가져오기 + dedup", () => {
 });
 
 // ──────────────────────────────────────────────────────────────────────────────
-// 시나리오 3: 403 — customers.manage 없는 사용자의 접근 차단
-// seed-admin.ts에서 시드된 sales@jhtech.local (permissions: applications.view_all, quotes.write, email.send)
-// customers.manage 없으므로 /admin/customers 접근 시 "접근 권한이 없습니다" 렌더
+// 시나리오 3: E5a — 영업담당은 customers.edit 보유 → /admin/customers 접근 가능(본인 스코프).
+// (구버전: customers.manage 없어 403. E5a에서 SALES_PRESET에 customers.edit 포함 → 접근 허용,
+//  RLS가 본인 담당 고객으로 행 스코프.)
 // ──────────────────────────────────────────────────────────────────────────────
-test.describe("시나리오 3 — 403 (customers.manage 없는 사용자)", () => {
-  test("3-1: 영업 계정 → /admin/customers 접근 시 권한 차단 메시지", async ({
+test.describe("시나리오 3 — 영업담당 고객 접근(본인 스코프)", () => {
+  test("3-1: 영업 계정 → /admin/customers 접근 가능(forbidden 아님)", async ({
     page,
   }) => {
-    // sales@jhtech.local 로그인 — customers.manage 미포함 (seed-admin.ts 확인 완료)
     await login(page, SALES_EMAIL, SALES_PASSWORD);
-
-    // /admin/customers 직접 접근
     await page.goto("/admin/customers");
 
-    // 서버 렌더 완료 대기 후 forbidden 패널 확인
+    // forbidden 패널이 아니라 고객 목록 페이지가 렌더된다(본인 담당 스코프).
+    await expect(page.getByText("접근 권한이 없습니다")).toHaveCount(0);
     await expect(
-      page.getByText("접근 권한이 없습니다"),
+      page.getByRole("heading", { name: "고객" }),
     ).toBeVisible({ timeout: 15_000 });
   });
 });
@@ -600,11 +598,12 @@ test.describe.serial("시나리오 5 — 통합 고객이력(P-F)", () => {
     await expect(page.getByRole("link", { name: /통합 이력 보기/ })).toBeVisible();
   });
 
-  // 5-2: customers.manage 없는 영업 → 상세 접근 차단
-  test("5-2: 영업 계정 → 상세 접근 시 권한 차단", async ({ page }) => {
+  // 5-2: E5a — 영업담당은 본인 담당이 아닌 고객(assignee 없음)을 RLS로 못 본다 → 이력 데이터 미노출.
+  test("5-2: 영업 계정 → 타 담당 고객 상세는 RLS로 가려짐(데이터 미노출)", async ({ page }) => {
     expect(companyId).toBeTruthy();
     await login(page, SALES_EMAIL, SALES_PASSWORD);
     await page.goto(`/admin/customers/${companyId}`);
-    await expect(page.getByText("접근 권한이 없습니다")).toBeVisible({ timeout: 15_000 });
+    // 회사명·통합이력이 노출되지 않는다(not-found 또는 권한 거부로 데이터 미렌더).
+    await expect(page.getByText(PF_COMPANY_NAME)).toHaveCount(0, { timeout: 15_000 });
   });
 });

@@ -106,7 +106,7 @@ async function login(
   await page.getByLabel("비밀번호").fill(password);
   await page.getByRole("button", { name: "로그인" }).click();
   // 로그인 성공 → /admin/equipment 리다이렉트(모든 계정 공통 — admin layout 기본 경로)
-  await page.waitForURL(/\/admin\/equipment/, { timeout: 20_000 });
+  await page.waitForURL(/\/admin\//, { timeout: 20_000 });
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -263,9 +263,8 @@ test.describe.serial("시나리오 1 — CRUD (taxonomy 분류·장비 scope 매
 
 // ──────────────────────────────────────────────────────────────────────────────
 // 시나리오 2 — 403 (consumables.manage 없는 사용자 접근 차단)
-// sales@jhtech.local: permissions = [applications.view_all, quotes.write, email.send]
-// consumables.manage 없으므로 admin layout의 equipment.manage 가드에 막힘
-// → /admin/consumables → "접근 권한이 없습니다"
+// sales@jhtech.local: SALES_PRESET(consumables.manage 미포함). E5a에서 콘솔 셸엔 진입하지만
+// /admin/consumables 페이지 가드(requireConsumablesManage)에 막혀 "접근 권한이 없습니다" 렌더.
 // ──────────────────────────────────────────────────────────────────────────────
 test.describe("시나리오 2 — 403 (consumables.manage 없는 사용자)", () => {
   test("2-1: 영업 계정 → /admin/consumables 접근 시 권한 차단 메시지", async ({

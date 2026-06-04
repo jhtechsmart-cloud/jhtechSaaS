@@ -45,7 +45,7 @@ async function login(page: import("@playwright/test").Page) {
   await page.getByLabel("비밀번호").fill(ADMIN_PASSWORD);
   await page.getByRole("button", { name: "로그인" }).click();
   // 로그인 성공 시 /admin/equipment 목록으로 리다이렉트
-  await page.waitForURL(/\/admin\/equipment/, { timeout: 20_000 });
+  await page.waitForURL(/\/admin\//, { timeout: 20_000 });
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -117,6 +117,7 @@ test.describe.serial("E2E 장비 생성·토글 플로우", () => {
   // ──────────────────────────────────────────────────────────────────────────
   test("AC5: inactive 토글 → 비활성 필터에 노출", async ({ page }) => {
     await login(page);
+    await page.goto("/admin/equipment"); // E5a: 랜딩이 /admin/applications라 목록으로 명시 이동
     // 목록에서 E2E 포장기 행 클릭 → edit 페이지
     // .first()로 strict mode 위반 방지(beforeAll cleanup 후 정확히 1건이지만 안전망)
     await page.getByRole("link", { name: E2E_EQUIPMENT_NAME }).first().click();

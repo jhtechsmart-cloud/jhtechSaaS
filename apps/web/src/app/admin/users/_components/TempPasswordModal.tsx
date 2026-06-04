@@ -47,7 +47,10 @@ export function TempPasswordModal({
           </div>
           <div className="flex items-center justify-between gap-2">
             <span className="text-small text-muted">임시 비밀번호</span>
-            <span className="font-mono tabular-nums text-body font-medium text-text select-all">
+            <span
+              data-testid="temp-password"
+              className="font-mono tabular-nums text-body font-medium text-text select-all"
+            >
               {password}
             </span>
           </div>

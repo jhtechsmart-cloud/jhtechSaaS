@@ -37,7 +37,7 @@ async function login(page: Page) {
   await page.getByLabel("이메일").fill(ADMIN_EMAIL);
   await page.getByLabel("비밀번호").fill(ADMIN_PASSWORD);
   await page.getByRole("button", { name: "로그인" }).click();
-  await page.waitForURL(/\/admin\/equipment/, { timeout: 20_000 });
+  await page.waitForURL(/\/admin\//, { timeout: 20_000 });
 }
 
 test.describe.serial("E4 견적 트리아지 콘솔 E2E", () => {
