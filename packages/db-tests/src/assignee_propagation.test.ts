@@ -77,29 +77,52 @@ describe("sync_company_assignee_from_application — 담당영업 전파", () =>
     });
   });
 
-  test("biz_no 매칭 경로로도 전파(source_application_id 없이)", async () => {
+  test("배정 해제(견적 assignee null)는 고객 담당영업을 지우지 않음(단방향)", async () => {
     await inRollbackTx(c, async () => {
       await asPostgres(c);
-      await seedAuthUser(c, UID.admin, "p-admin@jhtech.test");
-      await c.query("update public.profiles set permissions='{applications.assign}' where id=$1", [UID.admin]);
-      await seedAuthUser(c, UID.sales1, "p3-sales1@jhtech.test");
+      await seedAuthUser(c, UID.sales1, "p4-sales1@jhtech.test");
+      await seedAuthUser(c, UID.sales2, "p4-sales2@jhtech.test");
+      await c.query("update public.profiles set permissions='{applications.claim}' where id=$1", [UID.sales1]);
+      // 견적은 미배정(assignee null), 고객은 이미 sales2 담당.
+      await c.query(
+        "insert into public.applications (id,company,status) values ($1,'해제상사','new')",
+        [APP],
+      );
+      await c.query(
+        "insert into public.companies (id,name,source_application_id,assignee_id) values ($1,'해제상사',$2,$3)",
+        [CO, APP, UID.sales2],
+      );
+      await asUser(c, UID.sales1);
+      const r = await c.query("select public.sync_company_assignee_from_application($1) cid", [APP]);
+      expect(r.rows[0].cid).toBeNull(); // 견적 미배정 → 조기 반환
+      await asPostgres(c);
+      const co = await c.query("select assignee_id from public.companies where id=$1", [CO]);
+      expect(co.rows[0].assignee_id).toBe(UID.sales2); // 그대로(안 지움)
+    });
+  });
+
+  test("biz_no만 일치하고 source_application_id 링크 없는 고객은 전파 안 됨(IDOR 차단)", async () => {
+    await inRollbackTx(c, async () => {
+      await asPostgres(c);
+      await seedAuthUser(c, UID.sales1, "p5-sales1@jhtech.test");
+      await c.query("update public.profiles set permissions='{applications.claim}' where id=$1", [UID.sales1]);
       const APP2 = "00000000-0000-0000-0000-0000000a5903";
       const CO2 = "00000000-0000-0000-0000-0000000a5904";
-      // 견적 biz_no(하이픈) + 정규화 저장된 고객 biz_no, source_application_id 없음.
+      // 영업이 biz_no를 변조한 견적(자기 배정) + 무관한 고객(같은 biz_no, source 링크 없음).
       await c.query(
-        "insert into public.applications (id,company,status,assignee_id,biz_no) values ($1,'biz상사','assigned',$2,'123-45-67890')",
+        "insert into public.applications (id,company,status,assignee_id,biz_no) values ($1,'탈취시도','assigned',$2,'123-45-67890')",
         [APP2, UID.sales1],
       );
       await c.query(
-        "insert into public.companies (id,name,biz_no,assignee_id) values ($1,'biz상사','1234567890',null)",
+        "insert into public.companies (id,name,biz_no,assignee_id) values ($1,'피해고객','1234567890',null)",
         [CO2],
       );
-      await asUser(c, UID.admin);
+      await asUser(c, UID.sales1);
       const r = await c.query("select public.sync_company_assignee_from_application($1) cid", [APP2]);
-      expect(r.rows[0].cid).toBe(CO2);
+      expect(r.rows[0].cid).toBeNull(); // source_application_id 링크 없으면 전파 안 함
       await asPostgres(c);
       const co = await c.query("select assignee_id from public.companies where id=$1", [CO2]);
-      expect(co.rows[0].assignee_id).toBe(UID.sales1);
+      expect(co.rows[0].assignee_id).toBeNull(); // 탈취 차단
     });
   });
 });

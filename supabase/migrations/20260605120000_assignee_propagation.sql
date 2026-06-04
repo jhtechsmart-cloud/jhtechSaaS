@@ -8,7 +8,6 @@ create or replace function public.sync_company_assignee_from_application(p_appli
 returns uuid language plpgsql security definer set search_path = '' as $$
 declare
   v_app public.applications%rowtype;
-  v_biz text;
   v_company_id uuid;
 begin
   -- 견적 배정/claim 직후 호출 → 호출자는 배정 또는 claim 권한 보유자만. (users.manage는 has_permission super 처리.)
@@ -24,15 +23,13 @@ begin
     return null;
   end if;
 
-  -- 연결 고객 찾기: biz_no 정규화 매칭 우선, 없으면 source_application_id(upsert RPC와 동일 규칙).
-  v_biz := nullif(regexp_replace(coalesce(v_app.biz_no, ''), '\D', '', 'g'), '');
-  if v_biz is not null then
-    select id into v_company_id from public.companies where biz_no = v_biz;
-  else
-    select id into v_company_id from public.companies where source_application_id = p_application_id;
-  end if;
+  -- 연결 고객 = 이 견적으로 등록된 고객(source_application_id). 이 링크는 고객 등록 RPC
+  -- (upsert_company_from_application, customers.edit 필요)가 서버에서 생성하므로 공격자 비통제.
+  -- ⚠️ biz_no 매칭은 IDOR 위험으로 제외: claim 영업이 자기 견적 biz_no를 변조해 임의 고객의
+  -- 담당영업을 탈취할 수 있었음(DEFINER가 companies RLS 우회). source_application_id만 신뢰.
+  select id into v_company_id from public.companies where source_application_id = p_application_id;
   if v_company_id is null then
-    return null; -- 아직 고객 미등록 → no-op
+    return null; -- 아직 고객 미등록(또는 biz_no로만 등록) → no-op
   end if;
 
   -- fill-if-empty: 담당영업이 비어있을 때만 채움. 이미 있으면(수동지정·앞선 배정) 그대로 둠.
