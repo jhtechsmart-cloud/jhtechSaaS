@@ -151,7 +151,13 @@ export default async function ApplicationDetailPage({
           <div>
             <div className="mb-1 text-small text-muted">담당자</div>
             {canAssign ? (
-              <AssignControl id={id} currentAssigneeId={r.assignee_id as string | null} staff={staff} />
+              // key=서버값 → 배정/상태 auto-bump 후 router.refresh 시 remount해 stale 로컬 state 방지.
+              <AssignControl
+                key={(r.assignee_id as string | null) ?? "none"}
+                id={id}
+                currentAssigneeId={r.assignee_id as string | null}
+                staff={staff}
+              />
             ) : (
               <p className="text-small text-muted">{(r.profiles as { name?: string } | null)?.name ?? "미배정"} (배정 권한 없음)</p>
             )}
@@ -159,7 +165,7 @@ export default async function ApplicationDetailPage({
           <div>
             <div className="mb-1 text-small text-muted">상태</div>
             {canAssign ? (
-              <StatusControl id={id} current={status} />
+              <StatusControl key={status} id={id} current={status} />
             ) : (
               <p className="text-small text-muted">상태 변경 권한(applications.assign)이 없습니다.</p>
             )}
