@@ -2,6 +2,19 @@
 
 이 프로젝트의 주요 변경 사항을 기록한다. [Keep a Changelog](https://keepachangelog.com/) 형식, [Semantic Versioning](https://semver.org/)(4자리 MAJOR.MINOR.PATCH.MICRO).
 
+## [0.12.0.0] - 2026-06-05
+
+### Added
+- **E5b 역할 인식 요약 대시보드** — 로그인 후 첫 화면을 `/admin/dashboard`로 전환. 상단 액션 큐(견적 미배정·A/S·소모품 미열람) + 하단 전체 현황(도메인별 상태분포 색바 + 고객·보유장비·카탈로그 참조 숫자). RLS가 역할별 데이터를 자동 차등(영업=본인+미배정 풀, view_all=전체).
+- 현황 섹션 라벨 역할 인식 — 전체열람 권한 보유자는 "전체 현황", 본인 스코프 영업은 "내 현황"(RLS-scoped count를 "전체"로 오도하지 않음).
+- 데이터 0 빈상태 온보딩 카드(고객→장비→영업계정 등록 안내, 사이드바 nav와 동일 권한 게이팅).
+- 담당자별 부하(미완료) — `users.manage` 전용(profiles 이름 RLS).
+
+### Changed
+- 사이드바 최상단에 "대시보드" 메뉴 추가. `landingPathFor`는 콘솔 자격자 전원 `/admin/dashboard` 반환(`LANDING_RULES`는 향후 우선순위 힌트로 보존).
+
+(Closes #46 · DB 스키마 변경 없음 — 읽기 전용 집계)
+
 ## [0.11.0.4] - 2026-06-04
 
 ### Fixed

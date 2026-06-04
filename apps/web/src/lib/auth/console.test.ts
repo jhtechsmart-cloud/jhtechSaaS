@@ -17,17 +17,17 @@ describe("hasAnyConsoleCapability — 콘솔 진입 자격", () => {
   });
 });
 
-describe("landingPathFor — 로그인 후 첫 화면", () => {
-  test("영업(applications.*) → /admin/applications", () => {
-    expect(landingPathFor([...SALES_PRESET])).toBe("/admin/applications");
+describe("landingPathFor — 로그인 후 첫 화면 (E5b: 콘솔 자격자 전원 dashboard)", () => {
+  test("영업(SALES_PRESET) → /admin/dashboard", () => {
+    expect(landingPathFor([...SALES_PRESET])).toBe("/admin/dashboard");
   });
-  test("관리자(super) → /admin/applications (운영 허브)", () => {
-    expect(landingPathFor([...ADMIN_PRESET])).toBe("/admin/applications");
+  test("관리자(super) → /admin/dashboard", () => {
+    expect(landingPathFor([...ADMIN_PRESET])).toBe("/admin/dashboard");
   });
-  test("고객 권한만 → /admin/customers", () => {
-    expect(landingPathFor(["customers.edit"])).toBe("/admin/customers");
+  test("고객 권한만 → /admin/dashboard", () => {
+    expect(landingPathFor(["customers.edit"])).toBe("/admin/dashboard");
   });
-  test("장비 권한만 → /admin/equipment", () => {
-    expect(landingPathFor(["equipment.manage"])).toBe("/admin/equipment");
+  test("콘솔 무관 키만 → /admin/dashboard (안전 기본)", () => {
+    expect(landingPathFor(["nonsense.key"])).toBe("/admin/dashboard");
   });
 });
