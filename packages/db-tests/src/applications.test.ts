@@ -216,3 +216,68 @@ describe("applications — assignee row scope (E-4)", () => {
     });
   });
 });
+
+describe("applications — 배정·상태 UPDATE (E-4 트리아지)", () => {
+  const APP = "00000000-0000-0000-0000-0000000000e1";
+
+  async function seedNew(): Promise<void> {
+    await asPostgres(c);
+    await seedAuthUser(c, UID.admin, "admin@jhtech.test");
+    await seedAuthUser(c, UID.sales1, "s1@jhtech.test");
+    await seedAuthUser(c, UID.sales2, "s2@jhtech.test");
+    await c.query("update public.profiles set permissions='{applications.assign,applications.view_all}' where id=$1", [UID.admin]);
+    await c.query("insert into public.applications (id,company,status) values ($1,'배정대상','new')", [APP]);
+  }
+
+  test("assign 보유자가 타인에게 배정 → assignee_id 저장(WITH CHECK 통과)", async () => {
+    await inRollbackTx(c, async () => {
+      await seedNew();
+      await asUser(c, UID.admin);
+      const r = await c.query(
+        "update public.applications set assignee_id=$1, status='assigned' where id=$2 returning assignee_id,status",
+        [UID.sales1, APP],
+      );
+      expect(r.rowCount).toBe(1);
+      expect(r.rows[0].assignee_id).toBe(UID.sales1);
+      expect(r.rows[0].status).toBe("assigned");
+    });
+  });
+
+  test("assign 없는 사용자의 UPDATE는 0행(RLS 거부 — 거짓성공 방지)", async () => {
+    await inRollbackTx(c, async () => {
+      await seedNew();
+      // sales2: 권한 없음, 본인 배정건도 아님
+      await asUser(c, UID.sales2);
+      const r = await c.query(
+        "update public.applications set status='closed' where id=$1 returning id",
+        [APP],
+      );
+      expect(r.rowCount).toBe(0); // 에러가 아니라 0행 — 앱 레이어가 이걸 에러로 변환
+    });
+  });
+
+  test("status check enum 위반은 거부", async () => {
+    await inRollbackTx(c, async () => {
+      await seedNew();
+      await asUser(c, UID.admin);
+      await expect(
+        c.query("update public.applications set status='done' where id=$1", [APP]),
+      ).rejects.toThrow();
+    });
+  });
+
+  test("UPDATE 후 seq_no·created_at 불변(트리거)", async () => {
+    await inRollbackTx(c, async () => {
+      await seedNew();
+      await asPostgres(c);
+      const before = await c.query("select seq_no,created_at from public.applications where id=$1", [APP]);
+      await asUser(c, UID.admin);
+      await c.query("update public.applications set status='quoted' where id=$1", [APP]);
+      await asPostgres(c);
+      const after = await c.query("select seq_no,created_at,status from public.applications where id=$1", [APP]);
+      expect(after.rows[0].seq_no).toBe(before.rows[0].seq_no);
+      expect(after.rows[0].created_at).toEqual(before.rows[0].created_at);
+      expect(after.rows[0].status).toBe("quoted");
+    });
+  });
+});
