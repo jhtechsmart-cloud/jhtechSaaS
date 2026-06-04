@@ -15,15 +15,19 @@ export function PublicGallery({ photos, name }: { photos: string[]; name: string
   }
   return (
     <div className="flex flex-col gap-3">
-      <div className="relative aspect-[4/3] w-full overflow-hidden rounded-md bg-surface-2">
-        <Image
-          src={publicImageUrl(photos[active])}
-          alt={`${name} 사진 ${active + 1}`}
-          fill
-          sizes="(max-width: 1024px) 100vw, 50vw"
-          className="object-contain"
-          priority
-        />
+      {/* 패딩(여백) 래퍼 — 카탈로그 카드와 동일하게, 여백 없는 원본도 가장자리에 닿지 않게.
+          fill은 padding 무시(inset:0)라 안쪽 relative 박스를 positioning 컨텍스트로 둔다. */}
+      <div className="aspect-[4/3] w-full overflow-hidden rounded-md bg-surface-2 p-8">
+        <div className="relative h-full w-full">
+          <Image
+            src={publicImageUrl(photos[active])}
+            alt={`${name} 사진 ${active + 1}`}
+            fill
+            sizes="(max-width: 1024px) 100vw, 50vw"
+            className="object-contain"
+            priority
+          />
+        </div>
       </div>
       {photos.length > 1 && (
         <ul className="flex gap-2 overflow-x-auto">
