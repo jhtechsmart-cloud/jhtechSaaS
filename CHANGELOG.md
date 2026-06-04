@@ -2,6 +2,18 @@
 
 이 프로젝트의 주요 변경 사항을 기록한다. [Keep a Changelog](https://keepachangelog.com/) 형식, [Semantic Versioning](https://semver.org/)(4자리 MAJOR.MINOR.PATCH.MICRO).
 
+## [0.10.0.0] - 2026-06-04
+
+### Added
+- **E4 견적 트리아지 콘솔** (`/admin/applications`, 이슈 #5) — 고객이 공개폼으로 넣은 견적을 관리자가 보고·맡고·진행시키는 본업 루프의 첫 칸. 마이그레이션 0(순수 웹 레이어, E1 RLS·capability 재사용).
+  - 목록: 서버 검색(업체·접수번호)·상태 필터·미처리(`status='new'`) 강조·견적 내용 컬럼·100건 초과 경고. 좌측 네비 '견적' 미처리 배지.
+  - 상세: 고객정보·요청·설치설문(라벨맵)·라벨 캡션 사진 4슬롯·biz_no 정규화 매칭 P-F 역링크.
+  - 담당 배정(`new→assigned` 자동 전이)·해제(`assigned→new` 복귀)·상태 자유전이(접수/배정/견적중/완료)·미등록 고객 등록(P-F 즉시 연결).
+  - 담당자 미배정 시 상태 변경 차단(UI+서버 가드). 권한: `applications.view_all`·`applications.assign` 재사용.
+
+### Fixed
+- 견적 상태 색 스파인 스왑 수정 — 배정=보라(#7C3AED)·견적중=앰버(#D97706)로 DESIGN.md 복원(P-F에도 전파).
+
 ## [0.9.1.0] - 2026-06-03
 
 ### Changed
