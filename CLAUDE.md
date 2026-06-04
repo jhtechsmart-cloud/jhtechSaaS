@@ -21,6 +21,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - 코드·에러·DB 설정에 근거 없이 추측으로 수정하거나 응답하지 않는다.
 - 이 프로젝트는 초기 단계 — 아키텍처 결정 전에 사용자에게 확인한다.
+- **이미지(PNG 등)를 `cat`·`grep`·`head`·`tail`·`xargs`·`find … | xargs cat` 등으로 텍스트처럼 읽지 않는다.** PNG 원시 바이트(외톨이 high surrogate)가 도구 출력에 섞여 컨텍스트에 들어가면 다음 API 요청 본문이 무효 JSON이 돼 `400 invalid high surrogate in string`으로 대화 전체가 막힌다. 특히 `.gstack/{qa,canary}-reports/screenshots/`의 스크린샷이 위험. 이미지 확인은 **반드시 Read 도구**(이미지로 안전 처리)로. (이 머신엔 `.claude/hooks/block-image-bytes.sh` PreToolUse 가드가 차단하지만, 등록이 머신별 `settings.local.json`이라 **다른 머신엔 가드가 없으니** 이 규칙을 스스로 지킬 것. 이미 에러 난 세션은 `/clear`로만 복구.)
 
 ## Design System
 
