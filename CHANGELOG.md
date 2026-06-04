@@ -2,6 +2,11 @@
 
 이 프로젝트의 주요 변경 사항을 기록한다. [Keep a Changelog](https://keepachangelog.com/) 형식, [Semantic Versioning](https://semver.org/)(4자리 MAJOR.MINOR.PATCH.MICRO).
 
+## [0.11.0.3] - 2026-06-04
+
+### Fixed
+- 공개 카탈로그 카드 이미지에 여백(`p-6`, 24px) 추가 — 여백 없는 원본 사진이 카드 가장자리까지 닿아 답답해 보이던 문제 해소(object-contain 유지, 잘림 없음).
+
 ## [0.11.0.2] - 2026-06-04
 
 ### Performance
