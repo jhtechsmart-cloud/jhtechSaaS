@@ -100,20 +100,27 @@ test.describe.serial("E4 견적 트리아지 콘솔 E2E", () => {
     await expect(page.getByText("공장")).toBeVisible();
     await expect(page.getByText("3상 380V")).toBeVisible();
 
-    // 3) 담당 배정 → status new→assigned 자동 전이.
+    // 3) 담당 배정 → status new→assigned 자동 전이. 배지(testid)로 정밀 단언.
     const assign = page.getByRole("combobox").first();
     await assign.selectOption({ index: 1 });
     await page.getByRole("button", { name: "담당 저장" }).click();
-    await expect(page.getByText("배정").first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("app-status")).toHaveText("배정", { timeout: 15_000 });
 
     // 4) 상태 변경: 견적중.
     const statusSelect = page.getByRole("combobox").nth(1);
     await statusSelect.selectOption({ label: "견적중" });
     await page.getByRole("button", { name: "상태 변경" }).click();
-    await expect(page.getByText("견적중").first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("app-status")).toHaveText("견적중", { timeout: 15_000 });
 
-    // 5) 미등록 고객 등록 → P-F(고객 상세)로 이동.
+    // 4b) DB에서 실제 status 전이 확인(배지 텍스트만으론 거짓통과 가능).
+    const dbRes = await rest(`applications?biz_no=eq.${APP_BIZ}&select=status,assignee_id`, { method: "GET" });
+    const dbRows = (await dbRes.json()) as Array<{ status: string; assignee_id: string | null }>;
+    expect(dbRows[0].status).toBe("quoted");
+    expect(dbRows[0].assignee_id).not.toBeNull();
+
+    // 5) 미등록 고객 등록 → P-F(고객 상세)로 이동 + 업체명 표시 확인.
     await page.getByRole("button", { name: "고객으로 등록" }).click();
     await page.waitForURL(/\/admin\/customers\/[0-9a-f-]+$/, { timeout: 15_000 });
+    await expect(page.getByText(APP_CO).first()).toBeVisible({ timeout: 15_000 });
   });
 });

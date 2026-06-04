@@ -2,6 +2,7 @@ import "server-only";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { ApplicationStatus } from "@/lib/customers/history";
 import { buildSearchOr, splitOverflow } from "./admin-search";
+import { applicationStatusSchema } from "./status-schema";
 
 export interface ApplicationListRow {
   id: string;
@@ -28,7 +29,12 @@ export async function listApplications(
     .order("created_at", { ascending: false })
     .limit(LIST_LIMIT + 1); // overflow 감지용 +1
 
-  if (opts.status && opts.status !== "all") query = query.eq("status", opts.status);
+  // status는 URL 파라미터 → enum 화이트리스트만 통과(임의값이 0행을 "없음"으로 위장하는 것 차단).
+  const safeStatus =
+    opts.status && opts.status !== "all" && applicationStatusSchema.safeParse(opts.status).success
+      ? opts.status
+      : null;
+  if (safeStatus) query = query.eq("status", safeStatus);
   const orFilter = opts.q ? buildSearchOr(opts.q) : null;
   if (orFilter) query = query.or(orFilter);
 
@@ -64,7 +70,11 @@ export async function countNewApplications(): Promise<number> {
     .from("applications")
     .select("id", { count: "exact", head: true })
     .eq("status", "new");
-  if (error) return 0;
+  if (error) {
+    // 신뢰 신호(미배정 배지)가 장애 시 조용히 0이 되는 걸 최소한 로그로 남긴다.
+    console.error("[applications.countNew]", error);
+    return 0;
+  }
   return count ?? 0;
 }
 

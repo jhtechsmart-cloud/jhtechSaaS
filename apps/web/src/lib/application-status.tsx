@@ -20,6 +20,7 @@ export function ApplicationStatusBadge({ status }: { status: ApplicationStatus }
   const m = APPLICATION_STATUS_META[status];
   return (
     <span
+      data-testid="app-status"
       className="inline-block rounded-sm px-2 py-0.5 text-small font-medium"
       style={{ color: m.color, backgroundColor: `${m.color}1A` }}
     >
