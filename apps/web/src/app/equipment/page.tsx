@@ -4,7 +4,7 @@ import { EquipmentCard } from "./_components/EquipmentCard";
 
 export const metadata: Metadata = {
   title: "장비 카탈로그",
-  description: "(주)재현테크 포장·자동화 장비 카탈로그.",
+  description: "(주)재현테크 UV 프린터·커팅기 카탈로그.",
 };
 
 // 공개 카탈로그 — 동적 SSR(equipment_public, active만). 카테고리 필터는 후속.
