@@ -13,15 +13,17 @@ import {
   assigneeLoad,
 } from "@/lib/dashboard/aggregates";
 import { toBarSegments, isDashboardEmpty } from "@/lib/dashboard/bars";
+import { listRecentRequests } from "@/lib/dashboard/recent";
 import { APPLICATION_STATUS_META, APPLICATION_STATUSES } from "@/lib/application-status";
 import { STATUS_META } from "@/lib/request-status";
 import { SERVICE_REQUEST_STATUSES } from "@/lib/service-requests/status";
 import { SUPPLY_REQUEST_STATUSES } from "@/lib/supply-requests/status";
 import { ActionQueue } from "./_components/ActionQueue";
-import { StatusBar } from "./_components/StatusBar";
+import { StatusDonut } from "./_components/StatusDonut";
 import { ReferenceCounts } from "./_components/ReferenceCounts";
 import { EmptyOnboarding } from "./_components/EmptyOnboarding";
 import { AssigneeLoad } from "./_components/AssigneeLoad";
+import { RightRail } from "./_components/RightRail";
 
 // settled 결과 → 값 또는 null(실패). 블록별 에러 흡수(한 집계 실패가 전체를 무너뜨리지 않음).
 function val<T>(r: PromiseSettledResult<T>): T | null {
@@ -67,6 +69,9 @@ export default async function DashboardPage() {
     ? await assigneeLoad().catch(() => null)
     : null;
 
+  // 우측 레일(캘린더 + 이번 달 신청) — 실패는 빈 배열로 흡수.
+  const recent = await listRecentRequests().catch(() => []);
+
   // 현황 라벨은 가시 범위에 정직하게 — view_all 보유자는 "전체", 본인 스코프 영업은 "내".
   // (RLS가 영업에겐 본인+미배정 풀만 보여주므로 "전체"라 적으면 거짓 현황이 된다.)
   const hasFullView =
@@ -76,35 +81,48 @@ export default async function DashboardPage() {
   const statusTitle = hasFullView ? "전체 현황" : "내 현황";
 
   return (
-    <div className="flex flex-col gap-6">
-      <h1 className="text-h1 font-semibold text-text">대시보드</h1>
+    <div className="flex flex-col gap-5">
+      <div>
+        <h1 className="text-h1 font-semibold text-text">대시보드</h1>
+        <p className="text-small text-muted">오늘 처리할 일과 전체 현황을 한눈에</p>
+      </div>
 
-      {empty ? (
-        <EmptyOnboarding permissions={access.permissions} />
-      ) : (
-        <ActionQueue counts={{ applications: val(newApps), service: val(unreadSvc), supply: val(unreadSup) }} />
-      )}
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_340px]">
+        {/* 본문 */}
+        <div className="flex flex-col gap-5">
+          {empty ? (
+            <EmptyOnboarding permissions={access.permissions} />
+          ) : (
+            <ActionQueue counts={{ applications: val(newApps), service: val(unreadSvc), supply: val(unreadSup) }} />
+          )}
 
-      <section className="flex flex-col gap-4 rounded-md border border-border bg-surface p-5">
-        <p className="text-small font-semibold text-muted">{statusTitle}</p>
-        <StatusBar
-          title="견적"
-          error={appCounts == null}
-          segments={appCounts ? toBarSegments(appCounts, APPLICATION_STATUS_META, APPLICATION_STATUSES) : []}
-        />
-        <StatusBar
-          title="A/S"
-          error={svcCounts == null}
-          segments={svcCounts ? toBarSegments(svcCounts, STATUS_META, SERVICE_REQUEST_STATUSES) : []}
-        />
-        <StatusBar
-          title="소모품"
-          error={supCounts == null}
-          segments={supCounts ? toBarSegments(supCounts, STATUS_META, SUPPLY_REQUEST_STATUSES) : []}
-        />
-        <ReferenceCounts customers={val(customers)} equipment={val(equipment)} catalog={val(catalog)} />
-        {can(access.permissions, "users.manage") && loadRows && <AssigneeLoad rows={loadRows} />}
-      </section>
+          <section className="flex flex-col gap-5 rounded-2xl border border-border bg-surface p-6 shadow-md">
+            <p className="text-h2 font-semibold text-text">{statusTitle}</p>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <StatusDonut
+                title="견적"
+                error={appCounts == null}
+                segments={appCounts ? toBarSegments(appCounts, APPLICATION_STATUS_META, APPLICATION_STATUSES) : []}
+              />
+              <StatusDonut
+                title="A/S"
+                error={svcCounts == null}
+                segments={svcCounts ? toBarSegments(svcCounts, STATUS_META, SERVICE_REQUEST_STATUSES) : []}
+              />
+              <StatusDonut
+                title="소모품"
+                error={supCounts == null}
+                segments={supCounts ? toBarSegments(supCounts, STATUS_META, SUPPLY_REQUEST_STATUSES) : []}
+              />
+            </div>
+            <ReferenceCounts customers={val(customers)} equipment={val(equipment)} catalog={val(catalog)} />
+            {can(access.permissions, "users.manage") && loadRows && <AssigneeLoad rows={loadRows} />}
+          </section>
+        </div>
+
+        {/* 우측 레일 */}
+        <RightRail requests={recent} />
+      </div>
     </div>
   );
 }
