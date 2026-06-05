@@ -37,10 +37,12 @@ export default async function EquipmentDetailPage({ params }: { params: Promise<
         ← 카탈로그로
       </Link>
 
-      {/* 상단 2열: 좌 갤러리 / 우 정보+요약+CTA */}
-      <div className="grid grid-cols-1 gap-10 lg:grid-cols-2">
-        <PublicGallery photos={eq.photos} name={eq.name} />
-        <div className="flex flex-col gap-4">
+      {/* 상단 2열: 좌 갤러리 / 우 정보+요약+CTA — 각 항목을 흰 카드 박스로 분리(떠 보이게) */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="rounded-2xl border border-border bg-surface p-4 shadow-card">
+          <PublicGallery photos={eq.photos} name={eq.name} />
+        </div>
+        <div className="flex flex-col gap-4 rounded-2xl border border-border bg-surface p-6 shadow-card">
           <header className="flex flex-col gap-1">
             <h1 className="text-display font-semibold text-text">{eq.name}</h1>
             {eq.model && <span className="font-mono text-body text-muted">{eq.model}</span>}
@@ -56,15 +58,15 @@ export default async function EquipmentDetailPage({ params }: { params: Promise<
         </div>
       </div>
 
-      {/* 중단 전폭: 사양 */}
-      <section className="mt-12 flex flex-col gap-4">
+      {/* 중단 전폭: 사양 — 카드 박스 */}
+      <section className="mt-6 flex flex-col gap-4 rounded-2xl border border-border bg-surface p-6 shadow-card">
         <h2 className="text-h2 font-medium text-text">제품 사양</h2>
         <SpecTable specs={eq.specs} />
       </section>
 
-      {/* 하단 전폭: 복수 영상(0개 생략) */}
+      {/* 하단 전폭: 복수 영상(0개 생략) — 카드 박스 */}
       {eq.youtube_urls.length > 0 && (
-        <section className="mt-12 flex flex-col gap-4">
+        <section className="mt-6 flex flex-col gap-4 rounded-2xl border border-border bg-surface p-6 shadow-card">
           <h2 className="text-h2 font-medium text-text">제품 영상</h2>
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
             {eq.youtube_urls.map((url, i) => (

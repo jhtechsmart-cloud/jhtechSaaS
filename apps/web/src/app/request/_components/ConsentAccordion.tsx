@@ -15,7 +15,7 @@ export function ConsentAccordion({
 }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="flex flex-col gap-2 rounded-md border border-border bg-surface p-4">
+    <div className="flex flex-col gap-2 rounded-2xl border border-border bg-surface p-5 shadow-card">
       <label className="flex items-start gap-2 text-body text-text">
         <input type="checkbox" {...register("privacy_consent")} className="mt-1" />
         <span>

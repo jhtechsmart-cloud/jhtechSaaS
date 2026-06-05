@@ -43,6 +43,7 @@
 - **대시보드:** 3열 — 좌(액션큐+전체현황 도넛) / 우 레일(이번 달 캘린더 + 신청 리스트). `xl:grid-cols-[1fr_340px]`.
 - **최대 콘텐츠 폭:** 1320px (콘솔 본문)
 - **Border radius:** sm 4 / md 8 / lg 12 / 카드 2xl(16) / full 9999
+- **Elevation(그림자):** 카드는 옅은 그림자로 배경에서 분리(떠 보이게). 검정 대신 본문 네이비(`#2a2840`)를 옅게 깐 톤 → `shadow-card`(기본) / `hover:shadow-card-hover`(인터랙티브 카드). 공개 페이지(카탈로그·상세·신청)는 흰 카드(`surface`)+보더+`shadow-card`로 항목을 박스 단위 분리. 콘솔은 surface↔bg 대비 위주(그림자 절제).
 - **반응형:** 폼 = mobile-first, 콘솔 = desktop-primary(좁으면 카드뷰 전환)
 
 ## Motion
@@ -62,3 +63,4 @@
 | 2026-05-28 | 디자인 시스템 생성 (industrial-clean, 북극성=명료함) | /design-consultation. 데이터 밀집 B2B 내부 도구. 프리뷰: `~/.gstack/projects/jhtechSaaS/designs/design-system-20260528/design-preview.html` |
 | 2026-06-02 | A/S status 5종 색 매핑(P-D) — 접수=신규블루·진행중=견적앰버·보류=슬레이트회색·완료=발송그린·취소=실패레드 | 색 스파인 재사용으로 도메인 넘는 색 언어 일관(Risk #1). 보류만 신규(멈춤=중립 회색). autoplan Design 리뷰 권고. |
 | 2026-06-05 | **콘솔 UI 리디자인(v3)** — 폰트 Plus Jakarta Sans(영문/숫자)+Pretendard(한글), 액센트 딥틸 `#155E75`→소프트 인디고 `#6360c4`, 사이드바 196px 네이비→224px 라이트 `#e7e9f3`, 본문폭 1140→1320, 전체현황 색바→파스텔 도넛, 우측 캘린더 레일 | Seonje님 승인(레퍼런스 ProCore HR·Ventixe). 상태 스파인은 의미 색이라 불변. 브랜드색 미확정이라 인디고는 placeholder. v0.12.1.0(PR #49). |
+| 2026-06-05 | **공개 페이지 카드화(elevation 도입)** — 카탈로그·상세·신청을 흰 카드(`surface`)+보더+옅은 그림자(`shadow-card`)로 항목 박스 분리. 카탈로그 카드 `bg-bg`(배경동색=묻힘) 버그 수정. 카드 radius 2xl(16) 통일, 그림자는 네이비 틴트 | Seonje님 요청("둥둥 떠있는 박스처럼 항목 구분"). '옅은 그림자' 선택(미니멀 톤 유지). 상태 스파인 불변. |

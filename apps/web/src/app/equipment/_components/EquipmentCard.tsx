@@ -7,7 +7,7 @@ import { publicImageUrl } from "@/lib/equipment/images";
 export function EquipmentCard({ item }: { item: EquipmentPublic }) {
   const cover = item.photos[0];
   return (
-    <div className="flex flex-col overflow-hidden rounded-md border border-border bg-bg">
+    <div className="flex flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-card transition-shadow hover:shadow-card-hover">
       {/* 패딩(여백)을 둔 래퍼 — 여백 없는 원본 사진도 카드 가장자리에 닿지 않게 숨 쉬는 공간 확보.
           fill 이미지는 padding을 무시(inset:0)하므로, 안쪽 relative 박스를 positioning 컨텍스트로 둬
           이미지가 패딩 안쪽(content box)만 채우게 한다. */}
