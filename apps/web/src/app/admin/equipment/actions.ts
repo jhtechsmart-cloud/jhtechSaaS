@@ -59,7 +59,7 @@ export async function createEquipment(
   const access = await requireEquipmentManage();
   if (access.status === "forbidden") return { error: "권한이 없습니다." };
 
-  if (!z.string().uuid().safeParse(id).success) {
+  if (!z.guid().safeParse(id).success) {
     return { error: "잘못된 요청입니다." };
   }
 
@@ -114,7 +114,7 @@ export async function updateEquipment(
   if (access.status === "forbidden") return { error: "권한이 없습니다." };
 
   // create와 동일하게 id를 검증(직접 POST의 잘못된 id로 DB 캐스트 에러 노출 방지).
-  if (!z.string().uuid().safeParse(id).success) {
+  if (!z.guid().safeParse(id).success) {
     return { error: "잘못된 요청입니다." };
   }
 
@@ -168,7 +168,7 @@ export async function deleteEquipment(id: string): Promise<EquipmentActionResult
   const access = await requireEquipmentManage();
   if (access.status === "forbidden") return { error: "권한이 없습니다." };
 
-  if (!z.string().uuid().safeParse(id).success) {
+  if (!z.guid().safeParse(id).success) {
     return { error: "잘못된 요청입니다." };
   }
 

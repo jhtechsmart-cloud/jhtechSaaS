@@ -19,7 +19,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params;
   // UUID 형식이 아니면 DB 조회 없이 404 메타 반환(PostgREST 22P02 예외 방지).
-  if (!z.string().uuid().safeParse(id).success) return { title: "장비를 찾을 수 없습니다" };
+  if (!z.guid().safeParse(id).success) return { title: "장비를 찾을 수 없습니다" };
   const eq = await getPublicEquipment(id);
   if (!eq) return { title: "장비를 찾을 수 없습니다" };
   return buildEquipmentMetadata(eq, siteUrl(), getPublicEnv().NEXT_PUBLIC_SUPABASE_URL);
@@ -27,7 +27,7 @@ export async function generateMetadata({
 
 export default async function EquipmentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  if (!z.string().uuid().safeParse(id).success) notFound();
+  if (!z.guid().safeParse(id).success) notFound();
   const eq = await getPublicEquipment(id);
   if (!eq) notFound();
 

@@ -65,7 +65,7 @@ function isUniqueViolation(error: PostgrestError): boolean {
 export async function createCustomer(id: string, values: CompanyFormValues): Promise<CustomerActionResult> {
   const access = await requireCustomersEdit();
   if (access.status === "forbidden") return { error: "권한이 없습니다." };
-  if (!z.string().uuid().safeParse(id).success) return { error: "잘못된 요청입니다." };
+  if (!z.guid().safeParse(id).success) return { error: "잘못된 요청입니다." };
   const parsed = companyFormSchema.safeParse(values);
   if (!parsed.success) return { error: "입력값을 확인하세요." };
   const v = parsed.data;
@@ -97,7 +97,7 @@ export async function createCustomer(id: string, values: CompanyFormValues): Pro
 export async function updateCustomer(id: string, values: CompanyFormValues): Promise<CustomerActionResult> {
   const access = await requireCustomersEdit();
   if (access.status === "forbidden") return { error: "권한이 없습니다." };
-  if (!z.string().uuid().safeParse(id).success) return { error: "잘못된 요청입니다." };
+  if (!z.guid().safeParse(id).success) return { error: "잘못된 요청입니다." };
   const parsed = companyFormSchema.safeParse(values);
   if (!parsed.success) return { error: "입력값을 확인하세요." };
   const v = parsed.data;
@@ -127,7 +127,7 @@ export async function updateCustomer(id: string, values: CompanyFormValues): Pro
 export async function deleteCustomer(id: string): Promise<CustomerActionResult> {
   const access = await requireCustomersDelete();
   if (access.status === "forbidden") return { error: "권한이 없습니다." };
-  if (!z.string().uuid().safeParse(id).success) return { error: "잘못된 요청입니다." };
+  if (!z.guid().safeParse(id).success) return { error: "잘못된 요청입니다." };
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.from("companies").delete().eq("id", id).select("id");
   if (error) { console.error("[customers.delete] delete 실패", error); return { error: "삭제하지 못했습니다." }; }
@@ -140,12 +140,12 @@ export async function deleteCustomer(id: string): Promise<CustomerActionResult> 
 export async function registerFromApplication(applicationId: string): Promise<{ error: string } | { company_id: string; created: boolean }> {
   const access = await requireCustomersEdit();
   if (access.status === "forbidden") return { error: "권한이 없습니다." };
-  if (!z.string().uuid().safeParse(applicationId).success) return { error: "잘못된 요청입니다." };
+  if (!z.guid().safeParse(applicationId).success) return { error: "잘못된 요청입니다." };
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.rpc("upsert_company_from_application", { p_application_id: applicationId });
   if (error) { console.error("[customers.registerFromApp]", error); return { error: "고객 등록에 실패했습니다." }; }
   // 외부(RPC) 응답은 직접 신뢰 금지 — Zod로 형태 검증(CLAUDE.md).
-  const parsed = z.object({ company_id: z.string().uuid(), created: z.boolean() }).safeParse(data);
+  const parsed = z.object({ company_id: z.guid(), created: z.boolean() }).safeParse(data);
   if (!parsed.success) { console.error("[customers.registerFromApp] RPC 응답 형식 오류", data); return { error: "고객 등록 응답이 올바르지 않습니다." }; }
   return parsed.data;
 }

@@ -20,7 +20,7 @@ export async function createCategory(
   const parsed = nameSchema.safeParse(name);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
-  if (parentId !== null && !z.string().uuid().safeParse(parentId).success) {
+  if (parentId !== null && !z.guid().safeParse(parentId).success) {
     return { error: "잘못된 상위 분류입니다." };
   }
 
@@ -47,7 +47,7 @@ export async function renameCategory(
   const access = await requireEquipmentManage();
   if (access.status === "forbidden") return { error: "권한이 없습니다." };
 
-  if (!z.string().uuid().safeParse(id).success) return { error: "잘못된 요청입니다." };
+  if (!z.guid().safeParse(id).success) return { error: "잘못된 요청입니다." };
 
   const parsed = nameSchema.safeParse(name);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
@@ -76,7 +76,7 @@ export async function deleteCategory(id: string): Promise<CategoryActionResult> 
   const access = await requireEquipmentManage();
   if (access.status === "forbidden") return { error: "권한이 없습니다." };
 
-  if (!z.string().uuid().safeParse(id).success) return { error: "잘못된 요청입니다." };
+  if (!z.guid().safeParse(id).success) return { error: "잘못된 요청입니다." };
 
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase

@@ -37,7 +37,7 @@ export const requestFormSchema = z.object({
   pneumatic: z.enum(PNEUMATICS),
   survey_extra: z.string().trim().max(1000, "1000자 이내로 입력하세요").optional().default(""),
   // hidden input은 장비 미선택 시 ""를 보내므로 ""→undefined 전처리(빈 문자열이 uuid 검증에 걸리지 않게).
-  equipment_id: z.preprocess((v) => (v === "" ? undefined : v), z.string().uuid().optional()),
+  equipment_id: z.preprocess((v) => (v === "" ? undefined : v), z.guid().optional()),
 });
 
 export type RequestFormInput = z.infer<typeof requestFormSchema>;
