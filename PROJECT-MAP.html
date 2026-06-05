@@ -69,7 +69,7 @@
 <div class="wrap">
   <h1>프로젝트 지도</h1>
   <div class="sub">지금까지 만들어진 파일이 <b>어디에</b> 있고, <b>각 단계가 어떤 파일을 만드는지</b>, 문제 시 <b>어디를 봐야 하는지</b>.</div>
-  <div class="upd">갱신: 2026-06-05 · 명령어 <code>/map</code> 으로 재생성</div>
+  <div class="upd">갱신: 2026-06-05 (세션2 · 고객 포털) · 명령어 <code>/map</code> 으로 재생성</div>
 
   <div class="lead">
     <b>핵심:</b> 이 프로젝트의 산출물은 <b>4곳에 흩어져</b> 있습니다. 코드·설정만 프로젝트 폴더 안에 있고,
@@ -179,8 +179,8 @@
   <p class="note">각 단계를 진행하면 → 어디에 어떤 파일이 생기고 무슨 내용이 담기는지.</p>
 
   <div class="lead" style="border-left-color:var(--sent)">
-    <b>진행 현황 (2026-06-05):</b> <b>M1 E1·E2·E3 + M2 P-A~P-F + E4 + E5a + E5b + 콘솔 리디자인 완료·머지·배포</b>(프로덕션 라이브 <b>v0.12.1.1</b>, canary HEALTHY). <b>오늘(하루 4배포)</b>: ①<b>E5b 역할인식 대시보드</b>(#46, v0.12.0.0) — `/admin/dashboard` 액션큐+전체현황+캘린더 레일, 역할별 RLS 차등. ②<b>견적 담당자→고객 담당영업 전파</b>(#48, v0.12.0.1) — DEFINER RPC 단방향·fill-if-empty, /review가 IDOR 잡아 source_application_id 매칭만으로 차단. ③<b>콘솔 UI 리디자인 + 장비상세 404 수정</b>(#49, v0.12.1.0) — 라이트 인디고 v3·파스텔 도넛·Plus Jakarta Sans + Zod4 `z.string().uuid()`→`z.guid()` 34곳(구조화 UUID 거부로 상세 404나던 버그). ④<b>DESIGN.md·UI-SPEC.md v3 갱신</b>(#50, v0.12.1.1). 게이트 GREEN(web162·e2e40·db-tests270·shared60·tsc·lint·build·as any 0). 앞서 E5a 권한모델 v0.11.0.0(#38).
-    <b>다음 = start 시 택1</b>: ⓐ <b>브랜드/로고 색 확정</b> 시 `--color-accent` 교체(현 인디고 #6360c4 placeholder) ⓑ <b>신청(공개) 페이지 톤도 리디자인 결로</b> ⓒ <b>E5 견적작성+통합 PDF</b>(jobs큐·Railway워커, #6) ⓓ M2 P-G 알림(#25) ⓔ 운영 데이터 추가 입력(실고객·보유장비). ⚠️ 운영: SUPPORT_PHONE 실번호 · 홈 cold-start · 고아청소 cron. 남은 도그푸딩: M7·P10~14.
+    <b>진행 현황 (2026-06-05):</b> <b>M1 E1·E2·E3 + M2 P-A~P-F + E4 + E5a + E5b + 콘솔 리디자인 완료·머지·배포</b>(프로덕션 라이브 <b>v0.12.1.1</b>, canary HEALTHY). <b>오늘(하루 4배포)</b>: ①<b>E5b 역할인식 대시보드</b>(#46, v0.12.0.0) — `/admin/dashboard` 액션큐+전체현황+캘린더 레일, 역할별 RLS 차등. ②<b>견적 담당자→고객 담당영업 전파</b>(#48, v0.12.0.1) — DEFINER RPC 단방향·fill-if-empty, /review가 IDOR 잡아 source_application_id 매칭만으로 차단. ③<b>콘솔 UI 리디자인 + 장비상세 404 수정</b>(#49, v0.12.1.0) — 라이트 인디고 v3·파스텔 도넛·Plus Jakarta Sans + Zod4 `z.string().uuid()`→`z.guid()` 34곳(구조화 UUID 거부로 상세 404나던 버그). ④<b>DESIGN.md·UI-SPEC.md v3 갱신</b>(#50, v0.12.1.1). 게이트 GREEN(web162·e2e40·db-tests270·shared60·tsc·lint·build·as any 0). 앞서 E5a 권한모델 v0.11.0.0(#38). <b>세션2(오늘 추가, main `76a484e`)</b>: ⑤<b>문구 정정</b>(#52, 포장·자동화→UV프린터·커팅기) ⑥<b>공개 페이지 카드화</b>(#53, elevation 토큰 shadow-card·카탈로그 bg-bg 묻힘 버그수정) ⑦<b>고객 포털 셸</b>(#54+#55, 라우트그룹 <code>app/(portal)/</code>+상단바+모바일 하단탭+홈 리디자인 히어로/아이콘3카드/이용안내, URL 불변). ⚠️자초실수=git mv 재작성 스테이징 누락→깨진홈 #54머지→#55복구. ⚠️워킹트리 미커밋=admin KPI 페이지 WIP(/admin/kpi, lint에러, Seonje 결정대기).
+    <b>다음 = start 시 택1</b>: ⓐ <b>admin KPI 페이지 마무리</b>(/admin/kpi WIP, lint 에러 donutOffset 193번 수정+완성) ⓑ <b>브랜드/로고 색 확정</b> 시 `--color-accent` 교체(현 인디고 #6360c4 placeholder) ⓒ <b>E5 견적작성+통합 PDF</b>(jobs큐·Railway워커, #6) ⓓ 전화번호 placeholder(1577-0000) 실번호 교체(PortalFooter) ⓔ M2 P-G 알림(#25) / 운영 데이터 추가 입력. ⚠️ 운영: 홈 cold-start · 고아청소 cron. 남은 도그푸딩: M7·P10~14. ※공개 페이지는 이제 <code>app/(portal)/</code> 라우트 그룹 아래(공통 셸).
   </div>
   <p class="note">아래 단계 바 = 한 phase의 생애주기. M1 E1·E2·E3 + M2 P-A~P-F + E4 + E5a + E5b + 리디자인 모두 완주·배포. 다음 작업은 ①기획(/office-hours)부터(또는 빠른 수정은 /investigate→/review→/ship).</p>
   <div class="flow">
