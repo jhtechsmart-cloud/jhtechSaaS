@@ -1,9 +1,9 @@
 {
   "_comment": "jhtechSaaS 로드맵 단일 진실 원본. 단계/기능 상태를 여기서 갱신하고 `pnpm roadmap:sync`(또는 scripts/roadmap-sync.sh)를 돌리면 docs/ROADMAP.md 재생성 + Notion 라이브영역(진행현황 콜아웃·14표·기능DB) 동기화. status: done|next|todo / feature status는 Notion status 옵션명(Launched|Spec Needed|In Review|Approved|In Dev|Draft|Dropped).",
   "meta": {
-    "updated": "2026-06-04",
+    "updated": "2026-06-05",
     "release_target": "2026-06-07",
-    "version": "v0.11.0.1",
+    "version": "v0.12.1.1",
     "deploy_url": "https://jhtech-saa-s-web.vercel.app",
     "repo": "github.com/jhtechsmart-cloud/jhtechSaaS"
   },
