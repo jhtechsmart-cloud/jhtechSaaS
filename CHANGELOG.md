@@ -2,6 +2,12 @@
 
 이 프로젝트의 주요 변경 사항을 기록한다. [Keep a Changelog](https://keepachangelog.com/) 형식, [Semantic Versioning](https://semver.org/)(4자리 MAJOR.MINOR.PATCH.MICRO).
 
+## [0.12.1.1] - 2026-06-05
+
+### Docs
+- DESIGN.md를 v0.12.1.0 콘솔 리디자인(v3)에 맞춰 갱신 — 폰트(Plus Jakarta Sans + Pretendard), 액센트(소프트 인디고 `#6360c4`), 라이트 사이드바(224px `#e7e9f3`)·sidebar-text 토큰, 본문폭 1320, 대시보드 도넛 파스텔 팔레트·캘린더 레일, Decisions Log 항목 추가. 상태 스파인은 불변(의미 색) 명시.
+- UI-SPEC.md 토큰 참조줄을 v3로 갱신 + 화면별 계약의 리디자인 전 표기(deep teal·196px·1140px)는 DESIGN.md 최신값으로 읽으라는 우산 노트 추가(역사적 계약 보존).
+
 ## [0.12.1.0] - 2026-06-05
 
 ### Fixed

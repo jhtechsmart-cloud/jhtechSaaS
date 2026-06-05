@@ -3,7 +3,7 @@
 화면별 레이아웃·상태·반응형·컴포넌트 해부 계약. 시스템 토큰(폰트·색·간격·모션)은 `DESIGN.md`가 단일 출처 — 여기서 재정의하지 않고 **참조만** 한다. 이 문서는 planner/TDD가 직접 소비하는 게이트 산출물이다.
 
 - 북극성(상속): **"복잡한 것을 한눈에" — 명료함.**
-- 토큰 참조: `DESIGN.md` (Pretendard UI / JetBrains Mono tabular = 식별자·숫자·금액 / deep teal `#155E75` accent / 4px 베이스 / radius sm4·md8·lg12 / 모션 micro·short).
+- 토큰 참조: `DESIGN.md` (v3 2026-06 리디자인 — Plus Jakarta Sans 영문/숫자 + Pretendard 한글 / tabular-nums = 식별자·숫자·금액 / 소프트 인디고 `#6360c4` accent / 라이트 사이드바 224px `#e7e9f3` / 본문폭 1320 / 4px 베이스 / radius sm4·md8·lg12 / 모션 micro·short). ※ 아래 화면별 계약에 남은 "deep teal·196px·1140px·JetBrains Mono·Pretendard UI" 표기는 리디자인 전 작성분 — 시스템 토큰은 DESIGN.md가 최신 단일 출처이니 그 값으로 읽는다.
 - 5-state 정의(전 화면 공통): **loading / empty / error / populated / partial**.
   - `partial` = "데이터·작업이 부분만 있는" 상태. 화면마다 의미가 다름(필터 0건, 저장 중, 일부 업로드 완료 등) — 각 화면에서 구체화.
 
