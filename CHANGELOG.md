@@ -2,6 +2,22 @@
 
 이 프로젝트의 주요 변경 사항을 기록한다. [Keep a Changelog](https://keepachangelog.com/) 형식, [Semantic Versioning](https://semver.org/)(4자리 MAJOR.MINOR.PATCH.MICRO).
 
+## [0.12.1.0] - 2026-06-05
+
+### Fixed
+- **공개 장비 상세 페이지가 로컬에서 404 나던 버그 수정** — Zod 4의 `z.string().uuid()`가 v3보다 엄격해져 RFC 9562의 version/variant 비트까지 검사, 형식은 정상이지만 그 비트가 0인 구조화/seed UUID(예: `00000000-0000-0000-0000-0000000e0001`)를 거부해 `notFound()`를 호출했다. 코드 전반 `z.string().uuid()` → `z.guid()`(형식만 검사, 쓰레기값은 여전히 거부) 34곳 일괄 교체. 장비·견적요청·고객·A/S·소모품·분류 상세/액션 전 영역. 실데이터는 `gen_random_uuid()`(정식 v4)라 프로덕션은 정상이었고, 로컬 seed 한정 증상이었음.
+
+### Changed
+- **관리자 콘솔 UI 리디자인** — 네이비 일색에서 연한 인디고(v3) 팔레트로. 좌측 사이드바를 라이트(본문 배경보다 살짝 진한 `#e7e9f3`)로 전환, nav 라벨은 AA 대비(4.5:1) 충족하는 톤. 영문·숫자 폰트를 Plus Jakarta Sans로(한글은 Pretendard 유지).
+- **대시보드 전체 현황을 파스텔 도넛 차트 3개로** — 기존 색바(StatusBar)를 견적·A/S·소모품 도메인별 도넛 링(가운데 총계 + 상태별 범례)으로 교체.
+- 대시보드 우측에 이번 달 캘린더(신청 제출일 표시) + 이번 달 신청 리스트 레일 추가.
+
+### Added
+- guid 형식 검증 회귀 가드 테스트 — 구조화 비-v4 UUID가 수락되는지 단언(`.uuid()`로 되돌리면 실패).
+- 운영 데이터 입력용 장비·분류 seed 스크립트(`apps/worker/src/seed-equipment*.ts`, service_role·멱등).
+
+(DB 스키마 변경 없음 — UI·검증 로직만)
+
 ## [0.12.0.1] - 2026-06-05
 
 ### Fixed
