@@ -3,8 +3,8 @@ import { validateBizNo } from "@jhtechsaas/shared";
 
 // lookup_company_by_biz_no RPC 응답 — P-E는 equipment_model까지 표시하므로 자체 스키마(P-D는 model 미사용).
 export const lookupEquipmentSchema = z.object({
-  id: z.string().uuid(),
-  equipment_id: z.string().uuid().nullable(),
+  id: z.guid(),
+  equipment_id: z.guid().nullable(),
   equipment_name: z.string().nullable(),
   equipment_model: z.string().nullable(),
   label: z.string().nullable(),
@@ -12,7 +12,7 @@ export const lookupEquipmentSchema = z.object({
   install_address: z.string().nullable(),
 });
 export const lookupResultSchema = z.object({
-  company_id: z.string().uuid(),
+  company_id: z.guid(),
   name: z.string().nullable(),
   ceo: z.string().nullable(),
   phone: z.string().nullable(),
@@ -46,12 +46,12 @@ export type SupplyRequestFormInputRaw = z.input<typeof supplyRequestFormSchema>;
 
 // list_consumables_for_company RPC 응답 — 외부응답 직접신뢰 금지(CLAUDE.md): Zod 검증. price 없음.
 export const consumableItemSchema = z.object({
-  id: z.string().uuid(),
+  id: z.guid(),
   name: z.string(),
   unit: z.string().nullable(),
 });
 export const consumableGroupSchema = z.object({
-  equipment_id: z.string().uuid().nullable(),
+  equipment_id: z.guid().nullable(),
   equipment_name: z.string().nullable(),
   consumables: z.array(consumableItemSchema),
 });
@@ -65,7 +65,7 @@ export type ListConsumablesResult = z.infer<typeof listConsumablesResultSchema>;
 
 // last_supply_request_for_company RPC 응답 — 재주문 프리필용 {consumable_id, qty}.
 export const lastSupplyResultSchema = z.object({
-  items: z.array(z.object({ consumable_id: z.string().uuid(), qty: z.number().int() })),
+  items: z.array(z.object({ consumable_id: z.guid(), qty: z.number().int() })),
 });
 export type LastSupplyResult = z.infer<typeof lastSupplyResultSchema>;
 

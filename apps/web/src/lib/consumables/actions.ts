@@ -62,7 +62,7 @@ function consumableRow(v: ConsumableFormValues) {
 export async function createConsumable(id: string, values: ConsumableFormValues): Promise<ConsumableActionResult> {
   const access = await requireConsumablesManage();
   if (access.status === "forbidden") return { error: "권한이 없습니다." };
-  if (!z.string().uuid().safeParse(id).success) return { error: "잘못된 요청입니다." };
+  if (!z.guid().safeParse(id).success) return { error: "잘못된 요청입니다." };
   const parsed = consumableFormSchema.safeParse(values);
   if (!parsed.success) return { error: "입력값을 확인하세요." };
   const v = parsed.data;
@@ -85,7 +85,7 @@ export async function createConsumable(id: string, values: ConsumableFormValues)
 export async function updateConsumable(id: string, values: ConsumableFormValues): Promise<ConsumableActionResult> {
   const access = await requireConsumablesManage();
   if (access.status === "forbidden") return { error: "권한이 없습니다." };
-  if (!z.string().uuid().safeParse(id).success) return { error: "잘못된 요청입니다." };
+  if (!z.guid().safeParse(id).success) return { error: "잘못된 요청입니다." };
   const parsed = consumableFormSchema.safeParse(values);
   if (!parsed.success) return { error: "입력값을 확인하세요." };
   const v = parsed.data;
@@ -104,7 +104,7 @@ export async function updateConsumable(id: string, values: ConsumableFormValues)
 export async function deleteConsumable(id: string): Promise<ConsumableActionResult> {
   const access = await requireConsumablesManage();
   if (access.status === "forbidden") return { error: "권한이 없습니다." };
-  if (!z.string().uuid().safeParse(id).success) return { error: "잘못된 요청입니다." };
+  if (!z.guid().safeParse(id).success) return { error: "잘못된 요청입니다." };
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.from("consumables").delete().eq("id", id).select("id");
   if (error) { console.error("[consumables.delete] delete 실패", error); return { error: "삭제하지 못했습니다." }; }

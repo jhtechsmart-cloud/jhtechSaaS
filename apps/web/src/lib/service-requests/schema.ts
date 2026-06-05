@@ -20,7 +20,7 @@ export const serviceRequestFormSchema = z.object({
     .optional().default(""),
   contact_address: z.string().trim().max(500, "500자 이내로 입력하세요").optional().default(""),
   // 등록고객이 보유장비를 고른 경우만. 미등록/미선택은 "" → undefined.
-  company_equipment_id: z.preprocess((v) => (v === "" ? undefined : v), z.string().uuid().optional()),
+  company_equipment_id: z.preprocess((v) => (v === "" ? undefined : v), z.guid().optional()),
   symptom: z.string().trim().min(1, "고장 증상을 입력하세요").max(2000, "2000자 이내로 입력하세요"),
   preferred_date: z.string().trim().optional().default(""),
   privacy_consent: z.literal(true, { message: "개인정보 수집·이용 동의가 필요합니다" }),
@@ -37,15 +37,15 @@ export const PRIVACY_VERSION = "v1.0";
 
 // lookup_company_by_biz_no RPC 응답 — 외부응답 직접신뢰 금지(CLAUDE.md): Zod 검증.
 export const lookupEquipmentSchema = z.object({
-  id: z.string().uuid(),
-  equipment_id: z.string().uuid().nullable(),
+  id: z.guid(),
+  equipment_id: z.guid().nullable(),
   equipment_name: z.string().nullable(),
   label: z.string().nullable(),
   purchased_at: z.string().nullable(),
   install_address: z.string().nullable(),
 });
 export const lookupResultSchema = z.object({
-  company_id: z.string().uuid(),
+  company_id: z.guid(),
   name: z.string().nullable(),
   ceo: z.string().nullable(),
   phone: z.string().nullable(),

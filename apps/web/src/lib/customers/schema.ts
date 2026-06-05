@@ -9,8 +9,8 @@ const bizNoOptional = z
 // 보유장비 행 — 카탈로그 장비(equipment_id) 또는 직접입력(label) 중 하나만(XOR).
 export const companyEquipmentRowSchema = z
   .object({
-    id: z.string().uuid().or(z.literal("")), // 기존 uuid 또는 "" (신규). malformed id 차단.
-    equipment_id: z.string().uuid().or(z.literal("")),
+    id: z.guid().or(z.literal("")), // 기존 uuid 또는 "" (신규). malformed id 차단.
+    equipment_id: z.guid().or(z.literal("")),
     label: z.string().trim().max(200, "200자 이내"),
     serial_no: z.string().trim().max(100, "100자 이내"),
     purchased_at: z.string(),

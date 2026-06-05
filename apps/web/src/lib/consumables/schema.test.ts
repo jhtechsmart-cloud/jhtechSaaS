@@ -16,6 +16,14 @@ describe("consumableScopeRowSchema — category_id XOR equipment_id", () => {
   test("둘 다 없음 → 실패", () => {
     expect(consumableScopeRowSchema.safeParse(base).success).toBe(false);
   });
+  // 회귀 가드: 구조화된(비-v4) UUID도 수락해야 한다. Zod4 .uuid()는 version/variant 비트를
+  // 검사해 seed·구조화 id(예: 장비 상세 404 버그의 원인)를 거부하므로 .guid()(형식만 검사)로 바꿨다.
+  // 이 단언이 통과 = .guid() 유지. .uuid()로 되돌리면 실패한다.
+  test("구조화 비-v4 equipment_id도 수락(.guid 형식 검증)", () => {
+    expect(
+      consumableScopeRowSchema.safeParse({ ...base, equipment_id: "00000000-0000-0000-0000-0000000e0001" }).success,
+    ).toBe(true);
+  });
 });
 
 describe("consumableFormSchema", () => {

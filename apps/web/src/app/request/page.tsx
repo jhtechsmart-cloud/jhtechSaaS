@@ -12,7 +12,7 @@ export default async function RequestPage({
 }) {
   const { equipment_id } = await searchParams;
   const validId =
-    equipment_id && z.string().uuid().safeParse(equipment_id).success ? equipment_id : undefined;
+    equipment_id && z.guid().safeParse(equipment_id).success ? equipment_id : undefined;
 
   let equipmentName: string | undefined;
   if (validId) {
