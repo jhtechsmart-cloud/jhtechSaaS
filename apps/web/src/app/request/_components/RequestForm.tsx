@@ -71,47 +71,51 @@ export function RequestForm({
       <ConsentAccordion register={register} error={errors.privacy_consent} policyBody={policyBody} />
 
       {equipmentName && (
-        <div className="rounded-md border border-border bg-surface px-3 py-2 text-small text-muted">
+        <div className="rounded-xl border border-accent-ring bg-accent-soft px-4 py-3 text-small text-muted">
           선택 장비: <span className="font-mono text-text">{equipmentName}</span>
         </div>
       )}
       <input type="hidden" {...register("equipment_id")} />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Field label="회사명" error={errors.company?.message}>
-          <input {...register("company")} className={FIELD} />
-        </Field>
-        <Field label="대표자명" error={errors.ceo?.message}>
-          <input {...register("ceo")} className={FIELD} />
-        </Field>
-        <Field label="사업자등록번호" error={errors.biz_no?.message}>
-          <input
-            {...register("biz_no", {
-              onBlur: () => {
-                // blur 시 대시 포맷(admin 고객폼과 일관). 저장은 서버가 normalize.
-                const raw = getValues("biz_no");
-                if (raw) setValue("biz_no", formatBizNo(raw), { shouldValidate: false });
-              },
-            })}
-            inputMode="numeric"
-            placeholder="123-45-67890"
-            className={`${FIELD} font-mono`}
-          />
-        </Field>
-        <Field label="연락처" error={errors.phone?.message}>
-          <input {...register("phone")} inputMode="tel" placeholder="02-1234-5678" className={`${FIELD} font-mono`} />
-        </Field>
-        <Field label="이메일" error={errors.email?.message}>
-          <input {...register("email")} type="email" placeholder="example@company.com" className={FIELD} />
-        </Field>
-        <Field label="주소" error={errors.address?.message}>
-          <input {...register("address")} className={FIELD} />
-        </Field>
-      </div>
+      {/* 신청 정보 — 회사/연락처 입력을 하나의 카드 박스로 묶어 배경에서 분리. */}
+      <section className="flex flex-col gap-4 rounded-2xl border border-border bg-surface p-6 shadow-card">
+        <h2 className="text-h2 font-medium text-text">신청 정보</h2>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label="회사명" error={errors.company?.message}>
+            <input {...register("company")} className={FIELD} />
+          </Field>
+          <Field label="대표자명" error={errors.ceo?.message}>
+            <input {...register("ceo")} className={FIELD} />
+          </Field>
+          <Field label="사업자등록번호" error={errors.biz_no?.message}>
+            <input
+              {...register("biz_no", {
+                onBlur: () => {
+                  // blur 시 대시 포맷(admin 고객폼과 일관). 저장은 서버가 normalize.
+                  const raw = getValues("biz_no");
+                  if (raw) setValue("biz_no", formatBizNo(raw), { shouldValidate: false });
+                },
+              })}
+              inputMode="numeric"
+              placeholder="123-45-67890"
+              className={`${FIELD} font-mono`}
+            />
+          </Field>
+          <Field label="연락처" error={errors.phone?.message}>
+            <input {...register("phone")} inputMode="tel" placeholder="02-1234-5678" className={`${FIELD} font-mono`} />
+          </Field>
+          <Field label="이메일" error={errors.email?.message}>
+            <input {...register("email")} type="email" placeholder="example@company.com" className={FIELD} />
+          </Field>
+          <Field label="주소" error={errors.address?.message}>
+            <input {...register("address")} className={FIELD} />
+          </Field>
+        </div>
 
-      <Field label="요청사항" error={errors.requirements?.message}>
-        <textarea {...register("requirements")} rows={4} placeholder="장비 사양·예산·납기 등" className={FIELD} />
-      </Field>
+        <Field label="요청사항" error={errors.requirements?.message}>
+          <textarea {...register("requirements")} rows={4} placeholder="장비 사양·예산·납기 등" className={FIELD} />
+        </Field>
+      </section>
 
       {/* 선택 입력(사진·설치설문) — 기본 접힘. 안내문구는 접힌 영역 바로 위에 노출.
           details 내부도 DOM에 마운트되어 설치설문 기본값은 접힌 채로도 제출에 포함됨. */}
@@ -122,11 +126,11 @@ export function RequestForm({
           <span className="text-text">설치 환경 정보</span>를 함께 남겨주시면 좋습니다(선택).
           현장 방문 전에 더 빠르고 정확하게 안내드릴 수 있어요.
         </p>
-        <details className="rounded-md border border-border bg-surface">
-          <summary className="cursor-pointer px-4 py-3 text-body font-medium text-text">
+        <details className="rounded-2xl border border-border bg-surface shadow-card">
+          <summary className="cursor-pointer px-5 py-4 text-body font-medium text-text">
             설치 환경 정보·사진 입력하기 <span className="text-small text-muted">(선택)</span>
           </summary>
-          <div className="flex flex-col gap-6 border-t border-border p-4">
+          <div className="flex flex-col gap-6 border-t border-border p-5">
             <SitePhotoUploader onChange={setPhotoFiles} />
             <InstallSurvey register={register} />
           </div>

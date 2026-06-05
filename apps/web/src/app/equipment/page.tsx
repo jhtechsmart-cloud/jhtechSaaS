@@ -19,7 +19,7 @@ export default async function EquipmentCatalogPage() {
         </p>
       </header>
       {items.length === 0 ? (
-        <p className="rounded-md border border-border bg-surface p-8 text-center text-body text-muted">
+        <p className="rounded-2xl border border-border bg-surface p-8 text-center text-body text-muted shadow-card">
           등록된 장비가 없습니다.
         </p>
       ) : (

@@ -48,6 +48,11 @@
   --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 12px;
+
+  /* elevation(떠 보이는 음영) — 카드용 옅은 그림자. 검정 대신 본문 네이비(#2a2840=rgb 42 40 64)를
+     옅게 써서 v3 인디고 팔레트와 어울리게. shadow-card / hover:shadow-card-hover 유틸 생성. */
+  --shadow-card: 0 1px 2px 0 rgb(42 40 64 / 0.04), 0 6px 16px -4px rgb(42 40 64 / 0.08);
+  --shadow-card-hover: 0 2px 4px 0 rgb(42 40 64 / 0.06), 0 10px 24px -6px rgb(42 40 64 / 0.12);
 }
 
 body {
