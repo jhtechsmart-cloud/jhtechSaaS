@@ -1,9 +1,9 @@
 {
-  "_comment": "jhtechSaaS 로드맵 단일 진실 원본. 단계/기능 상태를 여기서 갱신하고 `pnpm roadmap:sync`(또는 scripts/roadmap-sync.sh)를 돌리면 docs/ROADMAP.md 재생성 + Notion 라이브영역(진행현황 콜아웃·14표·기능DB) 동기화. status: done|next|todo / feature status는 Notion status 옵션명(Launched|Spec Needed|In Review|Approved|In Dev|Draft|Dropped).",
+  "_comment": "jhtechSaaS 로드맵 단일 진실 원본. 단계/기능 상태를 여기서 갱신하고 `pnpm roadmap:sync`(또는 scripts/roadmap-sync.sh)를 돌리면 docs/ROADMAP.md 재생성 + Notion 라이브영역(진행현황 콜아웃·14표·기능DB) 동기화. status: done|next|todo / feature status는 Notion status 옵션명(Launched|Spec Needed|In Review|Approved|In Dev|Draft|Dropped). M3 = 2026-06-05 의뢰사(재현테크) 미팅 반영, 우선순위 순 정렬.",
   "meta": {
-    "updated": "2026-06-05",
-    "release_target": "2026-06-07",
-    "version": "v0.12.1.1",
+    "updated": "2026-06-07",
+    "release_target": "2026-06-30 (실사용 1차)",
+    "version": "v0.12.2.0",
     "deploy_url": "https://jhtech-saa-s-web.vercel.app",
     "repo": "github.com/jhtechsmart-cloud/jhtechSaaS"
   },
@@ -49,33 +49,6 @@
       "deliverable": "목록·상세·담당배정·상태전이·미등록고객등록·P-F역링크 (트리아지 슬라이스, 마이그 0)",
       "owner": "조선제",
       "status_label": "✅ 머지·배포 v0.10.0.0"
-    },
-    {
-      "id": "E5",
-      "name": "견적 작성 + 통합 PDF",
-      "status": "todo",
-      "period": "예정",
-      "deliverable": "Railway 워커·불변 버전·통합 PDF",
-      "owner": "조선제",
-      "status_label": "⬜ 예정"
-    },
-    {
-      "id": "E6",
-      "name": "메일 발송",
-      "status": "todo",
-      "period": "예정",
-      "deliverable": "Gmail SMTP 워커·재전송·email_log",
-      "owner": "조선제",
-      "status_label": "⬜ 예정"
-    },
-    {
-      "id": "E7",
-      "name": "업체 이력 타임라인",
-      "status": "todo",
-      "period": "예정",
-      "deliverable": "요청·견적·발송 이력 뷰",
-      "owner": "조선제",
-      "status_label": "⬜ 예정"
     },
     {
       "id": "P-A",
@@ -138,14 +111,114 @@
       "status_label": "✅ 머지·배포 v0.9.0.0 (#24, PR#35)"
     },
     {
-      "id": "P-G",
-      "milestone": "M2",
-      "name": "알림 인프라",
+      "id": "E5",
+      "milestone": "M3",
+      "name": "견적서 발급 시스템",
       "status": "next",
-      "period": "예정",
-      "deliverable": "관리자 웹알림+카톡/문자(외부)",
+      "period": "6월 (최우선)",
+      "deliverable": "헤드 개수별 가격 자동계산·모델 선택 시 장비 이미지 자동삽입·모바일 즉시발송·영업사원 수기입력 경로·견적번호 넘버링·카탈로그PDF 첨부·불변버전·통합PDF (Railway 워커). ※ 견적서 양식 1종·옵션가격표·이미지 의뢰사 제공 대기",
       "owner": "조선제",
-      "status_label": "🔜 다음 (#25)"
+      "status_label": "🔴 6월 최우선 · 다음"
+    },
+    {
+      "id": "S1",
+      "milestone": "M3",
+      "name": "고객 데이터 이관",
+      "status": "todo",
+      "period": "6월",
+      "deliverable": "엑셀 1,581개 업체 일괄 임포트. ※ 고객 DB 컬럼 구조 의뢰사 제공 후 매핑·개발 (컬럼에 따라 구조 조정)",
+      "owner": "조선제",
+      "status_label": "🔴 6월 · 자료 대기"
+    },
+    {
+      "id": "S2",
+      "milestone": "M3",
+      "name": "도메인 연결",
+      "status": "todo",
+      "period": "6월",
+      "deliverable": "sales.jhtech.co.kr(고객)·admin 서브도메인 CNAME·Vercel 도메인 연결. ※ 도메인 관리자 CNAME 생성 요청 대기",
+      "owner": "조선제",
+      "status_label": "🔴 6월 · 자료 대기"
+    },
+    {
+      "id": "P-G",
+      "milestone": "M3",
+      "name": "카카오톡 알림",
+      "status": "todo",
+      "period": "6~7월",
+      "deliverable": "관리자(접수→담당자)+고객(견적발송 등) 2종·카카오 알림톡(~30원/건)·알림 사용 범위 의뢰사 결정",
+      "owner": "조선제",
+      "status_label": "🟡 6~7월 (#25)"
+    },
+    {
+      "id": "E6",
+      "milestone": "M3",
+      "name": "메일 발송 워커",
+      "status": "todo",
+      "period": "6~7월",
+      "deliverable": "하이웍스/Gmail SMTP 워커·견적서·서류 메일 발송·email_log·재전송",
+      "owner": "조선제",
+      "status_label": "🟡 6~7월"
+    },
+    {
+      "id": "S3",
+      "milestone": "M3",
+      "name": "장비 카탈로그 정리",
+      "status": "todo",
+      "period": "6월",
+      "deliverable": "3D프린터 제외·미국향 장비 비활성·장비별 옵션(기본 포함/추가)·가격 입력·장비 이미지 반영. ※ 옵션·가격·이미지 의뢰사 제공 대기",
+      "owner": "조선제",
+      "status_label": "🟡 6월 · 자료 대기"
+    },
+    {
+      "id": "S4",
+      "milestone": "M3",
+      "name": "영업 서류 워크플로",
+      "status": "todo",
+      "period": "7월",
+      "deliverable": "계약서·출고의뢰서(현장정보·화물차 톤수·전기 준비사항)·납품확인서 단계별 발급·공유. ※ 단계별 서류 종류·형태 의뢰사 정리 후",
+      "owner": "조선제",
+      "status_label": "🟢 7월"
+    },
+    {
+      "id": "S5",
+      "milestone": "M3",
+      "name": "가망고객(리드) 관리",
+      "status": "todo",
+      "period": "7월",
+      "deliverable": "영업자별 리드·가망고객 발굴/추적",
+      "owner": "조선제",
+      "status_label": "🟢 7월"
+    },
+    {
+      "id": "E7",
+      "milestone": "M3",
+      "name": "업체 이력 타임라인",
+      "status": "todo",
+      "period": "7월",
+      "deliverable": "견적·구입·AS·소모품·발송 통합 타임라인",
+      "owner": "조선제",
+      "status_label": "🟢 7월"
+    },
+    {
+      "id": "S6",
+      "milestone": "M3",
+      "name": "QR 코드",
+      "status": "todo",
+      "period": "후순위",
+      "deliverable": "납품 장비 부착 QR → 고객이 찍으면 AS/소모품 즉시 신청",
+      "owner": "조선제",
+      "status_label": "⚪ 후순위 검토"
+    },
+    {
+      "id": "S7",
+      "milestone": "M3",
+      "name": "챗봇·장비 추천",
+      "status": "todo",
+      "period": "후순위",
+      "deliverable": "고객 챗봇(오픈채팅 문의 대응)·상황 기반 장비 자동 추천",
+      "owner": "조선제",
+      "status_label": "⚪ 후순위 검토"
     }
   ],
   "features": [
@@ -199,11 +272,35 @@
     },
     {
       "id": "F-007",
-      "name": "견적 작성 + 통합 PDF",
+      "name": "견적서 발급(헤드 가격·장비 이미지·모바일·통합 PDF)",
       "scope": "견적관리(내부)",
       "priority": "P0",
-      "status": "Draft",
+      "status": "Spec Needed",
       "phase": "E5"
+    },
+    {
+      "id": "F-010",
+      "name": "고객 데이터 이관(엑셀 1,581건 임포트)",
+      "scope": "견적관리(내부)",
+      "priority": "P0",
+      "status": "Spec Needed",
+      "phase": "S1"
+    },
+    {
+      "id": "F-011",
+      "name": "도메인 연결(sales·admin 서브도메인)",
+      "scope": "공통",
+      "priority": "P0",
+      "status": "Spec Needed",
+      "phase": "S2"
+    },
+    {
+      "id": "F-012",
+      "name": "카카오톡 알림(관리자·고객 2종)",
+      "scope": "공통",
+      "priority": "P1",
+      "status": "Draft",
+      "phase": "P-G"
     },
     {
       "id": "F-008",
@@ -214,12 +311,52 @@
       "phase": "E6"
     },
     {
+      "id": "F-013",
+      "name": "장비 카탈로그 정리·옵션/가격 입력",
+      "scope": "견적관리(내부)",
+      "priority": "P1",
+      "status": "Draft",
+      "phase": "S3"
+    },
+    {
+      "id": "F-014",
+      "name": "영업 서류 워크플로(계약서·출고의뢰서·납품확인서)",
+      "scope": "견적관리(내부)",
+      "priority": "P2",
+      "status": "Draft",
+      "phase": "S4"
+    },
+    {
+      "id": "F-015",
+      "name": "가망고객(리드) 관리",
+      "scope": "견적관리(내부)",
+      "priority": "P2",
+      "status": "Draft",
+      "phase": "S5"
+    },
+    {
       "id": "F-009",
       "name": "업체 이력 타임라인",
       "scope": "견적관리(내부)",
       "priority": "P2",
       "status": "Draft",
       "phase": "E7"
+    },
+    {
+      "id": "F-016",
+      "name": "QR 코드(장비 부착→AS/소모품 신청)",
+      "scope": "견적요청(고객)",
+      "priority": "P3",
+      "status": "Draft",
+      "phase": "S6"
+    },
+    {
+      "id": "F-017",
+      "name": "고객 챗봇·장비 추천",
+      "scope": "견적요청(고객)",
+      "priority": "P3",
+      "status": "Draft",
+      "phase": "S7"
     }
   ]
 }
