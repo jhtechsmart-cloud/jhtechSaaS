@@ -2,6 +2,12 @@
 
 이 프로젝트의 주요 변경 사항을 기록한다. [Keep a Changelog](https://keepachangelog.com/) 형식, [Semantic Versioning](https://semver.org/)(4자리 MAJOR.MINOR.PATCH.MICRO).
 
+## [0.12.2.0] - 2026-06-06
+
+### Added
+- **관리자 콘솔에 KPI 페이지 추가**(`/admin/kpi`) — 운영 지표 대시보드 디자인 시안. 히어로 지표 4개(매출·견적요청·전환율·A/S 미처리), 최근 12개월 매출 추이 영역 차트(인디고 단색·부드러운 곡선), 담당자별 매출 가로 막대, 신청 상태 분포 도넛, 소모품 재주문 상위 미니 테이블. v3 디자인 토큰(Plus Jakarta Sans + Pretendard·소프트 인디고 액센트·시맨틱 색·mono tabular 숫자) 적용, Stripe 결(넉넉한 여백·큰 숫자·강조 1곳). 사이드바 nav에 KPI 항목 + chart 아이콘 추가.
+- ⚠️ 데이터는 전부 **샘플**(프로덕션 집계가 0이라 디자인 검증용). 실집계 배선은 후속 작업.
+
 ## [0.12.1.1] - 2026-06-05
 
 ### Docs
