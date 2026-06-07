@@ -2,6 +2,13 @@
 
 이 프로젝트의 주요 변경 사항을 기록한다. [Keep a Changelog](https://keepachangelog.com/) 형식, [Semantic Versioning](https://semver.org/)(4자리 MAJOR.MINOR.PATCH.MICRO).
 
+## [0.12.3.0] - 2026-06-07
+
+### Added
+- **견적 계산 엔진**(`@jhtechsaas/shared` `quote-calc.ts`) — 견적 입력(장비 줄들 + 옵션 줄들)을 받아 공급가·세액·합계를 산출하는 순수 함수 `calculateQuote`. 모든 줄이 `단가 × 수량`(단가 음수 허용 → 할인/제외)이고, 헤드 개수는 특별 취급 없이 "수량을 가진 옵션 한 줄"로 일반화. 세액 = `round(공급가 × 0.1)` 원단위 반올림, 세율 주입 가능. 가격표를 내장하지 않아 의뢰사 자료 없이 완성(가격표는 후속 UI/조회가 주입). 입력 경계 검증 `QuoteInputSchema`(Zod: 정수 원·수량≥1·세율 0~1). TDD 13 케이스.
+- **견적번호 채번 + 불변버전**(마이그레이션 `20260607120000_quote_numbering.sql`) — 견적 저장 시 서버가 `JHQ-YYYYMMDD-NNN-VN` 형식 번호를 자동 채번. `quote_number_counters`(연도 키 카운터, `ON CONFLICT DO UPDATE` 원자증가 → 레이스 0·연도별 리셋)와 `next_quote_base_no()`(KST 연/날짜 + 연도누적 NNN, 999 초과 자릿수 확장). `quotes_enforce_server_fields` 트리거: 첫 견적=새 번호+V1, 재발행=번호 유지+`version` 자동증가, 클라 지정 무시. `quote_no·version·created_at` 불변(draft도), 발행(issued) 행은 `pdf_url` 외 동결(통합 PDF 워커가 PDF만 사후 기록), draft→issued 시 `issued_at` 서버 기록. 롤백 스크립트 포함. db-tests 10 케이스.
+- ⚠️ E5(견적서 발급)의 **백엔드 첫 조각들** — 견적 작성 UI·통합 PDF·실제 옵션 가격표는 후속(의뢰사 양식·가격표 제공 대기). 견적번호 형식은 함수 한 곳만 교체하면 변경 가능.
+
 ## [0.12.2.0] - 2026-06-06
 
 ### Added
