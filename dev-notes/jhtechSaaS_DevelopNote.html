@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>jhtechSaaS — Develop Note</title>
+<title>jhtechsaas — Develop Note</title>
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github.min.css" id="hljs-light">
@@ -1002,7 +1002,7 @@
   <aside class="sidebar">
     <div class="sidebar-header">
       <div class="sidebar-title">Develop Note</div>
-      <div class="sidebar-project" id="sidebar-project">jhtechSaaS</div>
+      <div class="sidebar-project" id="sidebar-project">jhtechsaas</div>
       <div class="sidebar-stats" id="sidebar-stats">
         <span><strong id="stat-days">0</strong> days</span>
         <span><strong id="stat-features">0</strong> features</span>
@@ -1038,8 +1038,213 @@
 <!-- BEGIN_DEV_NOTES_DATA -->
 <script type="application/json" id="dev-notes-data">
 {
-  "project": "jhtechSaaS",
+  "project": "jhtechsaas",
   "entries": [
+    {
+      "tldr": "E5 견적 시스템을 백엔드부터 UI·PDF 파이프라인까지 superpowers TDD로 풀스택 완주. 하루 4배포(PR #60~#63, v0.12.3.0→v0.12.6.0). 각 슬라이스 = 설계문서 → RED/GREEN/REFACTOR → /ship.",
+      "tags": [
+        "E5",
+        "견적",
+        "TDD",
+        "Supabase",
+        "Railway-worker",
+        "PDF",
+        "jobs-queue"
+      ],
+      "features": [
+        {
+          "title": "견적 계산 엔진 + Zod 스키마",
+          "type": "feat",
+          "scope": "shared",
+          "status": "completed",
+          "filesChanged": [
+            "packages/shared/src/quote-calc.ts",
+            "packages/shared/src/quote-calc.test.ts"
+          ],
+          "context": "E5의 심장. 의뢰사 옵션 가격표가 대기 상태라 가격표를 내장하지 않고 숫자만 계산하는 순수 함수로 분리하면 자료 없이 완주 가능.",
+          "implementation": "calculateQuote(input)=장비/옵션 줄(단가×수량, 음수 허용=할인) 합산→공급가, 세액=round(공급가×0.1) 원단위 반올림, 합계. 헤드 개수는 '수량 가진 옵션 한 줄'로 일반화. QuoteInputSchema(Zod)로 경계 검증. 웹·워커 공용.",
+          "decisions": [
+            {
+              "title": "세액 반올림=원단위 round(floor 아님, Seonje 결정)"
+            },
+            {
+              "title": "헤드 개수 특별취급 없이 옵션 한 줄로 일반화"
+            },
+            {
+              "title": "가격표 비내장→자료 무관 완주"
+            }
+          ],
+          "learnings": [
+            "순수 로직을 가격표/UI와 분리하면 외부 자료 대기에 막히지 않고 코어를 완성할 수 있다"
+          ],
+          "id": "견적-계산-엔진-zod-스키마"
+        },
+        {
+          "title": "견적번호 채번 + 불변버전 트리거",
+          "type": "feat",
+          "scope": "db",
+          "status": "completed",
+          "filesChanged": [
+            "supabase/migrations/20260607120000_quote_numbering.sql",
+            "packages/db-tests/src/quote_numbering.test.ts"
+          ],
+          "context": "견적서마다 고유번호+재발행 버전 추적. 클라가 번호·버전·금액을 위조하지 못하게 서버가 강제해야 함.",
+          "implementation": "JHQ-YYYYMMDD-NNN-VN. NNN=연도별 리셋(quote_number_counters 연도키 테이블 ON CONFLICT DO UPDATE 원자증가, 레이스0). 트리거: INSERT 채번/재발행=번호유지+version MAX+1, UPDATE quote_no/version/created_at 불변, issued행은 pdf_url 외 동결.",
+          "decisions": [
+            {
+              "title": "연도별 리셋이라 전역 sequence 불가→연도키 카운터 테이블"
+            },
+            {
+              "title": "issued 동결하되 pdf_url만 예외(워커가 사후 기록)"
+            }
+          ],
+          "problems": [
+            {
+              "solution": "테스트에서 'alter table disable trigger'로 트리거 우회 후 UNIQUE 안전망만 검증하도록 갱신",
+              "description": "트리거로 version 자동증가하니 기존 'UNIQUE 중복 거부' db-test가 충돌 자체를 못 만듦"
+            }
+          ],
+          "learnings": [
+            "서버 통제값(번호·버전)은 BEFORE 트리거로 강제하면 service_role도 우회 불가"
+          ],
+          "id": "견적번호-채번-불변버전-트리거"
+        },
+        {
+          "title": "견적 생성 결선 RPC(create_quote·create_manual_quote)",
+          "type": "feat",
+          "scope": "db",
+          "status": "completed",
+          "filesChanged": [
+            "supabase/migrations/20260607130000_quote_create_rpc.sql",
+            "packages/db-tests/src/quote_create_rpc.test.ts"
+          ],
+          "context": "계산엔진·채번을 실제 저장 흐름으로 연결. 서버가 금액 최종권위를 가져야 함.",
+          "implementation": "SQL SECURITY DEFINER RPC가 items·옵션만 받아 금액을 DB에서 재계산(클라 금액 무시). create_quote(기존 의뢰)·create_manual_quote(app source=manual+quote 원자생성). applications.source 컬럼. authenticated만 grant·anon revoke.",
+          "decisions": [
+            {
+              "title": "아키텍처 B: SQL RPC가 계산(서버권위·db-test 완결)"
+            },
+            {
+              "title": "TS calculateQuote는 화면 미리보기용으로 남기고 교차검증 테스트로 SQL==TS 보장"
+            }
+          ],
+          "learnings": [
+            "같은 계산식을 TS(미리보기)·SQL(저장권위) 이중 구현 시, 교차검증 db-test로 드리프트를 막는다"
+          ],
+          "id": "견적-생성-결선-rpc-create-quote-create-manual-quote"
+        },
+        {
+          "title": "견적 작성 콘솔 UI(작성·수기·상세+재발행)",
+          "type": "feat",
+          "scope": "web",
+          "status": "completed",
+          "filesChanged": [
+            "apps/web/src/lib/quotes/",
+            "apps/web/src/app/admin/quotes/",
+            "apps/web/src/app/admin/_components/QuoteLinesEditor.tsx",
+            "apps/web/e2e/quotes.spec.ts"
+          ],
+          "context": "백엔드 3종 위에 얹는 첫 사용자대면 화면. 영업이 견적을 만들고·보고·재발행.",
+          "implementation": "3슬라이스: A 의뢰→견적작성(calculateQuote 실시간 합계+draft/issued→create_quote), B 수기견적(create_manual_quote), C 견적상세+재발행(?from= 프리필→같은번호 V2). 공유 QuoteLinesEditor. 금액 미리보기=클라/저장권위=서버RPC.",
+          "decisions": [
+            {
+              "title": "순수로직(lib/quotes/form.ts)만 엄격 TDD, React 화면은 컴포넌트 빌드 후 E2E 통합검증"
+            }
+          ],
+          "learnings": [
+            "UI 슬라이스는 순수 로직(reducer·검증·파싱)을 분리해 TDD하고, 화면 결선은 E2E로 검증하는 경계가 실용적"
+          ],
+          "id": "견적-작성-콘솔-ui-작성-수기-상세-재발행"
+        },
+        {
+          "title": "통합 PDF 워커 골격 + jobs 큐",
+          "type": "feat",
+          "scope": "worker",
+          "status": "completed",
+          "filesChanged": [
+            "supabase/migrations/20260607140000_jobs_queue.sql",
+            "apps/worker/src/jobs/",
+            "apps/worker/src/index.ts"
+          ],
+          "context": "PDF는 무겁고 비동기 → 발행 응답에서 분리(Railway 워커+큐, webhook/Realtime 회피).",
+          "implementation": "jobs 큐(RLS정책0) + claim_next_job RPC(FOR UPDATE SKIP LOCKED·service_role) + quotes_enqueue_pdf AFTER 트리거(issued 전환시만). 워커: render-quote-pdf(pdf-lib placeholder)·quote-pdf 처리(생성→quote-pdfs 업로드→pdf_url)·queue 재시도·runner.runOnce·폴링루프. 통합테스트로 발행→잡→PDF→pdf_url 전과정 증명.",
+          "decisions": [
+            {
+              "title": "PDF 레이아웃=placeholder(견적양식 대기), 파이프라인만 증명·후속 교체"
+            },
+            {
+              "title": "enqueue=quotes AFTER 트리거(서버액션 아님, 모든 발행경로 포착)"
+            }
+          ],
+          "problems": [
+            {
+              "solution": "pnpm install로 node_modules 정합화",
+              "description": "pdf-lib 추가 후 pnpm 호이스팅 깨져 web lint가 eslint-plugin-import 못 찾음"
+            }
+          ],
+          "learnings": [
+            "enqueue 트리거는 프로덕션 라이브지만 Railway 워커 미기동이면 잡이 누적만 됨(발행은 정상). 워커 배포가 별도 운영 액션"
+          ],
+          "id": "통합-pdf-워커-골격-jobs-큐"
+        }
+      ],
+      "prompts": [
+        {
+          "label": "TDD 워크플로 진입",
+          "prompt": "superpowers:test-driven-development 시작하자",
+          "verdict": "good",
+          "lesson": "TDD 스킬 진입 시 무엇을 만들지 미정이면 brainstorming으로 먼저 좁히고(설계 승인 게이트), 순수 로직부터 RED→GREEN. 큰 기능은 자료 대기 부분을 떼어내 슬라이스로 분할."
+        },
+        {
+          "label": "슬라이스 단위 진행+묶음 ship",
+          "prompt": "묶어서 ship하고 견적작성 콘솔 작업 들어가자",
+          "verdict": "good",
+          "lesson": "백엔드 슬라이스들을 누적 브랜치에 쌓고 논리 단위로 ship한 뒤 다음 단계로. 프론트만이면 db push 생략, 마이그레이션 있으면 db push까지."
+        }
+      ],
+      "references": [],
+      "changelog": {
+        "added": [
+          "견적 계산 엔진(calculateQuote+QuoteInputSchema)",
+          "견적번호 채번 JHQ-YYYYMMDD-NNN-VN + 불변버전 트리거",
+          "create_quote·create_manual_quote RPC + applications.source",
+          "견적 작성 콘솔 UI(작성·수기·상세+재발행)",
+          "통합 PDF 워커 골격 + jobs 큐(claim_next_job SKIP LOCKED·enqueue 트리거)"
+        ],
+        "changed": [
+          "기존 quotes UNIQUE 테스트를 트리거 우회 검증으로 갱신",
+          "워커 env GMAIL_* optional 완화"
+        ],
+        "fixed": [],
+        "removed": []
+      },
+      "nextSteps": [
+        "Railway 워커 배포(SUPABASE_URL·SERVICE_ROLE_KEY 주입) — 안 하면 잡 누적만 되고 PDF 미생성",
+        "의뢰사 견적서 양식 수령 시 render-quote-pdf.ts 교체(+한글 폰트 임베드)",
+        "짧은 이월건: 전화 placeholder(1577-0000)·브랜드색 --color-accent·KPI 실집계"
+      ],
+      "claudeHints": "E5 견적은 코드상 거의 완료(계산·채번·생성RPC·작성콘솔·PDF골격). 남은 건 의뢰사 자료/인프라 대기(실 양식 레이아웃·Railway 워커 배포). db reset 후 e2e 돌리려면 반드시 'bash supabase/seed/seed-local.sh'로 시드 복구. 금액은 항상 서버 RPC가 최종 계산(클라 금액 신뢰 금지), TS calculateQuote는 미리보기 전용.",
+      "reusablePatterns": [
+        {
+          "name": "교차검증 테스트(TS==SQL)",
+          "description": "같은 계산식을 TS·SQL 이중 구현할 때 db-test에서 calculateQuote==RPC 결과를 단언해 드리프트 차단",
+          "file": "packages/db-tests/src/quote_create_rpc.test.ts"
+        },
+        {
+          "name": "jobs 큐 + SKIP LOCKED claim",
+          "description": "비동기 작업을 jobs 테이블+claim_next_job(FOR UPDATE SKIP LOCKED) RPC로 폴링 처리(동시 워커 레이스0)",
+          "file": "supabase/migrations/20260607140000_jobs_queue.sql"
+        },
+        {
+          "name": "서버필드 불변 트리거",
+          "description": "번호·버전·created_at 등 서버 통제값을 BEFORE 트리거로 OLD 보존(service_role도 우회 불가)",
+          "file": "supabase/migrations/20260607120000_quote_numbering.sql"
+        }
+      ],
+      "date": "2026-06-07",
+      "mainTask": "E5-견적시스템-풀스택",
+      "codeDiagram": "flowchart LR\n    N0[\"MEMORY.md\"]\n    N1[\"jhtechsaas-client-meeting.md\"]\n    N2[\"jhtechsaas-project.md\"]\n    N3[\"seonjecho-main-design-20260607-102009.md\"]\n    N4[\"CHANGELOG.md\"]\n    N5[\"quotes.spec.ts\"]\n    N6[\"QuoteLinesEditor.tsx\"]\n    N7[\"QuoteForm.tsx\"]\n    N8[\"QuotesList.tsx\"]\n    N9[\"page.tsx\"]\n    N10[\"page.tsx\"]\n    N11[\"page.tsx\"]\n    N12[\"page.tsx\"]\n    N13[\"ManualQuoteForm.tsx\"]\n    N14[\"page.tsx\"]\n    N15[\"guard.ts\"]\n    N16[\"actions.ts\"]\n    N17[\"form.test.ts\"]\n    N18[\"form.ts\"]\n    N19[\"queries.ts\"]\n    N20[\"schema.test.ts\"]\n    N21[\"schema.ts\"]\n    N22[\"env.ts\"]\n    N23[\"index.ts\"]\n    N24[\"queue.ts\"]\n    N25[\"quote-pdf.ts\"]\n    N26[\"render-quote-pdf.test.ts\"]\n    N27[\"render-quote-pdf.ts\"]\n    N28[\"runner.integration.test.ts\"]\n    N29[\"runner.ts\"]\n    N30[\"roadmap.json\"]\n    N31[\"2026-06-07-manual-quote-design.md\"]\n    N32[\"2026-06-07-pdf-worker-queue-design.md\"]\n    N33[\"2026-06-07-quote-calc-engine-design.md\"]\n    N34[\"2026-06-07-quote-create-rpc-design.md\"]\n    N35[\"2026-06-07-quote-detail-reissue-design.md\"]\n    N36[\"2026-06-07-quote-form-console-design.md\"]\n    N37[\"2026-06-07-quote-numbering-design.md\"]\n    N38[\"jobs_queue.test.ts\"]\n    N39[\"quote_create_rpc.test.ts\"]\n    N40[\"quote_numbering.test.ts\"]\n    N41[\"quotes.test.ts\"]\n    N42[\"index.ts\"]\n    N43[\"quote-calc.test.ts\"]\n    N44[\"quote-calc.ts\"]\n    N45[\"20260607120000_quote_numbering.sql\"]\n    N46[\"20260607130000_quote_create_rpc.sql\"]\n    N47[\"20260607140000_jobs_queue.sql\"]\n    N48[\"20260607120000_quote_numbering_down.sql\"]\n    N49[\"20260607130000_quote_create_rpc_down.sql\"]\n    N50[\"20260607140000_jobs_queue_down.sql\"]\n    N51[\"devnote_data_e5_0607.json\"]\n    N52[\"quotes.spec.ts\"]\n    N53[\"QuoteLinesEditor.tsx\"]\n    N54[\"AssignControl.tsx\"]\n    N55[\"QuoteForm.tsx\"]\n    N56[\"QuotesList.tsx\"]\n    N57[\"RegisterCustomerButton.tsx\"]\n    N58[\"StatusControl.tsx\"]\n    N59[\"ApplicationTable.tsx\"]\n    N60[\"quotes\"]\n    N61[\"ManualQuoteForm.tsx\"]\n    N62[\"quotes\"]\n    N63[\"schema.ts\"]\n    N64[\"env.ts\"]\n    N65[\"index.ts\"]\n    N66[\"jobs\"]\n    N67[\"queue.ts\"]\n    N68[\"quote-pdf.ts\"]\n    N69[\"render-quote-pdf.ts\"]\n    N70[\"runner.ts\"]\n    N71[\"helpers.ts\"]\n    N72[\"quote_create_rpc.test.ts\"]\n    N73[\"quote_numbering.test.ts\"]\n    N74[\"biz-no.ts\"]\n    N75[\"permissions.ts\"]\n    N76[\"phone.ts\"]\n    N77[\"quote-calc.test.ts\"]\n    N78[\"quote-calc.ts\"]\n    N79[\"seed.ts\"]\n    N80[\"specs.ts\"]\n    N81[\"supabase.ts\"]\n    N82[\"types.ts\"]\n    N83[\"20260607120000_quote_numbering.sql\"]\n    N84[\"20260607130000_quote_create_rpc.sql\"]\n    N85[\"20260607140000_jobs_queue.sql\"]\n    N77 --> N78\n    N73 --> N71\n    N72 --> N71\n    N65 --> N64\n    N65 --> N70\n    N43 --> N78\n    N42 --> N75\n    N42 --> N80\n    N42 --> N81\n    N42 --> N79\n    N42 --> N82\n    N42 --> N74\n    N42 --> N76\n    N42 --> N78\n    N40 --> N71\n    N39 --> N71\n    N10 --> N55\n    N9 --> N58\n    N9 --> N54\n    N9 --> N57\n    N9 --> N56\n    N20 --> N63\n    N14 --> N61\n    N11 --> N59\n    N38 --> N71\n    N26 --> N69\n    N25 --> N69\n    N29 --> N67\n    N29 --> N68\n    N23 --> N64\n    N23 --> N70\n    N28 --> N70\n    style N34 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N16 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N72 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N0 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N15 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N43 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N14 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N10 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N47 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N49 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N85 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N46 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N78 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N2 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N62 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N40 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N21 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N6 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N65 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N35 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N48 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N60 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N39 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N27 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N7 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N4 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N8 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N42 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N28 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N3 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N20 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N50 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N29 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N5 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N12 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N83 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N44 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N52 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N9 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N77 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N36 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N19 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N31 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N41 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N33 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N25 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N23 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N38 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N84 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N13 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N24 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N53 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N1 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N45 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N73 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N18 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N26 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N11 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N32 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N22 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N30 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N66 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N51 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N17 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N37 fill:#dbeafe,stroke:#2563eb,stroke-width:2px"
+    },
     {
       "tldr": "하루에 4개 버전 배포(v0.12.0.0~v0.12.1.1): E5b 역할인식 대시보드 → 견적 담당자 고객전파 버그수정(+IDOR 차단) → 관리자 콘솔 UI 리디자인(라이트 인디고·도넛·캘린더) + 장비상세 404(Zod4 uuid) 수정 → DESIGN.md/UI-SPEC.md v3 갱신. 프로덕션 HEALTHY 확인.",
       "tags": [
