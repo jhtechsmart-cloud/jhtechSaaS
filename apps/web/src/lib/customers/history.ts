@@ -2,7 +2,7 @@ import type { RequestStatus } from "@/lib/request-status";
 
 // P-F 통합 고객이력 — RPC get_company_request_history 반환 셰이프 + 섹션 요약 파생(순수 로직).
 // 견적 status는 AS·소모품(RequestStatus)과 다른 enum.
-export type ApplicationStatus = "new" | "assigned" | "quoted" | "closed";
+export type ApplicationStatus = "new" | "assigned" | "quoted" | "quote_sent" | "closed";
 
 export interface HistoryApplication {
   id: string;

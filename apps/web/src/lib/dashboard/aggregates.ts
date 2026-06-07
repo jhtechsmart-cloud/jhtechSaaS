@@ -49,7 +49,7 @@ export async function assigneeLoad(): Promise<{ id: string; name: string; applic
   const supabase = await createSupabaseServerClient();
   const { data: staff } = await supabase.from("profiles").select("id,name").eq("is_active", true).order("name");
   const rows = staff ?? [];
-  const APP_OPEN = ["new", "assigned", "quoted"]; // 미완료(closed 제외)
+  const APP_OPEN = ["new", "assigned", "quoted", "quote_sent"]; // 미완료(closed 제외 — 견적발송도 진행중)
   const REQ_OPEN = ["received", "in_progress", "on_hold"]; // 미완료(done/canceled 제외)
   return Promise.all(
     rows.map(async (s) => {
