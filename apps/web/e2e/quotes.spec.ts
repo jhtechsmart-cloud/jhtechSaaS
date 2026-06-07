@@ -90,3 +90,46 @@ test.describe.serial("E5 견적 작성 폼 E2E", () => {
     await expect(page.getByText("60,500,000원")).toBeVisible();
   });
 });
+
+const MANUAL_CO = "E2E_수기견적사";
+
+test.describe.serial("E5 수기 견적 E2E", () => {
+  test.beforeAll(async () => {
+    await rest(`applications?company=eq.${encodeURIComponent(MANUAL_CO)}`, {
+      method: "DELETE",
+      headers: { Prefer: "return=minimal" },
+    }).catch(() => {});
+  });
+  test.afterAll(async () => {
+    await rest(`applications?company=eq.${encodeURIComponent(MANUAL_CO)}`, {
+      method: "DELETE",
+      headers: { Prefer: "return=minimal" },
+    }).catch(() => {});
+  });
+
+  test("목록→수기 견적작성(회사명+장비)→발행→새 의뢰 상세에 견적 노출", async ({ page }) => {
+    await login(page);
+
+    // 1) 목록 → 수기 견적 작성
+    await page.goto("/admin/applications");
+    await page.getByRole("link", { name: "수기 견적 작성" }).click();
+    await page.waitForURL(/\/admin\/quotes\/new$/, { timeout: 20_000 });
+
+    // 2) 회사명 + 장비
+    await page.getByLabel("회사명").fill(MANUAL_CO);
+    await page.getByLabel("장비 이름").fill("UV5000");
+    await page.getByLabel("장비 단가").fill("30000000");
+    await page.getByLabel("장비 수량").fill("1");
+    await expect(page.getByText("33,000,000원")).toBeVisible(); // 합계(공급 30M + 세 3M)
+
+    // 3) 발행 → 새로 생긴 의뢰 상세로 이동
+    await page.getByRole("button", { name: "발행하기" }).click();
+    await page.waitForURL(/\/admin\/applications\/[0-9a-f-]{36}$/, { timeout: 20_000 });
+
+    // 4) 새 의뢰 상세 = 회사명 + 견적(발행) 노출
+    await expect(page.getByText(MANUAL_CO).first()).toBeVisible();
+    await expect(page.getByText(/^JHQ-\d{8}-\d{3,}-V1$/)).toBeVisible();
+    await expect(page.getByText("발행", { exact: true })).toBeVisible();
+    await expect(page.getByText("33,000,000원")).toBeVisible();
+  });
+});

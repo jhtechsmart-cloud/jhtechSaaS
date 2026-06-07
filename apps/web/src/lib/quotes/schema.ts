@@ -10,3 +10,13 @@ export const createQuotePayloadSchema = z.object({
 });
 
 export type CreateQuotePayload = z.infer<typeof createQuotePayloadSchema>;
+
+// 수기 견적 — 의뢰 없이 회사명부터 생성. 회사명 필수, 나머지 연락처는 선택.
+export const createManualQuotePayloadSchema = createQuotePayloadSchema.extend({
+  company: z.string().trim().min(1, "회사명을 입력하세요"),
+  ceo: z.string().trim().optional(),
+  phone: z.string().trim().optional(),
+  email: z.string().trim().optional(),
+});
+
+export type CreateManualQuotePayload = z.infer<typeof createManualQuotePayloadSchema>;
