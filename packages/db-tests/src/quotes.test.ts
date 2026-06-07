@@ -31,9 +31,13 @@ async function seed(): Promise<void> {
 }
 
 describe("quotes — 버전 UNIQUE 제약 (E-3)", () => {
-  test("같은 application_id + version 중복은 거부", async () => {
+  test("UNIQUE(application_id, version) 안전망 — 트리거 우회 시에도 중복 거부", async () => {
     await inRollbackTx(c, async () => {
       await seed();
+      // 평시엔 quotes_server_fields 트리거가 version을 자동 채번해 중복이 안 생긴다.
+      // 제약 자체(트리거 뒤의 안전망)를 검증하려고 트리거를 잠시 끄고 같은 version을
+      // 강제 삽입 → UNIQUE가 거부해야 한다. (DDL은 트랜잭션이라 rollback으로 원복)
+      await c.query("alter table public.quotes disable trigger quotes_server_fields");
       await c.query("insert into public.quotes (application_id, quote_no, version) values ($1,'QT-1',1)", [APP]);
       await expect(
         c.query("insert into public.quotes (application_id, quote_no, version) values ($1,'QT-1b',1)", [APP]),
