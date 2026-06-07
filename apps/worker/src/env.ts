@@ -5,8 +5,9 @@ import { z } from "zod";
 const envSchema = z.object({
   SUPABASE_URL: z.string().min(1),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
-  GMAIL_USER: z.string().min(1),
-  GMAIL_APP_PASSWORD: z.string().min(1),
+  // 메일(E6) 전용 — PDF 워커엔 불필요하므로 optional. E6에서 필수화.
+  GMAIL_USER: z.string().min(1).optional(),
+  GMAIL_APP_PASSWORD: z.string().min(1).optional(),
 });
 
 export type WorkerEnv = z.infer<typeof envSchema>;

@@ -1,10 +1,29 @@
-// Railway 워커 진입점.
-// 앞으로 들어갈 것: 통합 PDF 생성(견적서+장비사양서), 메일 발송 큐(Gmail SMTP, 재전송).
-// 잡 트리거 방식(DB 폴링 / Supabase webhook / Realtime)은 /autoplan에서 확정.
-// 지금은 골격만.
+// Railway 워커 진입점 — jobs 큐 폴링(통합 PDF, 향후 메일).
+// 잡 트리거 = DB 폴링(FOR UPDATE SKIP LOCKED, claim_next_job). webhook/Realtime 회피.
+import { createServiceClient } from "@jhtechsaas/shared";
+import { loadEnv } from "./env";
+import { runOnce } from "./jobs/runner";
 
-function main(): void {
-  console.log("jhtechSaaS worker: placeholder (PDF·메일 워커 자리)");
+const POLL_MS = 2000;
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+async function main(): Promise<void> {
+  const env = loadEnv();
+  const supabase = createServiceClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
+  console.log("jhtechSaaS worker: jobs 폴링 시작");
+  for (;;) {
+    let worked = false;
+    try {
+      worked = await runOnce(supabase);
+    } catch (e) {
+      console.error("[worker] runOnce 에러", e);
+    }
+    // 처리할 잡이 없으면 잠깐 쉬고, 있으면 바로 다음 잡(버스트 소진).
+    if (!worked) await sleep(POLL_MS);
+  }
 }
 
-main();
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});
