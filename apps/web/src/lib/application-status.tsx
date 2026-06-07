@@ -6,6 +6,7 @@ export const APPLICATION_STATUSES: readonly ApplicationStatus[] = [
   "new",
   "assigned",
   "quoted",
+  "quote_sent",
   "closed",
 ] as const;
 
@@ -13,7 +14,8 @@ export const APPLICATION_STATUS_META: Record<ApplicationStatus, { label: string;
   new: { label: "접수", color: "#2563EB" },
   assigned: { label: "배정", color: "#7C3AED" },
   quoted: { label: "견적중", color: "#D97706" },
-  closed: { label: "완료", color: "#16A34A" },
+  quote_sent: { label: "견적발송", color: "#16A34A" }, // 발행됨(발송 성공 — DESIGN.md 스파인 green)
+  closed: { label: "완료", color: "#3a3770" }, // 건 종결(네이비)
 };
 
 export function ApplicationStatusBadge({ status }: { status: ApplicationStatus }) {
