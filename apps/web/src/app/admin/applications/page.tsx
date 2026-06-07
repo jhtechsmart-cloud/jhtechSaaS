@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { can } from "@jhtechsaas/shared";
 import { requireApplicationsConsole } from "@/lib/auth/guard";
 import { listApplications } from "@/lib/applications/admin-queries";
 import { ApplicationTable } from "./_components/ApplicationTable";
@@ -20,9 +22,20 @@ export default async function ApplicationsPage({
   }
   const { q = "", status = "all" } = await searchParams;
   const { rows, overflow } = await listApplications({ q, status });
+  const canQuote = can(access.permissions, "quotes.write");
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-h1 font-semibold text-text">견적 신청</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-h1 font-semibold text-text">견적 신청</h1>
+        {canQuote && (
+          <Link
+            href="/admin/quotes/new"
+            className="rounded-md bg-accent px-3 py-1.5 text-small font-medium text-white"
+          >
+            수기 견적 작성
+          </Link>
+        )}
+      </div>
       <ApplicationTable rows={rows} overflow={overflow} q={q} status={status} />
     </div>
   );

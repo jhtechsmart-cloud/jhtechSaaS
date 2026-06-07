@@ -12,6 +12,8 @@ import { ClaimButton } from "@/app/admin/_components/ClaimButton";
 import { StatusControl } from "./_components/StatusControl";
 import { AssignControl } from "./_components/AssignControl";
 import { RegisterCustomerButton } from "./_components/RegisterCustomerButton";
+import { QuotesList } from "./_components/QuotesList";
+import { listQuotesForApplication } from "@/lib/quotes/queries";
 
 const PHOTO_SLOT_LABELS: Record<PhotoSlot, string> = {
   ext_entrance: "외부 진입로",
@@ -55,6 +57,8 @@ export default async function ApplicationDetailPage({
   const canClaim = can(access.permissions, "applications.claim");
   const canStatus = can(access.permissions, "applications.status");
   const canManageCustomers = can(access.permissions, "customers.edit");
+  const canQuote = can(access.permissions, "quotes.write");
+  const quotes = await listQuotesForApplication(id);
 
   // 사진 4슬롯 — 병렬 서명URL. 실패/없음은 슬롯 라벨 유지하며 플레이스홀더(노출 안 함).
   // ⚠️ anon이 RPC 우회 직접 INSERT로 photos 경로를 주입할 수 있어, RPC와 동일한 경로 정규식
@@ -149,6 +153,18 @@ export default async function ApplicationDetailPage({
           </div>
         </Section>
       )}
+
+      <Section title="견적">
+        {canQuote && (
+          <Link
+            href={`/admin/applications/${id}/quote/new`}
+            className="mb-3 inline-block rounded-md bg-accent px-3 py-1.5 text-small font-medium text-white"
+          >
+            견적 작성
+          </Link>
+        )}
+        <QuotesList quotes={quotes} />
+      </Section>
 
       <Section title="처리">
         <div className="flex flex-col gap-4">
