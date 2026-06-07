@@ -133,3 +133,56 @@ test.describe.serial("E5 수기 견적 E2E", () => {
     await expect(page.getByText("33,000,000원")).toBeVisible();
   });
 });
+
+const RE_BIZ = "8012345671";
+const RE_CO = "E2E_재발행사";
+
+test.describe.serial("E5 견적 상세+재발행 E2E", () => {
+  let reAppId: string;
+  test.beforeAll(async () => {
+    await rest(`applications?biz_no=eq.${RE_BIZ}`, { method: "DELETE", headers: { Prefer: "return=minimal" } }).catch(() => {});
+    const res = await rest("applications", {
+      method: "POST",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify([{ company: RE_CO, biz_no: RE_BIZ, status: "new", fields: {} }]),
+    });
+    if (!res.ok) throw new Error(`시드 실패: ${res.status} ${await res.text()}`);
+    reAppId = ((await res.json()) as Array<{ id: string }>)[0].id;
+  });
+  test.afterAll(async () => {
+    await rest(`applications?biz_no=eq.${RE_BIZ}`, { method: "DELETE", headers: { Prefer: "return=minimal" } }).catch(() => {});
+  });
+
+  test("견적작성(V1)→상세 내역→재발행(프리필·수정)→V2(번호 유지)", async ({ page }) => {
+    await login(page);
+
+    // V1 발행
+    await page.goto(`/admin/applications/${reAppId}/quote/new`);
+    await page.getByLabel("장비 이름").fill("UV3300S");
+    await page.getByLabel("장비 단가").fill("50000000");
+    await page.getByLabel("장비 수량").fill("1");
+    await page.getByRole("button", { name: "발행하기" }).click();
+    await page.waitForURL(new RegExp(`/admin/applications/${reAppId}$`), { timeout: 20_000 });
+
+    // 견적 목록 → V1 상세
+    await page.getByText(/^JHQ-\d{8}-\d{3,}-V1$/).click();
+    await page.waitForURL(/\/admin\/quotes\/[0-9a-f-]{36}$/, { timeout: 20_000 });
+    await expect(page.getByText("UV3300S")).toBeVisible(); // 내역
+    await expect(page.getByText("55,000,000원")).toBeVisible(); // 합계(공급 50M+세 5M)
+
+    // 재발행 → 프리필 확인
+    await page.getByRole("link", { name: "재발행" }).click();
+    await page.waitForURL(/\/quote\/new\?from=/, { timeout: 20_000 });
+    await expect(page.getByLabel("장비 이름")).toHaveValue("UV3300S");
+
+    // 수정(수량 2) 후 발행 → V2
+    await page.getByLabel("장비 수량").fill("2");
+    await page.getByRole("button", { name: "발행하기" }).click();
+    await page.waitForURL(new RegExp(`/admin/applications/${reAppId}$`), { timeout: 20_000 });
+
+    // 같은 번호의 V2 + V1 둘 다(번호 유지·버전 증가)
+    await expect(page.getByText(/^JHQ-\d{8}-\d{3,}-V2$/)).toBeVisible();
+    await expect(page.getByText(/^JHQ-\d{8}-\d{3,}-V1$/)).toBeVisible();
+    await expect(page.getByText("110,000,000원")).toBeVisible(); // V2 합계(공급 100M+세 10M)
+  });
+});

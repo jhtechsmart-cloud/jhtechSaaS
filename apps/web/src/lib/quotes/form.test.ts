@@ -1,7 +1,14 @@
 // 견적 작성 폼 순수 로직 — non-server, 서버 모킹 불필요. 합계는 슬라이스1 calculateQuote와 일치해야 한다.
 import { describe, expect, test } from "vitest";
 import { calculateQuote } from "@jhtechsaas/shared";
-import { cleanRows, previewTotals, rowsToQuoteInput, validateQuoteForm, type QuoteRow } from "./form";
+import {
+  cleanRows,
+  parseQuoteLines,
+  previewTotals,
+  rowsToQuoteInput,
+  validateQuoteForm,
+  type QuoteRow,
+} from "./form";
 
 const row = (name: string, unitPrice: number, quantity: number): QuoteRow => ({ name, unitPrice, quantity });
 
@@ -38,6 +45,23 @@ describe("previewTotals — 실시간 합계(calculateQuote와 일치)", () => {
   test("입력 중 NaN/빈 값은 0으로 취급해 깨지지 않음", () => {
     const items = [row("장비", Number.NaN, Number.NaN)];
     expect(previewTotals(items, [])).toEqual({ supplyPrice: 0, taxPrice: 0, total: 0 });
+  });
+});
+
+describe("parseQuoteLines — 저장된 jsonb → 폼 행(재발행 프리필)", () => {
+  test("정상 줄은 그대로 행으로", () => {
+    const lines = [{ name: "UV3300S", unitPrice: 50_000_000, quantity: 1 }];
+    expect(parseQuoteLines(lines)).toEqual([row("UV3300S", 50_000_000, 1)]);
+  });
+  test("배열이 아니면 빈 배열", () => {
+    expect(parseQuoteLines(null)).toEqual([]);
+    expect(parseQuoteLines({})).toEqual([]);
+    expect(parseQuoteLines("x")).toEqual([]);
+  });
+  test("깨진 값은 안전 기본으로 코어스", () => {
+    expect(parseQuoteLines([{ name: 123, unitPrice: "x", quantity: null }])).toEqual([
+      row("", 0, 0),
+    ]);
   });
 });
 

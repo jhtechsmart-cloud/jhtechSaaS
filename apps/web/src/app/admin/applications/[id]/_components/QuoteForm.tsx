@@ -6,9 +6,19 @@ import { QuoteLinesEditor } from "@/app/admin/_components/QuoteLinesEditor";
 
 // 견적 작성 폼 — 기존 의뢰 위에. 라인 에디터·실시간 합계는 QuoteLinesEditor 공유.
 // 금액 미리보기는 클라, 저장 권위는 서버 RPC(createQuoteAction).
-export function QuoteForm({ applicationId }: { applicationId: string }) {
-  const [items, setItems] = useState<QuoteRow[]>([{ name: "", unitPrice: 0, quantity: 1 }]);
-  const [options, setOptions] = useState<QuoteRow[]>([]);
+export function QuoteForm({
+  applicationId,
+  initialItems,
+  initialOptions,
+}: {
+  applicationId: string;
+  initialItems?: QuoteRow[];
+  initialOptions?: QuoteRow[];
+}) {
+  const [items, setItems] = useState<QuoteRow[]>(
+    initialItems && initialItems.length > 0 ? initialItems : [{ name: "", unitPrice: 0, quantity: 1 }],
+  );
+  const [options, setOptions] = useState<QuoteRow[]>(initialOptions ?? []);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 

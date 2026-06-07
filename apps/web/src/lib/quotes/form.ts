@@ -32,6 +32,19 @@ export function previewTotals(items: QuoteRow[], options: QuoteRow[]): QuoteResu
   return calculateQuote({ items: items.map(coerce), options: options.map(coerce) });
 }
 
+// 저장된 견적 줄(jsonb) → 폼 행. 재발행 프리필용. 깨진 값은 안전 기본으로 코어스(방어).
+export function parseQuoteLines(value: unknown): QuoteRow[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((e) => {
+    const o = (e ?? {}) as Record<string, unknown>;
+    return {
+      name: typeof o.name === "string" ? o.name : "",
+      unitPrice: typeof o.unitPrice === "number" && Number.isFinite(o.unitPrice) ? o.unitPrice : 0,
+      quantity: typeof o.quantity === "number" && Number.isFinite(o.quantity) ? o.quantity : 0,
+    };
+  });
+}
+
 // 저장 전 검증 — 에러 메시지(한국어) 또는 null. 정리된 행 기준.
 export function validateQuoteForm(items: QuoteRow[], options: QuoteRow[]): string | null {
   const cleanItems = cleanRows(items);
