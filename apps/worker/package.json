@@ -8,16 +8,19 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
-    "seed:admin": "tsx src/seed-admin.ts"
+    "seed:admin": "tsx src/seed-admin.ts",
+    "test": "vitest run"
   },
   "dependencies": {
     "@jhtechsaas/shared": "workspace:*",
     "@supabase/supabase-js": "^2.58.0",
+    "pdf-lib": "^1.17.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^20.19.41",
     "tsx": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^3.2.4"
   }
 }
