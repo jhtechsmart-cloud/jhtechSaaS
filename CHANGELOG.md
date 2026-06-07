@@ -2,6 +2,17 @@
 
 이 프로젝트의 주요 변경 사항을 기록한다. [Keep a Changelog](https://keepachangelog.com/) 형식, [Semantic Versioning](https://semver.org/)(4자리 MAJOR.MINOR.PATCH.MICRO).
 
+## [0.12.4.0] - 2026-06-07
+
+### Added
+- **견적 생성 결선 RPC**(마이그레이션 `20260607130000_quote_create_rpc.sql`) — 계산 엔진·채번/불변을 실제 저장 흐름으로 연결. 서버가 금액의 최종 권위를 가진다(클라가 보낸 금액 무시, items·옵션만 받아 SQL에서 재계산).
+  - `create_quote(application_id, items, options, status)` — 기존 의뢰 위 견적 생성. `quotes.write` 명시 체크(SECURITY DEFINER가 RLS 우회하므로), 채번 트리거가 `quote_no`/`version` 부여.
+  - `create_manual_quote(company, ceo, phone, email, items, options, status)` — 영업 수기 경로(링크 없이 그 자리서 작성). `applications`(source='manual') + `quotes`를 **한 트랜잭션에 원자 생성**(orphan 없음).
+  - 내부 헬퍼 `_quote_insert`/`_quote_validate_lines`(금액 계산·줄 검증=수량≥1·단가 정수, 직접 호출 revoke). `authenticated`만 grant, `anon`/`public` revoke.
+  - 금액식 = 슬라이스1 TS `calculateQuote`와 동일 → **교차검증 db-test로 TS==SQL 일치 보장**(이중 구현 드리프트 방지).
+- **`applications.source` 컬럼**(`public`/`manual`) — 공개폼 제출과 영업 수기 생성을 구분. 기본 'public', 트리거로 UPDATE 시 불변.
+- ⚠️ E5 백엔드 3종(계산 엔진 → 채번/불변 → 생성 RPC) 완료. 다음 = 견적 작성 콘솔(UI)·통합 PDF.
+
 ## [0.12.3.0] - 2026-06-07
 
 ### Added
