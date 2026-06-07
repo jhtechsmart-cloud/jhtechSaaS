@@ -2,6 +2,15 @@
 
 이 프로젝트의 주요 변경 사항을 기록한다. [Keep a Changelog](https://keepachangelog.com/) 형식, [Semantic Versioning](https://semver.org/)(4자리 MAJOR.MINOR.PATCH.MICRO).
 
+## [0.12.6.0] - 2026-06-07
+
+### Added
+- **통합 PDF 워커 골격 + jobs 큐**(마이그레이션 `20260607140000_jobs_queue.sql`) — 견적 발행 시 PDF를 비동기 생성하는 파이프라인. 무겁고 느린 작업을 발행 응답에서 분리(Railway 워커 + 큐, webhook/Realtime 회피).
+  - `jobs` 큐 테이블(내부 전용·RLS 정책 0) + `claim_next_job()` RPC(`FOR UPDATE SKIP LOCKED`로 동시 워커 레이스 0, service_role 전용) + `quotes_enqueue_pdf` AFTER 트리거(견적이 `issued`로 전환될 때만 `quote_pdf` 잡 enqueue, `pdf_url` 갱신은 제외).
+  - **워커**(`apps/worker`): `render-quote-pdf`(pdf-lib placeholder PDF), `quote-pdf` 처리(견적 로드→생성→`quote-pdfs` 버킷 업로드→`quotes.pdf_url` 기록), `queue`(claim/complete/fail + 재시도 3회), `runner.runOnce`, `index` 폴링 루프. env `GMAIL_*` optional 완화(메일은 E6). `pdf-lib` 의존성 추가.
+- ⚠️ **PDF 레이아웃은 placeholder**(견적번호·금액만) — 의뢰사 견적서 양식 제공 시 `render-quote-pdf.ts`만 교체. 큐·워커·스토리지·재시도 파이프라인은 완성(통합 테스트로 발행→잡→PDF→pdf_url 전 과정 증명).
+- ⚠️ 운영: 워커는 Railway에서 별도 프로세스로 실행해야 동작(코드 머지 ≠ 워커 기동). worker 테스트도 로컬 Supabase 필요.
+
 ## [0.12.5.0] - 2026-06-07
 
 ### Added
