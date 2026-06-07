@@ -2,6 +2,16 @@
 
 이 프로젝트의 주요 변경 사항을 기록한다. [Keep a Changelog](https://keepachangelog.com/) 형식, [Semantic Versioning](https://semver.org/)(4자리 MAJOR.MINOR.PATCH.MICRO).
 
+## [0.12.5.0] - 2026-06-07
+
+### Added
+- **견적 작성 콘솔(영업용 UI)** — E5 백엔드 3종 위에 얹은 첫 사용자대면 화면. 영업이 견적을 만들고·보고·재발행한다. 프론트엔드 전용(DB 변경 없음).
+  - **견적 작성 폼**(`/admin/applications/[id]/quote/new`) — 의뢰 상세 "견적 작성" → 장비·옵션 줄 추가/삭제, **`calculateQuote` 실시간 공급가·세액·합계**, 임시저장(draft)/발행(issued) → `create_quote` RPC. 의뢰 상세에 그 의뢰의 견적 목록 노출.
+  - **수기 견적**(`/admin/quotes/new`) — 의뢰 없이 회사명부터 작성. 견적 목록 헤더 "수기 견적 작성" → `create_manual_quote`(application(source=manual)+quote 원자 생성) → 새 의뢰 상세로 이동.
+  - **견적 상세 + 재발행**(`/admin/quotes/[id]`) — 읽기전용 내역(줄·금액·상태·번호). "재발행" → 그 줄이 채워진 폼 → 수정 후 저장 = **같은 번호 V2**(채번 트리거가 version 자동 증가).
+  - 공유: `QuoteLinesEditor`(작성/수기 폼 공통 라인 에디터), 순수 로직 `lib/quotes/form.ts`(행 변환·실시간 합계·검증·프리필 파싱, Vitest). 권한 `quotes.write` 가드. 금액 미리보기는 클라, **저장 권위는 서버 RPC**(클라 금액 무시·재계산).
+- ⚠️ 견적번호 형식(`JHQ-…`)·옵션 가격표·장비 자동가격·이미지·통합 PDF는 의뢰사 자료 대기로 후속. 현재는 영업 수기 입력.
+
 ## [0.12.4.0] - 2026-06-07
 
 ### Added
