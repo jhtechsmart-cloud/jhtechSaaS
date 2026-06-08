@@ -40,3 +40,5 @@ apps/web/playwright-report/
 .claude/settings.local.json
 .gstack/
 .vercel
+
+.superpowers/
