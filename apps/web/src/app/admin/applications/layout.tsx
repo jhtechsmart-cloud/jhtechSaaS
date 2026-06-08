@@ -23,7 +23,7 @@ export default async function ApplicationsLayout({ children }: { children: React
     countApplicationsByGroup(),
   ]);
   return (
-    <div className="-m-6 flex h-[calc(100dvh-57px)]">
+    <div className="flex h-[calc(100dvh-57px)]">
       <ApplicationListPane
         initialRows={first.rows}
         initialHasMore={first.hasMore}
