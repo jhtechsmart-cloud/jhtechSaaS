@@ -119,7 +119,8 @@ test.describe.serial("E5a 권한 모델 E2E", () => {
     // self-claim → assignee=본인, status new→assigned auto-bump.
     await page.getByRole("button", { name: "내가 맡기" }).click();
     await expect(page.getByRole("button", { name: "내가 맡기" })).toHaveCount(0, { timeout: 15_000 });
-    await expect(page.getByText("영업담당").first()).toBeVisible();
+    // 상세(main)의 담당자 표시. 메인 사이드바 프로필 라벨도 "영업담당"이라(접힘 시 hidden) main으로 스코프.
+    await expect(page.locator("main").getByText("영업담당").first()).toBeVisible();
 
     // 맡은 뒤 상태 변경 가능(StatusControl select 1개 등장).
     const statusSelect = page.locator("select");
