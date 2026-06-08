@@ -122,7 +122,7 @@ export function ApplicationListPane({
                         {it.is_new && <span className="inline-block size-1.5 shrink-0 rounded-full bg-accent" aria-label="미처리" />}
                         {it.company}
                       </span>
-                      <ApplicationStatusBadge status={it.status} />
+                      <ApplicationStatusBadge status={it.status} testId={null} />
                     </div>
                     <div className="mt-0.5 truncate text-micro tabular-nums text-muted">
                       {it.seq_no} · {it.assignee_name ?? "미배정"}{it.summary ? ` · ${it.summary}` : ""}
