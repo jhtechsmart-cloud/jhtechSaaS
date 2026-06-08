@@ -109,7 +109,8 @@ test.describe.serial("E5a 권한 모델 E2E", () => {
 
     // 미배정 견적 상세 직접 진입(RLS: 영업은 미배정 풀을 본다).
     await page.goto(`/admin/applications/${appId}`);
-    await expect(page.getByText(APP_CO)).toBeVisible({ timeout: 15_000 });
+    // 2분할: 회사명이 좌측 목록 패널 + 우측 상세 양쪽에 보이므로 first()로 단언.
+    await expect(page.getByText(APP_CO).first()).toBeVisible({ timeout: 15_000 });
 
     // 미배정 → "내가 맡기" 버튼 노출, 재배정(staff select)은 없음.
     await expect(page.getByRole("button", { name: "내가 맡기" })).toBeVisible();
@@ -118,7 +119,8 @@ test.describe.serial("E5a 권한 모델 E2E", () => {
     // self-claim → assignee=본인, status new→assigned auto-bump.
     await page.getByRole("button", { name: "내가 맡기" }).click();
     await expect(page.getByRole("button", { name: "내가 맡기" })).toHaveCount(0, { timeout: 15_000 });
-    await expect(page.getByText("영업담당").first()).toBeVisible();
+    // 상세(main)의 담당자 표시. 메인 사이드바 프로필 라벨도 "영업담당"이라(접힘 시 hidden) main으로 스코프.
+    await expect(page.locator("main").getByText("영업담당").first()).toBeVisible();
 
     // 맡은 뒤 상태 변경 가능(StatusControl select 1개 등장).
     const statusSelect = page.locator("select");

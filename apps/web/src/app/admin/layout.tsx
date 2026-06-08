@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { cookies } from "next/headers";
 import { can, type PermissionKey } from "@jhtechsaas/shared";
 import { requireAnyConsoleCapability } from "@/lib/auth/guard";
 import { countUnreadServiceRequests } from "@/lib/service-requests/queries";
@@ -6,7 +7,8 @@ import { countUnreadSupplyRequests } from "@/lib/supply-requests/queries";
 import { countNewApplications } from "@/lib/applications/admin-queries";
 import { signOut } from "@/app/login/actions";
 import { Icon } from "./_components/Icon";
-import { SidebarNav } from "./_components/SidebarNav";
+import { AdminSidebar } from "./_components/AdminSidebar";
+import { ConsoleMain } from "./_components/ConsoleMain";
 
 // 콘솔 셸 — 네이비 사이드바(아이콘) + 상단바. requireAnyConsoleCapability가 미인증을 /login으로,
 // 콘솔 권한 없는/비활성 사용자는 403 패널(#29 — 영업담당도 셸 진입).
@@ -36,6 +38,10 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   const anyOf = (keys: PermissionKey[]) => keys.some((k) => can(perms, k));
   const isAdmin = can(perms, "users.manage");
 
+  // 사이드바 접기 선택을 쿠키로 읽어 초기값 전달(서버·클라 일치 → hydration mismatch 방지).
+  const sc = (await cookies()).get("jh.sidebarCollapsed")?.value;
+  const initialOverride = sc === "1" ? true : sc === "0" ? false : null;
+
   // nav 데이터화 — 권한별 조건 노출 + 아이콘.
   const items: { href: string; label: string; icon: string; show: boolean; badge?: number }[] = [
     { href: "/admin/dashboard", label: "대시보드", icon: "dashboard", show: true },
@@ -64,36 +70,8 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 
   return (
     <div className="flex min-h-dvh bg-bg">
-      {/* 사이드바 — 딥 네이비(다크). 글자=라이트 */}
-      <aside className="flex w-[224px] shrink-0 flex-col border-r border-border bg-sidebar text-sidebar-text">
-        <div className="flex items-center gap-2.5 px-5 py-5">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent text-white shadow-sm">
-            <Icon name="dashboard" size={18} />
-          </span>
-          <span className="flex flex-col leading-tight">
-            <span className="text-body font-semibold text-white">재현테크</span>
-            <span className="text-micro text-sidebar-text">견적관리 콘솔</span>
-          </span>
-        </div>
-
-        <SidebarNav items={items.filter((it) => it.show)} />
-
-        {/* 프로필 */}
-        <div className="mx-3 mb-4 mt-2 flex items-center gap-3 rounded-lg bg-navy-2 px-3 py-3">
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-navy-3 text-small font-semibold text-white">
-            {isAdmin ? "관" : "영"}
-          </span>
-          <span className="flex min-w-0 flex-1 flex-col leading-tight">
-            <span className="truncate text-small font-medium text-white">{isAdmin ? "관리자" : "영업담당"}</span>
-            <span className="truncate text-micro text-sidebar-text">재현테크</span>
-          </span>
-          <form action={signOut}>
-            <button className="text-sidebar-text transition-colors hover:text-white" aria-label="로그아웃" title="로그아웃">
-              <Icon name="logout" size={18} />
-            </button>
-          </form>
-        </div>
-      </aside>
+      {/* 사이드바 — 의뢰관리 화면에선 아이콘만 남기고 접힘(AdminSidebar) */}
+      <AdminSidebar items={items.filter((it) => it.show)} isAdmin={isAdmin} initialOverride={initialOverride} />
 
       {/* 본문 영역 */}
       <div className="flex min-w-0 flex-1 flex-col">
@@ -118,7 +96,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
           </div>
         </header>
 
-        <main className="mx-auto w-full max-w-[1320px] flex-1 p-6">{children}</main>
+        <ConsoleMain>{children}</ConsoleMain>
       </div>
     </div>
   );

@@ -113,7 +113,7 @@ test.describe.serial("E5 수기 견적 E2E", () => {
 
     // 1) 목록 → 수기 견적 작성
     await page.goto("/admin/applications");
-    await page.getByRole("link", { name: "수기 견적 작성" }).click();
+    await page.getByRole("link", { name: "수기 견적" }).click();
     await page.waitForURL(/\/admin\/quotes\/new$/, { timeout: 20_000 });
 
     // 2) 회사명 + 장비

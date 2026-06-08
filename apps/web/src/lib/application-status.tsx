@@ -18,11 +18,19 @@ export const APPLICATION_STATUS_META: Record<ApplicationStatus, { label: string;
   closed: { label: "완료", color: "#3a3770" }, // 건 종결(네이비)
 };
 
-export function ApplicationStatusBadge({ status }: { status: ApplicationStatus }) {
+// testId: 상세의 "권위 상태" 단언용 data-testid(기본 "app-status"). 목록처럼 여러 배지가
+// 한 화면에 공존하는 곳은 testId={null}로 꺼서 strict-mode 충돌을 피한다.
+export function ApplicationStatusBadge({
+  status,
+  testId = "app-status",
+}: {
+  status: ApplicationStatus;
+  testId?: string | null;
+}) {
   const m = APPLICATION_STATUS_META[status];
   return (
     <span
-      data-testid="app-status"
+      {...(testId ? { "data-testid": testId } : {})}
       className="inline-block rounded-sm px-2 py-0.5 text-small font-medium"
       style={{ color: m.color, backgroundColor: `${m.color}1A` }}
     >

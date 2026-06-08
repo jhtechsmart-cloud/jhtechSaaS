@@ -83,9 +83,8 @@ export default async function ApplicationDetailPage({
     .join(", ");
 
   return (
-    <div className="flex max-w-2xl flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <Link href="/admin/applications" className="text-small text-muted hover:text-text">← 목록</Link>
+    <div className="flex max-w-3xl flex-col gap-6">
+      <div className="flex items-center justify-end">
         <ApplicationStatusBadge status={status} />
       </div>
 
