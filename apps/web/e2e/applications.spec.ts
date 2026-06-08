@@ -88,7 +88,7 @@ test.describe.serial("E4 견적 트리아지 콘솔 E2E", () => {
 
     // 1) 목록에 시드 견적이 보인다.
     await page.goto("/admin/applications");
-    await expect(page.getByRole("heading", { name: "견적 신청" })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("heading", { name: "신청 목록" })).toBeVisible({ timeout: 15_000 });
     await expect(page.getByText(APP_CO).first()).toBeVisible({ timeout: 15_000 });
 
     // 2) 상세로 이동.
@@ -128,5 +128,18 @@ test.describe.serial("E4 견적 트리아지 콘솔 E2E", () => {
     await page.getByRole("button", { name: "고객으로 등록" }).click();
     await page.waitForURL(/\/admin\/customers\/[0-9a-f-]+$/, { timeout: 15_000 });
     await expect(page.getByText(APP_CO).first()).toBeVisible({ timeout: 15_000 });
+  });
+
+  // 2분할 셸 — 목록 패널 chrome(빈 상태·검색·탭). serial 상태와 무관하게 견고.
+  test("2분할 목록 패널 — 빈 상태·검색창·탭 노출 + 탭 전환", async ({ page }) => {
+    await login(page);
+    await page.goto("/admin/applications");
+    await expect(page.getByRole("heading", { name: "신청 목록" })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("의뢰를 선택하세요")).toBeVisible();
+    await expect(page.getByPlaceholder("업체명·접수번호·사업자번호")).toBeVisible();
+    await expect(page.getByRole("button", { name: "전체" })).toBeVisible();
+    // 완료 탭 전환이 크래시 없이 동작.
+    await page.getByRole("button", { name: /완료/ }).click();
+    await expect(page.getByRole("button", { name: /완료/ })).toBeVisible();
   });
 });
