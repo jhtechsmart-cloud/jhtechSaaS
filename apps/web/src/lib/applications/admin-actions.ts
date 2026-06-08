@@ -1,7 +1,12 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { requirePermission } from "@/lib/auth/guard";
+import { requirePermission, requireApplicationsConsole } from "@/lib/auth/guard";
+import {
+  listApplicationsPage,
+  type ListScope,
+  type ApplicationListRow,
+} from "./admin-queries";
 import { applicationStatusSchema } from "./status-schema";
 import { nextStatusOnAssign } from "./assign-logic";
 import type { ApplicationStatus } from "@/lib/customers/history";
@@ -103,6 +108,18 @@ export async function updateApplicationStatus(
   revalidatePath(`/admin/applications/${id}`);
   revalidatePath("/admin/applications");
   return { ok: true };
+}
+
+// 클라 목록 패널이 더보기·탭·검색 시 호출. 권한 가드 후 페이지 반환.
+export async function fetchApplicationsPage(opts: {
+  scope: ListScope;
+  q?: string;
+  offset: number;
+  limit: number;
+}): Promise<{ rows: ApplicationListRow[]; hasMore: boolean }> {
+  const access = await requireApplicationsConsole();
+  if (access.status === "forbidden") return { rows: [], hasMore: false };
+  return listApplicationsPage(opts);
 }
 
 // 미등록 고객 등록 — customers.edit 필요(RPC 내부에서도 재검증). 반환 company_id로 즉시 P-F 링크.
