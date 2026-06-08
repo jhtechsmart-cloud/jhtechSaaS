@@ -64,15 +64,15 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 
   return (
     <div className="flex min-h-dvh bg-bg">
-      {/* 사이드바 — 라이트(본문 배경보다 살짝 진한 sidebar 톤) */}
-      <aside className="flex w-[224px] shrink-0 flex-col border-r border-border bg-sidebar text-text">
+      {/* 사이드바 — 딥 네이비(다크). 글자=라이트 */}
+      <aside className="flex w-[224px] shrink-0 flex-col border-r border-border bg-sidebar text-sidebar-text">
         <div className="flex items-center gap-2.5 px-5 py-5">
           <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent text-white shadow-sm">
             <Icon name="dashboard" size={18} />
           </span>
           <span className="flex flex-col leading-tight">
-            <span className="text-body font-semibold text-text">재현테크</span>
-            <span className="text-micro text-muted">견적관리 콘솔</span>
+            <span className="text-body font-semibold text-white">재현테크</span>
+            <span className="text-micro text-sidebar-text">견적관리 콘솔</span>
           </span>
         </div>
 
@@ -95,16 +95,16 @@ export default async function AdminLayout({ children }: { children: ReactNode })
         </nav>
 
         {/* 프로필 */}
-        <div className="mx-3 mb-4 mt-2 flex items-center gap-3 rounded-lg border border-border bg-surface px-3 py-3">
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-small font-semibold text-white">
+        <div className="mx-3 mb-4 mt-2 flex items-center gap-3 rounded-lg bg-navy-2 px-3 py-3">
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-navy-3 text-small font-semibold text-white">
             {isAdmin ? "관" : "영"}
           </span>
           <span className="flex min-w-0 flex-1 flex-col leading-tight">
-            <span className="truncate text-small font-medium text-text">{isAdmin ? "관리자" : "영업담당"}</span>
-            <span className="truncate text-micro text-muted">재현테크</span>
+            <span className="truncate text-small font-medium text-white">{isAdmin ? "관리자" : "영업담당"}</span>
+            <span className="truncate text-micro text-sidebar-text">재현테크</span>
           </span>
           <form action={signOut}>
-            <button className="text-muted transition-colors hover:text-accent" aria-label="로그아웃" title="로그아웃">
+            <button className="text-sidebar-text transition-colors hover:text-white" aria-label="로그아웃" title="로그아웃">
               <Icon name="logout" size={18} />
             </button>
           </form>
