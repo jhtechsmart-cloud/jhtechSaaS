@@ -69,7 +69,7 @@
 <div class="wrap">
   <h1>프로젝트 지도</h1>
   <div class="sub">지금까지 만들어진 파일이 <b>어디에</b> 있고, <b>각 단계가 어떤 파일을 만드는지</b>, 문제 시 <b>어디를 봐야 하는지</b>.</div>
-  <div class="upd">갱신: 2026-06-07 (세션4 · E5 견적 시스템 풀스택) · 명령어 <code>/map</code> 으로 재생성</div>
+  <div class="upd">갱신: 2026-06-09 (세션5 · Railway 워커 실배포 + 콘솔 색 재단장 + 의뢰관리 2분할) · 명령어 <code>/map</code> 으로 재생성</div>
 
   <div class="lead">
     <b>핵심:</b> 이 프로젝트의 산출물은 <b>4곳에 흩어져</b> 있습니다. 코드·설정만 프로젝트 폴더 안에 있고,
@@ -110,11 +110,11 @@
     <tr><td class="path">packages/db-tests/ · apps/worker (vitest)</td><td>RLS·큐·워커 테스트</td><td>pg set role+jwt 하니스, <b>297 RLS 단언</b>(+E5 채번/불변·create RPC 교차검증·jobs 큐 enqueue/claim). <b>워커 통합테스트</b>: 발행→잡→runOnce→PDF→pdf_url 증명. ⚠️ 워커 테스트도 로컬 Supabase 필요</td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">apps/web/src/{lib,app,proxy.ts}</td><td>web 구현(E2·E3·M2)</td><td>인증·장비 admin(E2) + 공개 카탈로그/상세/견적요청(E3·P-A) + 고객 마스터(P-B) + 소모품·분류 admin(P-C) + A/S(P-D) + 소모품 공개폼(P-E) + <b>고객 통합이력 /admin/customers/[id]</b>(P-F: lib/customers/history) + 공개폼 UX(v0.9.1.0) + <b>E4 견적 트리아지 콘솔(/admin/applications)</b>(v0.10.0.0) + <b>E5a 권한모델·/admin/users 사용자관리</b>(capability 액션키 18종·self-claim·임시PW모달, v0.11.0.0) + <b>E5b 역할인식 대시보드(/admin/dashboard: lib/dashboard/{aggregates,bars,recent}·StatusDonut·RightRail)</b>(v0.12.0.0) + <b>콘솔 UI 리디자인(globals.css v3·라이트 사이드바·Icon)</b>(v0.12.1.0). <i>코드 — 상세는 코드 직접</i></td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">docs/roadmap.json · ROADMAP.md</td><td>로드맵 단일원본·생성물</td><td>단계(E1~E7·M2 P-A~P-G) status 원본 → <span class="mono">pnpm roadmap:sync</span>로 ROADMAP.md 생성 + Notion 동기화</td><td><span class="tag t-commit">커밋</span></td></tr>
-    <tr><td class="path">docs/superpowers/{specs,plans}/</td><td>설계·플랜 문서</td><td>E2·E3 spec/plan + M2 고객 포털 설계 + P-C 소모품·분류체계. <b>P-D~P-F는 spec/plan이 ~/.gstack·이슈 본문</b>(P-F=이슈#24·main-pf 리뷰)</td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">docs/superpowers/{specs,plans}/</td><td>설계·플랜 문서</td><td>E2·E3 spec/plan + M2 고객 포털 + P-C + E5 견적 7종 + <b>2026-06-08: 콘솔 색재단장(console-color-retheme) · 의뢰관리 2분할 셸(applications-two-pane-shell)</b> spec·plan. <b>P-D~P-F는 ~/.gstack·이슈 본문</b></td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">scripts/roadmap-sync.sh</td><td>로드맵 동기화 래퍼</td><td>~/scripts/claude-notion-sync 엔진 호출(토큰 재사용)</td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">.vercel/project.json</td><td>Vercel 링크</td><td>repo 루트 링크(Root Dir=apps/web). vercel link 산출</td><td><span class="tag t-ignore">gitignore</span></td></tr>
     <tr><td class="path">apps/worker/src/seed-admin.ts</td><td>관리자 시드</td><td>service_role 부트스트랩(프로덕션 비번 가드)</td><td><span class="tag t-commit">커밋</span></td></tr>
-    <tr><td class="path">dev-notes/</td><td>개발 일지</td><td>일별 노트 16일치(.md) + 대시보드(HTML, /devnote) — …고객 포털 + KPI 시안 + <b>E5 견적 시스템 풀스택(계산·채번·생성RPC·작성콘솔·PDF워커)</b></td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">dev-notes/</td><td>개발 일지</td><td>일별 노트 18일치(.md) + 대시보드(HTML, /devnote) — …E5 견적 풀스택 + <b>색 재단장·의뢰관리 2분할(2026-06-09)</b></td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">supabase/.temp/linked-project.json</td><td>원격 링크 기록</td><td>supabase link 산출(원격 프로젝트 ref)</td><td><span class="tag t-ignore">로컬</span></td></tr>
     <tr><td class="path">apps/web/.env.local</td><td>web 실제 환경변수</td><td><b>시크릿</b> — Supabase URL/anon key</td><td><span class="tag t-ignore">gitignore</span></td></tr>
     <tr><td class="path">apps/worker/.env</td><td>워커 실제 환경변수</td><td><b>시크릿</b> — service_role, Gmail 앱비밀번호</td><td><span class="tag t-ignore">gitignore</span></td></tr>
@@ -158,7 +158,8 @@
     <tr><td class="path">#38</td><td>E5a 권한모델 + /admin/users 사용자관리 <span style="color:var(--sent);font-weight:600">✅ 머지·배포 v0.11.0.0 (CLOSED, PR#40)</span></td><td>#5</td></tr>
     <tr><td class="path">#46</td><td>E5b 역할 인식 요약 대시보드 <span style="color:var(--sent);font-weight:600">✅ 머지·배포 v0.12.0.0 (CLOSED, PR#47)</span></td><td>#38</td></tr>
     <tr><td class="path">#48·#49·#50</td><td>담당자 고객전파(+IDOR) v0.12.0.1 · 콘솔 리디자인+장비상세404수정 v0.12.1.0 · DESIGN.md v3 v0.12.1.1 <span style="color:var(--sent);font-weight:600">✅ 머지·배포</span></td><td>E5b</td></tr>
-    <tr><td class="path">#6·#59</td><td>E5 견적 작성+통합 PDF(워커) <span style="color:var(--sent);font-weight:600">✅ 백엔드~UI~PDF골격 머지·배포 v0.12.3~6.0 (PR#60~63)</span> · 레이아웃·워커배포 의뢰사/인프라 대기</td><td>#2,#3,#5</td></tr>
+    <tr><td class="path">#6·#59</td><td>E5 견적 작성+통합 PDF(워커) <span style="color:var(--sent);font-weight:600">✅ 백엔드~UI~PDF골격 v0.12.3~6.0 + Railway 워커 실배포(세션5, PDF고리 라이브)</span> · 실견적양식 레이아웃 대기</td><td>#2,#3,#5</td></tr>
+    <tr><td class="path">UI</td><td>콘솔 색 재단장(딥네이비+스틸블루) <span style="color:var(--sent);font-weight:600">✅ PR#69</span> · 의뢰관리 2분할+확장형목록+사이드바접기 <span style="color:var(--sent);font-weight:600">✅ PR#70(2단계 슬라이스1/4)</span> · 슬라이스2~4 진행예정</td><td>—</td></tr>
     <tr><td class="path">#7</td><td>E6 메일 발송(워커)</td><td>#2,#6</td></tr>
     <tr><td class="path">#8</td><td>E7 업체 이력</td><td>#4~#7</td></tr>
     <tr><td colspan="3" style="background:var(--surface);font-weight:600">▼ M2 — 고객 포털 & 운영 백본 (신규 마일스톤, 2026-06-01)</td></tr>
@@ -179,8 +180,8 @@
   <p class="note">각 단계를 진행하면 → 어디에 어떤 파일이 생기고 무슨 내용이 담기는지.</p>
 
   <div class="lead" style="border-left-color:var(--sent)">
-    <b>진행 현황 (2026-06-07 세션4):</b> <b>M1~M2 + E4·E5a·E5b·콘솔 리디자인·고객포털·KPI 시안 완료</b>. <b>이번 세션 = E5 견적 시스템 풀스택 완주(하루 4배포, superpowers TDD)</b>: ①<b>견적 계산 엔진</b>(#60, v0.12.3.0) — 순수함수 calculateQuote(장비/옵션 단가×수량·헤드=옵션 한 줄로 일반화·세액 round 10%), 가격표 비내장. ②<b>채번+불변버전</b>(#60) — <code>JHQ-YYYYMMDD-NNN-VN</code> 연도리셋 카운터·재발행=번호유지+version MAX+1·issued 동결(pdf_url만 예외). ③<b>생성 결선 RPC</b>(#61, v0.12.4.0) — create_quote/create_manual_quote(SQL DEFINER가 금액 재계산=서버권위, app source=manual+quote 원자생성)·TS==SQL 교차검증. ④<b>견적 작성 콘솔 UI</b>(#62, v0.12.5.0) — 작성(/admin/applications/[id]/quote/new)·수기(/admin/quotes/new)·상세+재발행(/admin/quotes/[id], ?from= 프리필→같은번호 V2), 실시간 합계. ⑤<b>통합 PDF 워커 골격+jobs 큐</b>(#63, v0.12.6.0) — claim_next_job SKIP LOCKED·enqueue 트리거·워커 폴링·pdf-lib placeholder PDF→quote-pdfs→pdf_url. 이어 ⑥<b>워커 Railway 배포설정</b>(#66) — shared가 TS소스라 node dist 불가 → tsx 런타임·railway.json. ⑦<b>의뢰 상태 5단계</b>(#67, v0.12.7.0) — 접수→배정→견적중(작성중)→<b>견적발송(발행됨)</b>→완료(종결·네이비). _quote_insert 자동 전이(draft→견적중·발행→견적발송, 앞으로만). 게이트 GREEN(web178·worker2·db-tests303·shared73·e2e44·tsc·lint·build·as any 0). ⚠️ <b>PDF 레이아웃=placeholder(견적양식 의뢰사 대기)</b>·<b>Railway 워커 대시보드 실배포 미완(코드는 준비)</b>·<b>레이아웃 일괄정비 예정(완료 StatusControl 위치 등)</b>.
-    <b>다음 = start 시</b>: E5 코드는 거의 소진(계산·채번·생성RPC·작성콘솔·PDF골격 완료). 남은 E5 = <b>의뢰사 자료/인프라 대기</b> — ⓐ <b>실 견적서 레이아웃</b>(양식 수령 시 <code>apps/worker/src/jobs/render-quote-pdf.ts</code>만 교체+한글폰트 임베드) ⓑ <b>Railway 워커 배포</b>(잡 소비 시작) ⓒ 옵션 가격표·장비 자동가격·이미지·번호형식 확정. 코드로 지금 가능: 전화 placeholder(1577-0000)·브랜드색 `--color-accent`·KPI 실집계 배선·S1 고객 엑셀 이관(컬럼 대기)·P-G 카톡알림(#25). ⚠️ db reset 후 e2e면 <code>bash supabase/seed/seed-local.sh</code> 시드 복구 필수. 운영이월: 홈 cold-start·고아청소 cron.
+    <b>진행 현황 (2026-06-09 세션5):</b> <b>M1~M2 + E4·E5(견적 풀스택)·E5a·E5b·고객포털 완료</b>. <b>이번 세션 = 하루 프로덕션 3건</b>: ①<b>Railway 워커 대시보드 실배포</b> — 발행→트리거 enqueue→워커 폴링→pdf_url 고리 end-to-end 라이브(검증: jobs/issued 0, 실 발행 시 자동 PDF). ②<b>콘솔 색 재단장</b>(PR#69) — v3 인디고 → <b>딥네이비 #0B1F3A + 스틸블루 #1F3B5C 모노톤</b>(globals.css 토큰 값만 교체→전 페이지 자동반영, 사이드바 라이트→다크, DESIGN.md 갱신, 상태 스파인 불변). ③<b>의뢰관리 2분할</b>(PR#70, <b>2단계 슬라이스 1/4</b>) — 레이아웃 기반 마스터-디테일(목록 고정+상세 교체, URL 진실) + <b>확장형 목록</b>(진행중 기본·검색[업체·접수·biz_no]·더보기 offset 페이지네이션·날짜그룹, 100개 하드캡 대체 → 거래처 1,500+ 대비) + <b>사이드바 접기/펴기</b>(셰브런 토글·쿠키 기억·접힘 hover→push 펼침). 게이트 GREEN(shared73·web184·e2e46·tsc·lint·build·as any 0, DB변경0). ⚠️ <b>견적=불변 버전 스냅샷 모델</b>(슬라이스4 인라인 편집 시 draft 수정 RPC 결정 필요)·<b>SSR'd 클라 영속상태는 쿠키</b>(localStorage=hydration mismatch).
+    <b>다음 = start 시 → 2단계 슬라이스 2(상단바 담당자·상태 + 배너 합계·유효기간)</b>. 방식 = <b>슬라이스 단위(목업 합의→빌드→로컬 확인→조정)</b>. 이후 슬라이스3(우측 sticky 견적 패널 읽기) · 4(인라인 견적 편집) → <b>3단계(특기사항·영업일지 컬럼)</b>. 그담 후보: 실 견적양식 레이아웃(<code>render-quote-pdf.ts</code> 교체+한글폰트) · 전화 placeholder · KPI 실집계 · S1 고객 엑셀 이관 · P-G 카톡알림(#25). ⚠️ db reset 후 e2e면 <code>bash supabase/seed/seed-local.sh</code> 복구 필수. dev 시각검증=로컬 supabase env 인라인 주입 + 샘플의뢰 REST service_role insert. 색은 추후 재검토(<code>--color-accent</code> 한 값).
   </div>
   <p class="note">아래 단계 바 = 한 phase의 생애주기. M1 E1·E2·E3 + M2 P-A~P-F + E4 + E5a + E5b + 리디자인 모두 완주·배포. 다음 작업은 ①기획(/office-hours)부터(또는 빠른 수정은 /investigate→/review→/ship).</p>
   <div class="flow">
