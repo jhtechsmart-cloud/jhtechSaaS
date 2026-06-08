@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import Link from "next/link";
 import { can, type PermissionKey } from "@jhtechsaas/shared";
 import { requireAnyConsoleCapability } from "@/lib/auth/guard";
 import { countUnreadServiceRequests } from "@/lib/service-requests/queries";
@@ -7,6 +6,7 @@ import { countUnreadSupplyRequests } from "@/lib/supply-requests/queries";
 import { countNewApplications } from "@/lib/applications/admin-queries";
 import { signOut } from "@/app/login/actions";
 import { Icon } from "./_components/Icon";
+import { SidebarNav } from "./_components/SidebarNav";
 
 // 콘솔 셸 — 네이비 사이드바(아이콘) + 상단바. requireAnyConsoleCapability가 미인증을 /login으로,
 // 콘솔 권한 없는/비활성 사용자는 403 패널(#29 — 영업담당도 셸 진입).
@@ -76,23 +76,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
           </span>
         </div>
 
-        <nav className="flex flex-1 flex-col gap-0.5 px-3 py-2">
-          {items.filter((it) => it.show).map((it) => (
-            <Link
-              key={it.href}
-              href={it.href}
-              className="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-body font-medium text-sidebar-text transition-colors hover:bg-accent-soft hover:text-accent"
-            >
-              <Icon name={it.icon} size={18} className="shrink-0 text-muted transition-colors group-hover:text-accent" />
-              <span className="flex-1">{it.label}</span>
-              {it.badge != null && it.badge > 0 && (
-                <span className="rounded-full bg-accent px-2 py-0.5 text-micro font-semibold text-white">
-                  {it.badge}
-                </span>
-              )}
-            </Link>
-          ))}
-        </nav>
+        <SidebarNav items={items.filter((it) => it.show)} />
 
         {/* 프로필 */}
         <div className="mx-3 mb-4 mt-2 flex items-center gap-3 rounded-lg bg-navy-2 px-3 py-3">
