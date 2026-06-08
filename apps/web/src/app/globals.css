@@ -12,24 +12,24 @@
   /* 숫자·식별자도 같은 Plus Jakarta로(레퍼런스 매칭). 자릿수 정렬은 각 요소의 tabular-nums가 담당 */
   --font-mono: "Plus Jakarta Sans", "Pretendard", system-ui, sans-serif;
 
-  /* 브랜드/액센트 — 네이비/인디고 기반, 연한 톤(2026-06 리디자인 v3). */
-  --color-navy: #3a3770;        /* 사이드바 — 연한 네이비(흰 텍스트 대비 유지) */
-  --color-navy-2: #47447f;      /* 네이비 위 hover/raised */
-  --color-navy-3: #56539a;      /* 네이비 위 active */
-  --color-accent: #6360c4;      /* 기본색: 소프트 인디고/페리윙클(버튼·active·today·아이콘칩·배지) */
-  --color-accent-2: #8f8ce0;    /* 보조: 더 밝은 인디고(하이라이트) */
-  --color-accent-soft: #f0f0fc; /* 인디고 틴트: 아이콘칩·active 배경 */
-  --color-accent-ring: #dbdaf4; /* 인디고 링/테두리 */
+  /* 브랜드/액센트 — 딥네이비+스틸블루 모노톤(2026-06-08 색 재단장). */
+  --color-navy: #0B1F3A;        /* 사이드바·배너 — 딥 네이비(흰 텍스트) */
+  --color-navy-2: #1F3B5C;      /* 네이비 위 hover/raised(스틸블루) */
+  --color-navy-3: #2E4E73;      /* 네이비 위 active */
+  --color-accent: #1F3B5C;      /* 기본색: 스틸블루(버튼·active·아이콘칩·배지) */
+  --color-accent-2: #2E4E73;    /* 보조: 더 밝은 스틸 하이라이트 */
+  --color-accent-soft: #E2E8F1; /* 스틸 틴트: 아이콘칩·active 배경 */
+  --color-accent-ring: #C3CEDC; /* 스틸 링/테두리 */
 
-  /* 중립(연한 쿨톤) */
-  --color-bg: #f4f5fb;          /* 앱 배경 — 살짝 인디고끼, 산뜻 */
-  --color-sidebar: #e7e9f3;     /* 사이드바 — 본문 배경보다 살짝만 진하게(라이트) */
-  --color-sidebar-text: #565b7d;/* 사이드바 nav 라벨 — muted보다 진해 AA 4.5:1 충족(본문색보단 옅음) */
+  /* 중립(쿨톤 그레이) */
+  --color-bg: #E6E9EF;          /* 앱 배경 — 라이트 그레이 */
+  --color-sidebar: #0B1F3A;     /* 사이드바 — 딥 네이비(다크 반전) */
+  --color-sidebar-text: #A7B1BE;/* 사이드바 nav 라벨 — 다크 위 쿨그레이 */
   --color-surface: #ffffff;     /* 카드 */
-  --color-surface-2: #f1f2f9;   /* 카드 위 트랙·hover */
-  --color-border: #e7e8f3;
-  --color-text: #2a2840;        /* 부드러운 네이비끼 본문 */
-  --color-muted: #7b7fa0;       /* 연한 네이비끼 muted */
+  --color-surface-2: #EEF1F6;   /* 카드 위 트랙·hover */
+  --color-border: #D6DBE4;
+  --color-text: #2B2F36;        /* 본문 글자(차콜) */
+  --color-muted: #667285;       /* 흐린 글자(AA 충족) */
 
   /* 상태 — 장비 active/inactive + 신청 스파인(후속 phase) */
   --color-active: #16a34a;     /* 운영중 */
@@ -49,10 +49,10 @@
   --radius-md: 8px;
   --radius-lg: 12px;
 
-  /* elevation(떠 보이는 음영) — 카드용 옅은 그림자. 검정 대신 본문 네이비(#2a2840=rgb 42 40 64)를
-     옅게 써서 v3 인디고 팔레트와 어울리게. shadow-card / hover:shadow-card-hover 유틸 생성. */
-  --shadow-card: 0 1px 2px 0 rgb(42 40 64 / 0.04), 0 6px 16px -4px rgb(42 40 64 / 0.08);
-  --shadow-card-hover: 0 2px 4px 0 rgb(42 40 64 / 0.06), 0 10px 24px -6px rgb(42 40 64 / 0.12);
+  /* elevation(떠 보이는 음영) — 카드용 옅은 그림자. 검정 대신 딥 네이비(#0B1F3A=rgb 11 31 58)를
+     옅게 써서 딥네이비+스틸블루 팔레트와 어울리게. shadow-card / hover:shadow-card-hover 유틸 생성. */
+  --shadow-card: 0 1px 2px 0 rgb(11 31 58 / 0.05), 0 6px 16px -4px rgb(11 31 58 / 0.10);
+  --shadow-card-hover: 0 2px 4px 0 rgb(11 31 58 / 0.07), 0 10px 24px -6px rgb(11 31 58 / 0.14);
 }
 
 body {
