@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { cookies } from "next/headers";
 import { can, type PermissionKey } from "@jhtechsaas/shared";
 import { requireAnyConsoleCapability } from "@/lib/auth/guard";
 import { countUnreadServiceRequests } from "@/lib/service-requests/queries";
@@ -37,6 +38,10 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   const anyOf = (keys: PermissionKey[]) => keys.some((k) => can(perms, k));
   const isAdmin = can(perms, "users.manage");
 
+  // 사이드바 접기 선택을 쿠키로 읽어 초기값 전달(서버·클라 일치 → hydration mismatch 방지).
+  const sc = (await cookies()).get("jh.sidebarCollapsed")?.value;
+  const initialOverride = sc === "1" ? true : sc === "0" ? false : null;
+
   // nav 데이터화 — 권한별 조건 노출 + 아이콘.
   const items: { href: string; label: string; icon: string; show: boolean; badge?: number }[] = [
     { href: "/admin/dashboard", label: "대시보드", icon: "dashboard", show: true },
@@ -66,7 +71,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   return (
     <div className="flex min-h-dvh bg-bg">
       {/* 사이드바 — 의뢰관리 화면에선 아이콘만 남기고 접힘(AdminSidebar) */}
-      <AdminSidebar items={items.filter((it) => it.show)} isAdmin={isAdmin} />
+      <AdminSidebar items={items.filter((it) => it.show)} isAdmin={isAdmin} initialOverride={initialOverride} />
 
       {/* 본문 영역 */}
       <div className="flex min-w-0 flex-1 flex-col">
