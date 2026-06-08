@@ -78,6 +78,77 @@ export async function countNewApplications(): Promise<number> {
   return count ?? 0;
 }
 
+// 진행중 스코프 = closed 제외 전부(단일 출처와 일치).
+const ACTIVE_STATUSES = ["new", "assigned", "quoted", "quote_sent"] as const;
+
+export type ListScope = "active" | "closed" | "all";
+
+// 페이지네이션 목록 — created_at desc(동률 seq_no desc). q 있으면 스코프 무시 전체검색.
+// limit+1 fetch로 hasMore 판정. RLS: 자기배정 OR view_all.
+export async function listApplicationsPage(opts: {
+  scope: ListScope;
+  q?: string;
+  offset: number;
+  limit: number;
+}): Promise<{ rows: ApplicationListRow[]; hasMore: boolean }> {
+  const supabase = await createSupabaseServerClient();
+  let query = supabase
+    .from("applications")
+    .select("id,seq_no,status,company,assignee_id,created_at,fields,profiles:assignee_id(name)")
+    .order("created_at", { ascending: false })
+    .order("seq_no", { ascending: false })
+    .range(opts.offset, opts.offset + opts.limit); // +1 행으로 hasMore 감지
+
+  const orFilter = opts.q ? buildSearchOr(opts.q) : null;
+  if (orFilter) {
+    query = query.or(orFilter); // 검색 시 스코프 무시(전체 상태)
+  } else if (opts.scope === "active") {
+    query = query.in("status", ACTIVE_STATUSES as unknown as string[]);
+  } else if (opts.scope === "closed") {
+    query = query.eq("status", "closed");
+  }
+
+  const { data, error } = await query;
+  if (error) {
+    console.error("[applications.listPage]", error);
+    return { rows: [], hasMore: false };
+  }
+  const all = (data ?? []) as Record<string, unknown>[];
+  const hasMore = all.length > opts.limit;
+  const sliced = hasMore ? all.slice(0, opts.limit) : all;
+  const rows: ApplicationListRow[] = sliced.map((r) => {
+    const profiles = r.profiles as { name?: string } | null;
+    const fields = (r.fields as { equipment_name?: string; requirements?: string } | null) ?? {};
+    const summary = fields.equipment_name ?? (fields.requirements ?? "").slice(0, 40);
+    return {
+      id: r.id as string,
+      seq_no: r.seq_no as string,
+      status: r.status as ApplicationStatus,
+      company: r.company as string,
+      summary,
+      assignee_id: r.assignee_id as string | null,
+      assignee_name: profiles?.name ?? null,
+      is_new: r.status === "new",
+      created_at: r.created_at as string,
+    };
+  });
+  return { rows, hasMore };
+}
+
+// 탭 카운트 — 진행중/완료. RLS 스코프 그대로 적용(영업담당은 자기 가시범위 셈).
+export async function countApplicationsByGroup(): Promise<{ active: number; closed: number }> {
+  const supabase = await createSupabaseServerClient();
+  const [activeRes, closedRes] = await Promise.all([
+    supabase.from("applications").select("id", { count: "exact", head: true })
+      .in("status", ACTIVE_STATUSES as unknown as string[]),
+    supabase.from("applications").select("id", { count: "exact", head: true })
+      .eq("status", "closed"),
+  ]);
+  if (activeRes.error) console.error("[applications.countActive]", activeRes.error);
+  if (closedRes.error) console.error("[applications.countClosed]", closedRes.error);
+  return { active: activeRes.count ?? 0, closed: closedRes.count ?? 0 };
+}
+
 // 견적 단건(admin 상세) — profiles 조인 + biz_no→companies 매칭(application쪽 JS 정규화).
 export async function getApplicationForAdmin(id: string) {
   const supabase = await createSupabaseServerClient();
