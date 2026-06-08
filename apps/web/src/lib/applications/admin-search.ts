@@ -5,7 +5,21 @@
 export function buildSearchOr(q: string): string | null {
   const cleaned = q.replace(/[,()%_*\\]/g, "").trim();
   if (cleaned === "") return null;
-  return `company.ilike.%${cleaned}%,seq_no.ilike.%${cleaned}%`;
+  return `company.ilike.%${cleaned}%,seq_no.ilike.%${cleaned}%,biz_no.ilike.%${cleaned}%`;
+}
+
+// KST(UTC+9) 기준 날짜 그룹. today=같은 KST 날짜, week=1~6일 전, earlier=7일 이상.
+const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
+function kstDayIndex(d: Date): number {
+  return Math.floor((d.getTime() + KST_OFFSET_MS) / DAY_MS);
+}
+export type DateGroup = "today" | "week" | "earlier";
+export function dateGroupOf(createdAtIso: string, now: Date): DateGroup {
+  const diff = kstDayIndex(now) - kstDayIndex(new Date(createdAtIso));
+  if (diff <= 0) return "today";
+  if (diff < 7) return "week";
+  return "earlier";
 }
 
 // limit+1로 가져온 행에서 초과 여부를 감지하고 limit개로 자른다.
