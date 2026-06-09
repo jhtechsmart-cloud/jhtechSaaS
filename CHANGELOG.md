@@ -2,6 +2,16 @@
 
 이 프로젝트의 주요 변경 사항을 기록한다. [Keep a Changelog](https://keepachangelog.com/) 형식, [Semantic Versioning](https://semver.org/)(4자리 MAJOR.MINOR.PATCH.MICRO).
 
+## [0.12.11.0] - 2026-06-09
+
+### Added
+- **고객(companies) 거래처 장부 필드 8종 + 업종(종목)** — 새 고객 추가/수정 폼에 견적 신청기업과 1:1 입력. 마이그레이션 `20260609150000_companies_extended_fields`로 `manager·biz_type·biz_item·ledger_name·phone1·phone2·fax·address_actual1·address_actual2`(전부 nullable text + 길이 CHECK) 추가, 롤백 스크립트 동봉. 기존 RLS·트리거 변경 없음(사용자 편집 컬럼). 폼 = 기본정보(담당자·업태·업종 포함) / 추가정보(장부명·전화1/2·팩스·실제주소) 그룹. 고객 상세에 전 필드 표시(전화는 하이픈 자동포맷). db-test로 신규 컬럼 INSERT/UPDATE/길이CHECK 권한 단언.
+- **견적 미발행 미리보기** — 견적이 없어도(신청만 들어온 상태) 견적 페이지가 동일한 통합 레이아웃으로 모든 박스를 표시한다. 고객이 요청한 장비(`equipment_id`, 없으면 `equipment_name` 매칭) + 기본공급가로 선택장비·예상 합계를 미리 채우고(표시전용, 견적 자동생성 안 함), 우측 요약은 "견적 작성"으로 유도. 발행 견적은 기존대로 서버 금액 권위.
+
+### Changed
+- **견적 신청기업 정보 간소화** — 신청이 실제 수집한 항목만 표시(회사명·사업자번호·대표자·연락처·이메일·사업장주소·접수번호 + 요청장비). 담당자·업태·업종·장부명·전화1/2·팩스·실제주소는 거래처 장부(고객 마스터) 전용이라 견적 화면에서 제거(공개 신청서 미수집).
+- **연락처 포맷 단일화** — `@jhtechsaas/shared`의 `formatBizNo·formatPhone`로 통일하고 중복 모듈(`lib/format/contact.ts`) 제거(이전 슬라이스에서 만든 중복 정리).
+
 ## [0.12.10.0] - 2026-06-09
 
 ### Changed

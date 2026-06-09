@@ -6,6 +6,7 @@ export type MatchableEquipment = {
   model: string | null;
   category: string | null;
   photos: string[];
+  basePrice: number; // 기본 공급가 — 견적 미발행 시 '예상' 표시에 사용
 };
 
 // 소문자 + 영숫자/한글만(공백·하이픈·기호 제거).

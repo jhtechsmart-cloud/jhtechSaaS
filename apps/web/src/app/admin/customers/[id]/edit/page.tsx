@@ -64,15 +64,25 @@ export default async function EditCustomerPage({
     install_address: (r.install_address as string) ?? "",
   }));
 
+  const cs = (k: string) => ((company as Record<string, unknown>)[k] as string | null) ?? "";
   const companyValues: CompanyFormValues = {
     name: (company as { name: string }).name,
-    biz_no: (company as { biz_no?: string | null }).biz_no ?? "",
-    ceo: (company as { ceo?: string | null }).ceo ?? "",
-    phone: (company as { phone?: string | null }).phone ?? "",
-    email: (company as { email?: string | null }).email ?? "",
-    address: (company as { address?: string | null }).address ?? "",
-    note: (company as { note?: string | null }).note ?? "",
-    assignee_id: (company as { assignee_id?: string | null }).assignee_id ?? "",
+    biz_no: cs("biz_no"),
+    ceo: cs("ceo"),
+    manager: cs("manager"),
+    phone: cs("phone"),
+    email: cs("email"),
+    address: cs("address"),
+    biz_type: cs("biz_type"),
+    biz_item: cs("biz_item"),
+    ledger_name: cs("ledger_name"),
+    phone1: cs("phone1"),
+    phone2: cs("phone2"),
+    fax: cs("fax"),
+    address_actual1: cs("address_actual1"),
+    address_actual2: cs("address_actual2"),
+    note: cs("note"),
+    assignee_id: cs("assignee_id"),
     equipment: equipmentValues,
   };
 

@@ -13,7 +13,7 @@ function validityLabel(validity: QuoteValidity | null): string {
 
 // 네이비 히어로 — 견적 식별·상태 + 4스탯. 견적 없으면 quote=null로 4스탯 숨김.
 export function QuoteHero({
-  company, status, seqNo, version, quoteNo, assigneeName, validity, total, issuedAtLabel, unregistered,
+  company, status, seqNo, version, quoteNo, assigneeName, validity, total, issuedAtLabel, unregistered, preview,
 }: {
   company: string;
   status: ApplicationStatus;
@@ -26,6 +26,8 @@ export function QuoteHero({
   issuedAtLabel: string | null;
   // 미등록 고객(company_id=null) 여부 — amber 배지로 표시
   unregistered?: boolean;
+  // 미발행(견적 없음) — 요청 장비 기반 예상치 표시
+  preview?: boolean;
 }) {
   return (
     // 라운드 카드 + 스틸블루→네이비 그라데이션. 풀블리드 플랫 다크보다 가볍고 세련된 느낌.
@@ -44,13 +46,13 @@ export function QuoteHero({
         {seqNo && <span className="font-mono tabular-nums text-small text-white/70">{seqNo}</span>}
         {issuedAtLabel && <span className="text-small text-white/60">· {issuedAtLabel}</span>}
       </div>
-      {quoteNo && (
+      {(quoteNo || preview) && (
         <div className="mt-4 grid grid-cols-2 gap-4 border-t border-white/15 pt-4 md:grid-cols-4">
-          {/* 견적번호·담당자·유효기간 값은 작게(compact), 합계금액만 강조 유지 */}
-          <Stat label="견적번호" value={quoteNo} mono compact />
+          {/* 견적번호·담당자·유효기간 값은 작게(compact), 합계금액만 강조 유지. 미발행이면 예상치. */}
+          <Stat label="견적번호" value={quoteNo ?? "미발행"} mono compact />
           <Stat label="담당자" value={assigneeName ?? "미배정"} compact />
           <Stat label="유효기간" value={validityLabel(validity)} compact />
-          <Stat label="합계금액" value={total ? won(total) : "-"} gold mono />
+          <Stat label={preview ? "예상 합계" : "합계금액"} value={total ? won(total) : "-"} gold mono />
         </div>
       )}
     </div>

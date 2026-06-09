@@ -48,9 +48,18 @@ function companyRow(v: CompanyFormValues) {
     name: v.name,
     biz_no: v.biz_no ? normalizeBizNo(v.biz_no) : null,
     ceo: v.ceo || null,
+    manager: v.manager || null,
     phone: v.phone || null,
     email: v.email || null,
     address: v.address || null,
+    biz_type: v.biz_type || null,
+    biz_item: v.biz_item || null,
+    ledger_name: v.ledger_name || null,
+    phone1: v.phone1 || null,
+    phone2: v.phone2 || null,
+    fax: v.fax || null,
+    address_actual1: v.address_actual1 || null,
+    address_actual2: v.address_actual2 || null,
     note: v.note || null,
     // assignee_id는 create/update에서 권한에 따라 별도 처리(여기 미포함).
   };

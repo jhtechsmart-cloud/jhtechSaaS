@@ -10,7 +10,7 @@ import {
 } from "@/lib/customers/history";
 import { StatusBadge } from "@/lib/request-status";
 import { ApplicationStatusBadge } from "@/lib/application-status";
-import { formatBizNo, formatPhone } from "@/lib/format/contact";
+import { formatBizNo, formatPhone } from "@jhtechsaas/shared";
 import { signOut } from "@/app/login/actions";
 
 // 통합 고객이력(P-F #24) — 견적/구입/AS/소모품 + 완료여부 한눈에(읽기 전용, E7 확장).
@@ -64,9 +64,9 @@ export default async function CustomerDetailPage({
           <Link href="/admin/customers" className="text-small text-muted hover:text-text">← 고객 목록</Link>
           <h1 className="text-h1 font-semibold text-text">{str(c.name) ?? "(이름 없음)"}</h1>
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-small text-muted">
-            <span>사업자번호 <span className="font-mono tabular-nums text-text">{formatBizNo(str(c.biz_no)) || "-"}</span></span>
+            <span>사업자번호 <span className="font-mono tabular-nums text-text">{formatBizNo(str(c.biz_no) ?? "") || "-"}</span></span>
             <span>대표 <span className="text-text">{str(c.ceo) ?? "-"}</span></span>
-            <span>연락처 <span className="font-mono tabular-nums text-text">{formatPhone(str(c.phone)) || "-"}</span></span>
+            <span>연락처 <span className="font-mono tabular-nums text-text">{formatPhone(str(c.phone) ?? "") || "-"}</span></span>
             <span>담당영업 <span className="text-text">{assigneeName}</span></span>
           </div>
         </div>
@@ -76,6 +76,23 @@ export default async function CustomerDetailPage({
         >
           수정
         </Link>
+      </div>
+
+      {/* 기업 정보 — 기본 + 추가(거래처 장부) 필드 표시 */}
+      <div className="rounded-lg border border-border/60 bg-surface p-5 shadow-sm">
+        <div className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-3">
+          <DetailField label="담당자" value={str(c.manager)} />
+          <DetailField label="이메일" value={str(c.email)} />
+          <DetailField label="업태" value={str(c.biz_type)} />
+          <DetailField label="업종(종목)" value={str(c.biz_item)} />
+          <DetailField label="주소(사업장)" value={str(c.address)} />
+          <DetailField label="장부명(장부번호)" value={str(c.ledger_name)} />
+          <DetailField label="전화1" value={formatPhone(str(c.phone1) ?? "")} mono />
+          <DetailField label="전화2" value={formatPhone(str(c.phone2) ?? "")} mono />
+          <DetailField label="팩스" value={formatPhone(str(c.fax) ?? "")} mono />
+          <DetailField label="실제주소1" value={str(c.address_actual1)} />
+          <DetailField label="실제주소2" value={str(c.address_actual2)} />
+        </div>
       </div>
 
       {/* 견적 */}
@@ -198,4 +215,14 @@ function Section({
 
 function Empty() {
   return <p className="py-1.5 text-small text-muted">내역 없음</p>;
+}
+
+// 상세 필드 한 칸 — 라벨 + 값(없으면 "-").
+function DetailField({ label, value, mono }: { label: string; value: string | null; mono?: boolean }) {
+  return (
+    <div className="min-w-0">
+      <div className="text-micro text-muted">{label}</div>
+      <div className={`mt-0.5 truncate text-body text-text ${mono ? "font-mono tabular-nums" : ""}`}>{value || "-"}</div>
+    </div>
+  );
 }

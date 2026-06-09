@@ -76,9 +76,18 @@ export function CompanyForm(props: Props) {
           name: "",
           biz_no: "",
           ceo: "",
+          manager: "",
           phone: "",
           email: "",
           address: "",
+          biz_type: "",
+          biz_item: "",
+          ledger_name: "",
+          phone1: "",
+          phone2: "",
+          fax: "",
+          address_actual1: "",
+          address_actual2: "",
           note: "",
           assignee_id: "",
           equipment: [],
@@ -118,6 +127,12 @@ export function CompanyForm(props: Props) {
   function onPhoneBlur() {
     const raw = getValues("phone");
     if (raw) setValue("phone", formatPhone(raw));
+  }
+
+  // 전화1/2·팩스 공용 blur 포맷(연락처와 동일 UX).
+  function onPhoneFieldBlur(name: "phone1" | "phone2" | "fax") {
+    const raw = getValues(name);
+    if (raw) setValue(name, formatPhone(raw));
   }
 
   function onSubmit(values: CompanyFormValues) {
@@ -176,6 +191,12 @@ export function CompanyForm(props: Props) {
               className="rounded-md border border-border bg-surface px-3 py-2 text-body text-text"
             />
           </Field>
+          <Field label="담당자" error={errors.manager?.message}>
+            <input
+              {...register("manager")}
+              className="rounded-md border border-border bg-surface px-3 py-2 text-body text-text"
+            />
+          </Field>
           <Field label="연락처" error={errors.phone?.message}>
             <input
               {...register("phone")}
@@ -191,12 +212,73 @@ export function CompanyForm(props: Props) {
               className="rounded-md border border-border bg-surface px-3 py-2 text-body text-text"
             />
           </Field>
-          <Field label="주소" error={errors.address?.message}>
+          <Field label="주소(사업장주소)" error={errors.address?.message}>
             <input
               {...register("address")}
               className="rounded-md border border-border bg-surface px-3 py-2 text-body text-text"
             />
           </Field>
+          <Field label="업태" error={errors.biz_type?.message}>
+            <input
+              {...register("biz_type")}
+              className="rounded-md border border-border bg-surface px-3 py-2 text-body text-text"
+            />
+          </Field>
+          <Field label="업종(종목)" error={errors.biz_item?.message}>
+            <input
+              {...register("biz_item")}
+              className="rounded-md border border-border bg-surface px-3 py-2 text-body text-text"
+            />
+          </Field>
+        </section>
+
+        {/* §2 추가 정보(거래처 장부) */}
+        <section className="flex flex-col gap-5">
+          <div className="text-small font-medium text-muted">추가 정보</div>
+          <Field label="장부명(장부번호)" error={errors.ledger_name?.message}>
+            <input
+              {...register("ledger_name")}
+              className="rounded-md border border-border bg-surface px-3 py-2 text-body text-text"
+            />
+          </Field>
+          <Field label="전화1" error={errors.phone1?.message}>
+            <input
+              {...register("phone1")}
+              onBlur={() => onPhoneFieldBlur("phone1")}
+              placeholder="02-123-4567"
+              className="rounded-md border border-border bg-surface px-3 py-2 font-mono tabular-nums text-body text-text"
+            />
+          </Field>
+          <Field label="전화2" error={errors.phone2?.message}>
+            <input
+              {...register("phone2")}
+              onBlur={() => onPhoneFieldBlur("phone2")}
+              className="rounded-md border border-border bg-surface px-3 py-2 font-mono tabular-nums text-body text-text"
+            />
+          </Field>
+          <Field label="팩스" error={errors.fax?.message}>
+            <input
+              {...register("fax")}
+              onBlur={() => onPhoneFieldBlur("fax")}
+              className="rounded-md border border-border bg-surface px-3 py-2 font-mono tabular-nums text-body text-text"
+            />
+          </Field>
+          <Field label="실제주소1" error={errors.address_actual1?.message}>
+            <input
+              {...register("address_actual1")}
+              className="rounded-md border border-border bg-surface px-3 py-2 text-body text-text"
+            />
+          </Field>
+          <Field label="실제주소2" error={errors.address_actual2?.message}>
+            <input
+              {...register("address_actual2")}
+              className="rounded-md border border-border bg-surface px-3 py-2 text-body text-text"
+            />
+          </Field>
+        </section>
+
+        {/* §3 메모·담당영업 */}
+        <section className="flex flex-col gap-5">
           <Field label="메모" error={errors.note?.message}>
             <textarea
               {...register("note")}
@@ -219,7 +301,7 @@ export function CompanyForm(props: Props) {
           </Field>
         </section>
 
-        {/* §2 보유장비 */}
+        {/* §4 보유장비 */}
         <CompanyEquipmentEditor
           control={control}
           register={register}
