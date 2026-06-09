@@ -247,8 +247,8 @@ export default async function ApplicationDetailPage({
             <SpecialNotesPlaceholder />
           </div>
 
-          {/* 우측 sticky 요약 패널 */}
-          <div className="flex flex-col gap-6">
+          {/* 우측 컬럼 전체를 sticky 한 덩어리로(요약+영업일지) → 스크롤 시 겹침 방지. self-start=그리드서 콘텐츠 높이만 차지. */}
+          <div className="flex flex-col gap-6 self-start lg:sticky lg:top-0">
             <QuoteSummaryPanel
               applicationId={id}
               quoteId={quote.id}

@@ -13,7 +13,7 @@ export function SelectedEquipment({
 }) {
   const supplyTotal = items.reduce((s, r) => s + r.unitPrice * r.quantity, 0);
   return (
-    <section className="rounded-md border border-border bg-surface p-4">
+    <section className="rounded-lg border border-border/60 bg-surface p-5 shadow-sm">
       <div className="mb-3 flex items-baseline justify-between">
         <h2 className="text-h2 font-medium text-text">선택 장비</h2>
         <span className="text-micro text-muted">기본 공급가 {won(supplyTotal)}</span>

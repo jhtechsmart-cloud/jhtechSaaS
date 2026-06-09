@@ -13,7 +13,7 @@ export function VersionHistory({
   currentQuoteId: string;
 }) {
   return (
-    <section className="rounded-md border border-border bg-surface p-4">
+    <section className="rounded-lg border border-border/60 bg-surface p-5 shadow-sm">
       <div className="mb-2 flex items-baseline justify-between">
         <h2 className="text-h2 font-medium text-text">버전 이력 ({quotes.length}개 버전)</h2>
         <span className="text-micro text-muted">행을 클릭하면 해당 버전을 표시합니다</span>

@@ -21,9 +21,10 @@ export function QuoteHero({
   unregistered?: boolean;
 }) {
   return (
-    <div className="-mx-6 -mt-6 mb-6 bg-[var(--color-accent-deep,#0B1F3A)] px-6 py-5 text-white">
+    // 라운드 카드 + 스틸블루→네이비 그라데이션. 풀블리드 플랫 다크보다 가볍고 세련된 느낌.
+    <div className="mb-6 overflow-hidden rounded-xl bg-gradient-to-br from-[#27507c] via-[#173255] to-[#0e2440] px-6 py-5 text-white shadow-sm">
       <div className="flex items-baseline gap-3">
-        {version != null && <span className="text-micro font-medium tracking-wide text-white/60">QUOTE · V{version}</span>}
+        {version != null && <span className="text-micro font-medium tracking-wide text-white/55">QUOTE · V{version}</span>}
       </div>
       <div className="mt-1 flex flex-wrap items-center gap-3">
         <h1 className="text-h1 font-semibold">{company}</h1>

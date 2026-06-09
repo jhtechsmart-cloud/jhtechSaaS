@@ -8,7 +8,7 @@ export function OptionLists({ included, extra }: { included: EquipmentOption[]; 
   return (
     <>
       {included.length > 0 && (
-        <section className="rounded-md border border-border bg-surface p-4">
+        <section className="rounded-lg border border-border/60 bg-surface p-5 shadow-sm">
           <div className="mb-2 flex items-baseline justify-between">
             <h2 className="text-h2 font-medium text-text">포함 옵션</h2>
             <span className="text-micro text-muted">{included.length}개 · 기본 공급가 포함</span>
@@ -22,7 +22,7 @@ export function OptionLists({ included, extra }: { included: EquipmentOption[]; 
           </div>
         </section>
       )}
-      <section className="rounded-md border border-border bg-surface p-4">
+      <section className="rounded-lg border border-border/60 bg-surface p-5 shadow-sm">
         <div className="mb-2 flex items-baseline justify-between">
           <h2 className="text-h2 font-medium text-text">추가 옵션</h2>
           <span className="text-micro text-muted">개별 견적 항목</span>

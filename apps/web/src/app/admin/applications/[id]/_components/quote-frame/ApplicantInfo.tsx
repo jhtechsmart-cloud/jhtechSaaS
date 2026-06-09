@@ -12,7 +12,7 @@ export function ApplicantInfo({
   equipmentName: string | null;
 }) {
   return (
-    <section className="rounded-md border border-border bg-surface p-4">
+    <section className="rounded-lg border border-border/60 bg-surface p-5 shadow-sm">
       <div className="mb-3 flex items-baseline justify-between">
         <h2 className="text-h2 font-medium text-text">신청기업 정보</h2>
         <span className="text-micro text-muted">접수 시 자동 수집</span>

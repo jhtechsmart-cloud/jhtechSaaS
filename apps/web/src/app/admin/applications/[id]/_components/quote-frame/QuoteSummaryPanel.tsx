@@ -13,12 +13,17 @@ export function QuoteSummaryPanel({
   email: string | null; phone: string | null; pdfUrl: string | null; canReissue: boolean;
 }) {
   return (
-    <div className="sticky top-0 flex flex-col gap-4">
-      <section className="rounded-md border border-border bg-surface p-4">
-        <div className="mb-3 flex items-baseline justify-between">
-          <div className="font-mono tabular-nums text-small font-medium text-text">{quoteNo}</div>
-          <span className="rounded-sm bg-surface-2 px-2 py-0.5 text-micro text-muted">{statusLabel}</span>
+    // sticky는 부모 컬럼이 담당(영업일지와 함께 한 덩어리로 고정 → 겹침 방지).
+    <section className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
+      {/* 컬러 타이틀바 — 히어로와 같은 톤. 견적번호 + 제목. */}
+      <div className="flex items-center justify-between bg-gradient-to-br from-[#27507c] to-[#0e2440] px-4 py-3 text-white">
+        <div className="min-w-0">
+          <div className="text-micro font-medium tracking-wide text-white/55">QUOTE SUMMARY</div>
+          <div className="truncate font-mono tabular-nums text-small font-semibold">{quoteNo}</div>
         </div>
+        <span className="shrink-0 rounded-sm bg-white/15 px-2 py-0.5 text-micro font-medium text-white">{statusLabel}</span>
+      </div>
+      <div className="p-4">
         <SubRow label="장비 소계" value={won(equipmentSubtotal)} />
         <SubRow label="옵션 소계" value={won(optionSubtotal)} />
         <div className="my-3 rounded-md bg-amber-50 px-3 py-2">
@@ -46,8 +51,8 @@ export function QuoteSummaryPanel({
           <Meta label="이메일" value={email ?? "-"} />
           <Meta label="연락처" value={phone ?? "-"} mono />
         </div>
-      </section>
-    </div>
+      </div>
+    </section>
   );
 }
 function SubRow({ label, value }: { label: string; value: string }) {
