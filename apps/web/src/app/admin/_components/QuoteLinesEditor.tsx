@@ -7,7 +7,7 @@ import {
 } from "@/lib/quotes/form";
 
 // 견적 라인 에디터 — 장비는 카탈로그에서 선택(직접입력 폴백), 포함옵션은 체크박스(기본 전체),
-// 추가옵션은 자유 입력. QuoteForm(의뢰)·ManualQuoteForm(수기) 공유. 합계는 클라 미리보기.
+// 추가옵션은 자유 입력. QuoteForm(의뢰)·ManualQuoteForm(수기) 공유. 줄별 소계만 표시(전체 합계는 오른쪽 패널 QuoteTotalsAside).
 const won = (n: number) => `${n.toLocaleString("ko-KR")}원`;
 const numOrNaN = (s: string) => (s.trim() === "" ? Number.NaN : Number(s));
 const emptyExtra = (): QuoteRow => ({ name: "", unitPrice: 0, quantity: 1 });
