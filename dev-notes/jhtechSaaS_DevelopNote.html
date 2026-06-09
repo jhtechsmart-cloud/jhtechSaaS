@@ -1490,6 +1490,234 @@
       "codeDiagram": "flowchart LR\n    N0[\"MEMORY.md\"]\n    N1[\"jhtechsaas-project.md\"]\n    N2[\"CHANGELOG.md\"]\n    N3[\"CLAUDE.md\"]\n    N4[\"PROJECT-MAP.html\"]\n    N5[\"quotes.spec.ts\"]\n    N6[\"QuoteHero.tsx\"]\n    N7[\"QuoteSummaryPanel.tsx\"]\n    N8[\"page.tsx\"]\n    N9[\"banner.test.ts\"]\n    N10[\"banner.ts\"]\n    N11[\"equipment-match.server.ts\"]\n    N12[\"equipment-match.test.ts\"]\n    N13[\"equipment-match.ts\"]\n    N14[\"2026-06-09-applications-quote-frame-design.md\"]\n    N15[\"devnote_data.json\"]\n    N16[\"devnote_data_0609.json\"]\n    N17[\"AssignControl.tsx\"]\n    N18[\"RegisterCustomerButton.tsx\"]\n    N19[\"StatusControl.tsx\"]\n    N20[\"ApplicantInfo.tsx\"]\n    N21[\"InstallSurvey.tsx\"]\n    N22[\"OptionLists.tsx\"]\n    N23[\"Placeholders.tsx\"]\n    N24[\"QuoteHero.tsx\"]\n    N25[\"QuoteSummaryPanel.tsx\"]\n    N26[\"SelectedEquipment.tsx\"]\n    N27[\"SitePhotos.tsx\"]\n    N28[\"VersionHistory.tsx\"]\n    N29[\"page.tsx\"]\n    N30[\"page.tsx\"]\n    N31[\"banner.ts\"]\n    N32[\"equipment-match.server.ts\"]\n    N33[\"equipment-match.ts\"]\n    N29 --> N19\n    N29 --> N17\n    N29 --> N18\n    N29 --> N24\n    N29 --> N28\n    N29 --> N20\n    N29 --> N21\n    N29 --> N27\n    N29 --> N26\n    N29 --> N22\n    N29 --> N25\n    N29 --> N23\n    N32 --> N33\n    N9 --> N31\n    N12 --> N33\n    N11 --> N33\n    N8 --> N19\n    N8 --> N17\n    N8 --> N18\n    N8 --> N24\n    N8 --> N28\n    N8 --> N20\n    N8 --> N21\n    N8 --> N27\n    N8 --> N26\n    N8 --> N22\n    N8 --> N25\n    N8 --> N23\n    style N20 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N2 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N5 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N8 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N14 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N13 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N28 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N3 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N10 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N22 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N26 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N6 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N25 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N12 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N29 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N0 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N33 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N16 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N15 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N31 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N30 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N9 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N24 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N7 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N11 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N1 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N4 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N32 fill:#dbeafe,stroke:#2563eb,stroke-width:2px"
     },
     {
+      "tldr": "하루에 프로덕션 6배포(v0.12.7→v0.12.12). E5 견적 시스템을 사용자 피드백 슬라이스로 다듬음: 견적 프레임 시각 폴리시·연락처 하이픈 포맷, 고객 거래처장부 확장필드(+업종) DB 컬럼, 견적 미발행 미리보기(견적 없어도 요청장비로 통합 레이아웃), 견적 폼 카탈로그 개편+포함옵션 스냅샷+요청장비 자동 프리필. 전부 게이트 GREEN·프로덕션 200 확인.",
+      "tags": [
+        "E5-견적",
+        "Next.js",
+        "Supabase",
+        "RLS",
+        "jsonb",
+        "UI",
+        "TDD"
+      ],
+      "features": [
+        {
+          "title": "견적 프레임 시각 폴리시 + 연락처 하이픈 자동포맷",
+          "type": "style",
+          "scope": "견적관리",
+          "status": "completed",
+          "filesChanged": [
+            "apps/web/src/app/admin/applications/[id]/_components/quote-frame/SectionHeader.tsx",
+            "QuoteHero.tsx",
+            "QuoteSummaryPanel.tsx",
+            "ApplicantInfo.tsx",
+            "SelectedEquipment.tsx",
+            "apps/web/src/app/admin/applications/[id]/page.tsx",
+            "apps/web/src/app/admin/customers/[id]/page.tsx",
+            "apps/web/src/lib/quotes/banner.ts"
+          ],
+          "context": "슬라이스 3a 견적 프레임에 대한 사용자 시각 피드백(딱딱함·히어로 어두움·소계 제목 안 보임·중복 필드). 연락처/사업자번호는 자리수 하이픈 자동.",
+          "implementation": "공통 SectionHeader(네이비 세로막대 #0B1F3A + 작은 제목 + 구분선) 전 카드 통일. 히어로 값 글씨 축소(합계만 강조), 유효기간 15→30일·'07.09까지(30일)' 표기. 처리바 박스화. 신청기업 등록/미등록 배지·통합이력/고객등록 우측 배치. 선택장비 시안 구조(큰 이미지·행 구분선·견적번호 배지). 우측 요약 소계에 세로막대+서브라인. 연락처는 @jhtechsaas/shared의 formatBizNo/formatPhone로 통일.",
+          "decisions": [
+            {
+              "title": "banner.ts VALID_DAYS를 export해 표기·요약패널 동기화"
+            },
+            {
+              "title": "포맷 유틸은 새로 만들지 말고 기존 @jhtechsaas/shared 재사용(중복 정리)"
+            }
+          ],
+          "problems": [
+            {
+              "description": "#5b에서 lib/format/contact.ts를 새로 만들었는데 @jhtechsaas/shared에 이미 formatBizNo/formatPhone 존재 → 중복. 다음 슬라이스에서 shared로 단일화하고 중복 삭제"
+            }
+          ],
+          "learnings": [
+            "새 유틸 만들기 전 packages/shared에 동일 기능 있는지 grep 먼저"
+          ],
+          "id": "견적-프레임-시각-폴리시-연락처-하이픈-자동포맷"
+        },
+        {
+          "title": "고객(companies) 거래처 장부 확장 필드 + 업종(종목)",
+          "type": "feat",
+          "scope": "고객관리",
+          "status": "completed",
+          "filesChanged": [
+            "supabase/migrations/20260609150000_companies_extended_fields.sql",
+            "supabase/rollback/20260609150000_companies_extended_fields_down.sql",
+            "packages/db-tests/src/companies_extended_fields.test.ts",
+            "apps/web/src/lib/customers/schema.ts",
+            "apps/web/src/lib/customers/actions.ts",
+            "apps/web/src/app/admin/customers/_components/CompanyForm.tsx",
+            "apps/web/src/app/admin/customers/[id]/edit/page.tsx",
+            "apps/web/src/app/admin/customers/[id]/page.tsx"
+          ],
+          "context": "엑셀 거래처 장부 이관(S1) 대비. 견적 신청기업 정보와 1:1로 고객 마스터가 모든 항목을 담아야 함.",
+          "implementation": "companies에 manager·biz_type·biz_item(업종)·ledger_name·phone1/2·fax·address_actual1/2 9컬럼(nullable text + 길이 CHECK) ALTER 추가. RLS·트리거 무변경. 폼=기본정보(담당자·업태·업종)/추가정보(장부명·전화1/2·팩스·실제주소) 그룹. 상세에 전 필드 표시(전화 하이픈). db-test로 권한별 INSERT/UPDATE/길이CHECK 단언.",
+          "decisions": [
+            {
+              "title": "견적(신청)엔 거래처 장부 필드 불필요 — 공개 신청폼이 수집 안 하고 등록 후 수기 입력이므로 고객 마스터 전용(사용자 시나리오 분석). 견적 신청기업 정보는 실제 수집 7항목만으로 간소화"
+            }
+          ],
+          "problems": [
+            {
+              "description": "마이그레이션은 새 파일로(기존 적용 마이그 수정 금지). 롤백은 supabase/rollback/(단수)에"
+            }
+          ],
+          "learnings": [
+            "DB 스키마 변경 PR: 새 마이그 + 롤백 + db-test + 머지 후 supabase db push까지"
+          ],
+          "id": "고객-companies-거래처-장부-확장-필드-업종-종목"
+        },
+        {
+          "title": "견적 미발행 미리보기 — 견적 없어도 통합 레이아웃",
+          "type": "feat",
+          "scope": "견적관리",
+          "status": "completed",
+          "filesChanged": [
+            "apps/web/src/app/admin/applications/[id]/page.tsx",
+            "QuoteHero.tsx",
+            "QuoteSummaryPanel.tsx",
+            "SelectedEquipment.tsx",
+            "apps/web/src/lib/quotes/equipment-match.ts",
+            "equipment-match.server.ts"
+          ],
+          "context": "신청만 들어온 상태(견적 미발행)에서 견적 페이지가 신청기업 정보만 보이고 버전·장비·금액 박스가 사라져 보임. 사용자: 신청 들어오면 화면이 다 채워져야.",
+          "implementation": "견적 유무와 무관하게 동일한 2분할 레이아웃. 미발행이면 고객 요청장비(equipment_id 우선, 없으면 equipment_name 매칭)+기본공급가로 선택장비·예상 합계를 미리 채움(표시전용, 견적 자동생성 안 함). 버전이력='발행 견적 없음', 우측 요약='예상 합계'+'견적 작성' 버튼. 매칭 타입에 basePrice 추가.",
+          "decisions": [
+            {
+              "title": "옵션은 견적 작성 때만 — 신청 단계는 장비만 수집(조사로 확인). 미발행 미리보기는 표시전용(draft 자동생성 안 함 → 견적번호 낭비 없음)"
+            }
+          ],
+          "learnings": [
+            "견적 프레임 박스는 quote-derived(버전·금액·옵션) vs application-derived(신청기업·설문·사진) 구분. 미발행은 요청장비로 전자를 미리보기"
+          ],
+          "problems": [],
+          "id": "견적-미발행-미리보기-견적-없어도-통합-레이아웃"
+        },
+        {
+          "title": "견적 폼 카탈로그 개편 + 포함옵션 스냅샷 + 요청장비 프리필",
+          "type": "feat",
+          "scope": "견적관리",
+          "status": "completed",
+          "filesChanged": [
+            "packages/shared/src/quote-calc.ts",
+            "apps/web/src/lib/quotes/form.ts",
+            "apps/web/src/app/admin/_components/QuoteLinesEditor.tsx",
+            "apps/web/src/app/admin/applications/[id]/_components/QuoteForm.tsx",
+            "apps/web/src/app/admin/quotes/_components/ManualQuoteForm.tsx",
+            "apps/web/src/app/admin/applications/[id]/quote/new/page.tsx",
+            "apps/web/src/app/admin/quotes/new/page.tsx",
+            "apps/web/src/app/admin/applications/[id]/_components/quote-frame/OptionLists.tsx",
+            "packages/db-tests/src/quote_create_rpc.test.ts",
+            "apps/web/e2e/quotes.spec.ts"
+          ],
+          "context": "포함옵션 중 일부를 견적서에서 제외(체크 해제) 가능해야. 장비를 카탈로그에서 선택하면 결정적이고 오선택 방지. 신청 요청장비를 기본 셋팅해 담당자 재입력 제거.",
+          "implementation": "QuoteLine에 선택적 kind('included'|'extra') 추가(jsonb·Zod 보존, 계산 무시). 폼 장비=카탈로그 드롭다운(이름·기본공급가 자동, '직접 입력' 폴백). 포함옵션=체크박스(기본 전체 포함). 선택분만 quote.options에 kind=included(단가 0)로 스냅샷 저장 → 금액 무영향, 발행본은 카탈로그 변경에도 불변. 새 견적 작성 시 신청 요청장비(equipment_id/이름매칭) 자동 선택+포함옵션 전체 체크. 표시: 발행본=스냅샷, 미발행=요청장비 카탈로그.",
+          "codeSnippets": [
+            {
+              "file": "packages/shared/src/quote-calc.ts",
+              "lang": "typescript",
+              "code": "const QuoteLineSchema = z.object({\n  name: z.string().trim().min(1),\n  unitPrice: z.number().int(),\n  quantity: z.number().int().min(1),\n  // z.object는 미정의 키를 strip하므로 보존하려면 스키마에 명시\n  kind: z.enum([\"included\", \"extra\"]).optional(),\n});",
+              "caption": "jsonb로 흘려보낼 kind는 Zod 스키마에 명시해야 .parse()가 strip 안 함"
+            }
+          ],
+          "decisions": [
+            {
+              "title": "포함옵션을 quote.options에 kind 태그로 스냅샷 저장(발행=불변 모델과 정합) — 기존 카탈로그 라이브 파생(카탈로그 바뀌면 발행본도 바뀜) 버그도 동시 해결"
+            },
+            {
+              "title": "장비는 카탈로그 드롭다운 + 직접입력 폴백(커스텀·재발행 매칭 안전)"
+            }
+          ],
+          "problems": [
+            {
+              "description": "z.object 기본 strip으로 kind가 RPC 전에 사라질 뻔 → 스키마에 명시"
+            },
+            {
+              "description": "e2e 재발행 테스트가 '카탈로그에 장비 없음' 가정으로 직접입력 input을 단언 → 데모DB(UV3300S 카탈로그 존재)에 돌리니 드롭다운 매칭되며 깨짐. 단가 기준 검증으로 견고화 + 게이트는 클린 reset+seed에서만"
+            }
+          ],
+          "learnings": [
+            "e2e는 반드시 클린 supabase db reset + seed-local 후 실행(데모/잔여 데이터가 카탈로그·전역카운트 단언을 오염)",
+            "jsonb 통과 필드는 경계 Zod 스키마에 명시해야 보존"
+          ],
+          "id": "견적-폼-카탈로그-개편-포함옵션-스냅샷-요청장비-프리필"
+        }
+      ],
+      "prompts": [
+        {
+          "label": "데이터모델 결정을 유도하는 시나리오 서술",
+          "prompt": "지금 견적정보하고 고객정보에 필드하나가 빠졌어. 업종(종목) 항목... 견적정보에는 내가 화면을 보고 위치를 잡을테니, 일단 데이터베이스를 수정해주고, 샘플데이터로 고객정보 5개, 견적정보 5개(등록고객2개, 미등록고객3개) 만들어줘. 필드는 모두 다 채워주고",
+          "verdict": "good",
+          "lesson": "필드 위치·DB 우선·샘플 구성(등록/미등록 비율)까지 구체적으로 지정 → 모호함 없이 실행. 다만 '모든 필드 채움'이 데이터모델 결정(컬럼 vs jsonb)을 불러 확인 질문 필요"
+        },
+        {
+          "label": "잘못된 가정을 도메인 관점에서 교정",
+          "prompt": "말이 좀 이상한데? 견적이 붙어있을 때만 박스들을 표시한다니?? ...견적서 발행을 안한 상태여도 정보(박스)가 다 보여야 하는거 아니야?",
+          "verdict": "good",
+          "lesson": "Claude의 '견적 있어야 표시'를 사용자가 도메인 관점에서 교정 → 미발행 미리보기 기능으로 발전. 사용자 도메인 지식이 설계를 바로잡음"
+        },
+        {
+          "label": "UX 개선 요구를 '왜'와 함께",
+          "prompt": "신청이 들어올때 장비를 고객이 선택해서 신청을 했으니, 견적 작성페이지에서는 고객이 선택한 장비를 기본으로 셋팅... 담당자가 다시 입력하는 수고를 덜고, 실수로 다른 장비 선택 안 하게",
+          "verdict": "good",
+          "lesson": "'왜'(수고 절감·오선택 방지)를 함께 줘서 구현 방향 명확 → 요청장비 프리필"
+        },
+        {
+          "label": "다중 항목 시각 수정 일괄 지정",
+          "prompt": "수정사항 1.~9. (히어로 글씨·유효기간 형식·박스화·세로막대·버튼 크기·필드 구성...)",
+          "verdict": "good",
+          "lesson": "번호 매긴 구체적 수정 목록 → 누락 없이 일괄 처리. 단 미존재 필드 항목은 데이터 현황 확인 후 옵션 제시 필요"
+        }
+      ],
+      "references": [],
+      "changelog": {
+        "added": [
+          "고객 거래처장부 9컬럼(+업종) 마이그레이션·폼·상세",
+          "견적 미발행 미리보기(요청장비 기반)",
+          "견적 폼 카탈로그 드롭다운+포함옵션 체크박스+스냅샷 저장",
+          "견적 작성 시 요청장비 자동 프리필",
+          "공통 SectionHeader·연락처 하이픈 포맷"
+        ],
+        "changed": [
+          "견적 신청기업 정보 간소화(실제 수집 7항목)",
+          "유효기간 15→30일",
+          "QuoteLine에 선택적 kind 필드",
+          "포함옵션 표시: 발행본=스냅샷"
+        ],
+        "fixed": [
+          "포맷 유틸 중복(lib/format/contact) 제거→shared 단일화",
+          "포함옵션 카탈로그 라이브파생→스냅샷(발행본 불변)"
+        ],
+        "removed": [
+          "apps/web/src/lib/format/contact.ts (중복)"
+        ]
+      },
+      "nextSteps": [
+        "3b 특기사항(quotes 컬럼)",
+        "3c 영업일지",
+        "3d 메일발송(하이웍스 API + 담당자별 발송주소)",
+        "회사 주업종·사업자등록일",
+        "견적 items의 equipment_id 영속"
+      ],
+      "claudeHints": "견적/고객 작업 시: (1) 새 포맷·유틸 만들기 전 packages/shared에 동일 기능 있는지 grep 먼저(중복 방지). (2) e2e·db-tests는 반드시 supabase db reset + bash supabase/seed/seed-local.sh 후 실행 — 데모/잔여 데이터가 카탈로그 매칭·전역카운트 단언을 오염시킨다. (3) jsonb로 통과시킬 필드는 경계 Zod 스키마(z.object)에 명시해야 .parse()가 strip하지 않는다. (4) DB 스키마 변경은 새 마이그+롤백(supabase/rollback 단수)+db-test, 머지 후 supabase db push.",
+      "reusablePatterns": [
+        {
+          "name": "옵션 kind 스냅샷",
+          "description": "카탈로그 파생 데이터(포함옵션)를 발행 불변 레코드에 스냅샷 저장 — jsonb 요소에 kind 태그, 계산은 무시, 발행본이 카탈로그 변경에 흔들리지 않음",
+          "file": "apps/web/src/lib/quotes/form.ts"
+        },
+        {
+          "name": "통합 레이아웃 + 미리보기",
+          "description": "레코드(견적) 유무와 무관하게 같은 레이아웃, 없으면 상위 데이터(신청 요청장비)로 표시전용 미리보기",
+          "file": "apps/web/src/app/admin/applications/[id]/page.tsx"
+        }
+      ],
+      "date": "2026-06-09",
+      "mainTask": "견적-시스템-피드백-슬라이스",
+      "codeDiagram": "flowchart LR\n    N0[\"MEMORY.md\"]\n    N1[\"jhtechsaas-project.md\"]\n    N2[\"CHANGELOG.md\"]\n    N3[\"CLAUDE.md\"]\n    N4[\"PROJECT-MAP.html\"]\n    N5[\"quotes.spec.ts\"]\n    N6[\"QuoteLinesEditor.tsx\"]\n    N7[\"AssignControl.tsx\"]\n    N8[\"QuoteForm.tsx\"]\n    N9[\"RegisterCustomerButton.tsx\"]\n    N10[\"StatusControl.tsx\"]\n    N11[\"ApplicantInfo.tsx\"]\n    N12[\"InstallSurvey.tsx\"]\n    N13[\"OptionLists.tsx\"]\n    N14[\"Placeholders.tsx\"]\n    N15[\"QuoteHero.tsx\"]\n    N16[\"QuoteSummaryPanel.tsx\"]\n    N17[\"SectionHeader.tsx\"]\n    N18[\"SelectedEquipment.tsx\"]\n    N19[\"SitePhotos.tsx\"]\n    N20[\"VersionHistory.tsx\"]\n    N21[\"page.tsx\"]\n    N22[\"page.tsx\"]\n    N23[\"page.tsx\"]\n    N24[\"page.tsx\"]\n    N25[\"CompanyForm.tsx\"]\n    N26[\"ManualQuoteForm.tsx\"]\n    N27[\"page.tsx\"]\n    N28[\"actions.ts\"]\n    N29[\"schema.ts\"]\n    N30[\"banner.test.ts\"]\n    N31[\"banner.ts\"]\n    N32[\"equipment-match.server.ts\"]\n    N33[\"equipment-match.test.ts\"]\n    N34[\"equipment-match.ts\"]\n    N35[\"form.test.ts\"]\n    N36[\"form.ts\"]\n    N37[\"roadmap.json\"]\n    N38[\"2026-06-09-applications-quote-frame-design.md\"]\n    N39[\"package.json\"]\n    N40[\"companies_extended_fields.test.ts\"]\n    N41[\"quote_create_rpc.test.ts\"]\n    N42[\"quote-calc.ts\"]\n    N43[\"20260609150000_companies_extended_fields.sql\"]\n    N44[\"20260609150000_companies_extended_fields_down.sql\"]\n    N45[\"devnote_data.json\"]\n    N46[\"devnote_data_0609.json\"]\n    N47[\"devnote_data_eod.json\"]\n    N48[\"quotes.spec.ts\"]\n    N49[\"QuoteLinesEditor.tsx\"]\n    N50[\"AssignControl.tsx\"]\n    N51[\"QuoteForm.tsx\"]\n    N52[\"RegisterCustomerButton.tsx\"]\n    N53[\"StatusControl.tsx\"]\n    N54[\"ApplicantInfo.tsx\"]\n    N55[\"InstallSurvey.tsx\"]\n    N56[\"OptionLists.tsx\"]\n    N57[\"Placeholders.tsx\"]\n    N58[\"QuoteHero.tsx\"]\n    N59[\"QuoteSummaryPanel.tsx\"]\n    N60[\"SectionHeader.tsx\"]\n    N61[\"SelectedEquipment.tsx\"]\n    N62[\"SitePhotos.tsx\"]\n    N63[\"VersionHistory.tsx\"]\n    N64[\"page.tsx\"]\n    N65[\"page.tsx\"]\n    N66[\"page.tsx\"]\n    N67[\"page.tsx\"]\n    N68[\"CompanyEquipmentEditor.tsx\"]\n    N69[\"CompanyForm.tsx\"]\n    N70[\"ManualQuoteForm.tsx\"]\n    N71[\"page.tsx\"]\n    N72[\"actions.ts\"]\n    N73[\"schema.ts\"]\n    N74[\"banner.ts\"]\n    N75[\"equipment-match.ts\"]\n    N76[\"form.ts\"]\n    N77[\"companies_extended_fields.test.ts\"]\n    N78[\"helpers.ts\"]\n    N79[\"quote_create_rpc.test.ts\"]\n    N80[\"quote-calc.ts\"]\n    N81[\"20260609150000_companies_extended_fields.sql\"]\n    N82[\"20260609150000_companies_extended_fields_down.sql\"]\n    N64 --> N53\n    N64 --> N50\n    N64 --> N52\n    N64 --> N58\n    N64 --> N60\n    N64 --> N63\n    N64 --> N54\n    N64 --> N55\n    N64 --> N62\n    N64 --> N61\n    N64 --> N56\n    N64 --> N59\n    N64 --> N57\n    N77 --> N78\n    N69 --> N68\n    N66 --> N69\n    N65 --> N51\n    N71 --> N70\n    N56 --> N60\n    N79 --> N78\n    N30 --> N74\n    N33 --> N75\n    N32 --> N75\n    N21 --> N53\n    N21 --> N50\n    N21 --> N52\n    N21 --> N58\n    N21 --> N60\n    N21 --> N63\n    N21 --> N54\n    N21 --> N55\n    N21 --> N62\n    N21 --> N61\n    N21 --> N56\n    N21 --> N59\n    N21 --> N57\n    N20 --> N60\n    N12 --> N60\n    N19 --> N60\n    N13 --> N60\n    N14 --> N60\n    N11 --> N60\n    N18 --> N60\n    N40 --> N78\n    N25 --> N68\n    N23 --> N69\n    N22 --> N51\n    N27 --> N70\n    N41 --> N78\n    style N37 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N11 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N38 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N9 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N40 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N71 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N39 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N43 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N29 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N2 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N23 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N82 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N67 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N76 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N25 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N49 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N56 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N51 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N41 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N81 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N24 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N18 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N3 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N30 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N19 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N44 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N20 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N0 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N45 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N79 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N75 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N1 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N4 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N66 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N28 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N60 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N48 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N46 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N16 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N74 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N26 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N13 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N73 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N36 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N27 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N33 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N5 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N47 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N32 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N21 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N7 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N42 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N70 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N12 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N77 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N6 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N31 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N69 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N14 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N10 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N22 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N15 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N72 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N17 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N80 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N8 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N35 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N65 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N34 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N64 fill:#dbeafe,stroke:#2563eb,stroke-width:2px"
+    },
+    {
       "tldr": "E5 후속 + 인프라/QA. 워커 Railway 배포 설정(tsx 런타임), 의뢰 상태 5단계(견적발송 추가), 라이브 도그푸딩으로 발견한 함정 2건 해결. PR #65~#67.",
       "tags": [
         "E5",
@@ -4750,7 +4978,7 @@
 <!-- BEGIN_FUNCTIONS_CATALOG -->
 <script type="application/json" id="functions-catalog">
 {
-  "generated_at": "2026-06-04T13:13:18",
+  "generated_at": "2026-06-09T20:23:34",
   "project_root": "/Users/seonjecho/Projects/jhtechSaaS",
   "total_functions": 0,
   "categories": {},
