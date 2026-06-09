@@ -1,9 +1,6 @@
 "use client";
 import {
   availableIncludedNames,
-  buildQuoteOptions,
-  itemRowsToLines,
-  previewTotals,
   type ItemRow,
   type QuoteCatalogItem,
   type QuoteRow,
@@ -36,8 +33,6 @@ export function QuoteLinesEditor({
   disabled: boolean;
 }) {
   const availableIncluded = availableIncludedNames(items, catalog);
-  const checkedIncluded = availableIncluded.filter((n) => !includedDeselected.includes(n));
-  const totals = previewTotals(itemRowsToLines(items), buildQuoteOptions(checkedIncluded, options));
 
   function updateItem(i: number, patch: Partial<ItemRow>) {
     setItems(items.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
@@ -173,23 +168,6 @@ export function QuoteLinesEditor({
             className="self-start text-small font-medium text-accent hover:underline">+ 추가 옵션</button>
         </div>
       </section>
-
-      {/* 실시간 합계 */}
-      <div className="rounded-md border border-border bg-surface p-4">
-        <TotalRow label="공급가" value={totals.supplyPrice} />
-        <TotalRow label="세액 (10%)" value={totals.taxPrice} />
-        <div className="my-2 border-t border-border" />
-        <TotalRow label="합계" value={totals.total} strong />
-      </div>
-    </div>
-  );
-}
-
-function TotalRow({ label, value, strong }: { label: string; value: number; strong?: boolean }) {
-  return (
-    <div className="flex items-center justify-between py-1">
-      <span className={`text-body ${strong ? "font-semibold text-text" : "text-muted"}`}>{label}</span>
-      <span className={`font-mono tabular-nums ${strong ? "text-h2 font-semibold text-text" : "text-body text-text"}`}>{won(value)}</span>
     </div>
   );
 }
