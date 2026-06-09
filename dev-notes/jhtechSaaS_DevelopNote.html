@@ -1272,6 +1272,224 @@
       "codeDiagram": "flowchart LR\n    N0[\"jhtechsaas-project.md\"]\n    N1[\"devnote_data.json\"]\n    N2[\"DESIGN.md\"]\n    N3[\"AdminSidebar.tsx\"]\n    N4[\"ConsoleMain.tsx\"]\n    N5[\"Icon.tsx\"]\n    N6[\"SidebarNav.tsx\"]\n    N7[\"AssignControl.tsx\"]\n    N8[\"QuotesList.tsx\"]\n    N9[\"RegisterCustomerButton.tsx\"]\n    N10[\"StatusControl.tsx\"]\n    N11[\"page.tsx\"]\n    N12[\"ApplicationListPane.tsx\"]\n    N13[\"layout.tsx\"]\n    N14[\"page.tsx\"]\n    N15[\"layout.tsx\"]\n    N16[\"globals.css\"]\n    N17[\"admin-actions.ts\"]\n    N18[\"admin-queries.ts\"]\n    N19[\"admin-search.ts\"]\n    N20[\"assign-logic.ts\"]\n    N21[\"status-schema.ts\"]\n    N15 --> N5\n    N15 --> N3\n    N15 --> N4\n    N6 --> N5\n    N13 --> N12\n    N11 --> N10\n    N11 --> N7\n    N11 --> N9\n    N11 --> N8\n    N18 --> N19\n    N18 --> N21\n    N17 --> N21\n    N17 --> N20\n    N3 --> N5\n    N3 --> N6\n    style N16 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N18 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N1 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N12 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N19 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N14 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N11 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N17 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N13 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N4 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N0 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N6 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N3 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N15 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N2 fill:#dbeafe,stroke:#2563eb,stroke-width:2px"
     },
     {
+      "tldr": "의뢰 상세를 견적서 같은 견적 중심 프레임(네이비 히어로+좌측 본문+우측 sticky QUOTE SUMMARY)으로 재구성(슬라이스3a, PR #74, v0.12.9.0). 슬라이스2 상단바·배너(PR #73 머지, v0.12.8.0)에 이어짐. 시각 피드백 조정 라운드(그라데이션 히어로·요약 타이틀바·sticky 겹침수정·카드 세련화)까지. 마지막에 Ghostty 터미널 한글 깨짐을 폰트 폴백+legacy 폭계산으로 해결.",
+      "tags": [
+        "견적",
+        "의뢰관리",
+        "프론트엔드",
+        "디자인",
+        "TDD",
+        "Ghostty",
+        "Next.js"
+      ],
+      "features": [
+        {
+          "title": "의뢰 상세 상단바 + 견적 배너 (슬라이스2)",
+          "type": "feat",
+          "scope": "applications",
+          "status": "completed",
+          "filesChanged": [
+            "apps/web/src/app/admin/applications/[id]/page.tsx",
+            "apps/web/src/lib/quotes/banner.ts"
+          ],
+          "context": "의뢰 상세 정보가 위아래로 흩어져 핵심(담당자·상태·견적 합계·유효기간)을 한눈에 못 봄.",
+          "implementation": "sticky 상단바(접수번호·회사명·담당자·상태 배지+컨트롤) + 배너(대표견적 합계·유효기간). 순수로직 TDD(pickRepresentativeQuote·computeQuoteValidity). PR #73 squash 머지(v0.12.8.0).",
+          "decisions": [
+            {
+              "title": "유효기간=발행일+30일 표시전용(이후 3a에서 15일로 정정)"
+            },
+            {
+              "title": "배너 합계=최신 발행본 우선"
+            },
+            {
+              "title": "상단바 버튼 변경 전 고스트→변경 시 스틸블루"
+            }
+          ],
+          "learnings": [
+            "app-status 배지 testid는 e2e 권위 상태 readout 계약 — 제거 시 4곳 e2e 깨짐"
+          ],
+          "problems": [],
+          "id": "의뢰-상세-상단바-견적-배너-슬라이스2"
+        },
+        {
+          "title": "의뢰 상세를 견적 중심 프레임으로 재구성 (슬라이스3a)",
+          "type": "refactor",
+          "scope": "applications",
+          "status": "completed",
+          "filesChanged": [
+            "apps/web/src/app/admin/applications/[id]/page.tsx",
+            "apps/web/src/app/admin/applications/[id]/_components/quote-frame/QuoteHero.tsx",
+            "apps/web/src/app/admin/applications/[id]/_components/quote-frame/VersionHistory.tsx",
+            "apps/web/src/app/admin/applications/[id]/_components/quote-frame/ApplicantInfo.tsx",
+            "apps/web/src/app/admin/applications/[id]/_components/quote-frame/SelectedEquipment.tsx",
+            "apps/web/src/app/admin/applications/[id]/_components/quote-frame/OptionLists.tsx",
+            "apps/web/src/app/admin/applications/[id]/_components/quote-frame/QuoteSummaryPanel.tsx",
+            "apps/web/src/lib/quotes/equipment-match.ts",
+            "apps/web/src/lib/quotes/equipment-match.server.ts",
+            "apps/web/src/app/admin/quotes/[id]/page.tsx"
+          ],
+          "context": "사용자가 제공한 견적 상세 목업(네이비 히어로·버전이력·신청기업·선택장비·우측 QUOTE SUMMARY·영업일지)을 목표로 의뢰 상세 메인 프레임 재구성. 기존 데이터만, DB 변경 0, 읽기전용.",
+          "implementation": "page.tsx가 application·quotes·선택견적(?v=)·장비매칭을 페치하고 견적 유무로 분기. 표시는 _components/quote-frame/ 작은 컴포넌트로 위임. 견적 item 이름을 장비 카탈로그 name/model과 best-effort 매칭해 이미지·카테고리·포함옵션(kind=included) 연결. /admin/quotes/[id]는 ?v= 리다이렉트로 통합. 서브에이전트 주도(배치별 구현+게이트 검증).",
+          "codeSnippets": [
+            {
+              "file": "apps/web/src/lib/quotes/equipment-match.ts",
+              "lang": "typescript",
+              "code": "function norm(s: string): string {\n  return s.toLowerCase().replace(/[^0-9a-z가-힣]/g, \"\");\n}\nexport function matchEquipmentName<T extends { name: string; model: string | null }>(itemName: string, list: T[]): T | null {\n  const key = norm(itemName);\n  if (key === \"\") return null;\n  return list.find((e) => norm(e.name) === key || (e.model != null && norm(e.model) === key)) ?? null;\n}",
+              "caption": "견적 item이 equipment_id를 안 가져 이름으로 best-effort 매칭(정규화: 소문자+영숫자/한글만)"
+            }
+          ],
+          "decisions": [
+            {
+              "title": "D1 기존 데이터 읽기전용(마이그 0)부터 — 신규 데이터는 후속"
+            },
+            {
+              "title": "D2 /admin/applications/[id] 단일 페이지 + ?v= 버전전환 + 견적없음 폴백"
+            },
+            {
+              "title": "D3 선택 장비 = 이름 best-effort 매칭(미매칭은 텍스트 폴백)"
+            },
+            {
+              "title": "D4 특기사항·영업일지·메일발송 = 비활성 준비중 플레이스홀더"
+            },
+            {
+              "title": "유효기간 발행일+15일 정정(슬라이스2의 30일 오류 — 목표 견적서가 15일 명시)"
+            }
+          ],
+          "problems": [
+            {
+              "cause": "재발행 흐름의 /admin/quotes/ 별도페이지가 ?v= 리다이렉트로 사라짐 + JHQ번호·발행배지·금액이 히어로/버전이력/요약패널 여러 곳 중복(strict 위반)",
+              "solution": "재발행=요약패널 [수정]링크로 재작성, 중복 텍스트 .first()",
+              "description": "구조 변경으로 quotes e2e 3건 실패"
+            }
+          ],
+          "learnings": [
+            "SSR 클라 페이지 큰 재설계 = page는 데이터 페치/분기만, 표시는 _components/<frame>/ 작은 컴포넌트로 분리(파일 비대화 방지)",
+            "견적 item은 equipment_id 미저장(스냅샷) → 카탈로그 연동은 이름 매칭(향후 equipment_id 영속으로 정확화)"
+          ],
+          "id": "의뢰-상세를-견적-중심-프레임으로-재구성-슬라이스3a"
+        },
+        {
+          "title": "견적 프레임 시각 조정 (디자인 피드백 반영)",
+          "type": "style",
+          "scope": "applications",
+          "status": "completed",
+          "filesChanged": [
+            "apps/web/src/app/admin/applications/[id]/_components/quote-frame/QuoteHero.tsx",
+            "apps/web/src/app/admin/applications/[id]/_components/quote-frame/QuoteSummaryPanel.tsx",
+            "apps/web/src/app/admin/applications/[id]/page.tsx"
+          ],
+          "context": "사용자 시각 피드백: 너무 딱딱함, 네이비 히어로 너무 어두워 답답, 견적금액 박스에 컬러 타이틀 원함, 스크롤 시 영업일지가 견적금액 박스에 겹침.",
+          "implementation": "히어로=풀블리드 플랫다크→라운드카드+스틸블루→네이비 그라데이션. QUOTE SUMMARY 상단에 히어로 톤 네이비 타이틀바. 우측 컬럼(요약+영업일지)을 self-start sticky 한 덩어리로 묶어 겹침 해결. 좌측 카드 rounded-lg+p-5+soft shadow+연한보더로 세련화.",
+          "decisions": [
+            {
+              "title": "sticky는 개별 컴포넌트가 아니라 우측 컬럼 전체를 self-start로(겹침 방지)"
+            }
+          ],
+          "learnings": [
+            "CSS grid에서 sticky 사이드바는 컬럼에 self-start 필요(기본 stretch면 full-height라 sticky 무력화). 같은 컬럼 내 sticky+하위형제는 겹치므로 컬럼 전체를 한 덩어리 sticky로."
+          ],
+          "problems": [],
+          "id": "견적-프레임-시각-조정-디자인-피드백-반영"
+        },
+        {
+          "title": "Ghostty 터미널 한글 깨짐 해결",
+          "type": "fix",
+          "scope": "tooling",
+          "status": "completed",
+          "filesChanged": [
+            "~/.config/ghostty/config (repo 밖 전역)"
+          ],
+          "context": "Claude Code 화면에서 한글이 깨져 보임. 앱·소스·웹폰트는 모두 정상 확인(Pretendard 로드·UTF-8·헤드리스 렌더 정상) → 터미널 측 문제로 좁힘.",
+          "implementation": "Ghostty 폰트가 JetBrains Mono 단독(한글 글리프 없음)이라 한글 폴백 깨짐. ~/.config/ghostty/config에 font-family=Apple SD Gothic Neo(한글 폴백) + grapheme-width-method=legacy(CJK 더블폭 wcwidth 기준) 추가. ghostty +validate-config exit0 확인.",
+          "decisions": [
+            {
+              "title": "앱 코드가 아니라 Ghostty 설정으로 해결(근본 원인이 터미널 폰트/폭계산)"
+            }
+          ],
+          "learnings": [
+            "터미널에서 한글이 깨지는데 앱·소스는 정상이면 → 터미널 폰트(JetBrains/Latin 전용은 한글 無)에 한글 폴백 추가 + Ghostty는 grapheme-width-method=legacy로 TUI CJK 폭 맞춤. 적용은 Ghostty 재실행 또는 Cmd+Shift+,(reload)"
+          ],
+          "problems": [],
+          "id": "ghostty-터미널-한글-깨짐-해결"
+        }
+      ],
+      "prompts": [
+        {
+          "label": "구체적 시각 디자인 피드백",
+          "prompt": "내가 처음에 이미지 줬던건 세련된느낌이였는데, 이건 너무 딱딱한 느낌이고, 네이비 히어로가 너무 어두워서 답답해보여. 오른쪽 견적금액 박스도 상단에 견적번호와 제목정도는 히어로처럼 색을 넣어서 타이틀을 만들어줬으면. 스크롤하니까 영업일지 부분이 견적금액 박스에 겹쳐져서 움직여.",
+          "verdict": "good",
+          "lesson": "각 불만을 구체적 위치+증상으로 짚으면(어둡다/겹친다/타이틀 원함) 바로 타겟 수정 가능. 슬라이스 방식 조정 라운드에 이상적."
+        },
+        {
+          "label": "증상만 주고 원인 조사 위임",
+          "prompt": "한글이 깨져서나오는데 왜그런거지? / The Korean text is currently displaying incorrectly. Please investigate the cause, fix it.",
+          "verdict": "neutral",
+          "lesson": "위치 불명확한 '깨짐'은 앱/소스/폰트/터미널을 층층이 배제(앱 정상 입증→터미널로 좁힘). TERM=xterm-ghostty 같은 env 단서가 결정적."
+        }
+      ],
+      "references": [
+        {
+          "title": "Claude Code CJK 렌더링 이슈",
+          "url": "https://github.com/anthropics/claude-code/issues/66269",
+          "note": "no-flicker 렌더러 CJK 깨짐(차선책). 1차 원인은 Ghostty 폰트였음",
+          "tags": [
+            "claude-code",
+            "cjk"
+          ]
+        },
+        {
+          "title": "Ghostty grapheme-width-method",
+          "url": "https://ghostty.org/docs/config",
+          "note": "legacy=wcwidth 기준 CJK 폭, TUI 호환",
+          "tags": [
+            "ghostty",
+            "terminal"
+          ]
+        }
+      ],
+      "changelog": {
+        "added": [
+          "의뢰 상세 견적 중심 프레임(히어로·버전이력·신청기업·선택장비·포함/추가옵션·우측 sticky QUOTE SUMMARY)",
+          "장비 이름 best-effort 매칭(이미지·포함옵션)",
+          "슬라이스2 상단바+배너"
+        ],
+        "changed": [
+          "의뢰 상세 IA를 견적 중심으로 재구성",
+          "견적 유효기간 발행일+15일로 정정",
+          "/admin/quotes/[id]를 ?v= 리다이렉트로 통합",
+          "히어로 그라데이션·요약 타이틀바·카드 세련화"
+        ],
+        "fixed": [
+          "우측 컬럼 sticky 겹침(요약↔영업일지)",
+          "Ghostty 터미널 한글 깨짐(폰트 폴백+legacy 폭)"
+        ],
+        "removed": [
+          "슬라이스2 QuoteBanner(히어로+QUOTE SUMMARY로 대체)"
+        ]
+      },
+      "nextSteps": [
+        "PR #74 머지(머지 시 Vercel 자동 배포) + roadmap.json 3a done 반영",
+        "후속 슬라이스 3b 특기사항(quotes 컬럼) · 3c 영업일지(컬럼, 불변모델과 분리) · 3d 메일발송(jobs email+워커+액션)",
+        "회사 주업종·사업자등록일(companies 컬럼) · 견적 items에 equipment_id 영속(이미지 정확연결)"
+      ],
+      "claudeHints": "견적 상세 작업은 의뢰 상세 /admin/applications/[id] 단일 페이지에 ?v=로 통합돼 있다(별도 quotes 페이지 없음, 리다이렉트). 견적 프레임 UI는 _components/quote-frame/ 컴포넌트들로 분리됨. 견적 유효기간은 발행일+15일(banner.ts VALID_DAYS=15). 견적 item은 equipment_id를 안 가지므로 카탈로그 연동은 matchEquipmentName 이름 매칭. 터미널 한글 깨짐은 Ghostty 폰트 폴백 문제였고 ~/.config/ghostty/config에 해결됨.",
+      "reusablePatterns": [
+        {
+          "name": "이름 best-effort 매칭",
+          "description": "FK 없는 스냅샷 데이터를 카탈로그와 정규화 이름 대조로 연결(미매칭은 폴백)",
+          "file": "apps/web/src/lib/quotes/equipment-match.ts"
+        },
+        {
+          "name": "컬럼 전체 sticky 사이드바",
+          "description": "grid에서 우측 컬럼에 self-start lg:sticky lg:top-0 → 요약+부가 패널이 한 덩어리로 고정(겹침 방지)",
+          "file": "apps/web/src/app/admin/applications/[id]/page.tsx"
+        }
+      ],
+      "date": "2026-06-09",
+      "mainTask": "견적-프레임-재구성",
+      "codeDiagram": "flowchart LR\n    N0[\"MEMORY.md\"]\n    N1[\"jhtechsaas-project.md\"]\n    N2[\"CHANGELOG.md\"]\n    N3[\"CLAUDE.md\"]\n    N4[\"PROJECT-MAP.html\"]\n    N5[\"quotes.spec.ts\"]\n    N6[\"QuoteHero.tsx\"]\n    N7[\"QuoteSummaryPanel.tsx\"]\n    N8[\"page.tsx\"]\n    N9[\"banner.test.ts\"]\n    N10[\"banner.ts\"]\n    N11[\"equipment-match.server.ts\"]\n    N12[\"equipment-match.test.ts\"]\n    N13[\"equipment-match.ts\"]\n    N14[\"2026-06-09-applications-quote-frame-design.md\"]\n    N15[\"devnote_data.json\"]\n    N16[\"devnote_data_0609.json\"]\n    N17[\"AssignControl.tsx\"]\n    N18[\"RegisterCustomerButton.tsx\"]\n    N19[\"StatusControl.tsx\"]\n    N20[\"ApplicantInfo.tsx\"]\n    N21[\"InstallSurvey.tsx\"]\n    N22[\"OptionLists.tsx\"]\n    N23[\"Placeholders.tsx\"]\n    N24[\"QuoteHero.tsx\"]\n    N25[\"QuoteSummaryPanel.tsx\"]\n    N26[\"SelectedEquipment.tsx\"]\n    N27[\"SitePhotos.tsx\"]\n    N28[\"VersionHistory.tsx\"]\n    N29[\"page.tsx\"]\n    N30[\"page.tsx\"]\n    N31[\"banner.ts\"]\n    N32[\"equipment-match.server.ts\"]\n    N33[\"equipment-match.ts\"]\n    N29 --> N19\n    N29 --> N17\n    N29 --> N18\n    N29 --> N24\n    N29 --> N28\n    N29 --> N20\n    N29 --> N21\n    N29 --> N27\n    N29 --> N26\n    N29 --> N22\n    N29 --> N25\n    N29 --> N23\n    N32 --> N33\n    N9 --> N31\n    N12 --> N33\n    N11 --> N33\n    N8 --> N19\n    N8 --> N17\n    N8 --> N18\n    N8 --> N24\n    N8 --> N28\n    N8 --> N20\n    N8 --> N21\n    N8 --> N27\n    N8 --> N26\n    N8 --> N22\n    N8 --> N25\n    N8 --> N23\n    style N20 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N2 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N5 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N8 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N14 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N13 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N28 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N3 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N10 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N22 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N26 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N6 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N25 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N12 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N29 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N0 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N33 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N16 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N15 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N31 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N30 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N9 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N24 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N7 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N11 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N1 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N4 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N32 fill:#dbeafe,stroke:#2563eb,stroke-width:2px"
+    },
+    {
       "tldr": "E5 후속 + 인프라/QA. 워커 Railway 배포 설정(tsx 런타임), 의뢰 상태 5단계(견적발송 추가), 라이브 도그푸딩으로 발견한 함정 2건 해결. PR #65~#67.",
       "tags": [
         "E5",
