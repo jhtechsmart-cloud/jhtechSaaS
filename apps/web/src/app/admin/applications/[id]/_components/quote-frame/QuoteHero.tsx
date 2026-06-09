@@ -6,7 +6,7 @@ const won = (s: string) => `₩${Number(s).toLocaleString("ko-KR")}`;
 
 // 네이비 히어로 — 견적 식별·상태 + 4스탯. 견적 없으면 quote=null로 4스탯 숨김.
 export function QuoteHero({
-  company, status, seqNo, version, quoteNo, assigneeName, validity, total, issuedAtLabel,
+  company, status, seqNo, version, quoteNo, assigneeName, validity, total, issuedAtLabel, unregistered,
 }: {
   company: string;
   status: ApplicationStatus;
@@ -17,6 +17,8 @@ export function QuoteHero({
   validity: QuoteValidity | null;
   total: string | null;
   issuedAtLabel: string | null;
+  // 미등록 고객(company_id=null) 여부 — amber 배지로 표시
+  unregistered?: boolean;
 }) {
   return (
     <div className="-mx-6 -mt-6 mb-6 bg-[var(--color-accent-deep,#0B1F3A)] px-6 py-5 text-white">
@@ -26,6 +28,11 @@ export function QuoteHero({
       <div className="mt-1 flex flex-wrap items-center gap-3">
         <h1 className="text-h1 font-semibold">{company}</h1>
         <ApplicationStatusBadge status={status} />
+        {unregistered && (
+          <span className="shrink-0 rounded-sm bg-amber-400/20 px-1.5 py-0.5 text-micro font-medium text-amber-300">
+            미등록 고객
+          </span>
+        )}
         {seqNo && <span className="font-mono tabular-nums text-small text-white/70">{seqNo}</span>}
         {issuedAtLabel && <span className="text-small text-white/60">· {issuedAtLabel}</span>}
       </div>

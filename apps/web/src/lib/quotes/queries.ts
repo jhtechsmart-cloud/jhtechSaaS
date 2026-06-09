@@ -29,6 +29,7 @@ export type QuoteDetail = {
   total: string;
   created_at: string;
   issued_at: string | null;
+  pdf_url: string | null;
 };
 
 export async function getQuote(id: string): Promise<QuoteDetail | null> {
@@ -36,7 +37,7 @@ export async function getQuote(id: string): Promise<QuoteDetail | null> {
   const { data, error } = await supabase
     .from("quotes")
     .select(
-      "id, application_id, quote_no, version, status, items, options, supply_price, tax_price, total, created_at, issued_at",
+      "id, application_id, quote_no, version, status, items, options, supply_price, tax_price, total, created_at, issued_at, pdf_url",
     )
     .eq("id", id)
     .single();
