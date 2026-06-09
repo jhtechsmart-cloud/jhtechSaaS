@@ -22,6 +22,9 @@ export function StatusControl({
     return <p className="text-small text-muted">담당자를 먼저 배정해주세요.</p>;
   }
 
+  // 값이 바뀌어야(dirty) 변경 버튼을 스틸블루로 강조 — 평소엔 고스트(연한 테두리).
+  const dirty = status !== current;
+
   function apply() {
     setError(null);
     startTransition(async () => {
@@ -44,8 +47,12 @@ export function StatusControl({
       </select>
       <button
         onClick={apply}
-        disabled={pending || status === current}
-        className="rounded-md bg-accent px-4 py-2 text-body font-medium text-white disabled:opacity-60"
+        disabled={pending || !dirty}
+        className={`rounded-md px-3 py-2 text-body font-medium ${
+          dirty
+            ? "bg-accent text-white"
+            : "border border-border bg-transparent text-muted"
+        }`}
       >
         {pending ? "변경 중…" : "상태 변경"}
       </button>

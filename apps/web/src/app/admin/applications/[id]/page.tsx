@@ -13,7 +13,9 @@ import { StatusControl } from "./_components/StatusControl";
 import { AssignControl } from "./_components/AssignControl";
 import { RegisterCustomerButton } from "./_components/RegisterCustomerButton";
 import { QuotesList } from "./_components/QuotesList";
+import { QuoteBanner } from "./_components/QuoteBanner";
 import { listQuotesForApplication } from "@/lib/quotes/queries";
+import { pickRepresentativeQuote, computeQuoteValidity } from "@/lib/quotes/banner";
 
 const PHOTO_SLOT_LABELS: Record<PhotoSlot, string> = {
   ext_entrance: "외부 진입로",
@@ -82,21 +84,70 @@ export default async function ApplicationDetailPage({
     .map((h) => (SURVEY_LABELS.handling as Record<string, string>)[h] ?? h)
     .join(", ");
 
+  // 배너 — 대표 견적(최신 발행본 우선) 합계 + 유효기간(발행일+30일, 표시전용).
+  const rep = pickRepresentativeQuote(quotes);
+  const validity = rep ? computeQuoteValidity(rep.issued_at, new Date()) : null;
+
+  // 상단바 담당자/상태 노드 — 권한별로 컨트롤 또는 읽기전용 표시.
+  const assigneeName = (r.profiles as { name?: string } | null)?.name ?? null;
+  const assigneeNode = canAssign ? (
+    // key=서버값 → 배정/상태 auto-bump 후 router.refresh 시 remount해 stale 로컬 state 방지.
+    <AssignControl
+      key={(r.assignee_id as string | null) ?? "none"}
+      id={id}
+      currentAssigneeId={r.assignee_id as string | null}
+      staff={staff}
+    />
+  ) : r.assignee_id == null && canClaim ? (
+    // 영업담당 — 미배정 건을 본인으로 가져오기(재배정 권한 없음).
+    <ClaimButton id={id} action={claimApplication} />
+  ) : (
+    <span className="text-small text-text">{assigneeName ?? "미배정"}</span>
+  );
+  // 배지(색 스파인·권위 상태 readout) + 변경 컨트롤(권한 시). 배지는 항상 노출.
+  const statusNode = (
+    <div className="flex items-center gap-2">
+      <ApplicationStatusBadge status={status} />
+      {canStatus && (
+        <StatusControl
+          key={`${status}-${(r.assignee_id as string | null) ?? "none"}`}
+          id={id}
+          current={status}
+          hasAssignee={r.assignee_id != null}
+        />
+      )}
+    </div>
+  );
+
   return (
     <div className="flex max-w-3xl flex-col gap-6">
-      <div className="flex items-center justify-end">
-        <ApplicationStatusBadge status={status} />
+      {/* 상단바 — 스크롤해도 위에 고정. 좌 식별(접수번호·회사명) / 우 처리(담당자·상태). */}
+      <div className="sticky top-0 z-10 -mx-6 -mt-6 flex flex-wrap items-start justify-between gap-x-6 gap-y-3 border-b border-border bg-surface/95 px-6 py-3 backdrop-blur">
+        <div className="min-w-0">
+          <div className="font-mono tabular-nums text-small text-muted">{str(r.seq_no)}</div>
+          <div className="flex items-center gap-2">
+            <span className="truncate text-h2 font-semibold text-text">{str(r.company)}</span>
+            {!companyId && (
+              <span className="shrink-0 rounded-sm bg-amber-100 px-1.5 py-0.5 text-micro font-medium text-amber-700">
+                미등록 고객
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+          <div className="flex items-center gap-2">
+            <span className="text-small text-muted">담당자</span>
+            {assigneeNode}
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-small text-muted">상태</span>
+            {statusNode}
+          </div>
+        </div>
       </div>
 
-      <div>
-        <div className="text-small text-muted">접수번호</div>
-        <div className="font-mono tabular-nums text-h1 text-text">{str(r.seq_no)}</div>
-        {!companyId && (
-          <span className="mt-1 inline-block rounded-sm bg-amber-100 px-2 py-0.5 text-small font-medium text-amber-700">
-            미등록 고객
-          </span>
-        )}
-      </div>
+      {/* 배너 — 대표 견적 합계 + 유효기간. */}
+      <QuoteBanner total={rep?.total ?? null} validity={validity} isIssued={rep?.status === "issued"} />
 
       <Section title="고객 정보">
         {companyId && (
@@ -163,41 +214,6 @@ export default async function ApplicationDetailPage({
           </Link>
         )}
         <QuotesList quotes={quotes} />
-      </Section>
-
-      <Section title="처리">
-        <div className="flex flex-col gap-4">
-          <div>
-            <div className="mb-1 text-small text-muted">담당자</div>
-            {canAssign ? (
-              // key=서버값 → 배정/상태 auto-bump 후 router.refresh 시 remount해 stale 로컬 state 방지.
-              <AssignControl
-                key={(r.assignee_id as string | null) ?? "none"}
-                id={id}
-                currentAssigneeId={r.assignee_id as string | null}
-                staff={staff}
-              />
-            ) : r.assignee_id == null && canClaim ? (
-              // 영업담당 — 미배정 건을 본인으로 가져오기(재배정 권한 없음).
-              <ClaimButton id={id} action={claimApplication} />
-            ) : (
-              <p className="text-small text-muted">{(r.profiles as { name?: string } | null)?.name ?? "미배정"}</p>
-            )}
-          </div>
-          <div>
-            <div className="mb-1 text-small text-muted">상태</div>
-            {canStatus ? (
-              <StatusControl
-                key={`${status}-${(r.assignee_id as string | null) ?? "none"}`}
-                id={id}
-                current={status}
-                hasAssignee={r.assignee_id != null}
-              />
-            ) : (
-              <p className="text-small text-muted">상태 변경 권한이 없습니다.</p>
-            )}
-          </div>
-        </div>
       </Section>
     </div>
   );

@@ -87,7 +87,8 @@ test.describe.serial("E5 견적 작성 폼 E2E", () => {
     // 6) 견적 목록에 노출(발행 배지 + 채번 + 금액) + 의뢰 상태 = 견적발송
     await expect(page.getByText(/^JHQ-\d{8}-\d{3,}-V1$/)).toBeVisible();
     await expect(page.getByText("발행", { exact: true })).toBeVisible();
-    await expect(page.getByText("60,500,000원")).toBeVisible();
+    // 슬라이스2 배너가 대표 견적 합계를 같은 텍스트로 표시 → 목록 행과 2매치이므로 first().
+    await expect(page.getByText("60,500,000원").first()).toBeVisible();
     await expect(page.getByTestId("app-status")).toHaveText("견적발송"); // 발행 → 의뢰 상태 자동 전이
   });
 });
@@ -131,7 +132,8 @@ test.describe.serial("E5 수기 견적 E2E", () => {
     await expect(page.getByText(MANUAL_CO).first()).toBeVisible();
     await expect(page.getByText(/^JHQ-\d{8}-\d{3,}-V1$/)).toBeVisible();
     await expect(page.getByText("발행", { exact: true })).toBeVisible();
-    await expect(page.getByText("33,000,000원")).toBeVisible();
+    // 슬라이스2 배너가 대표 견적 합계를 같은 텍스트로 표시 → 목록 행과 2매치이므로 first().
+    await expect(page.getByText("33,000,000원").first()).toBeVisible();
     await expect(page.getByTestId("app-status")).toHaveText("견적발송"); // 수기 발행 → 견적발송
   });
 });
@@ -185,6 +187,7 @@ test.describe.serial("E5 견적 상세+재발행 E2E", () => {
     // 같은 번호의 V2 + V1 둘 다(번호 유지·버전 증가)
     await expect(page.getByText(/^JHQ-\d{8}-\d{3,}-V2$/)).toBeVisible();
     await expect(page.getByText(/^JHQ-\d{8}-\d{3,}-V1$/)).toBeVisible();
-    await expect(page.getByText("110,000,000원")).toBeVisible(); // V2 합계(공급 100M+세 10M)
+    // 슬라이스2 배너가 대표 견적(V2 발행) 합계를 같은 텍스트로 표시 → 목록 행과 2매치이므로 first().
+    await expect(page.getByText("110,000,000원").first()).toBeVisible(); // V2 합계(공급 100M+세 10M)
   });
 });

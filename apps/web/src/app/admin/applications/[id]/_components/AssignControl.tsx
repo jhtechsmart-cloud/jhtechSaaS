@@ -15,6 +15,9 @@ export function AssignControl({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
+  // 값이 바뀌어야(dirty) 저장 버튼을 스틸블루로 강조 — 평소엔 고스트(연한 테두리).
+  const dirty = value !== (currentAssigneeId ?? "");
+
   function apply() {
     setError(null);
     startTransition(async () => {
@@ -38,8 +41,12 @@ export function AssignControl({
       </select>
       <button
         onClick={apply}
-        disabled={pending || value === (currentAssigneeId ?? "")}
-        className="rounded-md bg-accent px-4 py-2 text-body font-medium text-white disabled:opacity-60"
+        disabled={pending || !dirty}
+        className={`rounded-md px-3 py-2 text-body font-medium ${
+          dirty
+            ? "bg-accent text-white"
+            : "border border-border bg-transparent text-muted"
+        }`}
       >
         {pending ? "저장 중…" : "담당 저장"}
       </button>

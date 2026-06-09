@@ -11,6 +11,7 @@ export type QuoteListItem = {
   supply_price: string;
   tax_price: string;
   total: string;
+  issued_at: string | null;
   created_at: string;
 };
 
@@ -50,7 +51,7 @@ export async function listQuotesForApplication(applicationId: string): Promise<Q
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("quotes")
-    .select("id, quote_no, version, status, supply_price, tax_price, total, created_at")
+    .select("id, quote_no, version, status, supply_price, tax_price, total, issued_at, created_at")
     .eq("application_id", applicationId)
     .order("version", { ascending: false });
   if (error) {
