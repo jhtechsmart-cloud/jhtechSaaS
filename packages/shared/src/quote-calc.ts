@@ -7,6 +7,9 @@ export type QuoteLine = {
   name: string; // 표시명
   unitPrice: number; // 정수 원, 음수 허용(할인/제외)
   quantity: number; // 정수 ≥ 1
+  // 옵션 줄 구분 — 'included'(기본 공급가 포함, 단가 0) / 'extra'(추가 과금). 장비 줄은 미지정.
+  // 견적에 스냅샷 저장(발행본 불변): 포함옵션이 카탈로그 변경에 흔들리지 않도록.
+  kind?: "included" | "extra";
 };
 
 export type QuoteInput = {
@@ -28,6 +31,8 @@ const QuoteLineSchema = z.object({
   name: z.string().trim().min(1, "이름을 입력하세요"),
   unitPrice: z.number().int("단가는 정수 원만 가능합니다"), // 음수 허용(할인/제외)
   quantity: z.number().int("수량은 정수만 가능합니다").min(1, "수량은 1 이상이어야 합니다"),
+  // 옵션 줄 구분(선택). z.object는 미정의 키를 strip하므로 보존하려면 스키마에 명시해야 한다.
+  kind: z.enum(["included", "extra"]).optional(),
 });
 
 export const QuoteInputSchema = z.object({
