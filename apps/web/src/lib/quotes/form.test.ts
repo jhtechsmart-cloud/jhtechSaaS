@@ -1,5 +1,5 @@
 // 견적 작성 폼 순수 로직 — non-server, 서버 모킹 불필요. 합계는 슬라이스1 calculateQuote와 일치해야 한다.
-import { describe, expect, it, test } from "vitest";
+import { describe, expect, test } from "vitest";
 import { calculateQuote } from "@jhtechsaas/shared";
 import {
   availableIncludedNames,
@@ -166,7 +166,7 @@ describe("formPreviewTotals", () => {
     },
   ];
 
-  it("장비 + 추가옵션 합계(공급가·세액10%·합계) 계산", () => {
+  test("장비 + 추가옵션 합계(공급가·세액10%·합계) 계산", () => {
     const items: ItemRow[] = [{ equipmentId: "eq1", name: "UV3300S", unitPrice: 50_000_000, quantity: 1 }];
     const extra: QuoteRow[] = [{ name: "프린트헤드", unitPrice: 2_500_000, quantity: 2 }];
     // 포함옵션(단가 0)은 합계에 영향 없음 → 공급가 = 50,000,000 + 5,000,000 = 55,000,000
@@ -176,14 +176,15 @@ describe("formPreviewTotals", () => {
     expect(r.total).toBe(60_500_000);
   });
 
-  it("포함옵션 해제는 합계에 영향 없음(단가 0)", () => {
+  test("포함옵션 해제는 합계에 영향 없음(단가 0)", () => {
     const items: ItemRow[] = [{ equipmentId: "eq1", name: "UV3300S", unitPrice: 50_000_000, quantity: 1 }];
     const all = formPreviewTotals(items, [], [], catalog);
     const someDeselected = formPreviewTotals(items, [], ["원격지원"], catalog);
+    expect(someDeselected.supplyPrice).toBe(all.supplyPrice);
     expect(someDeselected.total).toBe(all.total);
   });
 
-  it("빈/NaN 입력은 0으로 처리(공급가 0)", () => {
+  test("빈/NaN 입력은 0으로 처리(공급가 0)", () => {
     const items: ItemRow[] = [{ equipmentId: "", name: "", unitPrice: Number.NaN, quantity: Number.NaN }];
     const r = formPreviewTotals(items, [], [], catalog);
     expect(r.supplyPrice).toBe(0);
