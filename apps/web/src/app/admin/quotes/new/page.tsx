@@ -26,7 +26,7 @@ export default async function NewManualQuotePage() {
   }));
 
   return (
-    <section className="flex max-w-3xl flex-col gap-4">
+    <section className="flex flex-col gap-4">
       <Link href="/admin/applications" className="text-small text-muted hover:text-text">
         ← 견적 목록
       </Link>

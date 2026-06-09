@@ -3,6 +3,7 @@ import { useState, useTransition } from "react";
 import {
   availableIncludedNames,
   buildQuoteOptions,
+  formPreviewTotals,
   itemRowsToLines,
   rowsToQuoteInput,
   validateQuoteForm,
@@ -12,6 +13,7 @@ import {
 } from "@/lib/quotes/form";
 import { createManualQuoteAction } from "@/lib/quotes/actions";
 import { QuoteLinesEditor } from "@/app/admin/_components/QuoteLinesEditor";
+import { QuoteTotalsAside } from "@/app/admin/_components/QuoteTotalsAside";
 
 // 수기 견적 폼 — 회사 필드 + 카탈로그 라인 에디터. 저장 시 create_manual_quote(app+quote 원자).
 export function ManualQuoteForm({ catalog }: { catalog: QuoteCatalogItem[] }) {
@@ -24,6 +26,9 @@ export function ManualQuoteForm({ catalog }: { catalog: QuoteCatalogItem[] }) {
   const [options, setOptions] = useState<QuoteRow[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  // 실시간 합계 미리보기(폼 상태 기반, 표시 전용 — 저장 권위는 서버 RPC).
+  const totals = formPreviewTotals(items, options, includedDeselected, catalog);
 
   function submit(status: "draft" | "issued") {
     if (company.trim() === "") {
@@ -56,48 +61,37 @@ export function ManualQuoteForm({ catalog }: { catalog: QuoteCatalogItem[] }) {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <section className="rounded-md border border-border bg-surface p-4">
-        <h2 className="mb-2 text-h2 font-medium text-text">고객</h2>
-        <div className="flex flex-col gap-2">
-          <Field label="회사명" value={company} onChange={setCompany} disabled={pending} required />
-          <Field label="대표자" value={ceo} onChange={setCeo} disabled={pending} />
-          <Field label="연락처" value={phone} onChange={setPhone} disabled={pending} />
-          <Field label="이메일" value={email} onChange={setEmail} disabled={pending} />
-        </div>
-      </section>
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
+      <div className="flex flex-col gap-6">
+        <section className="rounded-md border border-border bg-surface p-4">
+          <h2 className="mb-2 text-h2 font-medium text-text">고객</h2>
+          <div className="flex flex-col gap-2">
+            <Field label="회사명" value={company} onChange={setCompany} disabled={pending} required />
+            <Field label="대표자" value={ceo} onChange={setCeo} disabled={pending} />
+            <Field label="연락처" value={phone} onChange={setPhone} disabled={pending} />
+            <Field label="이메일" value={email} onChange={setEmail} disabled={pending} />
+          </div>
+        </section>
 
-      <QuoteLinesEditor
-        catalog={catalog}
-        items={items}
-        setItems={setItems}
-        includedDeselected={includedDeselected}
-        setIncludedDeselected={setIncludedDeselected}
-        options={options}
-        setOptions={setOptions}
-        disabled={pending}
-      />
-
-      {error && <p className="text-small text-danger">{error}</p>}
-
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={() => submit("draft")}
+        <QuoteLinesEditor
+          catalog={catalog}
+          items={items}
+          setItems={setItems}
+          includedDeselected={includedDeselected}
+          setIncludedDeselected={setIncludedDeselected}
+          options={options}
+          setOptions={setOptions}
           disabled={pending}
-          className="rounded-md bg-surface-2 px-4 py-2 text-small font-medium text-text disabled:opacity-50"
-        >
-          임시저장
-        </button>
-        <button
-          type="button"
-          onClick={() => submit("issued")}
-          disabled={pending}
-          className="rounded-md bg-accent px-4 py-2 text-small font-medium text-white disabled:opacity-50"
-        >
-          발행하기
-        </button>
+        />
       </div>
+
+      <QuoteTotalsAside totals={totals}>
+        {error && <p className="text-small text-danger">{error}</p>}
+        <button type="button" onClick={() => submit("draft")} disabled={pending}
+          className="rounded-md bg-surface-2 px-4 py-2 text-small font-medium text-text disabled:opacity-50">임시저장</button>
+        <button type="button" onClick={() => submit("issued")} disabled={pending}
+          className="rounded-md bg-accent px-4 py-2 text-small font-medium text-white disabled:opacity-50">발행하기</button>
+      </QuoteTotalsAside>
     </div>
   );
 }
