@@ -85,9 +85,9 @@ test.describe.serial("E5 견적 작성 폼 E2E", () => {
     await page.waitForURL(new RegExp(`/admin/applications/${appId}$`), { timeout: 20_000 });
 
     // 6) 견적 목록에 노출(발행 배지 + 채번 + 금액) + 의뢰 상태 = 견적발송
-    await expect(page.getByText(/^JHQ-\d{8}-\d{3,}-V1$/)).toBeVisible();
-    await expect(page.getByText("발행", { exact: true })).toBeVisible();
-    // 슬라이스2 배너가 대표 견적 합계를 같은 텍스트로 표시 → 목록 행과 2매치이므로 first().
+    // 견적번호·발행 배지·합계가 히어로/버전이력/요약패널 여러 곳에 노출 → first().
+    await expect(page.getByText(/^JHQ-\d{8}-\d{3,}-V1$/).first()).toBeVisible();
+    await expect(page.getByText("발행", { exact: true }).first()).toBeVisible();
     await expect(page.getByText("60,500,000원").first()).toBeVisible();
     await expect(page.getByTestId("app-status")).toHaveText("견적발송"); // 발행 → 의뢰 상태 자동 전이
   });
@@ -130,9 +130,9 @@ test.describe.serial("E5 수기 견적 E2E", () => {
 
     // 4) 새 의뢰 상세 = 회사명 + 견적(발행) 노출
     await expect(page.getByText(MANUAL_CO).first()).toBeVisible();
-    await expect(page.getByText(/^JHQ-\d{8}-\d{3,}-V1$/)).toBeVisible();
-    await expect(page.getByText("발행", { exact: true })).toBeVisible();
-    // 슬라이스2 배너가 대표 견적 합계를 같은 텍스트로 표시 → 목록 행과 2매치이므로 first().
+    // 견적번호·발행 배지·합계가 히어로/버전이력/요약패널 여러 곳에 노출 → first().
+    await expect(page.getByText(/^JHQ-\d{8}-\d{3,}-V1$/).first()).toBeVisible();
+    await expect(page.getByText("발행", { exact: true }).first()).toBeVisible();
     await expect(page.getByText("33,000,000원").first()).toBeVisible();
     await expect(page.getByTestId("app-status")).toHaveText("견적발송"); // 수기 발행 → 견적발송
   });
@@ -168,14 +168,12 @@ test.describe.serial("E5 견적 상세+재발행 E2E", () => {
     await page.getByRole("button", { name: "발행하기" }).click();
     await page.waitForURL(new RegExp(`/admin/applications/${reAppId}$`), { timeout: 20_000 });
 
-    // 견적 목록 → V1 상세
-    await page.getByText(/^JHQ-\d{8}-\d{3,}-V1$/).click();
-    await page.waitForURL(/\/admin\/quotes\/[0-9a-f-]{36}$/, { timeout: 20_000 });
-    await expect(page.getByText("UV3300S")).toBeVisible(); // 내역
-    await expect(page.getByText("55,000,000원")).toBeVisible(); // 합계(공급 50M+세 5M)
+    // V1 내역이 의뢰 상세 프레임에 인라인 노출(선택장비·합계). 별도 견적 페이지 없음(?v= 통합).
+    await expect(page.getByText("UV3300S").first()).toBeVisible(); // 선택 장비
+    await expect(page.getByText("55,000,000원").first()).toBeVisible(); // 합계(공급 50M+세 5M)
 
-    // 재발행 → 프리필 확인
-    await page.getByRole("link", { name: "재발행" }).click();
+    // 재발행 = 요약패널 [수정] 링크 → quote/new?from= 프리필
+    await page.getByRole("link", { name: "수정" }).first().click();
     await page.waitForURL(/\/quote\/new\?from=/, { timeout: 20_000 });
     await expect(page.getByLabel("장비 이름")).toHaveValue("UV3300S");
 
@@ -184,10 +182,9 @@ test.describe.serial("E5 견적 상세+재발행 E2E", () => {
     await page.getByRole("button", { name: "발행하기" }).click();
     await page.waitForURL(new RegExp(`/admin/applications/${reAppId}$`), { timeout: 20_000 });
 
-    // 같은 번호의 V2 + V1 둘 다(번호 유지·버전 증가)
-    await expect(page.getByText(/^JHQ-\d{8}-\d{3,}-V2$/)).toBeVisible();
-    await expect(page.getByText(/^JHQ-\d{8}-\d{3,}-V1$/)).toBeVisible();
-    // 슬라이스2 배너가 대표 견적(V2 발행) 합계를 같은 텍스트로 표시 → 목록 행과 2매치이므로 first().
+    // 버전 이력 표에 V2 + V1 둘 다(번호 유지·버전 증가). 채번은 여러 곳 노출 → first().
+    await expect(page.getByText(/^JHQ-\d{8}-\d{3,}-V2$/).first()).toBeVisible();
+    await expect(page.getByText(/^JHQ-\d{8}-\d{3,}-V1$/).first()).toBeVisible();
     await expect(page.getByText("110,000,000원").first()).toBeVisible(); // V2 합계(공급 100M+세 10M)
   });
 });
