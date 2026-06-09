@@ -82,6 +82,28 @@ describe("create_quote — 금액 SQL 계산 + 채번", () => {
     });
   });
 
+  test("포함옵션(kind=included, 단가0) 저장·보존 + 금액 영향 없음", async () => {
+    await inRollbackTx(c, async () => {
+      await seed();
+      await asUser(c, UID.sales1);
+      const q = await createQuote(
+        [ITEM(50_000_000, 1, "UV3300S")],
+        [
+          { name: "자동 급지", unitPrice: 0, quantity: 1, kind: "included" },
+          { name: "연장 보증", unitPrice: 1_500_000, quantity: 1, kind: "extra" },
+        ],
+        "issued",
+      );
+      // 포함옵션(0원)은 금액 무영향: 50M + 1.5M = 51.5M, 세 5.15M, 합 56.65M
+      expect(Number(q.total)).toBe(56_650_000);
+      // kind가 저장된 options jsonb에 그대로 보존(스냅샷)
+      expect(q.options).toEqual([
+        { name: "자동 급지", unitPrice: 0, quantity: 1, kind: "included" },
+        { name: "연장 보증", unitPrice: 1_500_000, quantity: 1, kind: "extra" },
+      ]);
+    });
+  });
+
   test("음수 옵션(할인/제외) 차감", async () => {
     await inRollbackTx(c, async () => {
       await seed();

@@ -70,11 +70,11 @@ test.describe.serial("E5 견적 작성 폼 E2E", () => {
     await page.getByLabel("장비 단가").fill("50000000");
     await page.getByLabel("장비 수량").fill("1");
 
-    // 3) 옵션 추가 + 입력
-    await page.getByRole("button", { name: "+ 옵션 추가" }).click();
-    await page.getByLabel("옵션 이름").fill("프린트헤드");
-    await page.getByLabel("옵션 단가").fill("2500000");
-    await page.getByLabel("옵션 수량").fill("2");
+    // 3) 추가 옵션 입력(카탈로그 미선택 = 직접입력 경로, 포함옵션 섹션 없음)
+    await page.getByRole("button", { name: "+ 추가 옵션" }).click();
+    await page.getByLabel("추가 옵션 이름").fill("프린트헤드");
+    await page.getByLabel("추가 옵션 단가").fill("2500000");
+    await page.getByLabel("추가 옵션 수량").fill("2");
 
     // 4) 실시간 합계: 공급가 55,000,000 · 합계 60,500,000
     await expect(page.getByText("55,000,000원")).toBeVisible();
@@ -175,7 +175,8 @@ test.describe.serial("E5 견적 상세+재발행 E2E", () => {
     // 재발행 = 요약패널 [수정] 링크 → quote/new?from= 프리필
     await page.getByRole("link", { name: "수정" }).first().click();
     await page.waitForURL(/\/quote\/new\?from=/, { timeout: 20_000 });
-    await expect(page.getByLabel("장비 이름")).toHaveValue("UV3300S");
+    // 프리필 확인 — 단가는 직접입력/카탈로그선택 모드 무관하게 채워짐(장비명은 모드별로 input/select라 단가로 검증).
+    await expect(page.getByLabel("장비 단가")).toHaveValue("50000000");
 
     // 수정(수량 2) 후 발행 → V2
     await page.getByLabel("장비 수량").fill("2");

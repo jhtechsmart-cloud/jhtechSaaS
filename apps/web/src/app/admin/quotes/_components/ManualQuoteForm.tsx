@@ -1,16 +1,26 @@
 "use client";
 import { useState, useTransition } from "react";
-import { rowsToQuoteInput, validateQuoteForm, type QuoteRow } from "@/lib/quotes/form";
+import {
+  availableIncludedNames,
+  buildQuoteOptions,
+  itemRowsToLines,
+  rowsToQuoteInput,
+  validateQuoteForm,
+  type ItemRow,
+  type QuoteCatalogItem,
+  type QuoteRow,
+} from "@/lib/quotes/form";
 import { createManualQuoteAction } from "@/lib/quotes/actions";
 import { QuoteLinesEditor } from "@/app/admin/_components/QuoteLinesEditor";
 
-// 수기 견적 폼 — 회사 필드 + 공유 라인 에디터. 저장 시 create_manual_quote(app+quote 원자).
-export function ManualQuoteForm() {
+// 수기 견적 폼 — 회사 필드 + 카탈로그 라인 에디터. 저장 시 create_manual_quote(app+quote 원자).
+export function ManualQuoteForm({ catalog }: { catalog: QuoteCatalogItem[] }) {
   const [company, setCompany] = useState("");
   const [ceo, setCeo] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
-  const [items, setItems] = useState<QuoteRow[]>([{ name: "", unitPrice: 0, quantity: 1 }]);
+  const [items, setItems] = useState<ItemRow[]>([{ equipmentId: "", name: "", unitPrice: 0, quantity: 1 }]);
+  const [includedDeselected, setIncludedDeselected] = useState<string[]>([]);
   const [options, setOptions] = useState<QuoteRow[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -20,13 +30,17 @@ export function ManualQuoteForm() {
       setError("회사명을 입력하세요.");
       return;
     }
-    const msg = validateQuoteForm(items, options);
+    const checkedIncluded = availableIncludedNames(items, catalog).filter((n) => !includedDeselected.includes(n));
+    const { items: pItems, options: pOptions } = rowsToQuoteInput(
+      itemRowsToLines(items),
+      buildQuoteOptions(checkedIncluded, options),
+    );
+    const msg = validateQuoteForm(pItems, pOptions);
     if (msg) {
       setError(msg);
       return;
     }
     setError(null);
-    const { items: pItems, options: pOptions } = rowsToQuoteInput(items, options);
     startTransition(async () => {
       const res = await createManualQuoteAction({
         company,
@@ -53,7 +67,16 @@ export function ManualQuoteForm() {
         </div>
       </section>
 
-      <QuoteLinesEditor items={items} setItems={setItems} options={options} setOptions={setOptions} disabled={pending} />
+      <QuoteLinesEditor
+        catalog={catalog}
+        items={items}
+        setItems={setItems}
+        includedDeselected={includedDeselected}
+        setIncludedDeselected={setIncludedDeselected}
+        options={options}
+        setOptions={setOptions}
+        disabled={pending}
+      />
 
       {error && <p className="text-small text-danger">{error}</p>}
 

@@ -17,7 +17,7 @@ import { parseQuoteLines } from "@/lib/quotes/form";
 import { formatBizNo, formatPhone } from "@jhtechsaas/shared";
 import { matchEquipmentName } from "@/lib/quotes/equipment-match";
 import { listEquipmentForMatch } from "@/lib/quotes/equipment-match.server";
-import type { MatchableEquipmentWithOptions, EquipmentOption } from "@/lib/quotes/equipment-match.server";
+import type { MatchableEquipmentWithOptions } from "@/lib/quotes/equipment-match.server";
 import { QuoteHero } from "./_components/quote-frame/QuoteHero";
 import { SectionHeader } from "./_components/quote-frame/SectionHeader";
 import { VersionHistory } from "./_components/quote-frame/VersionHistory";
@@ -96,27 +96,33 @@ export default async function ApplicationDetailPage({
   // 미발행(견적 없음) = 신청의 "요청 장비"로 화면을 미리 채운다(표시전용, 견적 미생성).
   const isPreview = !quote;
 
-  type LineRow = { name: string; unitPrice: number; quantity: number };
+  type LineRow = { name: string; unitPrice: number; quantity: number; kind?: "included" | "extra" };
   let items: LineRow[];
-  let optionRows: LineRow[];
+  let optionRows: LineRow[]; // 추가 옵션(과금)
+  let includedNames: string[]; // 포함 옵션 이름
   let matched: (MatchableEquipmentWithOptions | null)[];
 
   if (quote) {
-    // 발행/임시 견적 — item 이름을 카탈로그 name/model과 정규화 대조
+    // 발행/임시 견적 — 저장된 줄을 그대로. 포함옵션은 quote.options(kind=included) 스냅샷에서.
     items = parseQuoteLines(quote.items);
-    optionRows = parseQuoteLines(quote.options);
+    const allOptions = parseQuoteLines(quote.options);
+    optionRows = allOptions.filter((o) => o.kind !== "included");
+    includedNames = allOptions.filter((o) => o.kind === "included").map((o) => o.name);
     matched = items.map((it) => matchEquipmentName(it.name, catalog));
   } else {
-    // 미발행 — 요청 장비(equipment_id 우선, 없으면 equipment_name 매칭) 1줄을 기본공급가로 미리보기
+    // 미발행 — 요청 장비(equipment_id 우선, 없으면 equipment_name 매칭) 1줄을 기본공급가로 미리보기.
+    // 포함옵션은 요청 장비의 카탈로그 포함옵션에서(아직 견적 미저장이라 라이브).
     const reqEq =
       (typeof r.equipment_id === "string" ? catalog.find((e) => e.id === r.equipment_id) : undefined) ??
       (fields.equipment_name ? matchEquipmentName(fields.equipment_name, catalog) : null) ??
       null;
     items = reqEq ? [{ name: reqEq.name, unitPrice: reqEq.basePrice, quantity: 1 }] : [];
     optionRows = [];
+    includedNames = reqEq ? reqEq.options.filter((o) => o.kind === "included").map((o) => o.name) : [];
     matched = reqEq ? [reqEq] : [];
   }
-  const includedOpts: EquipmentOption[] = matched.flatMap((e) => e?.options.filter((o) => o.kind === "included") ?? []);
+  // 중복 제거 후 표시용 {name}
+  const includedDisplay = Array.from(new Set(includedNames)).map((name) => ({ name }));
 
   // 소계 헬퍼 — 인라인 계산(DB·RPC 값과 별개, 화면 표시전용)
   const equipmentSubtotal = items.reduce((s, r) => s + r.unitPrice * r.quantity, 0);
@@ -274,7 +280,7 @@ export default async function ApplicationDetailPage({
             quoteNo={quote ? quote.quote_no : null}
             preview={isPreview}
           />
-          <OptionLists included={includedOpts} extra={optionRows} />
+          <OptionLists included={includedDisplay} extra={optionRows} />
           <SpecialNotesPlaceholder />
         </div>
 

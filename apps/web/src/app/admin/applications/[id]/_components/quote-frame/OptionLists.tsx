@@ -1,11 +1,10 @@
-import type { EquipmentOption } from "@/lib/quotes/equipment-match.server";
 import { SectionHeader } from "./SectionHeader";
 
 const won = (n: number) => `${n.toLocaleString("ko-KR")}원`;
 type ExtraRow = { name: string; unitPrice: number; quantity: number };
 
-// 포함 옵션(매칭 장비의 kind=included) + 추가 옵션(견적 options).
-export function OptionLists({ included, extra }: { included: EquipmentOption[]; extra: ExtraRow[] }) {
+// 포함 옵션(발행본=견적 스냅샷·미발행=요청장비 카탈로그) + 추가 옵션(과금).
+export function OptionLists({ included, extra }: { included: { name: string }[]; extra: ExtraRow[] }) {
   return (
     <>
       {included.length > 0 && (
