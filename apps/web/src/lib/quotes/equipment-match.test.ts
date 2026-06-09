@@ -3,7 +3,7 @@ import { describe, expect, test } from "vitest";
 import { matchEquipmentName, type MatchableEquipment } from "./equipment-match";
 
 const eq = (over: Partial<MatchableEquipment>): MatchableEquipment => ({
-  id: "id", name: "JP1113", model: "JP1113", category: "평판커팅기", photos: [], ...over,
+  id: "id", name: "JP1113", model: "JP1113", category: "평판커팅기", photos: [], basePrice: 0, ...over,
 });
 
 describe("matchEquipmentName — 이름/모델 정규화 대조", () => {

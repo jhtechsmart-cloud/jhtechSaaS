@@ -4,26 +4,17 @@ import { SectionHeader } from "./SectionHeader";
 
 type Field = { label: string; value: string | null; mono?: boolean };
 
-// 행별 열 수 → 정적 Tailwind 클래스(JIT가 소스에서 그대로 인식하도록 리터럴 유지).
-const ROW_COLS: Record<number, string> = {
-  1: "md:grid-cols-1",
-  2: "md:grid-cols-2",
-  3: "md:grid-cols-3",
-};
-
-// 신청기업 정보 — 기본정보(3열) / 옵션정보(가변 열) / 요청장비 를 구분해 표시.
-// 담당자·업태·장부명·전화1/2·팩스·실제주소 등 미수집 항목은 값 없으면 "-"(엑셀 이관 시 채워질 자리).
+// 신청기업 정보 — 신청이 실제 가진 항목(기본정보 3열) + 요청장비.
+// 담당자·업태·업종·장부명·전화1/2·팩스·실제주소는 거래처 장부(고객 마스터) 전용 → 견적 화면 미표시.
 export function ApplicantInfo({
   companyId,
   basic,
-  optionalRows,
   equipmentName,
   requirements,
   headerAction,
 }: {
   companyId: string | null;
-  basic: Field[]; // 9개 — 3열 그리드
-  optionalRows: Field[][]; // 행별 가변 열(장부명 1 / 전화 3 / 실제주소 2)
+  basic: Field[]; // 신청이 가진 기본 항목 — 3열 그리드
   equipmentName: string | null;
   requirements: string | null;
   headerAction?: ReactNode; // 고객등록 버튼 등 — 제목 라인 오른쪽
@@ -58,22 +49,6 @@ export function ApplicantInfo({
           <FieldCell key={f.label} f={f} />
         ))}
       </div>
-
-      {/* 옵션정보 — 메인과 구분(상단 라인 + 소제목), 행별 열 수 가변 */}
-      {optionalRows.length > 0 && (
-        <div className="mt-4 border-t border-border pt-3">
-          <div className="mb-2 text-micro font-medium uppercase tracking-wide text-muted">추가 정보</div>
-          <div className="flex flex-col gap-3">
-            {optionalRows.map((row, i) => (
-              <div key={i} className={`grid grid-cols-1 gap-x-6 gap-y-3 ${ROW_COLS[row.length] ?? "md:grid-cols-3"}`}>
-                {row.map((f) => (
-                  <FieldCell key={f.label} f={f} />
-                ))}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* 요청 장비 — 별도 구분 블록(라벨/값 동일 크기 통일) */}
       <div className="mt-4 border-t border-border pt-3">

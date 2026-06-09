@@ -10,7 +10,7 @@ export async function listEquipmentForMatch(): Promise<MatchableEquipmentWithOpt
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("equipment")
-    .select("id, name, model, photos, equipment_category:category_id(name), equipment_option(kind, name, price)")
+    .select("id, name, model, base_price, photos, equipment_category:category_id(name), equipment_option(kind, name, price)")
     .eq("status", "active");
   if (error) {
     console.error("[equipment-match] 장비 조회 실패", error);
@@ -25,6 +25,7 @@ export async function listEquipmentForMatch(): Promise<MatchableEquipmentWithOpt
       model: (row.model as string | null) ?? null,
       category: cat?.name ?? null,
       photos: (row.photos as string[] | null) ?? [],
+      basePrice: Number(row.base_price ?? 0),
       options: opts.map((o) => ({
         kind: o.kind as "included" | "extra",
         name: o.name as string,

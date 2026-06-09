@@ -14,11 +14,12 @@ import { RegisterCustomerButton } from "./_components/RegisterCustomerButton";
 import { listQuotesForApplication, getQuote } from "@/lib/quotes/queries";
 import { pickRepresentativeQuote, computeQuoteValidity } from "@/lib/quotes/banner";
 import { parseQuoteLines } from "@/lib/quotes/form";
-import { formatBizNo, formatPhone } from "@/lib/format/contact";
+import { formatBizNo, formatPhone } from "@jhtechsaas/shared";
 import { matchEquipmentName } from "@/lib/quotes/equipment-match";
 import { listEquipmentForMatch } from "@/lib/quotes/equipment-match.server";
 import type { MatchableEquipmentWithOptions, EquipmentOption } from "@/lib/quotes/equipment-match.server";
 import { QuoteHero } from "./_components/quote-frame/QuoteHero";
+import { SectionHeader } from "./_components/quote-frame/SectionHeader";
 import { VersionHistory } from "./_components/quote-frame/VersionHistory";
 import { ApplicantInfo } from "./_components/quote-frame/ApplicantInfo";
 import { InstallSurvey } from "./_components/quote-frame/InstallSurvey";
@@ -89,20 +90,40 @@ export default async function ApplicationDetailPage({
     : pickRepresentativeQuote(quotes);
   const quote = selected ? await getQuote(selected.id) : null;
 
-  // 장비 매칭 (견적 있을 때만) — item 이름을 카탈로그 name/model과 정규화 대조
-  const items = parseQuoteLines(quote?.items);
-  const optionRows = parseQuoteLines(quote?.options);
-  let matched: (MatchableEquipmentWithOptions | null)[] = [];
-  let includedOpts: EquipmentOption[] = [];
+  // 카탈로그 항상 로드 — 견적 item 매칭 + (미발행 시) 요청 장비 미리보기에 사용.
+  const catalog = await listEquipmentForMatch();
+
+  // 미발행(견적 없음) = 신청의 "요청 장비"로 화면을 미리 채운다(표시전용, 견적 미생성).
+  const isPreview = !quote;
+
+  type LineRow = { name: string; unitPrice: number; quantity: number };
+  let items: LineRow[];
+  let optionRows: LineRow[];
+  let matched: (MatchableEquipmentWithOptions | null)[];
+
   if (quote) {
-    const catalog = await listEquipmentForMatch();
+    // 발행/임시 견적 — item 이름을 카탈로그 name/model과 정규화 대조
+    items = parseQuoteLines(quote.items);
+    optionRows = parseQuoteLines(quote.options);
     matched = items.map((it) => matchEquipmentName(it.name, catalog));
-    includedOpts = matched.flatMap((e) => e?.options.filter((o) => o.kind === "included") ?? []);
+  } else {
+    // 미발행 — 요청 장비(equipment_id 우선, 없으면 equipment_name 매칭) 1줄을 기본공급가로 미리보기
+    const reqEq =
+      (typeof r.equipment_id === "string" ? catalog.find((e) => e.id === r.equipment_id) : undefined) ??
+      (fields.equipment_name ? matchEquipmentName(fields.equipment_name, catalog) : null) ??
+      null;
+    items = reqEq ? [{ name: reqEq.name, unitPrice: reqEq.basePrice, quantity: 1 }] : [];
+    optionRows = [];
+    matched = reqEq ? [reqEq] : [];
   }
+  const includedOpts: EquipmentOption[] = matched.flatMap((e) => e?.options.filter((o) => o.kind === "included") ?? []);
 
   // 소계 헬퍼 — 인라인 계산(DB·RPC 값과 별개, 화면 표시전용)
   const equipmentSubtotal = items.reduce((s, r) => s + r.unitPrice * r.quantity, 0);
   const optionSubtotal = optionRows.reduce((s, r) => s + r.unitPrice * r.quantity, 0);
+  // 표시 합계 — 발행 견적은 quote.total(서버 권위), 미발행은 예상(공급가+세액 10% 반올림).
+  const previewTotal = equipmentSubtotal + optionSubtotal + Math.round((equipmentSubtotal + optionSubtotal) * 0.1);
+  const displayTotal = quote ? quote.total : String(previewTotal);
 
   // 유효기간 계산
   const validity = quote?.issued_at ? computeQuoteValidity(quote.issued_at, new Date()) : null;
@@ -152,31 +173,17 @@ export default async function ApplicationDetailPage({
   ];
   const surveyExtra = typeof survey.extra === "string" && survey.extra ? survey.extra : null;
 
-  // 신청기업 정보 — 기본정보(3열 9칸) / 옵션정보(가변 열).
-  // 담당자·업태·장부명·전화1/2·팩스·실제주소는 현재 미수집(엑셀 이관 시 채워질 자리) → 값 없으면 "-".
+  // 신청기업 정보 — 신청(공개/수기)이 실제 가진 항목만 표시(3열 그리드).
+  // 담당자·업태·업종·장부명·전화1/2·팩스·실제주소는 거래처 장부(고객 마스터) 전용 → 견적 화면 미표시.
   type ApplicantField = { label: string; value: string | null; mono?: boolean };
   const basicFields: ApplicantField[] = [
     { label: "회사명", value: str(r.company) },
-    { label: "사업자번호", value: formatBizNo(str(r.biz_no)) || null, mono: true },
+    { label: "사업자번호", value: formatBizNo(str(r.biz_no) ?? "") || null, mono: true },
     { label: "대표자", value: str(r.ceo) },
-    { label: "담당자", value: null },
-    { label: "연락처", value: formatPhone(str(r.phone)) || null, mono: true },
+    { label: "연락처", value: formatPhone(str(r.phone) ?? "") || null, mono: true },
     { label: "이메일", value: str(r.email) },
     { label: "사업장주소", value: str(r.address) },
-    { label: "업태", value: null },
     { label: "접수번호", value: str(r.seq_no), mono: true },
-  ];
-  const optionalRows: ApplicantField[][] = [
-    [{ label: "장부명(장부번호)", value: null }],
-    [
-      { label: "전화1", value: null, mono: true },
-      { label: "전화2", value: null, mono: true },
-      { label: "팩스", value: null, mono: true },
-    ],
-    [
-      { label: "실제주소1", value: null },
-      { label: "실제주소2", value: null },
-    ],
   ];
 
   // 고객등록 버튼 — 미등록 고객 + 권한 있을 때만(신청기업 정보 제목 라인 오른쪽에 배치)
@@ -212,9 +219,10 @@ export default async function ApplicationDetailPage({
         quoteNo={quote ? quote.quote_no : null}
         assigneeName={assigneeName}
         validity={validity}
-        total={quote?.total ?? null}
+        total={displayTotal}
         issuedAtLabel={issuedAtLabel}
         unregistered={!companyId}
+        preview={isPreview}
       />
 
       {/* 처리바 — 다른 카드와 동일한 박스 형태. 담당자·상태 변경 컨트롤(배지는 히어로에). */}
@@ -236,81 +244,65 @@ export default async function ApplicationDetailPage({
         )}
       </div>
 
-      {quote ? (
-        /* 견적 있음 — 2분할 그리드: 좌측 본문 / 우측 320px sticky 요약 */
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
-          {/* 좌측 본문 */}
-          <div className="flex flex-col gap-6">
-            <VersionHistory
-              applicationId={id}
-              quotes={quotes}
-              currentQuoteId={selected!.id}
-            />
-            <ApplicantInfo
-              companyId={companyId}
-              basic={basicFields}
-              optionalRows={optionalRows}
-              requirements={fields.requirements ?? null}
-              equipmentName={fields.equipment_name ?? null}
-              headerAction={registerButton}
-            />
-            <InstallSurvey rows={surveyRows} extra={surveyExtra} />
-            <SitePhotos photos={sitePhotos} />
-            <SelectedEquipment
-              items={items}
-              matched={matched}
-              quoteNo={quote.quote_no}
-            />
-            <OptionLists included={includedOpts} extra={optionRows} />
-            <SpecialNotesPlaceholder />
-          </div>
-
-          {/* 우측 컬럼 전체를 sticky 한 덩어리로(요약+영업일지) → 스크롤 시 겹침 방지. self-start=그리드서 콘텐츠 높이만 차지. */}
-          <div className="flex flex-col gap-6 self-start lg:sticky lg:top-0">
-            <QuoteSummaryPanel
-              applicationId={id}
-              quoteId={quote.id}
-              quoteNo={quote.quote_no}
-              statusLabel={quote.status === "issued" ? "발행" : "임시"}
-              equipmentSubtotal={equipmentSubtotal}
-              optionSubtotal={optionSubtotal}
-              items={items}
-              options={optionRows}
-              total={quote.total}
-              issuedAtLabel={issuedAtLabel}
-              validUntilLabel={validity?.validUntilLabel ?? null}
-              assigneeName={assigneeName}
-              email={str(r.email)}
-              phone={formatPhone(str(r.phone)) || null}
-              pdfUrl={pdfUrl}
-              canReissue={canQuote}
-            />
-            <SalesLogPlaceholder />
-          </div>
-        </div>
-      ) : (
-        /* 견적 없음 폴백 — max-w-3xl 단일 컬럼 */
-        <div className="flex max-w-3xl flex-col gap-6">
+      {/* 통합 2분할 그리드 — 견적 유무와 무관하게 같은 박스 구성.
+          미발행(isPreview)이면 요청 장비로 미리 채우고 우측은 '견적 작성' 유도. */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
+        {/* 좌측 본문 */}
+        <div className="flex flex-col gap-6">
+          {quotes.length > 0 ? (
+            <VersionHistory applicationId={id} quotes={quotes} currentQuoteId={selected!.id} />
+          ) : (
+            <section className="rounded-lg border border-border/60 bg-surface p-5 shadow-sm">
+              <SectionHeader title="버전 이력" meta="발행 견적 없음" />
+              <div className="rounded-sm bg-surface-2 px-3 py-6 text-center text-small text-muted">
+                아직 발행된 견적이 없습니다. 견적을 작성하면 버전 이력이 쌓입니다.
+              </div>
+            </section>
+          )}
           <ApplicantInfo
             companyId={companyId}
             basic={basicFields}
-            optionalRows={optionalRows}
             requirements={fields.requirements ?? null}
             equipmentName={fields.equipment_name ?? null}
             headerAction={registerButton}
           />
           <InstallSurvey rows={surveyRows} extra={surveyExtra} />
           <SitePhotos photos={sitePhotos} />
-          {canQuote && (
-            <Link
-              href={`/admin/applications/${id}/quote/new`}
-              className="inline-block self-start rounded-md bg-accent px-4 py-2 text-small font-medium text-white"
-            >
-              견적 작성
-            </Link>
-          )}
+          <SelectedEquipment
+            items={items}
+            matched={matched}
+            quoteNo={quote ? quote.quote_no : null}
+            preview={isPreview}
+          />
+          <OptionLists included={includedOpts} extra={optionRows} />
+          <SpecialNotesPlaceholder />
         </div>
-      )}
+
+        {/* 우측 sticky 요약(+영업일지) */}
+        <div className="flex flex-col gap-6 self-start lg:sticky lg:top-0">
+          <QuoteSummaryPanel
+            applicationId={id}
+            quoteId={quote ? quote.id : null}
+            quoteNo={quote ? quote.quote_no : null}
+            statusLabel={quote ? (quote.status === "issued" ? "발행" : "임시") : "미발행"}
+            equipmentSubtotal={equipmentSubtotal}
+            optionSubtotal={optionSubtotal}
+            items={items}
+            options={optionRows}
+            total={displayTotal}
+            preview={isPreview}
+            issuedAtLabel={issuedAtLabel}
+            validUntilLabel={validity?.validUntilLabel ?? null}
+            assigneeName={assigneeName}
+            email={str(r.email)}
+            phone={formatPhone(str(r.phone) ?? "") || null}
+            pdfUrl={pdfUrl}
+            canReissue={canQuote}
+            canWrite={canQuote}
+          />
+          <SalesLogPlaceholder />
+        </div>
+      </div>
     </div>
   );
 }
