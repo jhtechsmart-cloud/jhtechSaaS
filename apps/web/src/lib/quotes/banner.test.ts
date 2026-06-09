@@ -45,35 +45,35 @@ describe("pickRepresentativeQuote — 최신 발행본 우선, 없으면 최신 
   });
 });
 
-describe("computeQuoteValidity — 발행일+30일 (KST 표시전용)", () => {
+describe("computeQuoteValidity — 발행일+15일 (KST 표시전용)", () => {
   test("미발행(issued_at null)이면 null", () => {
     expect(computeQuoteValidity(null, new Date("2026-06-09T00:00:00+09:00"))).toBeNull();
   });
 
-  test("발행일+30일을 KST YYYY-MM-DD로 표시", () => {
-    // 발행 2026-06-09(KST) → 만료 2026-07-09(KST)
+  test("발행일+15일을 KST YYYY-MM-DD로 표시", () => {
+    // 발행 2026-06-09(KST) → 만료 2026-06-24(KST)
     const v = computeQuoteValidity("2026-06-09T01:00:00+09:00", new Date("2026-06-09T10:00:00+09:00"));
-    expect(v?.validUntilLabel).toBe("2026-07-09");
+    expect(v?.validUntilLabel).toBe("2026-06-24");
   });
 
-  test("오늘이 발행일이면 D-30(만료까지 30일)", () => {
+  test("오늘이 발행일이면 D-15(만료까지 15일)", () => {
     const v = computeQuoteValidity("2026-06-09T01:00:00+09:00", new Date("2026-06-09T10:00:00+09:00"));
-    expect(v?.daysLeft).toBe(30);
+    expect(v?.daysLeft).toBe(15);
   });
 
   test("만료일 당일이면 D-0", () => {
-    const v = computeQuoteValidity("2026-06-09T01:00:00+09:00", new Date("2026-07-09T10:00:00+09:00"));
+    const v = computeQuoteValidity("2026-06-09T01:00:00+09:00", new Date("2026-06-24T10:00:00+09:00"));
     expect(v?.daysLeft).toBe(0);
   });
 
   test("만료 후면 음수(지남)", () => {
-    const v = computeQuoteValidity("2026-06-09T01:00:00+09:00", new Date("2026-07-12T10:00:00+09:00"));
+    const v = computeQuoteValidity("2026-06-09T01:00:00+09:00", new Date("2026-06-27T10:00:00+09:00"));
     expect(v?.daysLeft).toBe(-3);
   });
 
   test("UTC 자정 직전 발행도 KST 날짜로 정확히 계산", () => {
-    // 2026-06-09T14:30:00Z = 2026-06-09 23:30 KST → 만료 2026-07-09 KST
+    // 2026-06-09T14:30:00Z = 2026-06-09 23:30 KST → 만료 2026-06-24 KST
     const v = computeQuoteValidity("2026-06-09T14:30:00Z", new Date("2026-06-09T15:00:00Z"));
-    expect(v?.validUntilLabel).toBe("2026-07-09");
+    expect(v?.validUntilLabel).toBe("2026-06-24");
   });
 });
