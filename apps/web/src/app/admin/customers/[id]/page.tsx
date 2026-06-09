@@ -10,6 +10,7 @@ import {
 } from "@/lib/customers/history";
 import { StatusBadge } from "@/lib/request-status";
 import { ApplicationStatusBadge } from "@/lib/application-status";
+import { formatBizNo, formatPhone } from "@/lib/format/contact";
 import { signOut } from "@/app/login/actions";
 
 // 통합 고객이력(P-F #24) — 견적/구입/AS/소모품 + 완료여부 한눈에(읽기 전용, E7 확장).
@@ -63,9 +64,9 @@ export default async function CustomerDetailPage({
           <Link href="/admin/customers" className="text-small text-muted hover:text-text">← 고객 목록</Link>
           <h1 className="text-h1 font-semibold text-text">{str(c.name) ?? "(이름 없음)"}</h1>
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-small text-muted">
-            <span>사업자번호 <span className="font-mono tabular-nums text-text">{str(c.biz_no) ?? "-"}</span></span>
+            <span>사업자번호 <span className="font-mono tabular-nums text-text">{formatBizNo(str(c.biz_no)) || "-"}</span></span>
             <span>대표 <span className="text-text">{str(c.ceo) ?? "-"}</span></span>
-            <span>연락처 <span className="font-mono tabular-nums text-text">{str(c.phone) ?? "-"}</span></span>
+            <span>연락처 <span className="font-mono tabular-nums text-text">{formatPhone(str(c.phone)) || "-"}</span></span>
             <span>담당영업 <span className="text-text">{assigneeName}</span></span>
           </div>
         </div>

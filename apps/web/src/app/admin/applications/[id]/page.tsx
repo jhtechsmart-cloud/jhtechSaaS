@@ -14,6 +14,7 @@ import { RegisterCustomerButton } from "./_components/RegisterCustomerButton";
 import { listQuotesForApplication, getQuote } from "@/lib/quotes/queries";
 import { pickRepresentativeQuote, computeQuoteValidity } from "@/lib/quotes/banner";
 import { parseQuoteLines } from "@/lib/quotes/form";
+import { formatBizNo, formatPhone } from "@/lib/format/contact";
 import { matchEquipmentName } from "@/lib/quotes/equipment-match";
 import { listEquipmentForMatch } from "@/lib/quotes/equipment-match.server";
 import type { MatchableEquipmentWithOptions, EquipmentOption } from "@/lib/quotes/equipment-match.server";
@@ -151,15 +152,35 @@ export default async function ApplicationDetailPage({
   ];
   const surveyExtra = typeof survey.extra === "string" && survey.extra ? survey.extra : null;
 
-  // 신청기업 정보 필드 배열 — ApplicantInfo가 받는 형태
-  const applicantFields = [
+  // 신청기업 정보 — 기본정보(3열 9칸) / 옵션정보(가변 열).
+  // 담당자·업태·장부명·전화1/2·팩스·실제주소는 현재 미수집(엑셀 이관 시 채워질 자리) → 값 없으면 "-".
+  type ApplicantField = { label: string; value: string | null; mono?: boolean };
+  const basicFields: ApplicantField[] = [
     { label: "회사명", value: str(r.company) },
+    { label: "사업자번호", value: formatBizNo(str(r.biz_no)) || null, mono: true },
     { label: "대표자", value: str(r.ceo) },
-    { label: "연락처", value: str(r.phone), mono: true },
+    { label: "담당자", value: null },
+    { label: "연락처", value: formatPhone(str(r.phone)) || null, mono: true },
     { label: "이메일", value: str(r.email) },
-    { label: "주소", value: str(r.address) },
-    { label: "사업자번호", value: str(r.biz_no), mono: true },
+    { label: "사업장주소", value: str(r.address) },
+    { label: "업태", value: null },
+    { label: "접수번호", value: str(r.seq_no), mono: true },
   ];
+  const optionalRows: ApplicantField[][] = [
+    [{ label: "장부명(장부번호)", value: null }],
+    [
+      { label: "전화1", value: null, mono: true },
+      { label: "전화2", value: null, mono: true },
+      { label: "팩스", value: null, mono: true },
+    ],
+    [
+      { label: "실제주소1", value: null },
+      { label: "실제주소2", value: null },
+    ],
+  ];
+
+  // 고객등록 버튼 — 미등록 고객 + 권한 있을 때만(신청기업 정보 제목 라인 오른쪽에 배치)
+  const registerButton = !companyId && canManageCustomers ? <RegisterCustomerButton id={id} /> : undefined;
 
   // 담당자 이름
   const assigneeName = (r.profiles as { name?: string } | null)?.name ?? null;
@@ -196,8 +217,8 @@ export default async function ApplicationDetailPage({
         unregistered={!companyId}
       />
 
-      {/* 처리바 — 히어로 바로 아래 얇은 1줄. 담당자·상태 변경 컨트롤. 배지는 히어로에 있으므로 여기선 컨트롤만. */}
-      <div className="-mx-6 mb-6 flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-border bg-surface/95 px-6 py-2.5 backdrop-blur">
+      {/* 처리바 — 다른 카드와 동일한 박스 형태. 담당자·상태 변경 컨트롤(배지는 히어로에). */}
+      <div className="mb-6 flex flex-wrap items-center gap-x-6 gap-y-3 rounded-lg border border-border/60 bg-surface px-5 py-3 shadow-sm">
         <div className="flex items-center gap-2">
           <span className="text-small text-muted">담당자</span>
           {assigneeNode}
@@ -227,15 +248,12 @@ export default async function ApplicationDetailPage({
             />
             <ApplicantInfo
               companyId={companyId}
-              fields={applicantFields}
+              basic={basicFields}
+              optionalRows={optionalRows}
               requirements={fields.requirements ?? null}
               equipmentName={fields.equipment_name ?? null}
+              headerAction={registerButton}
             />
-            {!companyId && canManageCustomers && (
-              <div className="-mt-4">
-                <RegisterCustomerButton id={id} />
-              </div>
-            )}
             <InstallSurvey rows={surveyRows} extra={surveyExtra} />
             <SitePhotos photos={sitePhotos} />
             <SelectedEquipment
@@ -256,12 +274,14 @@ export default async function ApplicationDetailPage({
               statusLabel={quote.status === "issued" ? "발행" : "임시"}
               equipmentSubtotal={equipmentSubtotal}
               optionSubtotal={optionSubtotal}
+              items={items}
+              options={optionRows}
               total={quote.total}
               issuedAtLabel={issuedAtLabel}
               validUntilLabel={validity?.validUntilLabel ?? null}
               assigneeName={assigneeName}
               email={str(r.email)}
-              phone={str(r.phone)}
+              phone={formatPhone(str(r.phone)) || null}
               pdfUrl={pdfUrl}
               canReissue={canQuote}
             />
@@ -273,15 +293,12 @@ export default async function ApplicationDetailPage({
         <div className="flex max-w-3xl flex-col gap-6">
           <ApplicantInfo
             companyId={companyId}
-            fields={applicantFields}
+            basic={basicFields}
+            optionalRows={optionalRows}
             requirements={fields.requirements ?? null}
             equipmentName={fields.equipment_name ?? null}
+            headerAction={registerButton}
           />
-          {!companyId && canManageCustomers && (
-            <div className="-mt-4">
-              <RegisterCustomerButton id={id} />
-            </div>
-          )}
           <InstallSurvey rows={surveyRows} extra={surveyExtra} />
           <SitePhotos photos={sitePhotos} />
           {canQuote && (

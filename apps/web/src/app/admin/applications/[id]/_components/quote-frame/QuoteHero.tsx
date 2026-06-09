@@ -1,8 +1,15 @@
 import { ApplicationStatusBadge } from "@/lib/application-status";
 import type { ApplicationStatus } from "@/lib/customers/history";
-import type { QuoteValidity } from "@/lib/quotes/banner";
+import { VALID_DAYS, type QuoteValidity } from "@/lib/quotes/banner";
 
 const won = (s: string) => `₩${Number(s).toLocaleString("ko-KR")}`;
+
+// 유효기간 라벨 — "07.09까지(30일)" (만료 MM.DD + 기간). 미발행이면 안내문.
+function validityLabel(validity: QuoteValidity | null): string {
+  if (!validity) return "발행 시 시작";
+  const mmdd = validity.validUntilLabel.slice(5).replace("-", "."); // 2026-07-09 → 07.09
+  return `${mmdd}까지(${VALID_DAYS}일)`;
+}
 
 // 네이비 히어로 — 견적 식별·상태 + 4스탯. 견적 없으면 quote=null로 4스탯 숨김.
 export function QuoteHero({
@@ -39,9 +46,10 @@ export function QuoteHero({
       </div>
       {quoteNo && (
         <div className="mt-4 grid grid-cols-2 gap-4 border-t border-white/15 pt-4 md:grid-cols-4">
-          <Stat label="견적번호" value={quoteNo} mono />
-          <Stat label="담당자" value={assigneeName ?? "미배정"} />
-          <Stat label="유효기간" value={validity ? `15일 (~${validity.validUntilLabel.slice(5)})` : "발행 시 시작"} />
+          {/* 견적번호·담당자·유효기간 값은 작게(compact), 합계금액만 강조 유지 */}
+          <Stat label="견적번호" value={quoteNo} mono compact />
+          <Stat label="담당자" value={assigneeName ?? "미배정"} compact />
+          <Stat label="유효기간" value={validityLabel(validity)} compact />
           <Stat label="합계금액" value={total ? won(total) : "-"} gold mono />
         </div>
       )}
@@ -49,11 +57,11 @@ export function QuoteHero({
   );
 }
 
-function Stat({ label, value, mono, gold }: { label: string; value: string; mono?: boolean; gold?: boolean }) {
+function Stat({ label, value, mono, gold, compact }: { label: string; value: string; mono?: boolean; gold?: boolean; compact?: boolean }) {
   return (
     <div className="min-w-0">
       <div className="text-micro text-white/55">{label}</div>
-      <div className={`truncate text-h2 font-semibold ${gold ? "text-amber-300" : "text-white"} ${mono ? "font-mono tabular-nums" : ""}`}>
+      <div className={`truncate font-semibold ${compact ? "text-body" : "text-h2"} ${gold ? "text-amber-300" : "text-white"} ${mono ? "font-mono tabular-nums" : ""}`}>
         {value}
       </div>
     </div>

@@ -1,8 +1,10 @@
+import { SectionHeader } from "./SectionHeader";
+
 export function SitePhotos({ photos }: { photos: { slot: string; label: string; url: string }[] }) {
   if (photos.length === 0) return null;
   return (
     <section className="rounded-lg border border-border/60 bg-surface p-5 shadow-sm">
-      <h2 className="mb-2 text-h2 font-medium text-text">현장 사진</h2>
+      <SectionHeader title="현장 사진" />
       <div className="grid grid-cols-2 gap-3">
         {photos.map((p) => (
           <figure key={p.slot} className="flex flex-col gap-1">

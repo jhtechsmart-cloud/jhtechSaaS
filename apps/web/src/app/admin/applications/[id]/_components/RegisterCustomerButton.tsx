@@ -19,11 +19,11 @@ export function RegisterCustomerButton({ id }: { id: string }) {
   }
 
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col items-end gap-1">
       <button
         onClick={apply}
         disabled={pending}
-        className="self-start rounded-md border border-accent px-4 py-2 text-body font-medium text-accent disabled:opacity-60"
+        className="rounded-md border border-accent px-2.5 py-1 text-small font-medium text-accent disabled:opacity-60"
       >
         {pending ? "등록 중…" : "고객으로 등록"}
       </button>

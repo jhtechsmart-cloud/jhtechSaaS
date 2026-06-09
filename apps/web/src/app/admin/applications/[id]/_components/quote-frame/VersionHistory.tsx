@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { QuoteListItem } from "@/lib/quotes/queries";
+import { SectionHeader } from "./SectionHeader";
 
 const won = (s: string) => `${Number(s).toLocaleString("ko-KR")}원`;
 const dt = (iso: string) => `${iso.slice(0, 10)} · ${iso.slice(11, 16)}`;
@@ -14,10 +15,7 @@ export function VersionHistory({
 }) {
   return (
     <section className="rounded-lg border border-border/60 bg-surface p-5 shadow-sm">
-      <div className="mb-2 flex items-baseline justify-between">
-        <h2 className="text-h2 font-medium text-text">버전 이력 ({quotes.length}개 버전)</h2>
-        <span className="text-micro text-muted">행을 클릭하면 해당 버전을 표시합니다</span>
-      </div>
+      <SectionHeader title={`버전 이력 (${quotes.length}개 버전)`} meta="행을 클릭하면 해당 버전을 표시합니다" />
       <div className="overflow-hidden rounded-sm border border-border">
         <table className="w-full text-small">
           <thead className="bg-surface-2 text-muted">

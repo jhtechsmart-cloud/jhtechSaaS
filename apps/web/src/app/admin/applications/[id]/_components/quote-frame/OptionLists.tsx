@@ -1,4 +1,5 @@
 import type { EquipmentOption } from "@/lib/quotes/equipment-match.server";
+import { SectionHeader } from "./SectionHeader";
 
 const won = (n: number) => `${n.toLocaleString("ko-KR")}원`;
 type ExtraRow = { name: string; unitPrice: number; quantity: number };
@@ -9,10 +10,7 @@ export function OptionLists({ included, extra }: { included: EquipmentOption[]; 
     <>
       {included.length > 0 && (
         <section className="rounded-lg border border-border/60 bg-surface p-5 shadow-sm">
-          <div className="mb-2 flex items-baseline justify-between">
-            <h2 className="text-h2 font-medium text-text">포함 옵션</h2>
-            <span className="text-micro text-muted">{included.length}개 · 기본 공급가 포함</span>
-          </div>
+          <SectionHeader title="포함 옵션" meta={`${included.length}개 · 기본 공급가 포함`} />
           <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
             {included.map((o, i) => (
               <div key={i} className="flex items-center gap-2 rounded-sm border border-border bg-surface-2 px-3 py-2 text-small text-text">
@@ -23,10 +21,7 @@ export function OptionLists({ included, extra }: { included: EquipmentOption[]; 
         </section>
       )}
       <section className="rounded-lg border border-border/60 bg-surface p-5 shadow-sm">
-        <div className="mb-2 flex items-baseline justify-between">
-          <h2 className="text-h2 font-medium text-text">추가 옵션</h2>
-          <span className="text-micro text-muted">개별 견적 항목</span>
-        </div>
+        <SectionHeader title="추가 옵션" meta="개별 견적 항목" />
         {extra.length === 0 ? (
           <div className="rounded-sm border border-dashed border-border py-6 text-center text-small text-muted">선택된 추가 옵션이 없습니다.</div>
         ) : (

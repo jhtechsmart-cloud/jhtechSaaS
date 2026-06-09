@@ -96,7 +96,8 @@ test.describe.serial("E4 견적 트리아지 콘솔 E2E", () => {
     await page.waitForURL(/\/admin\/applications\/[0-9a-f-]+$/, { timeout: 15_000 });
     // 상단바에 접수번호(seq_no, mono)가 노출되어 상세가 로드됐는지 확인(2분할 슬라이스2: 라벨 제거·상단바 이동).
     await expect(page.getByText(/REQ-\d{8}-\d+/).first()).toBeVisible();
-    await expect(page.getByText("미등록 고객")).toBeVisible();
+    // 미등록 고객 배지는 히어로 + 신청기업 정보 제목 옆 두 곳 → first().
+    await expect(page.getByText("미등록 고객").first()).toBeVisible();
     // 설치설문 라벨맵 렌더 확인.
     await expect(page.getByText("공장")).toBeVisible();
     await expect(page.getByText("3상 380V")).toBeVisible();
