@@ -275,7 +275,7 @@
       "name": "견적서 발급(헤드 가격·장비 이미지·모바일·통합 PDF)",
       "scope": "견적관리(내부)",
       "priority": "P0",
-      "status": "Spec Needed",
+      "status": "In Dev",
       "phase": "E5"
     },
     {
