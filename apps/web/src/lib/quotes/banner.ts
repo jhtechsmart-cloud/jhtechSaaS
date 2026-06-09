@@ -1,5 +1,5 @@
 // 의뢰 상세 상단 배너의 순수 로직 — 서버 의존 없이 단위테스트 가능.
-// "대표 견적"(고객에게 나간 금액 우선)과 "유효기간"(발행일+15일, KST 표시전용)을 계산한다.
+// "대표 견적"(고객에게 나간 금액 우선)과 "유효기간"(발행일+30일, KST 표시전용)을 계산한다.
 // 유효기간은 DB 컬럼이 아니라 화면 계산값 — 실제 유효기간 관리가 필요해지면 데이터모델로 승격.
 
 // 배너가 쓰는 최소 견적 형태(QuoteListItem의 부분집합).
@@ -25,7 +25,8 @@ export function pickRepresentativeQuote<T extends { version: number; status: str
 
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
-const VALID_DAYS = 15;
+// 견적 유효기간(일) — 화면 표시·라벨에 공통 사용. 변경 시 표시 라벨도 자동 반영.
+export const VALID_DAYS = 30;
 
 // KST 자정 기준 일(day) 인덱스 — admin-search.ts와 동일 규약.
 function kstDayIndex(ms: number): number {
@@ -37,7 +38,7 @@ export type QuoteValidity = {
   daysLeft: number; // 만료까지 남은 일수(음수=지남)
 };
 
-// 유효기간 = 발행일 + 15일. 미발행(issued_at null)이면 null(아직 '발행 시 시작').
+// 유효기간 = 발행일 + VALID_DAYS(30일). 미발행(issued_at null)이면 null(아직 '발행 시 시작').
 export function computeQuoteValidity(issuedAtIso: string | null, now: Date): QuoteValidity | null {
   if (!issuedAtIso) return null;
   const issuedMs = new Date(issuedAtIso).getTime();

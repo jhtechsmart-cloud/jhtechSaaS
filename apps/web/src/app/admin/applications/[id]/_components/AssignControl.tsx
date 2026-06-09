@@ -32,7 +32,7 @@ export function AssignControl({
       <select
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        className="rounded-md border border-border bg-surface px-3 py-2 text-body text-text"
+        className="rounded-md border border-border bg-surface px-2.5 py-1.5 text-small text-text"
       >
         <option value="">미배정</option>
         {staff.map((s) => (
@@ -42,7 +42,7 @@ export function AssignControl({
       <button
         onClick={apply}
         disabled={pending || !dirty}
-        className={`rounded-md px-3 py-2 text-body font-medium ${
+        className={`rounded-md px-2.5 py-1.5 text-small font-medium ${
           dirty
             ? "bg-accent text-white"
             : "border border-border bg-transparent text-muted"
