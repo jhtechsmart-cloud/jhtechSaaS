@@ -3,7 +3,55 @@
 import { calculateQuote, type QuoteInput, type QuoteResult } from "@jhtechsaas/shared";
 
 // 폼 한 줄. 입력 중에는 단가·수량이 비거나 NaN일 수 있다.
-export type QuoteRow = { name: string; unitPrice: number; quantity: number };
+// kind: 옵션 줄 구분('included'=포함옵션 스냅샷·단가 0 / 'extra'=추가 과금). 장비 줄은 미지정.
+export type QuoteRow = { name: string; unitPrice: number; quantity: number; kind?: "included" | "extra" };
+
+// 폼에 넘기는 카탈로그(클라 직렬화 안전). 서버 listEquipmentForMatch에서 가공.
+export type QuoteCatalogItem = {
+  id: string;
+  name: string;
+  model: string | null;
+  basePrice: number;
+  category: string | null;
+  options: { kind: "included" | "extra"; name: string }[];
+};
+
+// 장비 행 — 카탈로그에서 고른 equipmentId(빈 문자열="직접 입력") + 표시명·단가·수량.
+export type ItemRow = { equipmentId: string; name: string; unitPrice: number; quantity: number };
+
+// 선택된 장비들의 포함옵션 이름 풀(중복 제거, 입력 순서 보존). equipmentId 없는 행(직접입력)은 무시.
+export function availableIncludedNames(items: ItemRow[], catalog: QuoteCatalogItem[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const it of items) {
+    if (!it.equipmentId) continue;
+    const eq = catalog.find((c) => c.id === it.equipmentId);
+    if (!eq) continue;
+    for (const o of eq.options) {
+      if (o.kind === "included" && !seen.has(o.name)) {
+        seen.add(o.name);
+        out.push(o.name);
+      }
+    }
+  }
+  return out;
+}
+
+// 장비 행 → 저장용 견적 줄(equipmentId 버림 — 견적 item은 이름 스냅샷).
+export function itemRowsToLines(items: ItemRow[]): QuoteRow[] {
+  return items.map((i) => ({ name: i.name, unitPrice: i.unitPrice, quantity: i.quantity }));
+}
+
+// 포함옵션 선택(이름 목록) → 견적 옵션 줄(단가 0·수량 1·kind=included). 금액 영향 없음.
+export function buildIncludedRows(names: string[]): QuoteRow[] {
+  return names.map((name) => ({ name, unitPrice: 0, quantity: 1, kind: "included" as const }));
+}
+
+// 포함옵션 선택 + 추가옵션 입력 → 저장용 옵션 배열(included 먼저, extra 뒤). 추가옵션은 kind=extra 태깅.
+export function buildQuoteOptions(includedNames: string[], extra: QuoteRow[]): QuoteRow[] {
+  const extraTagged = cleanRows(extra).map((r) => ({ ...r, kind: "extra" as const }));
+  return [...buildIncludedRows(includedNames), ...extraTagged];
+}
 
 // 미완성(빈) 행 = 이름이 비어있고 단가도 0/빈. 저장·검증에서 제외한다.
 function isEmptyRow(r: QuoteRow): boolean {
@@ -37,10 +85,12 @@ export function parseQuoteLines(value: unknown): QuoteRow[] {
   if (!Array.isArray(value)) return [];
   return value.map((e) => {
     const o = (e ?? {}) as Record<string, unknown>;
+    const kind = o.kind === "included" || o.kind === "extra" ? o.kind : undefined;
     return {
       name: typeof o.name === "string" ? o.name : "",
       unitPrice: typeof o.unitPrice === "number" && Number.isFinite(o.unitPrice) ? o.unitPrice : 0,
       quantity: typeof o.quantity === "number" && Number.isFinite(o.quantity) ? o.quantity : 0,
+      ...(kind ? { kind } : {}),
     };
   });
 }

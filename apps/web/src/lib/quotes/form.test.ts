@@ -2,11 +2,17 @@
 import { describe, expect, test } from "vitest";
 import { calculateQuote } from "@jhtechsaas/shared";
 import {
+  availableIncludedNames,
+  buildIncludedRows,
+  buildQuoteOptions,
   cleanRows,
+  itemRowsToLines,
   parseQuoteLines,
   previewTotals,
   rowsToQuoteInput,
   validateQuoteForm,
+  type ItemRow,
+  type QuoteCatalogItem,
   type QuoteRow,
 } from "./form";
 
@@ -61,6 +67,66 @@ describe("parseQuoteLines — 저장된 jsonb → 폼 행(재발행 프리필)",
   test("깨진 값은 안전 기본으로 코어스", () => {
     expect(parseQuoteLines([{ name: 123, unitPrice: "x", quantity: null }])).toEqual([
       row("", 0, 0),
+    ]);
+  });
+});
+
+describe("availableIncludedNames / itemRowsToLines — 카탈로그 장비 선택", () => {
+  const catalog: QuoteCatalogItem[] = [
+    { id: "jp", name: "JP1113", model: "JP1113", basePrice: 48_000_000, category: "평판커팅기",
+      options: [{ kind: "included", name: "자동 급지" }, { kind: "included", name: "안전 센서" }, { kind: "extra", name: "연장 보증" }] },
+    { id: "uv", name: "UV3300S", model: "UV-3300S", basePrice: 50_000_000, category: "평판커팅기",
+      options: [{ kind: "included", name: "자동 급지" }, { kind: "included", name: "집진 장치" }] },
+  ];
+  const item = (equipmentId: string, name: string, unitPrice: number): ItemRow => ({ equipmentId, name, unitPrice, quantity: 1 });
+
+  test("선택 장비들의 포함옵션 풀(중복 제거·순서 보존)", () => {
+    expect(availableIncludedNames([item("jp", "JP1113", 48_000_000), item("uv", "UV3300S", 50_000_000)], catalog))
+      .toEqual(["자동 급지", "안전 센서", "집진 장치"]);
+  });
+  test("직접입력(equipmentId 빈값) 장비는 포함옵션 없음", () => {
+    expect(availableIncludedNames([item("", "커스텀장비", 1_000_000)], catalog)).toEqual([]);
+  });
+  test("itemRowsToLines — equipmentId 버리고 줄로", () => {
+    expect(itemRowsToLines([item("jp", "JP1113", 48_000_000)])).toEqual([{ name: "JP1113", unitPrice: 48_000_000, quantity: 1 }]);
+  });
+});
+
+describe("buildIncludedRows / buildQuoteOptions — 포함옵션 스냅샷", () => {
+  test("포함옵션 이름 → 단가0·수량1·kind=included", () => {
+    expect(buildIncludedRows(["자동 급지", "안전 센서"])).toEqual([
+      { name: "자동 급지", unitPrice: 0, quantity: 1, kind: "included" },
+      { name: "안전 센서", unitPrice: 0, quantity: 1, kind: "included" },
+    ]);
+  });
+  test("included 먼저 + extra(kind=extra) 뒤, 빈 extra 제거", () => {
+    const opts = buildQuoteOptions(["자동 급지"], [row("연장 보증", 1_500_000, 1), row("", 0, 1)]);
+    expect(opts).toEqual([
+      { name: "자동 급지", unitPrice: 0, quantity: 1, kind: "included" },
+      { name: "연장 보증", unitPrice: 1_500_000, quantity: 1, kind: "extra" },
+    ]);
+  });
+  test("포함옵션은 단가 0이라 합계에 영향 없음", () => {
+    const items = [row("UV3300S", 50_000_000, 1)];
+    const options = buildQuoteOptions(["자동 급지", "안전 센서"], []);
+    expect(calculateQuote({ items, options }).total).toBe(55_000_000);
+  });
+});
+
+describe("parseQuoteLines — kind 보존", () => {
+  test("kind=included/extra 줄은 kind 유지", () => {
+    const lines = [
+      { name: "자동 급지", unitPrice: 0, quantity: 1, kind: "included" },
+      { name: "연장 보증", unitPrice: 1_500_000, quantity: 1, kind: "extra" },
+    ];
+    expect(parseQuoteLines(lines)).toEqual([
+      { name: "자동 급지", unitPrice: 0, quantity: 1, kind: "included" },
+      { name: "연장 보증", unitPrice: 1_500_000, quantity: 1, kind: "extra" },
+    ]);
+  });
+  test("잘못된 kind는 무시(미지정)", () => {
+    expect(parseQuoteLines([{ name: "x", unitPrice: 1, quantity: 1, kind: "weird" }])).toEqual([
+      row("x", 1, 1),
     ]);
   });
 });
