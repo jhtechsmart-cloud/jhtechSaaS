@@ -60,6 +60,7 @@ body{width:210mm;color:#111;font-size:11px;}
 .supplier td{border:1px solid #999;padding:2px 5px;}
 .stamp{position:absolute;right:8px;top:18px;width:54px;opacity:.95;}
 .recipient{font-size:20px;font-weight:700;border-bottom:2px solid #111;display:inline-block;margin:14px 0 6px;padding-bottom:2px;}
+.recipient .suffix{font-size:13px;font-weight:500;margin-left:8px;}
 .lead{margin:6px 0;}
 .sumband{display:flex;align-items:center;gap:12px;margin:6px 0;}
 .sumband .lbl{background:#3a4a5a;color:#fff;font-weight:700;letter-spacing:4px;padding:6px 14px;}
@@ -95,7 +96,7 @@ ${d.bannerTopDataUri ? `<img class="banner" src="${d.bannerTopDataUri}">` : ""}
       </table>
     </div>
   </div>
-  <div><span class="recipient">${esc(d.recipient)} 귀하</span></div>
+  <div><span class="recipient">${esc(d.recipient)}<span class="suffix">귀하</span></span></div>
   <div class="lead">아래와 같이 견적합니다.</div>
   <div class="sumband"><span class="lbl">합 계 금 액</span><span class="amt">일금 ${esc(d.koreanAmount)}원정(VAT별도) ( ${won(d.supplyPrice)}- )</span><span>(단위 : 원)</span></div>
   <table class="items">
