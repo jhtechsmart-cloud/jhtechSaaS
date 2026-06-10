@@ -6,3 +6,7 @@ packages:
 ignoredBuiltDependencies:
   - sharp
   - unrs-resolver
+
+# puppeteer postinstall = Chromium 다운로드 허용(워커 HTML→PDF 렌더용)
+onlyBuiltDependencies:
+  - puppeteer
