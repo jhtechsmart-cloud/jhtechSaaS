@@ -23,7 +23,7 @@ export type QuoteHtmlData = {
   fontDataUri: string;
 };
 
-const won = (n: number) => `₩${n.toLocaleString("ko-KR")}`;
+const won = (n: number) => `₩${Math.round(n).toLocaleString("ko-KR")}`;
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 
 export function renderQuoteHtml(d: QuoteHtmlData): string {
@@ -46,7 +46,7 @@ export function renderQuoteHtml(d: QuoteHtmlData): string {
   const notes = d.notes.map((n, i) => `<div class="note">${i + 1}. ${esc(n)}</div>`).join("");
 
   return `<!doctype html><html lang="ko"><head><meta charset="utf-8"><style>
-@font-face{font-family:'KR';src:url(${d.fontDataUri});}
+@font-face{font-family:'KR';src:url("${d.fontDataUri}");}
 @page{size:A4;margin:0;}
 *{box-sizing:border-box;margin:0;padding:0;font-family:'KR',sans-serif;}
 body{width:210mm;color:#111;font-size:11px;}
