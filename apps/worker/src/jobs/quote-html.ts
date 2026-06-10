@@ -50,22 +50,24 @@ export function renderQuoteHtml(d: QuoteHtmlData): string {
 @page{size:A4;margin:0;}
 *{box-sizing:border-box;margin:0;padding:0;font-family:'KR',sans-serif;}
 /* A4 높이로 채우고 세로 플렉스 → 가운데(.pad)가 늘어나 하단 배너를 항상 페이지 바닥에 고정. */
-body{width:210mm;min-height:296mm;color:#111;font-size:11px;display:flex;flex-direction:column;}
+body{width:210mm;min-height:296mm;color:#111;font-size:13px;display:flex;flex-direction:column;}
 .banner{width:100%;display:block;}
 .pad{padding:0 14mm;flex:1 1 auto;}
 .head{display:flex;justify-content:space-between;margin-top:8px;}
 .meta div{line-height:1.7;}
-.supplier{border:1px solid #333;font-size:10px;position:relative;min-width:88mm;}
+.supplier{border:1px solid #333;font-size:12px;position:relative;width:50%;}
 .supplier .title{background:#eee;text-align:center;letter-spacing:6px;border-bottom:1px solid #333;}
 .supplier table{width:100%;border-collapse:collapse;}
-.supplier td{border:1px solid #999;padding:2px 5px;}
-.stamp{position:absolute;right:8px;top:18px;width:54px;opacity:.95;}
-.recipient{font-size:20px;font-weight:700;border-bottom:2px solid #111;display:inline-block;margin:14px 0 6px;padding-bottom:2px;}
-.recipient .suffix{font-size:13px;font-weight:500;margin-left:8px;}
+.supplier td{border:1px solid #999;padding:3px 7px;word-break:keep-all;}
+.supplier td.k{white-space:nowrap;background:#f4f4f4;font-weight:500;}
+.stamp{position:absolute;right:8px;top:20px;width:62px;opacity:.95;}
+.recipient-row{text-align:right;}
+.recipient{font-size:24px;font-weight:700;border-bottom:2px solid #111;display:inline-block;margin:14px 0 6px;padding-bottom:2px;}
+.recipient .suffix{font-size:16px;font-weight:500;margin-left:8px;}
 .lead{margin:6px 0;}
 .sumband{display:flex;align-items:center;gap:12px;margin:6px 0;}
 .sumband .lbl{background:#3a4a5a;color:#fff;font-weight:700;letter-spacing:4px;padding:6px 14px;}
-.sumband .amt{font-size:15px;font-weight:700;}
+.sumband .amt{font-size:18px;font-weight:700;}
 table.items{width:100%;border-collapse:collapse;margin-top:4px;}
 table.items th,table.items td{border:1px solid #333;padding:4px 6px;text-align:center;}
 table.items th{background:#f3f3f3;}
@@ -90,14 +92,14 @@ ${d.bannerTopDataUri ? `<img class="banner" src="${d.bannerTopDataUri}">` : ""}
       <div class="title">공 급 자</div>
       <img class="stamp" src="${d.stampDataUri}">
       <table>
-        <tr><td>등록번호</td><td colspan="3">${SUPPLIER.bizNo}</td></tr>
-        <tr><td>상 호</td><td>${SUPPLIER.name}</td><td>성 명</td><td>${SUPPLIER.ceo}</td></tr>
-        <tr><td>주 소</td><td colspan="3">${SUPPLIER.address}<br>서울본사 ${SUPPLIER.phoneHQ} / 대구지사 ${SUPPLIER.phoneDaegu}</td></tr>
-        <tr><td>업 태</td><td>${SUPPLIER.bizType}</td><td>종 목</td><td>${SUPPLIER.bizItem}</td></tr>
+        <tr><td class="k">등록번호</td><td colspan="3">${SUPPLIER.bizNo}</td></tr>
+        <tr><td class="k">상 호</td><td>${SUPPLIER.name}</td><td class="k">성 명</td><td>${SUPPLIER.ceo}</td></tr>
+        <tr><td class="k">주 소</td><td colspan="3">${SUPPLIER.address}<br>서울본사 ${SUPPLIER.phoneHQ} / 대구지사 ${SUPPLIER.phoneDaegu}</td></tr>
+        <tr><td class="k">업 태</td><td>${SUPPLIER.bizType}</td><td class="k">종 목</td><td>${SUPPLIER.bizItem}</td></tr>
       </table>
     </div>
   </div>
-  <div><span class="recipient">${esc(d.recipient)}<span class="suffix">귀하</span></span></div>
+  <div class="recipient-row"><span class="recipient">${esc(d.recipient)}<span class="suffix">귀하</span></span></div>
   <div class="lead">아래와 같이 견적합니다.</div>
   <div class="sumband"><span class="lbl">합 계 금 액</span><span class="amt">일금 ${esc(d.koreanAmount)}원정(VAT별도) ( ${won(d.supplyPrice)}- )</span><span>(단위 : 원)</span></div>
   <table class="items">
