@@ -20,6 +20,7 @@ import { HighlightsEditor } from "./HighlightsEditor";
 import { YoutubeUrlsEditor } from "./YoutubeUrlsEditor";
 import { OptionEditor } from "./OptionEditor";
 import { ImageUploader } from "./ImageUploader";
+import { BannerUploader } from "./BannerUploader";
 
 type EquipmentFormInput = z.input<typeof equipmentFormSchema>;
 
@@ -56,6 +57,8 @@ export function EquipmentForm(props: Props) {
             specs: [{ group: "", icon: "settings", items: [{ label: "", value: "" }] }],
             photos: [],
             options: [],
+            quote_banner_top: "",
+            quote_banner_bottom: "",
           },
   });
   const {
@@ -69,6 +72,14 @@ export function EquipmentForm(props: Props) {
   const {
     field: { value: photos, onChange: setPhotos },
   } = useController({ control, name: "photos" });
+
+  // 견적서 배너(상·하단)도 스칼라 → useController로 연결(watch() 미사용=React Compiler 경고 회피).
+  const {
+    field: { value: bannerTop, onChange: setBannerTop },
+  } = useController({ control, name: "quote_banner_top" });
+  const {
+    field: { value: bannerBottom, onChange: setBannerBottom },
+  } = useController({ control, name: "quote_banner_bottom" });
 
   // 이월 ②: dirty 상태에서 이탈 시 경고(beforeunload).
   useEffect(() => {
@@ -205,6 +216,24 @@ export function EquipmentForm(props: Props) {
           cleanupRef.current = fn;
         }}
       />
+
+      {/* §3-1 견적서 배너(상·하단) — 단일 슬롯 덮어쓰기 업로드 */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <BannerUploader
+          equipmentId={equipmentId}
+          slot="top"
+          value={bannerTop ?? ""}
+          onChange={setBannerTop}
+          onUploadingChange={setUploading}
+        />
+        <BannerUploader
+          equipmentId={equipmentId}
+          slot="bottom"
+          value={bannerBottom ?? ""}
+          onChange={setBannerBottom}
+          onUploadingChange={setUploading}
+        />
+      </div>
 
       {/* §4 옵션 */}
       <OptionEditor control={control} register={register} />

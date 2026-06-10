@@ -61,6 +61,30 @@ export const equipmentFormSchema = z.object({
     )
     .default([]),
   options: z.array(optionEntrySchema).default([]),
+  // 견적서 배너(상·하단) Storage 객체 경로. 빈 문자열 허용(미설정).
+  // 형식 강제(경로조작 방지·DB CHECK와 일치): equipment/{uuid}/banner-(top|bottom).{ext}.
+  quote_banner_top: z
+    .union([
+      z.literal(""),
+      z
+        .string()
+        .regex(
+          /^equipment\/[0-9a-f-]{36}\/banner-top\.(jpg|jpeg|png|webp)$/i,
+          "잘못된 배너 경로",
+        ),
+    ])
+    .default(""),
+  quote_banner_bottom: z
+    .union([
+      z.literal(""),
+      z
+        .string()
+        .regex(
+          /^equipment\/[0-9a-f-]{36}\/banner-bottom\.(jpg|jpeg|png|webp)$/i,
+          "잘못된 배너 경로",
+        ),
+    ])
+    .default(""),
 });
 
 export type EquipmentFormValues = z.infer<typeof equipmentFormSchema>;
