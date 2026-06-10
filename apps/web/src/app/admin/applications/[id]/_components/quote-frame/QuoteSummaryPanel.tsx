@@ -45,16 +45,16 @@ export function QuoteSummaryPanel({
             <span className="block rounded-md bg-surface-2 py-2 text-center text-small font-medium text-muted">견적 작성 권한 없음</span>
           )
         ) : (
-          /* 액션 3종: 수정 / 견적서 발행(PDF) / 메일 발송. 발행 시 메일 자동발송 안 함 → 메일은 버튼으로만. */
+          /* 액션 3종: 수정 / 견적서 확인(PDF) / 메일 발송. 발행 시 메일 자동발송 안 함 → 메일은 버튼으로만. */
           <div className="flex flex-col gap-2">
             <div className="flex gap-2">
               {canReissue && (
                 <Link href={`/admin/applications/${applicationId}/quote/new?from=${quoteId}`} className="flex-1 rounded-md border border-border py-2 text-center text-small font-medium text-text">수정</Link>
               )}
               {pdfUrl ? (
-                <a href={pdfUrl} target="_blank" rel="noreferrer" className="flex-1 rounded-md bg-accent py-2 text-center text-small font-medium text-white">견적서 발행</a>
+                <a href={pdfUrl} target="_blank" rel="noreferrer" className="flex-1 rounded-md bg-accent py-2 text-center text-small font-medium text-white">견적서 확인</a>
               ) : (
-                <span className="flex-1 cursor-not-allowed rounded-md bg-surface-2 py-2 text-center text-small font-medium text-muted">견적서 발행</span>
+                <span className="flex-1 cursor-not-allowed rounded-md bg-surface-2 py-2 text-center text-small font-medium text-muted">견적서 확인</span>
               )}
             </div>
             {/* 메일 발송 — 후속 이메일 슬라이스에서 활성화(현재 자리만) */}
