@@ -49,9 +49,10 @@ export function renderQuoteHtml(d: QuoteHtmlData): string {
 @font-face{font-family:'KR';src:url("${d.fontDataUri}");}
 @page{size:A4;margin:0;}
 *{box-sizing:border-box;margin:0;padding:0;font-family:'KR',sans-serif;}
-body{width:210mm;color:#111;font-size:11px;}
+/* A4 높이로 채우고 세로 플렉스 → 가운데(.pad)가 늘어나 하단 배너를 항상 페이지 바닥에 고정. */
+body{width:210mm;min-height:296mm;color:#111;font-size:11px;display:flex;flex-direction:column;}
 .banner{width:100%;display:block;}
-.pad{padding:0 14mm;}
+.pad{padding:0 14mm;flex:1 1 auto;}
 .head{display:flex;justify-content:space-between;margin-top:8px;}
 .meta div{line-height:1.7;}
 .supplier{border:1px solid #333;font-size:10px;position:relative;min-width:88mm;}
