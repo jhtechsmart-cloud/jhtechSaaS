@@ -91,7 +91,8 @@ test.describe.serial("E2E 장비 생성·토글 플로우", () => {
     await specValues.nth(1).fill("3kW");
 
     // §3 이미지 — ImageUploader: file input은 hidden(className="hidden"), setInputFiles로 직접 주입
-    await page.locator('input[type="file"]').setInputFiles(FIXTURE);
+    // (견적서 배너 업로더도 file input이라, hidden 클래스로 사진 업로더만 특정)
+    await page.locator('input[type="file"].hidden').setInputFiles(FIXTURE);
     // 업로드 완료 → "대표" 뱃지 표시 대기 (최대 15초)
     await expect(page.getByText("대표")).toBeVisible({ timeout: 15_000 });
 
