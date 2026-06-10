@@ -51,6 +51,19 @@ export function ApplicationListPane({
     return () => { if (debounce.current) clearTimeout(debounce.current); };
   }, [scope, q]);
 
+  // 서버 layout이 재검증되어 새 initialRows가 내려오면(예: 견적 저장으로 의뢰 상태 전이),
+  // 기본 보기(scope=active·검색어 없음)에선 그 값을 그대로 반영해 좌측 목록 배지를 최신화한다.
+  // 검색·필터 중에는 사용자의 클라 상태를 보존(서버 기본 목록으로 덮어쓰지 않음).
+  // React 권장 패턴 — effect가 아니라 렌더 중 prop 변화 감지로 조정(가드로 1회만 실행, 무한루프 없음).
+  const [seenInitial, setSeenInitial] = useState(initialRows);
+  if (seenInitial !== initialRows) {
+    setSeenInitial(initialRows);
+    if (scope === "active" && q.trim() === "") {
+      setRows(initialRows);
+      setHasMore(initialHasMore);
+    }
+  }
+
   async function loadMore() {
     setLoading(true);
     const res = await fetchApplicationsPage({ scope, q: q.trim() || undefined, offset: rows.length, limit: PAGE });

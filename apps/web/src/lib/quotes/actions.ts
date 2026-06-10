@@ -38,7 +38,9 @@ export async function createQuoteAction(
     return { error: "견적을 저장하지 못했습니다." };
   }
 
-  revalidatePath(`/admin/applications/${applicationId}`);
+  // 의뢰관리 2분할 셸의 목록(layout 서버 조회)까지 갱신 — 저장이 의뢰 상태를 전이하므로
+  // layout 단위로 revalidate해야 좌측 목록 배지가 새 상태로 반영된다(detail 경로만 revalidate하면 목록 stale).
+  revalidatePath("/admin/applications", "layout");
   redirect(`/admin/applications/${applicationId}`);
 }
 
@@ -69,6 +71,8 @@ export async function createManualQuoteAction(
   const appId = (data as { application_id?: string } | null)?.application_id;
   if (!appId) return { error: "견적을 저장하지 못했습니다." };
 
-  revalidatePath("/admin/applications");
+  // 의뢰관리 2분할 셸의 목록(layout 서버 조회)까지 갱신 — 수기 견적은 새 의뢰를 생성하므로
+  // layout 단위 revalidate로 좌측 목록에 새 의뢰가 즉시 나타나게 한다.
+  revalidatePath("/admin/applications", "layout");
   redirect(`/admin/applications/${appId}`);
 }
