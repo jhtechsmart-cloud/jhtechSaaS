@@ -61,18 +61,18 @@ body{width:210mm;min-height:296mm;color:#111;font-size:13px;display:flex;flex-di
 .recipient{font-size:24px;font-weight:700;}
 .rsuffix{font-size:16px;font-weight:500;margin-left:6px;}
 /* 공급자 테이블 — border-collapse로 모든 선이 단일 1px. 외곽 div 테두리 제거(중복선 방지). */
-.supplier{position:relative;width:60%;font-size:12px;}
+.supplier{position:relative;width:54%;font-size:12px;}
 .supplier table{width:100%;border-collapse:collapse;}
 .supplier td{border:1px solid #888;padding:3px 7px;word-break:keep-all;}
-.supplier td.k{white-space:nowrap;background:#f4f4f4;font-weight:500;}
+.supplier td.k{white-space:nowrap;background:#f4f4f4;font-weight:500;text-align:center;}
 .supplier td.title{text-align:center;letter-spacing:6px;background:#ececec;font-weight:600;}
 .stamp{position:absolute;right:6px;top:26px;width:66px;opacity:.95;z-index:2;}
 .lead{margin:8px 0;}
 .sumband{display:flex;align-items:stretch;margin:8px 0;}
-.sumband .lbl{display:flex;align-items:center;background:#3a4a5a;color:#fff;font-weight:700;letter-spacing:4px;padding:8px 16px;}
+.sumband .lbl{width:200px;display:flex;align-items:center;justify-content:center;background:#3a4a5a;color:#fff;font-weight:700;letter-spacing:4px;padding:8px 16px;}
 .sumband .amt-bg{flex:1;display:flex;align-items:center;background:#ececec;padding:0 16px;}
 .sumband .amt{margin-left:auto;font-size:18px;font-weight:700;}
-.sumband .unit{margin-left:18px;font-size:12px;color:#555;}
+.sumband .unit{margin-left:18px;font-size:12px;font-weight:700;color:#555;}
 table.items{width:100%;border-collapse:collapse;margin-top:4px;}
 table.items th,table.items td{border:1px solid #333;padding:4px 6px;text-align:center;}
 table.items th{background:#f3f3f3;}
