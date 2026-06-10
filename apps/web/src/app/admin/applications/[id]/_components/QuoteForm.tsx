@@ -15,6 +15,7 @@ import {
 import { createQuoteAction } from "@/lib/quotes/actions";
 import { QuoteLinesEditor } from "@/app/admin/_components/QuoteLinesEditor";
 import { QuoteTotalsAside } from "@/app/admin/_components/QuoteTotalsAside";
+import { QuoteEditModeBanner } from "@/app/admin/_components/QuoteEditModeBanner";
 
 // 저장된 견적 장비줄(이름) → 폼 장비행(카탈로그 이름매칭으로 equipmentId 복원, 미매칭은 직접입력).
 function toItemRows(initial: QuoteRow[] | undefined, catalog: QuoteCatalogItem[]): ItemRow[] {
@@ -73,7 +74,9 @@ export function QuoteForm({
   }
 
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
+    <div className="flex flex-col gap-4">
+      <QuoteEditModeBanner />
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
       <div className="flex flex-col gap-6">
         {contextSlot}
         <QuoteLinesEditor
@@ -94,6 +97,7 @@ export function QuoteForm({
         <button type="button" onClick={() => submit("issued")} disabled={pending}
           className="rounded-md bg-accent px-4 py-2 text-small font-medium text-white disabled:opacity-50">발행하기</button>
       </QuoteTotalsAside>
+      </div>
     </div>
   );
 }

@@ -49,7 +49,7 @@ export function QuoteLinesEditor({
   return (
     <div className="flex flex-col gap-6">
       {/* 장비 — 카탈로그 선택 + 직접입력 */}
-      <section className="rounded-md border border-border bg-surface p-4">
+      <section className="rounded-md border border-accent/30 bg-surface p-4">
         <h2 className="mb-2 text-h2 font-medium text-text">장비</h2>
         <div className="flex flex-col gap-2">
           {items.map((r, i) => {
@@ -122,7 +122,7 @@ export function QuoteLinesEditor({
 
       {/* 포함 옵션 — 선택 장비의 기본 포함(단가 0). 체크 해제 = 견적서에서 제외. */}
       {availableIncluded.length > 0 && (
-        <section className="rounded-md border border-border bg-surface p-4">
+        <section className="rounded-md border border-accent/30 bg-surface p-4">
           <div className="mb-2 flex items-baseline justify-between">
             <h2 className="text-h2 font-medium text-text">포함 옵션</h2>
             <span className="text-micro text-muted">기본 전체 포함 · 해제 시 견적서에서 제외</span>
@@ -144,7 +144,7 @@ export function QuoteLinesEditor({
       )}
 
       {/* 추가 옵션 — 별도 과금(자유 입력) */}
-      <section className="rounded-md border border-border bg-surface p-4">
+      <section className="rounded-md border border-accent/30 bg-surface p-4">
         <h2 className="mb-2 text-h2 font-medium text-text">추가 옵션</h2>
         <div className="flex flex-col gap-2">
           {options.map((r, i) => {
