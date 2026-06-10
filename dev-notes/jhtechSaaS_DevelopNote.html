@@ -1041,6 +1041,238 @@
   "project": "jhtechSaaS",
   "entries": [
     {
+      "tldr": "견적서 발행→PDF 자동생성 기능을 하루에 완성하고 프로덕션에 6배포(v0.12.13~0.12.15.0). Puppeteer HTML→PDF로 실제 견적서 양식을 만들고, Railway 워커의 크롬 배포 실패를 @sparticuz/chromium으로 해결, 다운로드·발행후 버튼 자동활성화·편집모드 시각구분·양식 다듬기까지 마감. 메일발송(하이웍스)은 API 스펙 미확보로 조사·결정 노트만 남기고 보류.",
+      "tags": [
+        "pdf",
+        "puppeteer",
+        "railway",
+        "quote",
+        "supabase",
+        "production-deploy"
+      ],
+      "features": [
+        {
+          "title": "견적 작성 2단 개편 + 저장 후 목록 배지 stale 수정",
+          "type": "feat",
+          "scope": "quotes",
+          "status": "completed",
+          "filesChanged": [
+            "apps/web/src/lib/quotes/actions.ts",
+            "apps/web/src/app/admin/applications/_components/ApplicationListPane.tsx"
+          ],
+          "context": "전날 이월된 견적 작성 UX 마무리. 견적 저장 후 의뢰 목록의 상태 배지가 이전 값으로 남는(stale) 문제.",
+          "implementation": "견적작성 화면을 2단 구조로 개편하고, 저장 액션 후 목록 캐시 무효화로 배지를 최신 상태로 갱신. PR#81 v0.12.13.0.",
+          "decisions": [],
+          "problems": [],
+          "learnings": [],
+          "id": "견적-작성-2단-개편-저장-후-목록-배지-stale-수정"
+        },
+        {
+          "title": "견적서 PDF 실제 양식 생성 (Puppeteer HTML→PDF)",
+          "type": "feat",
+          "scope": "worker/pdf",
+          "status": "completed",
+          "filesChanged": [
+            "apps/worker/src/jobs/quote-html.ts",
+            "apps/worker/src/jobs/quote-pdf.ts",
+            "apps/worker/src/jobs/render-quote-pdf.ts",
+            "packages/shared/src/korean-amount.ts",
+            "packages/shared/src/equipment-match.ts",
+            "packages/shared/src/company.ts",
+            "supabase/migrations/20260610120000_quote_pdf_fields.sql",
+            "apps/web/src/app/admin/equipment/_components/EquipmentForm.tsx"
+          ],
+          "context": "견적서 발행을 누르면 실제 양식의 PDF가 생성돼야 함. 의뢰사가 제공한 커팅기/프린터 견적서 양식 2종(Multicut Eco SG1625, JU1810 PLUS)이 기준. 상·하단 이미지는 장비마다 다름.",
+          "implementation": "워커가 renderQuoteHtml로 견적서 HTML을 조립한 뒤 Puppeteer(헤드리스 크롬)로 PDF 변환. 크롬 싱글턴 + base64 인라인 자산. 한글 금액 표기(numberToKoreanAmount)·공급자 정보(SUPPLIER)·장비명 매칭(matchEquipmentName)을 web에서 shared로 승격해 워커·웹 공용화. 마이그 20260610120000: equipment에 상/하단 배너 2컬럼 + profiles.phone 추가. 관리자가 장비별 배너를 업로드. PR#82 v0.12.14.0.",
+          "decisions": [
+            {
+              "title": "PDF 생성 방식 = Puppeteer HTML→PDF (pdf-lib 직접조립 대신). HTML/CSS로 양식을 잡는 게 디자인 반복이 빠름."
+            },
+            {
+              "title": "장비별 상·하단 배너 이미지는 equipment 테이블 컬럼으로 관리, 관리자 폼에서 업로드."
+            },
+            {
+              "title": "담당자 전화 = profiles.phone 컬럼 추가. 도장 이미지는 의뢰사 제공."
+            }
+          ],
+          "problems": [],
+          "learnings": [
+            "금액 한글표기·공급자·장비명매칭 같은 순수 로직은 web→shared로 올려 워커와 공용화하면 PDF/화면 표기가 일관된다."
+          ],
+          "id": "견적서-pdf-실제-양식-생성-puppeteer-html-pdf"
+        },
+        {
+          "title": "Railway 워커 크롬 배포 실패 수정 (@sparticuz/chromium)",
+          "type": "fix",
+          "scope": "worker/railway",
+          "status": "completed",
+          "filesChanged": [
+            "apps/worker/src/jobs/browser.ts",
+            "pnpm-workspace.yaml"
+          ],
+          "context": "puppeteer 번들 크롬이 Railway(Linux 컨테이너)에서 실행 실패. 또 puppeteer가 끌어온 zod@3가 web의 react-hook-form typecheck를 깸.",
+          "implementation": "puppeteer 제거 → puppeteer-core + @sparticuz/chromium. browser.ts가 환경별 분기(Linux=@sparticuz/chromium, macOS=channel chrome). zod 충돌은 pnpm overrides로 zod 4.4.3 고정. PR#83 v0.12.14.1.",
+          "decisions": [
+            {
+              "title": "서버리스/컨테이너 크롬은 puppeteer-core + @sparticuz/chromium 조합이 표준. 로컬 macOS는 설치된 chrome 채널 사용."
+            }
+          ],
+          "problems": [
+            {
+              "description": "puppeteer가 전이의존성으로 zod@3을 끌어와 web RHF typecheck 깨짐",
+              "solution": "pnpm-workspace.yaml overrides에 zod 4.4.3 핀"
+            }
+          ],
+          "learnings": [
+            "무거운 워커 의존성(puppeteer)이 끌어오는 전이의존성이 다른 패키지 타입검사를 깰 수 있다. pnpm overrides로 버전 강제."
+          ],
+          "id": "railway-워커-크롬-배포-실패-수정-sparticuz-chromium"
+        },
+        {
+          "title": "PDF 다운로드·발행후 버튼 자동활성화·편집모드 시각구분 + 양식 다듬기",
+          "type": "feat",
+          "scope": "quotes/pdf",
+          "status": "completed",
+          "filesChanged": [
+            "apps/worker/src/jobs/quote-html.ts",
+            "apps/web/src/app/admin/applications/[id]/page.tsx",
+            "apps/web/src/app/admin/equipment/[id]/edit/page.tsx",
+            "apps/web/src/app/admin/equipment/actions.ts"
+          ],
+          "context": "PDF가 quote-pdfs(비공개 버킷)에 저장되므로 다운로드에 서명 URL 필요. 발행 직후 '견적서 확인' 버튼이 즉시 활성화돼야 하고, 편집모드를 시각적으로 구분해야 함. 양식 디테일(글씨크기·공급자 박스·수신처 정렬·하단 이미지 위치) 보정.",
+          "implementation": "비공개 quote-pdfs 서명 URL 발급으로 다운로드 수정. pdf_url 폴링으로 발행 후 '견적서 확인' 버튼 자동활성화. 편집모드는 accent 좌측 레일로 구분. 양식 3차 다듬기: 글씨 크기 키움, 공급자 박스 중앙 시작 단일 테두리, 수신처([업체명] 귀하) 좌측 하단·우측 정렬, 합계 우측 정렬 배경, 705호 keep-all. 하단 배너는 내용 유무와 무관하게 항상 페이지 최하단 고정(flex layout). PR#84 v0.12.15.0.",
+          "decisions": [
+            {
+              "title": "하단 배너 = 내용 분량과 무관하게 페이지 최하단 기준 고정(여백이 많아도 bottom에 붙임)."
+            }
+          ],
+          "problems": [
+            {
+              "description": "테스트 견적(옵션/특기사항 비움)에서 하단 이미지가 특기사항 바로 아래 붙어 아래 여백 과다",
+              "solution": "본문을 flex로 늘리고 하단 배너를 항상 페이지 바닥에 고정"
+            }
+          ],
+          "learnings": [
+            "로컬 PDF 검증 = 워커 tsx 하니스(_render-sample.ts)로 렌더 → Read 도구로 PDF 대조하며 튜닝. PNG는 절대 cat/grep 금지(컨텍스트 오염)."
+          ],
+          "id": "pdf-다운로드-발행후-버튼-자동활성화-편집모드-시각구분-양식-다듬기"
+        },
+        {
+          "title": "견적서 메일 발송(하이웍스) 조사·결정 노트 — 보류",
+          "type": "docs",
+          "scope": "email",
+          "status": "blocked",
+          "filesChanged": [
+            "docs/superpowers/specs/2026-06-10-quote-email-hiworks-research.md"
+          ],
+          "context": "재현테크 영업/관리자가 견적서 메일을 하이웍스(Hiworks) 플랫폼으로 송수신. PDF를 하이웍스 연동으로 발송하는 기능 검토.",
+          "implementation": "브레인스토밍 결과: 하이웍스가 POP-only라 SMTP로는 보낸편지함 기록이 안 됨 → REST API 경로로 결정. 단 API 스펙(인증·첨부·보낸편지함)을 아직 확보 못해 구현 보류. Seonje님이 가비아(1661-4370)에 문의 대기. 연구노트 PR#85.",
+          "decisions": [
+            {
+              "title": "메일 발송 = SMTP 아닌 하이웍스 REST API. SMTP는 POP-only라 보낸편지함에 안 남음."
+            },
+            {
+              "title": "API 스펙(인증 방식·첨부 업로드·보낸편지함 반영) 미확보로 E6 구현 보류, 가비아 문의 응답 대기."
+            }
+          ],
+          "problems": [],
+          "learnings": [
+            "메일 연동 전 '보낸편지함에 남는가'를 먼저 확인. POP-only 계정은 SMTP 발송이 송신함에 기록 안 됨."
+          ],
+          "id": "견적서-메일-발송-하이웍스-조사-결정-노트-보류"
+        }
+      ],
+      "prompts": [
+        {
+          "label": "PDF 생성 방식부터 고민",
+          "prompt": "이제 견적서 발행을 누르면 pdf가 만들어지는 기능을 구현할꺼야. 어떻게 구현할지부터 고민해보자",
+          "verdict": "good",
+          "lesson": "구현 전 방식 선택(Puppeteer vs pdf-lib)을 먼저 논의해 디자인 반복이 빠른 길을 골랐다. 큰 기능은 '어떻게'부터."
+        },
+        {
+          "label": "샘플 양식 + 가변 자산 사전 명시",
+          "prompt": "커팅기/프린터 양식 2개가 있어. 상단/하단 이미지는 장비마다 모두 다르니 장비에 맞는 이미지로 넣어 만들어야 해. 이미지는 내가 제공할꺼야.",
+          "verdict": "good",
+          "lesson": "실제 산출물 샘플 + 가변 부분(장비별 배너)을 미리 알려주면 데이터 모델(equipment 배너 컬럼)을 처음부터 맞게 잡는다."
+        },
+        {
+          "label": "PR 열어두고 자산 도착 후 같은 브랜치 튜닝",
+          "prompt": "자산·시각 튜닝이 남았으니 PR을 열어두고, 도장·배너를 받아 같은 브랜치에서 시각 튜닝 커밋을 더한 뒤 머지하는 흐름으로 가자",
+          "verdict": "good",
+          "lesson": "외부 자산 대기 중인 기능은 PR을 열어두고 자산 도착 후 같은 브랜치에 커밋을 쌓는 워크플로가 깔끔하다."
+        },
+        {
+          "label": "하단 이미지 항상 바닥 고정 (구체적 버그 기술)",
+          "prompt": "bottom 이미지는 내용 여부와 관계없이 항상 제일 아래쪽 기준으로 붙여줘",
+          "verdict": "good",
+          "lesson": "PDF 시각 버그를 '언제·어디서·어떻게 돼야 하는지' 구체적으로 기술하면 flex 바닥 고정으로 바로 해결."
+        }
+      ],
+      "references": [
+        {
+          "title": "@sparticuz/chromium",
+          "url": "https://github.com/Sparticuz/chromium",
+          "note": "서버리스/컨테이너용 크롬 바이너리. puppeteer-core와 조합해 Railway에서 헤드리스 크롬 실행.",
+          "tags": [
+            "puppeteer",
+            "railway"
+          ]
+        },
+        {
+          "title": "하이웍스 견적메일 연구노트",
+          "url": "docs/superpowers/specs/2026-06-10-quote-email-hiworks-research.md",
+          "note": "하이웍스 메일 연동 조사: POP-only→REST API 경로, 스펙 미확보로 보류.",
+          "tags": [
+            "email",
+            "hiworks"
+          ]
+        }
+      ],
+      "changelog": {
+        "added": [
+          "견적서 발행 시 Puppeteer HTML→PDF 실제 양식 생성",
+          "장비별 상·하단 배너 이미지 업로드 (equipment 2컬럼)",
+          "profiles.phone (담당자 전화)",
+          "PDF 다운로드 서명 URL, 발행후 '견적서 확인' 버튼 자동활성화, 편집모드 좌측 레일 시각구분"
+        ],
+        "changed": [
+          "금액 한글표기·공급자·장비명매칭 로직 web→shared 승격",
+          "견적서 양식 다듬기: 글씨크기·공급자 박스 중앙 시작·수신처 우측정렬·합계 우측정렬·하단 배너 바닥 고정",
+          "pnpm overrides zod 4.4.3 핀"
+        ],
+        "fixed": [
+          "Railway 워커 크롬 배포 실패 (puppeteer→puppeteer-core + @sparticuz/chromium)",
+          "견적 저장 후 의뢰 목록 상태 배지 stale",
+          "테스트 견적에서 하단 이미지가 위로 붙던 여백 문제"
+        ],
+        "removed": [
+          "puppeteer (puppeteer-core로 대체)"
+        ]
+      },
+      "nextSteps": [
+        "하이웍스 API 스펙 수령 시 E6 메일발송 재개 (인증·첨부·보낸편지함)",
+        "PDF 추가 자산(이미지·데이터) 도착 시 양식 더 다듬기",
+        "3b 특기사항(quotes 컬럼)·3c 영업일지 구현",
+        "프로덕션 @sparticuz 크롬 런타임 최종 검증(Seonje 배너 업로드+발행 필요)"
+      ],
+      "claudeHints": "이 프로젝트의 PDF는 워커가 Puppeteer로 HTML→PDF 변환한다(quote-html.ts renderQuoteHtml). Railway(Linux)는 @sparticuz/chromium, 로컬 macOS는 channel chrome으로 browser.ts가 분기한다. PDF 시각 검증은 워커 tsx 하니스(_render-sample.ts)로 렌더 후 Read 도구로 PDF를 대조해 튜닝하라 — PNG/PDF를 cat/grep으로 읽지 마라(컨텍스트 오염). 금액 한글표기·공급자·장비명매칭 등 화면·PDF 공용 로직은 packages/shared에 둔다.",
+      "reusablePatterns": [
+        {
+          "name": "워커 PDF 렌더 하니스",
+          "description": "tsx로 quote-html을 렌더해 로컬에서 PDF 산출, Read로 대조하며 시각 튜닝",
+          "file": "apps/worker/src/_render-sample.ts"
+        },
+        {
+          "name": "환경별 크롬 분기",
+          "description": "Linux=@sparticuz/chromium, macOS=channel chrome으로 puppeteer-core 실행",
+          "file": "apps/worker/src/jobs/browser.ts"
+        }
+      ],
+      "date": "2026-06-10",
+      "mainTask": "견적서-PDF-자동생성",
+      "codeDiagram": "flowchart LR\n    N0[\"MEMORY.md\"]\n    N1[\"jhtechsaas-project.md\"]\n    N2[\"CHANGELOG.md\"]\n    N3[\"VERSION\"]\n    N4[\"QuoteSummaryPanel.tsx\"]\n    N5[\"page.tsx\"]\n    N6[\"ApplicationListPane.tsx\"]\n    N7[\"page.tsx\"]\n    N8[\"BannerUploader.tsx\"]\n    N9[\"EquipmentForm.tsx\"]\n    N10[\"actions.ts\"]\n    N11[\"schema.ts\"]\n    N12[\"actions.ts\"]\n    N13[\"equipment-match.ts\"]\n    N14[\"assets.ts\"]\n    N15[\"browser.ts\"]\n    N16[\"quote-html.test.ts\"]\n    N17[\"quote-html.ts\"]\n    N18[\"quote-pdf.ts\"]\n    N19[\"render-quote-pdf.test.ts\"]\n    N20[\"render-quote-pdf.ts\"]\n    N21[\"roadmap.json\"]\n    N22[\"2026-06-10-quote-email-hiworks-research.md\"]\n    N23[\"2026-06-10-quote-pdf-render-design.md\"]\n    N24[\"quote-pdf-fields.test.ts\"]\n    N25[\"company.ts\"]\n    N26[\"equipment-match.test.ts\"]\n    N27[\"equipment-match.ts\"]\n    N28[\"index.ts\"]\n    N29[\"korean-amount.test.ts\"]\n    N30[\"korean-amount.ts\"]\n    N31[\"pnpm-workspace.yaml\"]\n    N32[\"20260610120000_quote_pdf_fields.sql\"]\n    N33[\"20260610120000_quote_pdf_fields_down.sql\"]\n    N34[\"devnote_data.json\"]\n    N35[\"AssignControl.tsx\"]\n    N36[\"RegisterCustomerButton.tsx\"]\n    N37[\"StatusControl.tsx\"]\n    N38[\"ApplicantInfo.tsx\"]\n    N39[\"InstallSurvey.tsx\"]\n    N40[\"OptionLists.tsx\"]\n    N41[\"Placeholders.tsx\"]\n    N42[\"QuoteHero.tsx\"]\n    N43[\"QuotePdfButton.tsx\"]\n    N44[\"QuoteSummaryPanel.tsx\"]\n    N45[\"SectionHeader.tsx\"]\n    N46[\"SelectedEquipment.tsx\"]\n    N47[\"SitePhotos.tsx\"]\n    N48[\"VersionHistory.tsx\"]\n    N49[\"page.tsx\"]\n    N50[\"ApplicationListPane.tsx\"]\n    N51[\"page.tsx\"]\n    N52[\"BannerUploader.tsx\"]\n    N53[\"EquipmentForm.tsx\"]\n    N54[\"HighlightsEditor.tsx\"]\n    N55[\"ImageUploader.tsx\"]\n    N56[\"OptionEditor.tsx\"]\n    N57[\"SpecEditor.tsx\"]\n    N58[\"YoutubeUrlsEditor.tsx\"]\n    N59[\"actions.ts\"]\n    N60[\"actions.ts\"]\n    N61[\"assets.ts\"]\n    N62[\"browser.ts\"]\n    N63[\"quote-html.ts\"]\n    N64[\"quote-pdf.ts\"]\n    N65[\"render-quote-pdf.ts\"]\n    N66[\"2026-06-10-quote-email-hiworks-research.md\"]\n    N67[\"biz-no.ts\"]\n    N68[\"company.ts\"]\n    N69[\"equipment-match.ts\"]\n    N70[\"korean-amount.ts\"]\n    N71[\"permissions.ts\"]\n    N72[\"phone.ts\"]\n    N73[\"quote-calc.ts\"]\n    N74[\"seed.ts\"]\n    N75[\"specs.ts\"]\n    N76[\"supabase.ts\"]\n    N77[\"types.ts\"]\n    N78[\"pnpm-workspace.yaml\"]\n    N79[\"20260610120000_quote_pdf_fields.sql\"]\n    N64 --> N65\n    N64 --> N61\n    N64 --> N63\n    N65 --> N62\n    N65 --> N63\n    N53 --> N57\n    N53 --> N54\n    N53 --> N58\n    N53 --> N56\n    N53 --> N55\n    N53 --> N52\n    N49 --> N37\n    N49 --> N35\n    N49 --> N36\n    N49 --> N42\n    N49 --> N45\n    N49 --> N48\n    N49 --> N38\n    N49 --> N39\n    N49 --> N47\n    N49 --> N46\n    N49 --> N40\n    N49 --> N44\n    N49 --> N41\n    N51 --> N53\n    N29 --> N70\n    N28 --> N71\n    N28 --> N75\n    N28 --> N76\n    N28 --> N74\n    N28 --> N77\n    N28 --> N67\n    N28 --> N72\n    N28 --> N73\n    N28 --> N70\n    N28 --> N68\n    N28 --> N69\n    N26 --> N69\n    N16 --> N63\n    N20 --> N62\n    N20 --> N63\n    N19 --> N65\n    N19 --> N62\n    N19 --> N63\n    N18 --> N65\n    N18 --> N61\n    N18 --> N63\n    N9 --> N57\n    N9 --> N54\n    N9 --> N58\n    N9 --> N56\n    N9 --> N55\n    N9 --> N52\n    N7 --> N53\n    N5 --> N37\n    N5 --> N35\n    N5 --> N36\n    N5 --> N42\n    N5 --> N45\n    N5 --> N48\n    N5 --> N38\n    N5 --> N39\n    N5 --> N47\n    N5 --> N46\n    N5 --> N40\n    N5 --> N44\n    N5 --> N41\n    N4 --> N43\n    style N69 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N9 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N70 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N2 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N15 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N14 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N28 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N19 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N65 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N79 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N68 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N60 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N51 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N6 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N5 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N66 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N64 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N23 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N29 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N25 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N11 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N16 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N21 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N34 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N49 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N30 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N13 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N53 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N8 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N0 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N24 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N50 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N78 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N31 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N17 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N63 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N18 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N59 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N12 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N26 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N33 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N1 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N22 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N10 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N32 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N27 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N62 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N7 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N3 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N4 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N20 fill:#dbeafe,stroke:#2563eb,stroke-width:2px"
+    },
+    {
       "tldr": "하루에 프로덕션 3건: ① Railway 워커 대시보드 실배포(PDF 생성 고리 end-to-end 완성) ② 콘솔 색 재단장(딥네이비+스틸블루 모노톤, PR #69) ③ 의뢰관리 2분할 마스터-디테일 + 확장형 목록 + 사이드바 접기/hover-push(PR #70, 2단계 슬라이스 1/4). brainstorm→plan→subagent-driven으로 진행.",
       "tags": [
         "next.js",
