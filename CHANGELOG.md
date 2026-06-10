@@ -2,6 +2,11 @@
 
 이 프로젝트의 주요 변경 사항을 기록한다. [Keep a Changelog](https://keepachangelog.com/) 형식, [Semantic Versioning](https://semver.org/)(4자리 MAJOR.MINOR.PATCH.MICRO).
 
+## [0.12.14.1] - 2026-06-10
+
+### Fixed
+- **Railway 워커 배포 실패(크롬)** — puppeteer 번들 크롬이 Railway Nixpacks 빌드에서 다운로드·추출에 실패해 배포가 깨지던 문제. `puppeteer` → `puppeteer-core` + `@sparticuz/chromium`(컨테이너용 슬림 크롬)로 교체. `browser.ts`가 Linux=@sparticuz·macOS=설치된 Google Chrome으로 분기. 빌드 때 크롬 다운로드가 없어 추출 실패를 원천 회피(`onlyBuiltDependencies` 제거).
+
 ## [0.12.14.0] - 2026-06-10
 
 ### Added

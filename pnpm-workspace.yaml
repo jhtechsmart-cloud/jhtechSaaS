@@ -7,11 +7,11 @@ ignoredBuiltDependencies:
   - sharp
   - unrs-resolver
 
-# puppeteer postinstall = Chromium 다운로드 허용(워커 HTML→PDF 렌더용)
-onlyBuiltDependencies:
-  - puppeteer
+# 워커 PDF 렌더 크롬 = puppeteer-core + @sparticuz/chromium(Linux)/로컬 Chrome(macOS).
+# 빌드 때 크롬 다운로드(postinstall)가 없어 Railway Nixpacks 추출 실패를 피한다 →
+# onlyBuiltDependencies 불필요(puppeteer 번들 크롬 제거).
 
-# puppeteer가 끌어온 zod@3가 web의 @hookform/resolvers 타입 해석을 틀어 RHF 폼 typecheck를
-# 깨뜨림 → 단일 zod로 dedupe. puppeteer peer는 ^3.25 || ^4.0이라 4.4.3 수용.
+# puppeteer가 끌어왔던 zod@3가 web의 @hookform/resolvers 타입 해석을 틀어 RHF 폼 typecheck를
+# 깨뜨림 → 단일 zod로 dedupe.
 overrides:
   zod: 4.4.3
