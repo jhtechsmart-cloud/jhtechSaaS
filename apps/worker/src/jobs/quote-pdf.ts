@@ -52,7 +52,7 @@ export async function processQuotePdfJob(
   const { data: quote, error } = await supabase
     .from("quotes")
     .select(
-      "id, quote_no, version, items, options, supply_price, issued_at, application_id, " +
+      "id, quote_no, items, options, supply_price, issued_at, application_id, " +
         "assignee:assignee_id(name, phone), application:application_id(company, equipment_id)",
     )
     .eq("id", quoteId)
@@ -126,7 +126,7 @@ export async function processQuotePdfJob(
     issuedDateLabel,
     assigneeName: assignee?.name ?? "담당자",
     assigneePhone: assignee?.phone ?? null,
-    recipient: app?.company ?? "",
+    recipient: app?.company ?? "고객",
     supplyPrice,
     koreanAmount: numberToKoreanAmount(supplyPrice),
     items: htmlItems,
