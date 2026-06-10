@@ -139,13 +139,19 @@ export default async function ApplicationDetailPage({
     ? `${quote.issued_at.slice(0, 10).replace(/-/g, ".")} · ${quote.issued_at.slice(11, 16)}`
     : null;
 
-  // PDF URL — 발행(issued) 상태인 경우에만 노출
-  const pdfUrl = quote?.status === "issued" ? (quote.pdf_url ?? null) : null;
+  // 견적서 PDF 경로(발행 상태만) — 아래에서 quote-pdfs 서명URL로 변환.
+  const pdfPath = quote?.status === "issued" ? (quote.pdf_url ?? null) : null;
 
   // 사진 4슬롯 병렬 서명URL
   // ⚠️ anon이 RPC 우회 직접 INSERT로 photos 경로를 주입할 수 있어,
   // RPC와 동일한 경로 정규식(버킷-상대 `<uuid>/<slot>.ext`)을 admin 렌더 전에도 강제.
   const supabase = await createSupabaseServerClient();
+
+  // 견적서 PDF 서명URL — quote-pdfs는 비공개 버킷이라 서명URL로만 다운로드 가능(없으면 null).
+  const pdfUrl = pdfPath
+    ? ((await supabase.storage.from("quote-pdfs").createSignedUrl(pdfPath, 600)).data?.signedUrl ?? null)
+    : null;
+
   const photos = fields.photos ?? {};
   const signed = await Promise.all(
     PHOTO_SLOTS.map(async (slot) => {

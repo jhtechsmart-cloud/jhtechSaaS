@@ -14,6 +14,7 @@ import {
 import { createManualQuoteAction } from "@/lib/quotes/actions";
 import { QuoteLinesEditor } from "@/app/admin/_components/QuoteLinesEditor";
 import { QuoteTotalsAside } from "@/app/admin/_components/QuoteTotalsAside";
+import { QuoteEditModeBanner } from "@/app/admin/_components/QuoteEditModeBanner";
 
 // 수기 견적 폼 — 회사 필드 + 카탈로그 라인 에디터. 저장 시 create_manual_quote(app+quote 원자).
 export function ManualQuoteForm({ catalog }: { catalog: QuoteCatalogItem[] }) {
@@ -61,9 +62,11 @@ export function ManualQuoteForm({ catalog }: { catalog: QuoteCatalogItem[] }) {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
+    <div className="flex flex-col gap-4">
+      <QuoteEditModeBanner />
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
       <div className="flex flex-col gap-6">
-        <section className="rounded-md border border-border bg-surface p-4">
+        <section className="rounded-md border border-border border-l-4 border-l-accent bg-surface p-4">
           <h2 className="mb-2 text-h2 font-medium text-text">고객</h2>
           <div className="flex flex-col gap-2">
             <Field label="회사명" value={company} onChange={setCompany} disabled={pending} required />
@@ -92,6 +95,7 @@ export function ManualQuoteForm({ catalog }: { catalog: QuoteCatalogItem[] }) {
         <button type="button" onClick={() => submit("issued")} disabled={pending}
           className="rounded-md bg-accent px-4 py-2 text-small font-medium text-white disabled:opacity-50">발행하기</button>
       </QuoteTotalsAside>
+      </div>
     </div>
   );
 }
