@@ -10,3 +10,8 @@ ignoredBuiltDependencies:
 # puppeteer postinstall = Chromium 다운로드 허용(워커 HTML→PDF 렌더용)
 onlyBuiltDependencies:
   - puppeteer
+
+# puppeteer가 끌어온 zod@3가 web의 @hookform/resolvers 타입 해석을 틀어 RHF 폼 typecheck를
+# 깨뜨림 → 단일 zod로 dedupe. puppeteer peer는 ^3.25 || ^4.0이라 4.4.3 수용.
+overrides:
+  zod: 4.4.3
