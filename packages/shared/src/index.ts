@@ -13,3 +13,4 @@ export * from "./phone";
 export * from "./quote-calc";
 export * from "./korean-amount";
 export * from "./company";
+export * from "./equipment-match";
