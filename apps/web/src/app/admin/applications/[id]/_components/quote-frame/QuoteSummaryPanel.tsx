@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { VALID_DAYS } from "@/lib/quotes/banner";
+import { QuotePdfButton } from "./QuotePdfButton";
 
 const won = (s: string | number) => `₩${Number(s).toLocaleString("ko-KR")}`;
 type LineRow = { name: string; unitPrice: number; quantity: number };
@@ -51,8 +52,8 @@ export function QuoteSummaryPanel({
               {canReissue && (
                 <Link href={`/admin/applications/${applicationId}/quote/new?from=${quoteId}`} className="flex-1 rounded-md border border-border py-2 text-center text-small font-medium text-text">수정</Link>
               )}
-              {pdfUrl ? (
-                <a href={pdfUrl} target="_blank" rel="noreferrer" className="flex-1 rounded-md bg-accent py-2 text-center text-small font-medium text-white">견적서 확인</a>
+              {quoteId ? (
+                <QuotePdfButton quoteId={quoteId} initialPdfUrl={pdfUrl} />
               ) : (
                 <span className="flex-1 cursor-not-allowed rounded-md bg-surface-2 py-2 text-center text-small font-medium text-muted">견적서 확인</span>
               )}

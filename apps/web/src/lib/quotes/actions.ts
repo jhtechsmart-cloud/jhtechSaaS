@@ -13,6 +13,24 @@ import {
 
 export type QuoteActionResult = { error: string } | null;
 
+// 견적서 PDF 서명URL 조회 — 발행 직후 워커가 PDF를 비동기로 만들므로, 상세 화면이
+// pdf_url이 생길 때까지 폴링해 새로고침 없이 '견적서 확인' 버튼을 활성화한다.
+// 비공개 quote-pdfs 버킷이라 서명URL로만 접근(없으면 null).
+export async function getQuotePdfUrl(quoteId: string): Promise<string | null> {
+  const access = await requireQuotesWrite();
+  if (access.status === "forbidden") return null;
+  if (!z.guid().safeParse(quoteId).success) return null;
+  const supabase = await createSupabaseServerClient();
+  const { data: quote } = await supabase
+    .from("quotes")
+    .select("pdf_url, status")
+    .eq("id", quoteId)
+    .single();
+  if (!quote || quote.status !== "issued" || !quote.pdf_url) return null;
+  const { data } = await supabase.storage.from("quote-pdfs").createSignedUrl(quote.pdf_url, 600);
+  return data?.signedUrl ?? null;
+}
+
 // 견적 생성 — 기존 의뢰 위에. 금액은 서버 RPC가 items·options로 재계산(클라 금액 신뢰 안 함).
 // ⚠️ Server Action은 직접 POST로도 도달 가능 → 가드를 액션에서도 재호출.
 export async function createQuoteAction(
