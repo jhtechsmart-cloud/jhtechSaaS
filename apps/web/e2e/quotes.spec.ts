@@ -90,6 +90,11 @@ test.describe.serial("E5 견적 작성 폼 E2E", () => {
     await expect(page.getByText("발행", { exact: true }).first()).toBeVisible();
     await expect(page.getByText("60,500,000원").first()).toBeVisible();
     await expect(page.getByTestId("app-status")).toHaveText("견적발송"); // 발행 → 의뢰 상태 자동 전이
+
+    // 7) 🔧 회귀 — 좌측 2분할 목록의 해당 의뢰 행 배지도 새 상태(견적발송)로 갱신돼야 한다.
+    // 견적 저장이 layout revalidate를 트리거하고, 목록 클라(ApplicationListPane)가 새 서버 데이터를
+    // 반영하는지 검증. (이전: 목록은 '접수'로 stale 유지 → 이 단언이 실패.)
+    await expect(page.locator("a", { hasText: APP_CO }).first()).toContainText("견적발송");
   });
 });
 

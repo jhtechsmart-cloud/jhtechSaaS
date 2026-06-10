@@ -2,6 +2,14 @@
 
 이 프로젝트의 주요 변경 사항을 기록한다. [Keep a Changelog](https://keepachangelog.com/) 형식, [Semantic Versioning](https://semver.org/)(4자리 MAJOR.MINOR.PATCH.MICRO).
 
+## [0.12.13.0] - 2026-06-10
+
+### Changed
+- **견적 작성 페이지 2단 개편** — 의뢰 견적 작성(`/admin/applications/[id]/quote/new`)·수기 견적(`/admin/quotes/new`)을 의뢰 상세와 동일한 "넓은 왼쪽 + 좁은 sticky 오른쪽" 2단 레이아웃으로. 왼쪽에 맥락(신청기업·설치설문·현장사진)과 견적 입력 폼, 오른쪽 고정 칸에 실시간 합계. 입력 폼만 덩그러니 있어 휑하던 화면에 견적 대상 맥락을 채움. 실시간 합계 계산을 순수 헬퍼(`formPreviewTotals`)로 추출하고 공용 sticky 패널(`QuoteTotalsAside`)로 단일화. 맥락 블록은 의뢰 상세의 UI 컴포넌트 재활용(상세 페이지 미변경). DB/RPC 변경 없음.
+
+### Fixed
+- **견적 저장 후 좌측 의뢰목록 상태 배지 미갱신** — 견적 임시저장/발행이 의뢰 상태를 전이하지만 2분할 셸의 좌측 목록은 stale "접수"로 남던 문제. 저장 액션이 상세 경로만 revalidate해 목록을 가진 layout이 리렌더되지 않고, 목록 클라(`ApplicationListPane`)가 `initialRows`를 초기값으로만 쓰던 2중 원인. 액션을 `revalidatePath(layout)`으로, 목록 클라를 렌더타임 prop-sync(기본 보기 한정, 검색·필터 상태 보존)로 수정. 발행 후 목록 배지 갱신을 검증하는 회귀 e2e 추가.
+
 ## [0.12.12.0] - 2026-06-09
 
 ### Added

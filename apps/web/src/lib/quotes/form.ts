@@ -80,6 +80,18 @@ export function previewTotals(items: QuoteRow[], options: QuoteRow[]): QuoteResu
   return calculateQuote({ items: items.map(coerce), options: options.map(coerce) });
 }
 
+// 폼 상태(장비행·추가옵션·해제된 포함옵션)에서 실시간 합계 계산.
+// QuoteLinesEditor에 인라인이던 계산을 폼 상단으로 끌어올려 합계 패널과 공유한다.
+export function formPreviewTotals(
+  items: ItemRow[],
+  options: QuoteRow[],
+  includedDeselected: string[],
+  catalog: QuoteCatalogItem[],
+): QuoteResult {
+  const checkedIncluded = availableIncludedNames(items, catalog).filter((n) => !includedDeselected.includes(n));
+  return previewTotals(itemRowsToLines(items), buildQuoteOptions(checkedIncluded, options));
+}
+
 // 저장된 견적 줄(jsonb) → 폼 행. 재발행 프리필용. 깨진 값은 안전 기본으로 코어스(방어).
 export function parseQuoteLines(value: unknown): QuoteRow[] {
   if (!Array.isArray(value)) return [];

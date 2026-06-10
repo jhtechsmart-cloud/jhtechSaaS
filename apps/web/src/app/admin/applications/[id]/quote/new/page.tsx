@@ -7,6 +7,7 @@ import { parseQuoteLines, type QuoteRow, type QuoteCatalogItem } from "@/lib/quo
 import { listEquipmentForMatch } from "@/lib/quotes/equipment-match.server";
 import { matchEquipmentName } from "@/lib/quotes/equipment-match";
 import { QuoteForm } from "../../_components/QuoteForm";
+import { ApplicationContext } from "../../_components/ApplicationContext";
 
 // 견적 작성 — 기존 의뢰 위에. quotes.write 가드 + 의뢰 존재 확인 후 폼 렌더.
 // ?from=<quoteId>면 그 견적 줄을 프리필(재발행) — 같은 의뢰의 견적만 허용.
@@ -74,14 +75,20 @@ export default async function NewQuotePage({
   }
 
   return (
-    <section className="flex max-w-3xl flex-col gap-4">
+    <section className="flex flex-col gap-4">
       <Link href={`/admin/applications/${id}`} className="text-small text-muted hover:text-text">
         ← 의뢰로
       </Link>
       <h1 className="text-h1 font-semibold text-text">
         {from ? "견적 재발행" : "견적 작성"} — {app.company}
       </h1>
-      <QuoteForm applicationId={id} catalog={catalog} initialItems={initialItems} initialOptions={initialOptions} />
+      <QuoteForm
+        applicationId={id}
+        catalog={catalog}
+        initialItems={initialItems}
+        initialOptions={initialOptions}
+        contextSlot={<ApplicationContext id={id} />}
+      />
     </section>
   );
 }

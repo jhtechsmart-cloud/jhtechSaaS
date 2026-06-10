@@ -6,6 +6,7 @@ import {
   buildIncludedRows,
   buildQuoteOptions,
   cleanRows,
+  formPreviewTotals,
   itemRowsToLines,
   parseQuoteLines,
   previewTotals,
@@ -147,5 +148,46 @@ describe("validateQuoteForm — 저장 전 검증", () => {
   });
   test("단가 소수면 에러", () => {
     expect(validateQuoteForm([row("장비", 1000.5, 1)], [])).toMatch(/단가/);
+  });
+});
+
+describe("formPreviewTotals", () => {
+  const catalog: QuoteCatalogItem[] = [
+    {
+      id: "eq1",
+      name: "UV3300S",
+      model: "M1",
+      basePrice: 50_000_000,
+      category: "프린터",
+      options: [
+        { kind: "included", name: "기본설치" },
+        { kind: "included", name: "원격지원" },
+      ],
+    },
+  ];
+
+  test("장비 + 추가옵션 합계(공급가·세액10%·합계) 계산", () => {
+    const items: ItemRow[] = [{ equipmentId: "eq1", name: "UV3300S", unitPrice: 50_000_000, quantity: 1 }];
+    const extra: QuoteRow[] = [{ name: "프린트헤드", unitPrice: 2_500_000, quantity: 2 }];
+    // 포함옵션(단가 0)은 합계에 영향 없음 → 공급가 = 50,000,000 + 5,000,000 = 55,000,000
+    const r = formPreviewTotals(items, extra, [], catalog);
+    expect(r.supplyPrice).toBe(55_000_000);
+    expect(r.taxPrice).toBe(5_500_000);
+    expect(r.total).toBe(60_500_000);
+  });
+
+  test("포함옵션 해제는 합계에 영향 없음(단가 0)", () => {
+    const items: ItemRow[] = [{ equipmentId: "eq1", name: "UV3300S", unitPrice: 50_000_000, quantity: 1 }];
+    const all = formPreviewTotals(items, [], [], catalog);
+    const someDeselected = formPreviewTotals(items, [], ["원격지원"], catalog);
+    expect(someDeselected.supplyPrice).toBe(all.supplyPrice);
+    expect(someDeselected.total).toBe(all.total);
+  });
+
+  test("빈/NaN 입력은 0으로 처리(공급가 0)", () => {
+    const items: ItemRow[] = [{ equipmentId: "", name: "", unitPrice: Number.NaN, quantity: Number.NaN }];
+    const r = formPreviewTotals(items, [], [], catalog);
+    expect(r.supplyPrice).toBe(0);
+    expect(r.total).toBe(0);
   });
 });

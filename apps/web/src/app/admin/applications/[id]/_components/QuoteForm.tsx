@@ -1,9 +1,10 @@
 "use client";
-import { useState, useTransition } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 import { matchEquipmentName } from "@/lib/quotes/equipment-match";
 import {
   availableIncludedNames,
   buildQuoteOptions,
+  formPreviewTotals,
   itemRowsToLines,
   rowsToQuoteInput,
   validateQuoteForm,
@@ -13,6 +14,7 @@ import {
 } from "@/lib/quotes/form";
 import { createQuoteAction } from "@/lib/quotes/actions";
 import { QuoteLinesEditor } from "@/app/admin/_components/QuoteLinesEditor";
+import { QuoteTotalsAside } from "@/app/admin/_components/QuoteTotalsAside";
 
 // 저장된 견적 장비줄(이름) → 폼 장비행(카탈로그 이름매칭으로 equipmentId 복원, 미매칭은 직접입력).
 function toItemRows(initial: QuoteRow[] | undefined, catalog: QuoteCatalogItem[]): ItemRow[] {
@@ -30,11 +32,13 @@ export function QuoteForm({
   catalog,
   initialItems,
   initialOptions,
+  contextSlot,
 }: {
   applicationId: string;
   catalog: QuoteCatalogItem[];
   initialItems?: QuoteRow[];
   initialOptions?: QuoteRow[];
+  contextSlot?: ReactNode;
 }) {
   const [items, setItems] = useState<ItemRow[]>(() => toItemRows(initialItems, catalog));
   const [options, setOptions] = useState<QuoteRow[]>(() => (initialOptions ?? []).filter((o) => o.kind !== "included"));
@@ -46,6 +50,9 @@ export function QuoteForm({
   });
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  // 실시간 합계 미리보기(폼 상태 기반, 표시 전용 — 저장 권위는 서버 RPC).
+  const totals = formPreviewTotals(items, options, includedDeselected, catalog);
 
   function submit(status: "draft" | "issued") {
     const checkedIncluded = availableIncludedNames(items, catalog).filter((n) => !includedDeselected.includes(n));
@@ -66,24 +73,27 @@ export function QuoteForm({
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <QuoteLinesEditor
-        catalog={catalog}
-        items={items}
-        setItems={setItems}
-        includedDeselected={includedDeselected}
-        setIncludedDeselected={setIncludedDeselected}
-        options={options}
-        setOptions={setOptions}
-        disabled={pending}
-      />
-      {error && <p className="text-small text-danger">{error}</p>}
-      <div className="flex gap-2">
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
+      <div className="flex flex-col gap-6">
+        {contextSlot}
+        <QuoteLinesEditor
+          catalog={catalog}
+          items={items}
+          setItems={setItems}
+          includedDeselected={includedDeselected}
+          setIncludedDeselected={setIncludedDeselected}
+          options={options}
+          setOptions={setOptions}
+          disabled={pending}
+        />
+      </div>
+      <QuoteTotalsAside totals={totals}>
+        {error && <p className="text-small text-danger">{error}</p>}
         <button type="button" onClick={() => submit("draft")} disabled={pending}
           className="rounded-md bg-surface-2 px-4 py-2 text-small font-medium text-text disabled:opacity-50">임시저장</button>
         <button type="button" onClick={() => submit("issued")} disabled={pending}
           className="rounded-md bg-accent px-4 py-2 text-small font-medium text-white disabled:opacity-50">발행하기</button>
-      </div>
+      </QuoteTotalsAside>
     </div>
   );
 }
