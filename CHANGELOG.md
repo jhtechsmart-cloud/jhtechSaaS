@@ -2,6 +2,18 @@
 
 이 프로젝트의 주요 변경 사항을 기록한다. [Keep a Changelog](https://keepachangelog.com/) 형식, [Semantic Versioning](https://semver.org/)(4자리 MAJOR.MINOR.PATCH.MICRO).
 
+## [0.12.14.0] - 2026-06-10
+
+### Added
+- **견적서 PDF 실제 양식 생성** — 발행 시 워커가 만드는 견적 PDF를 영문 placeholder에서 재현테크 실제 양식(장비별 상·하단 배너 + 동적 가운데)을 **Puppeteer(HTML→PDF)** 로 렌더한 진짜 견적서로 교체. 기존 파이프라인(발행 트리거→jobs 큐→워커→`quote-pdfs` 업로드→`pdf_url`)은 그대로. 구성: 공급자 박스(고정 상수)+실제 인감, 수신처, 견적메타(일자·번호·담당자+전화), 합계금액 띠+한글금액(일금 ○○원정), 품목표(메인+포함옵션"포함"+추가옵션+총계), 장비사양(equipment.specs 있을 때), 표준 특기사항, 장비별 상·하단 배너. 한글 폰트(Noto Sans KR)·도장·배너는 base64 인라인. shared 유틸 신설: `numberToKoreanAmount`·`SUPPLIER` 상수·`matchEquipmentName`(웹·워커 공유로 이동).
+- **장비 화면 견적서 배너 업로드** — 관리자 장비 수정 화면에 "견적서 상단/하단 배너" 업로드 슬롯 2칸. `equipment-images` 버킷에 `equipment/{id}/banner-{top|bottom}.{ext}`로 저장.
+
+### Changed
+- 마이그레이션 `20260610120000_quote_pdf_fields`: `equipment.quote_banner_top`/`quote_banner_bottom`(경로 CHECK) + `profiles.phone` 추가(전부 nullable, 롤백·db-test 동봉).
+
+### Fixed
+- puppeteer가 끌어온 zod@3가 web의 `@hookform/resolvers` 타입 해석을 틀어 RHF 폼 typecheck를 깨던 문제 → `pnpm-workspace.yaml`에 zod 4.4.3 override로 단일 dedupe(puppeteer peer는 zod 4 수용).
+
 ## [0.12.13.0] - 2026-06-10
 
 ### Changed

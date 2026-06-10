@@ -86,6 +86,9 @@ export async function createEquipment(
     youtube_urls: v.youtube_urls.map((u) => u.trim()).filter(Boolean),
     specs: serializeSpecs(v.specs),
     photos: v.photos,
+    // 빈 문자열은 null로(nullable 컬럼 + CHECK 제약 만족).
+    quote_banner_top: v.quote_banner_top || null,
+    quote_banner_bottom: v.quote_banner_bottom || null,
   });
   // 원시 DB 메시지는 스키마 fingerprinting 노출이라 서버 로그로만 남기고 일반 메시지 반환.
   if (error) {
@@ -143,6 +146,9 @@ export async function updateEquipment(
       youtube_urls: v.youtube_urls.map((u) => u.trim()).filter(Boolean),
       specs: serializeSpecs(v.specs),
       photos: v.photos,
+      // 빈 문자열은 null로(nullable 컬럼 + CHECK 제약 만족).
+      quote_banner_top: v.quote_banner_top || null,
+      quote_banner_bottom: v.quote_banner_bottom || null,
     })
     .eq("id", id)
     .select("id");
