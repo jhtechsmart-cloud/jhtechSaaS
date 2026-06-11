@@ -86,6 +86,7 @@ export function CompanyForm(props: Props) {
           phone1: "",
           phone2: "",
           fax: "",
+          mobile: "",
           address_actual1: "",
           address_actual2: "",
           note: "",
@@ -260,6 +261,13 @@ export function CompanyForm(props: Props) {
             <input
               {...register("fax")}
               onBlur={() => onPhoneFieldBlur("fax")}
+              className="rounded-md border border-border bg-surface px-3 py-2 font-mono tabular-nums text-body text-text"
+            />
+          </Field>
+          <Field label="휴대폰" error={errors.mobile?.message}>
+            <input
+              {...register("mobile")}
+              placeholder="010-0000-0000"
               className="rounded-md border border-border bg-surface px-3 py-2 font-mono tabular-nums text-body text-text"
             />
           </Field>

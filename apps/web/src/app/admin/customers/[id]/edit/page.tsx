@@ -79,6 +79,7 @@ export default async function EditCustomerPage({
     phone1: cs("phone1"),
     phone2: cs("phone2"),
     fax: cs("fax"),
+    mobile: cs("mobile"),
     address_actual1: cs("address_actual1"),
     address_actual2: cs("address_actual2"),
     note: cs("note"),

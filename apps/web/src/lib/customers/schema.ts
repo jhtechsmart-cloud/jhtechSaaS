@@ -39,6 +39,7 @@ export const companyFormSchema = z.object({
   phone1: z.string().trim().max(50, "50자 이내").default(""),
   phone2: z.string().trim().max(50, "50자 이내").default(""),
   fax: z.string().trim().max(50, "50자 이내").default(""),
+  mobile: z.string().trim().max(50, "50자 이내").default(""),
   address_actual1: z.string().trim().max(500, "500자 이내").default(""),
   address_actual2: z.string().trim().max(500, "500자 이내").default(""),
   note: z.string().trim().max(2000).default(""),
