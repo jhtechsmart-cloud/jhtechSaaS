@@ -3,7 +3,7 @@
   "meta": {
     "updated": "2026-06-11",
     "release_target": "2026-06-30 (실사용 1차)",
-    "version": "v0.12.15.4",
+    "version": "v0.12.17.0",
     "deploy_url": "https://jhtech-saa-s-web.vercel.app",
     "repo": "github.com/jhtechsmart-cloud/jhtechSaaS"
   },
@@ -124,7 +124,7 @@
       "id": "S1",
       "milestone": "M3",
       "name": "고객 데이터 이관",
-      "status": "todo",
+      "status": "done",
       "period": "6월",
       "deliverable": "엑셀 1,581개 업체 일괄 임포트. ※ 고객 DB 컬럼 구조 의뢰사 제공 후 매핑·개발 (컬럼에 따라 구조 조정)",
       "owner": "조선제",
@@ -283,7 +283,7 @@
       "name": "고객 데이터 이관(엑셀 1,581건 임포트)",
       "scope": "견적관리(내부)",
       "priority": "P0",
-      "status": "Spec Needed",
+      "status": "Launched",
       "phase": "S1"
     },
     {
