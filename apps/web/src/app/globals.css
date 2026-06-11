@@ -5,7 +5,66 @@
 
 @import "tailwindcss";
 
-/* DESIGN.md 디자인 토큰 (industrial-clean, 북극성=명료함) */
+@import "tw-animate-css";
+
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ── shadcn 토큰 매핑 ──────────────────────────────────────────
+   shadcn 컴포넌트(card·tabs·badge·button 등)가 쓰는 시맨틱 변수들을
+   DESIGN.md 팔레트로 연결한다. ⚠️ 이 블록은 아래 DESIGN.md @theme보다
+   먼저 와야 함 — 같은 이름(--color-border·--color-accent·--color-muted·
+   --color-sidebar·radius)은 뒤의 DESIGN.md 블록이 이겨 콘솔 기존 화면이
+   변하지 않는다(shadcn 전용 이름만 여기서 살아남음). */
+@theme inline {
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+}
+
+/* shadcn 시맨틱 변수 실값 — 전부 DESIGN.md 팔레트(zinc oklch 기본값 대체).
+   다크 모드 블록은 제거(v1 라이트 전용 — DESIGN.md). */
+:root {
+  --background: #E6E9EF;
+  --foreground: #2B2F36;
+  --card: #ffffff;
+  --card-foreground: #2B2F36;
+  --popover: #ffffff;
+  --popover-foreground: #2B2F36;
+  --primary: #1F3B5C;            /* 스틸블루 액센트 = primary */
+  --primary-foreground: #ffffff;
+  --secondary: #EEF1F6;          /* surface-2 */
+  --secondary-foreground: #2B2F36;
+  --muted: #EEF1F6;              /* shadcn bg-muted 용(타원 트랙 등) */
+  --muted-foreground: #667285;
+  --accent: #E2E8F1;             /* shadcn hover 틴트 = accent-soft */
+  --accent-foreground: #1F3B5C;
+  --destructive: #dc2626;
+  --border: #D6DBE4;
+  --input: #D6DBE4;
+  --ring: #C3CEDC;
+  --radius: 0.5rem;              /* 8px = DESIGN.md radius-md 기준 */
+}
+
+/* DESIGN.md 디자인 토큰 (industrial-clean, 북극성=명료함) — 최종 우선권 */
 @theme {
   /* 영문·숫자 = Plus Jakarta Sans(이미지 폰트), 한글 = Pretendard(Jakarta에 한글 없어 자동 폴백) */
   --font-sans: "Plus Jakarta Sans", "Pretendard", system-ui, sans-serif;
@@ -44,10 +103,12 @@
   --text-small: 0.75rem;    /* 12 */
   --text-micro: 0.6875rem;  /* 11 */
 
-  /* radius */
+  /* radius — xl/2xl도 명시(shadcn calc 토큰이 기본값을 덮어 기존 카드가 11.2/14.4px로 줄어드는 누수 방지) */
   --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 12px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
 
   /* elevation(떠 보이는 음영) — 카드용 옅은 그림자. 검정 대신 딥 네이비(#0B1F3A=rgb 11 31 58)를
      옅게 써서 딥네이비+스틸블루 팔레트와 어울리게. shadow-card / hover:shadow-card-hover 유틸 생성. */
@@ -59,4 +120,13 @@ body {
   background: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-sans);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+  }
 }
