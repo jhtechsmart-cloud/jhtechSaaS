@@ -14,7 +14,7 @@ import { RegisterCustomerButton } from "./_components/RegisterCustomerButton";
 import { listQuotesForApplication, getQuote } from "@/lib/quotes/queries";
 import { pickRepresentativeQuote, computeQuoteValidity } from "@/lib/quotes/banner";
 import { parseQuoteLines } from "@/lib/quotes/form";
-import { formatBizNo, formatPhone } from "@jhtechsaas/shared";
+import { formatBizNo, formatKstDateTime, formatPhone } from "@jhtechsaas/shared";
 import { matchEquipmentName } from "@/lib/quotes/equipment-match";
 import { listEquipmentForMatch } from "@/lib/quotes/equipment-match.server";
 import type { MatchableEquipmentWithOptions } from "@/lib/quotes/equipment-match.server";
@@ -134,10 +134,8 @@ export default async function ApplicationDetailPage({
   // 유효기간 계산
   const validity = quote?.issued_at ? computeQuoteValidity(quote.issued_at, new Date()) : null;
 
-  // 발급일시 문자열 — `2026.06.09 · 14:01` 형식 (KST 보정 없이 slice)
-  const issuedAtLabel = quote?.issued_at
-    ? `${quote.issued_at.slice(0, 10).replace(/-/g, ".")} · ${quote.issued_at.slice(11, 16)}`
-    : null;
+  // 발급일시 문자열 — `2026.06.09 · 14:01` 형식 (UTC ISO → KST 변환, shared 공용)
+  const issuedAtLabel = quote?.issued_at ? formatKstDateTime(quote.issued_at) : null;
 
   // 견적서 PDF 경로(발행 상태만) — 아래에서 quote-pdfs 서명URL로 변환.
   const pdfPath = quote?.status === "issued" ? (quote.pdf_url ?? null) : null;

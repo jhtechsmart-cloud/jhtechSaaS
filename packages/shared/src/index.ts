@@ -12,5 +12,6 @@ export * from "./biz-no";
 export * from "./phone";
 export * from "./quote-calc";
 export * from "./korean-amount";
+export * from "./date-kst";
 export * from "./company";
 export * from "./equipment-match";

@@ -21,10 +21,9 @@ afterAll(async () => {
 describe("applications — seq_no 채번 (전역 sequence)", () => {
   test("INSERT 시 seq_no가 REQ-YYYYMMDD-NNNNN 형식으로 자동 생성", async () => {
     await inRollbackTx(c, async () => {
-      // anon은 SELECT 금지(설계) → RETURNING 불가. 삽입 후 postgres로 읽어 검증.
-      await asAnon(c);
-      await c.query("insert into public.applications (company) values ('테스트상사')");
+      // anon 직접 INSERT는 정책 제거(RPC 전용) — 트리거 검증은 postgres 컨텍스트로.
       await asPostgres(c);
+      await c.query("insert into public.applications (company) values ('테스트상사')");
       const r = await c.query(
         "select seq_no from public.applications where company='테스트상사'",
       );
@@ -35,9 +34,8 @@ describe("applications — seq_no 채번 (전역 sequence)", () => {
 
   test("seq_no 날짜는 KST(Asia/Seoul) 기준", async () => {
     await inRollbackTx(c, async () => {
-      await asAnon(c);
-      await c.query("insert into public.applications (company) values ('KST상사')");
       await asPostgres(c);
+      await c.query("insert into public.applications (company) values ('KST상사')");
       const r = await c.query(
         "select seq_no, to_char(now() at time zone 'Asia/Seoul','YYYYMMDD') kst from public.applications where company='KST상사'",
       );
@@ -79,13 +77,12 @@ describe("applications — seq_no 채번 (전역 sequence)", () => {
     });
   });
 
-  test("anon이 seq_no를 지정해도 서버 생성값으로 덮어쓴다(위조 무력화)", async () => {
+  test("INSERT 시 seq_no를 지정해도 서버 생성값으로 덮어쓴다(역할 불문 트리거 강제)", async () => {
     await inRollbackTx(c, async () => {
-      await asAnon(c);
+      await asPostgres(c);
       await c.query(
         "insert into public.applications (company, seq_no) values ('위조','REQ-19700101-00001')",
       );
-      await asPostgres(c);
       const r = await c.query(
         "select seq_no from public.applications where company='위조'",
       );
@@ -119,19 +116,18 @@ describe("applications — seq_no 채번 (전역 sequence)", () => {
   });
 });
 
-describe("applications — anon 공개 폼 INSERT (WITH CHECK, E-5)", () => {
-  test("anon은 status=new, assignee null로 INSERT 가능", async () => {
+describe("applications — anon 직접 INSERT 전면 차단(RPC 전용)", () => {
+  // 공개 신청은 submit_application RPC(동의·biz_no 체크섬·장비 active 서버검증)로만.
+  // 직접 INSERT 정책이 남아 있으면 검증을 우회해 동의 기록 없는 행이 생긴다.
+  test("anon은 정상 형태(status=new, 미배정)로도 직접 INSERT 불가", async () => {
     await inRollbackTx(c, async () => {
       await asAnon(c);
-      await c.query("insert into public.applications (company) values ('가나다')");
-      await asPostgres(c);
-      const r = await c.query(
-        "select status, assignee_id from public.applications where company='가나다'",
-      );
-      expect(r.rows[0].status).toBe("new");
-      expect(r.rows[0].assignee_id).toBeNull();
+      await expect(
+        c.query("insert into public.applications (company) values ('가나다')"),
+      ).rejects.toThrow();
     });
   });
+
 
   test("anon이 status!=new로 INSERT 시 거부", async () => {
     await inRollbackTx(c, async () => {

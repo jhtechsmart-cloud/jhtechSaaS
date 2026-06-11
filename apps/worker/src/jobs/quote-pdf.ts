@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { matchEquipmentName, numberToKoreanAmount } from "@jhtechsaas/shared";
+import { formatKstKoreanDate, matchEquipmentName, numberToKoreanAmount } from "@jhtechsaas/shared";
 import { buildQuotePdf } from "./render-quote-pdf";
 import { getFontDataUri, getStampDataUri } from "./assets";
 import type { QuoteHtmlData, QuoteHtmlItem, QuoteHtmlIncluded } from "./quote-html";
@@ -116,10 +116,9 @@ export async function processQuotePdfJob(
     : [];
 
   const supplyPrice = Number(q.supply_price) || 0;
+  // issued_at은 UTC ISO — KST 변환 없이 slice하면 KST 자정~09시 발행분이 전날 날짜로 인쇄된다.
   const issued = typeof q.issued_at === "string" ? q.issued_at : null;
-  const issuedDateLabel = issued
-    ? `${issued.slice(0, 4)}년 ${Number(issued.slice(5, 7))}월 ${Number(issued.slice(8, 10))}일`
-    : "";
+  const issuedDateLabel = (issued && formatKstKoreanDate(issued)) || "";
 
   const data: QuoteHtmlData = {
     quoteNo: q.quote_no as string,
