@@ -8,8 +8,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireCustomersEdit, requireCustomersDelete, requireCustomersViewAll } from "@/lib/auth/guard";
 import { companyFormSchema, type CompanyFormValues } from "@/lib/customers/schema";
-import { companyPageParamsSchema } from "@/lib/customers/page-params";
-import { listCompaniesPage, type CompanyListRow } from "@/lib/customers/queries";
+import { getCustomers, customerKpiCounts, type CustomerListRow } from "@/lib/customers/queries";
+import { customerListParamsSchema } from "@/lib/customers/list-table";
 import { diffEquipment } from "@/lib/customers/equipment-diff";
 
 export type CustomerActionResult = { error: string } | null;
@@ -173,18 +173,18 @@ export async function searchApplicationsAction(query: string): Promise<{ error: 
   return searchApplicationsForCustomer(query);
 }
 
-// 클라 목록이 검색·필터·더보기 시 호출. 권한 가드 + 파라미터 검증 후 페이지 반환.
-export async function fetchCompaniesPage(opts: {
-  scope: "all" | "mine" | "unassigned";
-  sort: "name" | "recent";
-  q?: string;
-  offset: number;
-  limit: number;
-}): Promise<{ rows: CompanyListRow[]; hasMore: boolean }> {
+
+// 고객 목록 테이블 — 클라(TanStack Query)가 호출. 가드 + zod 검증(직접 POST 방어).
+export async function fetchCustomers(raw: unknown): Promise<{ rows: CustomerListRow[]; total: number }> {
   const access = await requireCustomersEdit();
-  if (access.status === "forbidden") return { rows: [], hasMore: false };
-  // 직접 POST 방어 — 음수 offset·거대 limit·임의 scope 거부.
-  const parsed = companyPageParamsSchema.safeParse(opts);
-  if (!parsed.success) return { rows: [], hasMore: false };
-  return listCompaniesPage({ ...parsed.data, userId: access.userId });
+  if (access.status === "forbidden") return { rows: [], total: 0 };
+  const parsed = customerListParamsSchema.safeParse(raw ?? {});
+  if (!parsed.success) return { rows: [], total: 0 };
+  return getCustomers({ ...parsed.data, userId: access.userId });
+}
+
+export async function fetchCustomerKpis(): Promise<{ total: number; trading: number; unassigned: number; recent: number }> {
+  const access = await requireCustomersEdit();
+  if (access.status === "forbidden") return { total: 0, trading: 0, unassigned: 0, recent: 0 };
+  return customerKpiCounts();
 }
