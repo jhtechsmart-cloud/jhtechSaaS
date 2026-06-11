@@ -41,7 +41,8 @@ async function main(): Promise<void> {
     const { data, error: exErr } = await supabase
       .from("companies")
       .select("biz_no, ledger_no")
-      .order("created_at")
+      // 배치 INSERT 행들은 created_at이 동일(한 트랜잭션) → 페이지 경계 누락/중복 방지를 위해 유일키 정렬
+      .order("id")
       .range(from, from + 999);
     if (exErr) throw new Error(`기존 고객 조회 실패: ${exErr.message}`);
     existing.push(...(data ?? []));
