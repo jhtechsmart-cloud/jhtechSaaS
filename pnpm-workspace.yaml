@@ -12,6 +12,9 @@ ignoredBuiltDependencies:
 # onlyBuiltDependencies 불필요(puppeteer 번들 크롬 제거).
 
 # puppeteer가 끌어왔던 zod@3가 web의 @hookform/resolvers 타입 해석을 틀어 RHF 폼 typecheck를
-# 깨뜨림 → 단일 zod로 dedupe.
+# 깨뜨림 → 단일 zod로 dedupe. (zod 버전 올릴 때 이 핀도 함께 올릴 것)
+# postcss: next가 8.4.31을 고정 번들하는데 <8.5.10에 알려진 취약점(GHSA-qx2v-qp2m-jg93) →
+# 패치 라인으로 강제(8.x semver 호환, 빌드 게이트로 검증).
 overrides:
   zod: 4.4.3
+  postcss: ^8.5.10

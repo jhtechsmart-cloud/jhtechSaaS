@@ -9,13 +9,13 @@
     "start": "tsx src/index.ts",
     "typecheck": "tsc --noEmit",
     "seed:admin": "tsx src/seed-admin.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:ci": "vitest run --exclude '**/node_modules/**' --exclude '**/runner.integration.test.ts' --exclude '**/render-quote-pdf.test.ts'"
   },
   "dependencies": {
     "@jhtechsaas/shared": "workspace:*",
     "@sparticuz/chromium": "^149.0.0",
-    "@supabase/supabase-js": "^2.58.0",
-    "pdf-lib": "^1.17.1",
+    "@supabase/supabase-js": "^2.106.2",
     "puppeteer-core": "^25.1.0",
     "tsx": "^4",
     "zod": "^4.4.3"
@@ -23,6 +23,6 @@
   "devDependencies": {
     "@types/node": "^20.19.41",
     "typescript": "^5",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.6"
   }
 }

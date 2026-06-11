@@ -2,6 +2,17 @@
 
 이 프로젝트의 주요 변경 사항을 기록한다. [Keep a Changelog](https://keepachangelog.com/) 형식, [Semantic Versioning](https://semver.org/)(4자리 MAJOR.MINOR.PATCH.MICRO).
 
+## [0.12.15.4] - 2026-06-11
+
+### Added
+- **CI 자동 게이트** — GitHub Actions 워크플로 신설: PR·main push마다 lint·typecheck·단위테스트(shared/web/worker)·`as any` 0건·빌드를 자동 검사. 사람이 게이트를 깜빡해도 머지 전에 잡는 안전망(supabase 필요한 db-tests·e2e는 2단계 후속).
+
+### Changed
+- Next.js 16.2.6→16.2.9, React 19.2.4→19.2.7 패치 업데이트 + postcss 취약점(GHSA-qx2v-qp2m-jg93) override + vitest 3.2.6 패치(GHSA-5xrq-8626-4rwp) — `pnpm audit` 취약점 0건.
+- Railway `watchPatterns` 설정 — 웹만 바뀐 커밋에 워커가 불필요하게 재배포되던 것을 워커·shared 변경 시에만 배포되게 제한.
+- `.gitignore`를 `.env*`(example 제외)로 확대 — `.env.production` 같은 변형 파일의 실수 커밋 차단.
+- supabase-js 버전 스펙 통일(^2.106.2), 미사용 `pdf-lib` 제거(워커 빌드 경량화), roadmap 메타 버전 동기화.
+
 ## [0.12.15.3] - 2026-06-11
 
 ### Fixed
