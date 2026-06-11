@@ -157,7 +157,6 @@ export function CompanyForm(props: Props) {
     }
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- 마운트 1회 가드(의존 없음 의도)
   }, []);
 
   // blur 포맷(기존 UX 유지) — 타이핑 마스킹과 함께 이중 안전망.

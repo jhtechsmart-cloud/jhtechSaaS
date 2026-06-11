@@ -1,83 +1,8 @@
 import "server-only";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { CustomerHistory } from "./history";
-import { buildCompanySearchOr } from "./list-search";
-import type { CompanyPageParams } from "./page-params";
+import type { CustomerListParams } from "./list-table";
 
-// 업체 목록 행 — 목록 페이지 표시용 집약 타입.
-export interface CompanyListRow {
-  id: string;
-  name: string;
-  ledger_name: string | null;
-  biz_no: string | null;
-  phone1: string | null;
-  mobile: string | null;
-  address: string | null;
-  assignee_id: string | null;
-  assignee_name: string | null;
-  equipment_count: number;
-  updated_at: string;
-}
-
-// 업체 목록 페이지 — 서버 검색·필터·정렬 + limit+1 페이지네이션.
-// ⚠️ 전량 fetch 금지: PostgREST가 한 번에 최대 1000행만 반환(엑셀 이관 1,270건 > 캡).
-// RLS: 본인 담당 고객(assignee) 또는 customers.view_all 보유자만.
-// ⚠️ profiles 테이블 display_name 없음 → name 컬럼 사용(20260529150001_auth_profiles.sql 확인).
-export async function listCompaniesPage(
-  opts: CompanyPageParams & { userId: string },
-): Promise<{ rows: CompanyListRow[]; hasMore: boolean }> {
-  const supabase = await createSupabaseServerClient();
-  let query = supabase
-    .from("companies")
-    .select(
-      "id,name,ledger_name,biz_no,phone1,mobile,address,assignee_id,updated_at,profiles:assignee_id(name),company_equipment(count)",
-    );
-  if (opts.q) {
-    const or = buildCompanySearchOr(opts.q);
-    if (or) query = query.or(or);
-  }
-  if (opts.scope === "mine") query = query.eq("assignee_id", opts.userId);
-  if (opts.scope === "unassigned") query = query.is("assignee_id", null);
-  query = opts.sort === "name"
-    ? query.order("name", { ascending: true })
-    : query.order("updated_at", { ascending: false });
-  // limit+1 행으로 hasMore 감지(applications 목록과 동일 패턴).
-  const { data, error } = await query.range(opts.offset, opts.offset + opts.limit);
-  if (error) { console.error("[customers.listPage]", error); return { rows: [], hasMore: false }; }
-  const all = (data ?? []).map((r: Record<string, unknown>) => {
-    const profiles = r.profiles as { name?: string } | null;
-    const ceArr = r.company_equipment as Array<{ count: number }> | null;
-    return {
-      id: r.id as string,
-      name: r.name as string,
-      ledger_name: r.ledger_name as string | null,
-      biz_no: r.biz_no as string | null,
-      phone1: r.phone1 as string | null,
-      mobile: r.mobile as string | null,
-      address: r.address as string | null,
-      assignee_id: r.assignee_id as string | null,
-      assignee_name: profiles?.name ?? null,
-      equipment_count: ceArr?.[0]?.count ?? 0,
-      updated_at: r.updated_at as string,
-    };
-  });
-  const hasMore = all.length > opts.limit;
-  return { rows: hasMore ? all.slice(0, opts.limit) : all, hasMore };
-}
-
-// 상단 카운트 스탯 — 전체/배정/미배정(RLS 가시 범위 기준).
-export async function companyCounts(): Promise<{ total: number; assigned: number; unassigned: number }> {
-  const supabase = await createSupabaseServerClient();
-  const [totalRes, unassignedRes] = await Promise.all([
-    supabase.from("companies").select("id", { count: "exact", head: true }),
-    supabase.from("companies").select("id", { count: "exact", head: true }).is("assignee_id", null),
-  ]);
-  if (totalRes.error) console.error("[customers.countTotal]", totalRes.error);
-  if (unassignedRes.error) console.error("[customers.countUnassigned]", unassignedRes.error);
-  const total = totalRes.count ?? 0;
-  const unassigned = unassignedRes.count ?? 0;
-  return { total, assigned: total - unassigned, unassigned };
-}
 
 // 업체 단건 — 보유장비 포함 전체 데이터. 수정 폼에서 사용.
 export async function getCompany(id: string) {
@@ -138,4 +63,106 @@ export async function searchApplicationsForCustomer(query: string) {
   const { data, error } = await supabase.rpc("search_applications_for_customer", { p_query: query });
   if (error) { console.error("[customers.searchApps]", error); return []; }
   return data ?? [];
+}
+
+
+// ── 고객 목록 테이블(개편) — companies_list 뷰 기반 서버사이드 검색·필터·정렬·페이지네이션 ──
+
+export interface CustomerListRow {
+  id: string;
+  name: string;
+  ledger_no: number | null;
+  biz_no: string | null;
+  ceo: string | null;
+  manager: string | null;
+  phone: string | null;
+  phone1: string | null;
+  mobile: string | null;
+  region: string | null;
+  assignee_id: string | null;
+  assignee_name: string | null;
+  quotes_count: number;
+  equipment_count: number;
+  as_count: number;
+  activity_at: string | null;
+}
+
+// 통합 검색 OR 절 — 업체명·장부명·대표자·담당자(ilike) + 숫자검색(search_digits, 하이픈 무시) + 장부번호(eq).
+function buildListSearchOr(q: string): string | null {
+  const cleaned = q.replace(/[,()%_*\\]/g, "").trim();
+  if (!cleaned) return null;
+  const parts = [
+    `name.ilike.%${cleaned}%`,
+    `ledger_name.ilike.%${cleaned}%`,
+    `ceo.ilike.%${cleaned}%`,
+    `manager.ilike.%${cleaned}%`,
+  ];
+  const digits = cleaned.replace(/\D/g, "");
+  if (digits.length >= 3) parts.push(`search_digits.ilike.%${digits}%`);
+  if (/^\d+$/.test(cleaned) && cleaned.length <= 9) parts.push(`ledger_no.eq.${cleaned}`);
+  return parts.join(",");
+}
+
+/** 고객 목록 1페이지 + 필터 적용 총건수(count exact 동일 쿼리). */
+export async function getCustomers(
+  params: CustomerListParams & { userId: string },
+): Promise<{ rows: CustomerListRow[]; total: number }> {
+  const supabase = await createSupabaseServerClient();
+  let query = supabase
+    .from("companies_list")
+    .select(
+      "id,name,ledger_no,biz_no,ceo,manager,phone,phone1,mobile,region,assignee_id,assignee_name,quotes_count,equipment_count,as_count,activity_at",
+      { count: "exact" },
+    );
+  if (params.q) {
+    const or = buildListSearchOr(params.q);
+    if (or) query = query.or(or);
+  }
+  if (params.region) query = query.eq("region", params.region);
+  if (params.sales === "none") query = query.is("assignee_id", null);
+  else if (params.sales) query = query.eq("assignee_id", params.sales);
+  if (params.quick === "trading") query = query.gt("equipment_count", 0);
+  if (params.quick === "unassigned") query = query.is("assignee_id", null);
+  if (params.quick === "recent") {
+    query = query.gte("activity_at", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
+  }
+  // 정렬 — 기본 최근활동 최신순(활동 없음은 뒤로). 2차 키 name으로 안정화.
+  if (params.sort === "name") query = query.order("name", { ascending: params.dir === "asc" });
+  else if (params.sort === "region") query = query.order("region", { ascending: params.dir === "asc", nullsFirst: false }).order("name");
+  else query = query.order("activity_at", { ascending: params.dir === "asc", nullsFirst: false }).order("name");
+  const from = (params.page - 1) * params.pp;
+  const { data, error, count } = await query.range(from, from + params.pp - 1);
+  if (error) { console.error("[customers.listTable]", error); return { rows: [], total: 0 }; }
+  return { rows: (data ?? []) as unknown as CustomerListRow[], total: count ?? 0 };
+}
+
+/** KPI 빠른 필터 카운트 — 전체/거래중(장비 보유)/미배정/최근 30일 활동. */
+export async function customerKpiCounts(): Promise<{
+  total: number; trading: number; unassigned: number; recent: number;
+}> {
+  const supabase = await createSupabaseServerClient();
+  const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const head = { count: "exact" as const, head: true };
+  const [t, tr, un, re] = await Promise.all([
+    supabase.from("companies_list").select("id", head),
+    supabase.from("companies_list").select("id", head).gt("equipment_count", 0),
+    supabase.from("companies_list").select("id", head).is("assignee_id", null),
+    supabase.from("companies_list").select("id", head).gte("activity_at", since),
+  ]);
+  for (const r of [t, tr, un, re]) if (r.error) console.error("[customers.kpi]", r.error);
+  return {
+    total: t.count ?? 0,
+    trading: tr.count ?? 0,
+    unassigned: un.count ?? 0,
+    recent: re.count ?? 0,
+  };
+}
+
+/** 지역 Select 옵션 — 뷰의 region distinct(가시 범위 기준). */
+export async function listCustomerRegions(): Promise<string[]> {
+  const supabase = await createSupabaseServerClient();
+  // PostgREST는 distinct 미지원 → region만 전량(최대 행수 내) 받아 dedupe. 17개 고정이라 비용 미미.
+  const { data, error } = await supabase.from("companies_list").select("region").not("region", "is", null).limit(10000);
+  if (error) { console.error("[customers.regions]", error); return []; }
+  return Array.from(new Set((data ?? []).map((r) => r.region as string))).sort();
 }

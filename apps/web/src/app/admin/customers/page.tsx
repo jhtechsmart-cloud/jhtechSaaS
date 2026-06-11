@@ -1,12 +1,15 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { requireCustomersEdit } from "@/lib/auth/guard";
-import { listCompaniesPage, companyCounts } from "@/lib/customers/queries";
-import { CompanyTable } from "./_components/CompanyTable";
+import { listCustomerRegions, listAssignableStaff, customerKpiCounts } from "@/lib/customers/queries";
+import { buttonVariants } from "@/components/ui/button";
+import { CustomerListShell } from "./_components/list/CustomerListShell";
+import { ExportCsvButton } from "./_components/list/ExportCsvButton";
 import { signOut } from "@/app/login/actions";
 
-// 서버 컴포넌트 — 첫 페이지(이름순 30건)+카운트만 fetch, 검색·필터·더보기는 클라가 서버 액션 호출.
-// ⚠️ 전량 fetch 금지(PostgREST 1000행 캡 — 엑셀 이관 1,270건).
-// ⚠️ admin/layout은 equipment.manage 전용 가드 → customers.edit 별도 확인 필수.
+// 고객 목록 — 데이터 테이블 + 통합 검색 + 빠른 필터. 모든 검색·필터·정렬·페이지네이션은
+// 서버사이드(companies_list 뷰), 클라는 현재 페이지(기본 50건)만 수신. 상태=URL searchParams.
+// ⚠️ admin/layout은 equipment.manage 가드 → customers.edit 별도 확인 필수.
 export default async function CustomersListPage() {
   const access = await requireCustomersEdit();
 
@@ -24,30 +27,36 @@ export default async function CustomersListPage() {
     );
   }
 
-  const [{ rows, hasMore }, counts] = await Promise.all([
-    listCompaniesPage({ scope: "all", sort: "name", offset: 0, limit: 30, userId: access.userId }),
-    companyCounts(),
+  // 셸 보조 데이터(필터 옵션·첫사용 판단)만 서버에서 — 행 데이터는 클라(TanStack Query).
+  const [regions, staffRaw, kpi] = await Promise.all([
+    listCustomerRegions(),
+    listAssignableStaff(),
+    customerKpiCounts(),
   ]);
+  const staff = staffRaw.map((s: { id: string; name: string }) => ({ id: s.id, name: s.name }));
 
   return (
     <section className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-baseline gap-3">
-          <h1 className="text-h1 font-semibold text-text">고객</h1>
-          <span className="text-small text-muted">
-            전체 <span className="font-semibold tabular-nums text-text">{counts.total}</span>
-            {" · "}배정 <span className="tabular-nums">{counts.assigned}</span>
-            {" · "}미배정 <span className="tabular-nums">{counts.unassigned}</span>
-          </span>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-h1 font-semibold text-text">고객 목록</h1>
+          <p className="mt-0.5 text-small text-muted">
+            거래처 검색·필터 — 전체 {kpi.total.toLocaleString("ko-KR")}곳
+          </p>
         </div>
-        <Link
-          href="/admin/customers/new"
-          className="rounded-md bg-accent px-4 py-2 text-body font-medium text-white"
-        >
-          + 새 고객
-        </Link>
+        <div className="flex items-center gap-2">
+          <Suspense fallback={null}>
+            <ExportCsvButton />
+          </Suspense>
+          <Link href="/admin/customers/new" className={buttonVariants()}>
+            + 고객 등록
+          </Link>
+        </div>
       </div>
-      <CompanyTable initialRows={rows} initialHasMore={hasMore} userId={access.userId} />
+      {/* Suspense: useSearchParams 사용 클라 트리(App Router 요구) */}
+      <Suspense fallback={<div className="h-40 animate-pulse rounded-md bg-surface-2" />}>
+        <CustomerListShell regions={regions} staff={staff} hasAnyCustomer={kpi.total > 0} />
+      </Suspense>
     </section>
   );
 }
