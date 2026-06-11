@@ -89,10 +89,10 @@ export default async function EditCustomerPage({
 
   return (
     <section className="flex flex-col gap-4">
-      <h1 className="text-h1 font-semibold text-text">고객 수정</h1>
       <CompanyForm
         mode="edit"
         id={id}
+        ledgerNo={typeof (company as Record<string, unknown>).ledger_no === "number" ? ((company as Record<string, unknown>).ledger_no as number) : null}
         onSubmit={updateCustomer}
         staff={staff}
         catalog={catalog}

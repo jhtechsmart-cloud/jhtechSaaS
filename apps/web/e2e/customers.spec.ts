@@ -427,9 +427,9 @@ test.describe.serial("시나리오 4 — 편집 시 보유장비 id 보존(diff-
     // 기존 label·equipment_id는 건드리지 않음(같은 행 UPDATE 경로 유지)
     await page.getByPlaceholder("일련번호").fill("SN-EDIT-1");
 
-    // 저장 → updateCustomer 액션 성공 시 /admin/customers 목록으로 리다이렉트
-    await page.getByRole("button", { name: "저장" }).click();
-    await page.waitForURL(/\/admin\/customers$/, { timeout: 20_000 });
+    // 저장 → updateCustomer 액션 성공 시 고객 상세로 리다이렉트(수정 폼 개편)
+    await page.getByRole("button", { name: "변경사항 저장" }).click();
+    await page.waitForURL(/\/admin\/customers\/[0-9a-f-]+$/, { timeout: 20_000 });
   });
 
   // 4-4: 저장 후 company_equipment 재조회 — id 보존 + serial_no 반영 확인

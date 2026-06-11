@@ -42,7 +42,6 @@ export default async function NewCustomerPage() {
 
   return (
     <section className="flex flex-col gap-4">
-      <h1 className="text-h1 font-semibold text-text">고객 추가</h1>
       {/* Suspense: useSearchParams가 동작하려면 필요(App Router) */}
       <Suspense fallback={<div className="h-8 w-32 animate-pulse rounded-md bg-surface-2" />}>
         <NewCustomerClient staff={staff} catalog={catalog} />
