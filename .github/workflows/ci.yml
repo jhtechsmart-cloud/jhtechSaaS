@@ -24,7 +24,8 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # 22 필수 — supabase-js(realtime)가 Node 22+의 내장 WebSocket을 요구(20은 테스트 실패)
+          node-version: 22
           cache: pnpm
 
       - name: 의존성 설치
