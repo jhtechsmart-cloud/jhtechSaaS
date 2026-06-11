@@ -583,15 +583,16 @@ test.describe.serial("시나리오 5 — 통합 고객이력(P-F)", () => {
     await login(page);
     await page.goto(`/admin/customers/${companyId}`);
 
-    // 헤더(업체명) + 4섹션 제목
+    // 헤더(업체명) + 거래 활동 4탭(CRM 레이아웃 개편 — 섹션→탭)
     await expect(page.getByRole("heading", { name: PF_COMPANY_NAME })).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByRole("heading", { name: "견적" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "구입 (보유장비)" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "A/S 신청" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "소모품 신청" })).toBeVisible();
+    await expect(page.getByRole("tab", { name: /^견적/ })).toBeVisible();
+    await expect(page.getByRole("tab", { name: /^보유장비/ })).toBeVisible();
+    await expect(page.getByRole("tab", { name: /^A\/S/ })).toBeVisible();
+    await expect(page.getByRole("tab", { name: /^소모품/ })).toBeVisible();
 
-    // AS 행(seq_no) 노출 → 클릭 → 기존 상세로 딥링크
-    await page.getByRole("link", { name: serviceSeqNo }).click();
+    // A/S 탭 전환 → AS 행(seq_no) 노출 → 클릭 → 기존 상세로 딥링크
+    await page.getByRole("tab", { name: /^A\/S/ }).click();
+    await page.getByRole("link", { name: new RegExp(serviceSeqNo) }).click();
     await page.waitForURL(new RegExp(`/admin/service-requests/${serviceId}$`), { timeout: 15_000 });
 
     // #6 역방향 링크 — AS 상세에서 고객 통합이력으로 되돌아갈 수 있어야 함.
