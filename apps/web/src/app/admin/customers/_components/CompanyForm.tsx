@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useForm, useWatch, type UseFormRegisterReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
@@ -93,8 +93,13 @@ export function CompanyForm(props: Props) {
           ...props.company,
           // biz_no는 표시용 대시 포맷으로 로드(목록·blur와 일관). 저장 시 actions가 normalize.
           biz_no: props.company.biz_no ? formatBizNo(props.company.biz_no) : "",
-          // 전화번호도 표시용 대시 포맷으로 로드(blur와 일관).
+          // 전화류 전부 표시용 대시 포맷으로 로드 — blur 재포맷과 defaultValues가 일치해야
+          // 탭만 지나가도 dirty로 오인하지 않는다(이관 데이터에 비포맷 값 존재 가능).
           phone: props.company.phone ? formatPhone(props.company.phone) : "",
+          phone1: props.company.phone1 ? formatPhone(props.company.phone1) : "",
+          phone2: props.company.phone2 ? formatPhone(props.company.phone2) : "",
+          fax: props.company.fax ? formatPhone(props.company.fax) : "",
+          mobile: props.company.mobile ? formatPhone(props.company.mobile) : "",
           // equipment 행 타입 변환(CompanyEquipmentRow → FormInput 호환)
           equipment: props.company.equipment.map((r) => ({
             id: r.id,
@@ -125,30 +130,35 @@ export function CompanyForm(props: Props) {
     defaultValues,
   });
 
-  // dirty 상태에서 이탈 시 경고 — beforeunload(새로고침·창닫기) + popstate(브라우저 뒤로가기).
+  // dirty 상태에서 이탈 시 경고 ① beforeunload(새로고침·창닫기).
   useEffect(() => {
     if (!isDirty) return;
     function onBeforeUnload(e: BeforeUnloadEvent) {
       e.preventDefault();
       e.returnValue = "";
     }
-    // 뒤로가기 가드 — 가드 엔트리를 하나 쌓고, pop 시 확인 후 진행/복귀.
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [isDirty]);
+
+  // ② popstate(브라우저 뒤로가기) — 가드 엔트리는 마운트 시 1회만(재push 누적 금지).
+  // dirty 여부는 ref로 읽어 pop 시점 값으로 판단. clean이면 조용히 통과(back 1회 추가).
+  const isDirtyRef = useRef(false);
+  useEffect(() => { isDirtyRef.current = isDirty; }, [isDirty]);
+  useEffect(() => {
     window.history.pushState(null, "", window.location.href);
     function onPopState() {
-      if (confirm("저장하지 않은 변경사항이 있습니다. 페이지를 떠날까요?")) {
-        window.removeEventListener("popstate", onPopState);
-        window.history.back();
-      } else {
-        window.history.pushState(null, "", window.location.href);
+      if (isDirtyRef.current && !confirm("저장하지 않은 변경사항이 있습니다. 페이지를 떠날까요?")) {
+        window.history.pushState(null, "", window.location.href); // 머무름 — 가드 재설치
+        return;
       }
-    }
-    window.addEventListener("beforeunload", onBeforeUnload);
-    window.addEventListener("popstate", onPopState);
-    return () => {
-      window.removeEventListener("beforeunload", onBeforeUnload);
       window.removeEventListener("popstate", onPopState);
-    };
-  }, [isDirty]);
+      window.history.back(); // 가드 엔트리를 건너 실제 이전 항목으로
+    }
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 마운트 1회 가드(의존 없음 의도)
+  }, []);
 
   // blur 포맷(기존 UX 유지) — 타이핑 마스킹과 함께 이중 안전망.
   function onBizNoBlur() {
@@ -163,7 +173,7 @@ export function CompanyForm(props: Props) {
   function onSubmit(values: CompanyFormValues) {
     setServerError(null);
     // 저장 성공 시 액션이 상세로 redirect → 도착 화면에서 토스트(세션 플래그).
-    if (props.mode === "edit") sessionStorage.setItem("jh-customer-saved", "1");
+    if (props.mode === "edit") sessionStorage.setItem("jh-customer-saved", props.id);
     startTransition(async () => {
       const result = await props.onSubmit(props.id, values);
       // 성공 시 액션이 redirect → 여기 도달은 에러

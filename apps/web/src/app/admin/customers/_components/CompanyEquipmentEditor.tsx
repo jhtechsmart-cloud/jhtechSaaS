@@ -35,7 +35,7 @@ export function CompanyEquipmentEditor({
   return (
     <section className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
-        <h2 className="text-h2 font-semibold text-text">보유장비</h2>
+        <h2 className="text-[14.5px] font-bold text-text">보유장비</h2>
         <button
           type="button"
           onClick={() =>

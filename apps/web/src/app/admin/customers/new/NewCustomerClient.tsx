@@ -51,7 +51,10 @@ export function NewCustomerClient({
           catalog={catalog}
         />
       ) : (
-        <ApplicationPicker />
+        <>
+          <h1 className="text-h1 font-semibold text-text">새 고객 등록</h1>
+          <ApplicationPicker />
+        </>
       )}
     </div>
   );

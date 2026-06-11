@@ -37,6 +37,9 @@ describe("maskPhoneTyping — 전화번호 마스킹(완성 길이에서 표준 
   test("하이픈 섞인 입력도 숫자만 재계산", () => {
     expect(maskPhoneTyping("010-1234-5678")).toBe("010-1234-5678");
   });
+  test("11자리 초과 붙여넣기는 잘라냄", () => {
+    expect(maskPhoneTyping("010123456789999")).toBe("010-1234-5678");
+  });
   test("빈 입력은 빈 문자열", () => {
     expect(maskPhoneTyping("")).toBe("");
   });

@@ -12,7 +12,7 @@ export function maskBizNoTyping(raw: string): string {
 
 /** 전화번호 마스킹 — 완성 길이(9~11자리)면 표준 포맷(formatPhone), 미완성은 숫자 그대로. */
 export function maskPhoneTyping(raw: string): string {
-  const d = raw.replace(/\D/g, "");
+  const d = raw.replace(/\D/g, "").slice(0, 11);
   if (d.length >= 9 && d.length <= 11) {
     const formatted = formatPhone(d);
     if (formatted !== d) return formatted;

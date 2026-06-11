@@ -126,7 +126,7 @@ export default async function CustomerDetailPage({
       </div>
 
       <Toaster position="bottom-center" />
-      <SavedToast />
+      <SavedToast id={id} />
     </div>
   );
 }
