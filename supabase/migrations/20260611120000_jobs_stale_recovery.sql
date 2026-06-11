@@ -14,6 +14,16 @@ declare
   v_id uuid;
   v_row public.jobs;
 begin
+  -- 회수 한도(3회)를 소진한 스테일 잡은 영구 processing 좀비가 되지 않게 failed로 확정
+  -- (failed 기준 모니터링·재처리 쿼리에 잡히도록 사유와 함께 관측 가능하게 남긴다).
+  update public.jobs
+  set status = 'failed',
+      last_error = 'stale: 회수 한도 초과(워커 사망 추정)',
+      updated_at = now()
+  where status = 'processing'
+    and updated_at < now() - interval '5 minutes'
+    and attempts >= 3;
+
   select id into v_id
   from public.jobs
   where status = 'queued'

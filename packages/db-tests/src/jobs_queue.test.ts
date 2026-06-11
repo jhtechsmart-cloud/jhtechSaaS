@@ -104,7 +104,7 @@ describe("claim_next_job — 스테일 processing 회수(가시성 타임아웃)
     });
   });
 
-  test("시도 한도(3회)를 소진한 스테일 잡은 회수하지 않는다(크래시 무한루프 방지)", async () => {
+  test("시도 한도(3회)를 소진한 스테일 잡은 회수하지 않고 failed로 확정한다(영구 processing 좀비 방지)", async () => {
     await inRollbackTx(c, async () => {
       await seedApp();
       await insertQuote("issued");
@@ -116,6 +116,23 @@ describe("claim_next_job — 스테일 processing 회수(가시성 타임아웃)
       );
       const b = await c.query("select public.claim_next_job() as j");
       expect(b.rows[0].j).toBeNull();
+      // 회수 불가 잡이 processing으로 영구 방치되지 않고 failed+사유로 관측 가능해야 한다
+      const r = await c.query("select status, last_error from public.jobs where id=$1", [id]);
+      expect(r.rows[0].status).toBe("failed");
+      expect(r.rows[0].last_error).toContain("stale");
+    });
+  });
+
+  test("한도 미만 스테일 잡은 failed 확정 대상이 아니다(회수 우선)", async () => {
+    await inRollbackTx(c, async () => {
+      await seedApp();
+      await insertQuote("issued");
+      const a = await c.query("select public.claim_next_job() as j");
+      const id = a.rows[0].j.id as string;
+      await c.query("update public.jobs set updated_at = now() - interval '6 minutes' where id=$1", [id]);
+      const b = await c.query("select public.claim_next_job() as j");
+      expect(b.rows[0].j.id).toBe(id);
+      expect(b.rows[0].j.status).toBe("processing");
     });
   });
 });

@@ -37,6 +37,24 @@ describe("createBrowserManager — 크롬 싱글턴 복구", () => {
     await m.get(); // 첫 기동(이후 죽었다고 가정 = connected false)
     await expect(m.get()).resolves.toBe(alive);
     expect(launch).toHaveBeenCalledTimes(2);
+    // 죽은 크롬도 best-effort 정리(프로세스·임시 프로필 잔존 방지)
+    expect(dead.close).toHaveBeenCalled();
+  });
+
+  test("죽은 크롬의 close가 실패해도 재기동은 진행된다", async () => {
+    const dead = { connected: false, close: vi.fn().mockRejectedValue(new Error("이미 죽음")) } as unknown as Browser;
+    const alive = fakeBrowser(true);
+    const launch = vi.fn().mockResolvedValueOnce(dead).mockResolvedValueOnce(alive);
+    const m = createBrowserManager(launch);
+    await m.get();
+    await expect(m.get()).resolves.toBe(alive);
+  });
+
+  test("기동 실패한 promise를 close해도 throw하지 않는다", async () => {
+    const launch = vi.fn().mockRejectedValue(new Error("launch fail"));
+    const m = createBrowserManager(launch);
+    await expect(m.get()).rejects.toThrow("launch fail");
+    await expect(m.close()).resolves.toBeUndefined();
   });
 
   test("close 후 get은 새로 기동한다", async () => {

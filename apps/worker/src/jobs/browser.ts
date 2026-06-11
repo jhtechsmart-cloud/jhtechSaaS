@@ -28,6 +28,8 @@ type LaunchFn = () => Promise<Browser>;
 // 크롬 싱글턴 관리자 — 기동 실패가 박제되거나(거부된 Promise 재사용)
 // 크롬이 도중에 죽은 채(disconnected) 재사용되면 워커가 좀비가 되므로,
 // 둘 다 다음 호출에서 재기동한다. 테스트는 launchFn 주입으로 격리.
+// ⚠️ get()은 순차 호출 전제(runner가 잡을 직렬 처리). 동시 호출이 생기는
+// 잡 타입을 추가하면 재기동 분기에서 크롬 이중 기동·고아가 가능 — 그때 뮤텍스 필요.
 export function createBrowserManager(launchFn: LaunchFn): {
   get: () => Promise<Browser>;
   close: () => Promise<void>;
@@ -39,7 +41,8 @@ export function createBrowserManager(launchFn: LaunchFn): {
       try {
         const b = await browserPromise;
         if (b.connected) return b;
-        // 크롬 프로세스 사망(OOM 등) — 아래에서 재기동
+        // 크롬 프로세스 사망(OOM 등) — 잔존 프로세스·임시 프로필 best-effort 정리 후 재기동
+        await b.close().catch(() => {});
       } catch {
         // 직전 기동 실패 — 아래에서 재기동
       }
