@@ -8,10 +8,9 @@ out/
 dist/
 build/
 
-# env (시크릿 — 절대 커밋 금지)
-.env
-.env.local
-.env*.local
+# env (시크릿 — 절대 커밋 금지). .env.production 같은 변형까지 전부 차단, example만 허용.
+.env*
+!.env.example
 
 # supabase
 supabase/.branches/

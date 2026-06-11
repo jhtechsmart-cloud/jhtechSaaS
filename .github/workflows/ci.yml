@@ -1,0 +1,61 @@
+# CI 게이트 — PR·main push마다 lint·typecheck·단위테스트·빌드를 자동 실행.
+# 사람이 게이트를 깜빡해도 머지 전에 잡는 안전망(CLAUDE.md 게이트의 자동화 1단계).
+# 2단계(후속): supabase local 기반 db-tests·Playwright e2e — services로 supabase CLI 기동 필요.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      # pnpm 버전은 루트 package.json의 packageManager 필드에서 자동 인식
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: 의존성 설치
+        run: pnpm install --frozen-lockfile
+
+      - name: lint
+        run: pnpm -r lint
+
+      - name: typecheck
+        run: pnpm -r typecheck
+
+      - name: shared 단위테스트
+        run: pnpm --filter @jhtechsaas/shared test
+
+      - name: web 단위테스트
+        run: pnpm --filter web test
+
+      - name: worker 단위테스트 (CI 모드 — supabase·크롬 필요한 통합/렌더 제외)
+        run: pnpm --filter worker test:ci
+
+      - name: as any 0건 검사
+        run: |
+          COUNT=$(grep -rn "as any" apps/web/src apps/worker/src packages/shared/src packages/db-tests/src --include="*.ts" --include="*.tsx" | wc -l)
+          echo "as any: $COUNT"
+          test "$COUNT" -eq 0
+
+      - name: build
+        run: pnpm -r build
+        env:
+          # 빌드 통과용 더미 — 실제 값은 Vercel/Railway가 주입(NEXT_PUBLIC은 배포 빌드에서 인라인)
+          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-dummy-anon-key
+          SUPABASE_SERVICE_ROLE_KEY: ci-dummy-service-key
+          NEXT_PUBLIC_SITE_URL: http://localhost:3000
