@@ -53,6 +53,7 @@ export default async function CustomerDetailPage({
 
   const fields: CompanyDetailFields = {
     manager: str(c.manager),
+    phone: str(c.phone),
     phone1: str(c.phone1),
     phone2: str(c.phone2),
     mobile: str(c.mobile),

@@ -103,10 +103,12 @@
   --text-small: 0.75rem;    /* 12 */
   --text-micro: 0.6875rem;  /* 11 */
 
-  /* radius */
+  /* radius — xl/2xl도 명시(shadcn calc 토큰이 기본값을 덮어 기존 카드가 11.2/14.4px로 줄어드는 누수 방지) */
   --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 12px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
 
   /* elevation(떠 보이는 음영) — 카드용 옅은 그림자. 검정 대신 딥 네이비(#0B1F3A=rgb 11 31 58)를
      옅게 써서 딥네이비+스틸블루 팔레트와 어울리게. shadow-card / hover:shadow-card-hover 유틸 생성. */

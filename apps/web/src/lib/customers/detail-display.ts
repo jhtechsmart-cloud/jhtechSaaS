@@ -8,16 +8,22 @@ export function displayValue(v: unknown): string | null {
   return s;
 }
 
-/** 주 연락처 — 전화1 → 휴대폰 → 전화2 폴백. 모두 없으면 phone null(빈 상태). */
+// 단순 이메일 형식 — mailto href 허용 판정(?bcc= 등 헤더 주입 차단). 표시 자체는 원본 그대로.
+const SIMPLE_EMAIL = /^[^@\s?&,;]+@[^@\s?&,;]+\.[^@\s?&,;]+$/;
+
+/** 주 연락처 — 전화1 → 휴대폰 → 전화2 → 레거시 phone(연락처) 폴백.
+ *  레거시 phone은 신청→고객 등록 RPC·관리자 폼('연락처')이 쓰는 라이브 컬럼. */
 export function pickPrimaryContact(c: {
   phone1?: string | null;
   mobile?: string | null;
   phone2?: string | null;
+  phone?: string | null;
   email?: string | null;
-}): { phone: string | null; email: string | null } {
+}): { phone: string | null; email: string | null; emailSafe: boolean } {
   const phone =
-    displayValue(c.phone1) ?? displayValue(c.mobile) ?? displayValue(c.phone2);
-  return { phone, email: displayValue(c.email ?? null) };
+    displayValue(c.phone1) ?? displayValue(c.mobile) ?? displayValue(c.phone2) ?? displayValue(c.phone);
+  const email = displayValue(c.email ?? null);
+  return { phone, email, emailSafe: email != null && SIMPLE_EMAIL.test(email) };
 }
 
 /** 업태 등 다중값 — 쉼표·공백 혼용 분리 + 중복 제거(배지 칩 렌더용). */

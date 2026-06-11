@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { FileText, Package, Wrench, Box } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -81,14 +81,14 @@ export function CustomerActivityTabs({
   supplyRequests: HistorySupplyRequest[];
   counts: Record<ActivityTabKey, number>;
 }) {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const active = activeTabFrom(searchParams.get("tab"));
 
   function onChange(value: string) {
     const sp = new URLSearchParams(searchParams.toString());
     sp.set("tab", value);
-    router.replace(`?${sp.toString()}`, { scroll: false });
+    // 표시 전용 동기화 — 서버 재조회 없는 shallow 갱신(useSearchParams는 native history와 연동됨)
+    window.history.replaceState(null, "", `?${sp.toString()}`);
   }
 
   return (

@@ -1,5 +1,5 @@
 "use client";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 
 // 헤더 하단 KPI 스트립 — 4등분, 클릭 시 우측 거래 활동 탭 활성화(?tab= 동기화).
 // 활성 셀 = border-bottom 3px primary + 연한 primary 배경.
@@ -19,14 +19,14 @@ export type KpiCell = {
 };
 
 export function CustomerKpiStrip({ cells }: { cells: KpiCell[] }) {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const active = activeTabFrom(searchParams.get("tab"));
 
   function select(key: ActivityTabKey) {
     const sp = new URLSearchParams(searchParams.toString());
     sp.set("tab", key);
-    router.replace(`?${sp.toString()}`, { scroll: false });
+    // 표시 전용 동기화 — 서버 재조회 없는 shallow 갱신(useSearchParams는 native history와 연동됨)
+    window.history.replaceState(null, "", `?${sp.toString()}`);
   }
 
   return (

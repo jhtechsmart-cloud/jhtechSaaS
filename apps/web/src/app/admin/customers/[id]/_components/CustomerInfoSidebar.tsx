@@ -9,6 +9,7 @@ import { formatPhone } from "@jhtechsaas/shared";
 
 export type CompanyDetailFields = {
   manager: string | null;
+  phone: string | null; // 레거시 연락처(신청→고객 등록 RPC·폼이 사용)
   phone1: string | null;
   phone2: string | null;
   mobile: string | null;
@@ -53,7 +54,7 @@ function InfoCard({ title, children }: { title: string; children: React.ReactNod
 
 // 주 연락처 — 유일하게 어두운 네이비 강조 카드. 전화1→휴대폰→전화2 폴백.
 export function PrimaryContactCard({ c }: { c: CompanyDetailFields }) {
-  const { phone, email } = pickPrimaryContact(c);
+  const { phone, email, emailSafe } = pickPrimaryContact(c);
   return (
     <Card className="gap-0 border-0 bg-navy py-4 text-white shadow-card">
       <CardContent className="px-4">
@@ -69,13 +70,13 @@ export function PrimaryContactCard({ c }: { c: CompanyDetailFields }) {
             <div className="mt-3 flex gap-2">
               {phone && (
                 <a
-                  href={`tel:${phone.replace(/\D/g, "")}`}
+                  href={`tel:${phone.replace(/[^\d+]/g, "")}`}
                   className="flex flex-1 items-center justify-center gap-1.5 rounded-md bg-white/12 py-2 text-small font-medium text-white hover:bg-white/20"
                 >
                   <Phone className="size-3.5" aria-hidden /> 전화
                 </a>
               )}
-              {email && (
+              {emailSafe && email && (
                 <a
                   href={`mailto:${email}`}
                   className="flex flex-1 items-center justify-center gap-1.5 rounded-md bg-white/12 py-2 text-small font-medium text-white hover:bg-white/20"
@@ -102,6 +103,7 @@ export function CustomerInfoCards({ c }: { c: CompanyDetailFields }) {
     <>
       <InfoCard title="연락처">
         <FieldRow label="담당자" value={c.manager} />
+        <FieldRow label="연락처(대표)" value={c.phone ? formatPhone(c.phone) : null} mono />
         <FieldRow label="전화2" value={c.phone2 ? formatPhone(c.phone2) : null} mono />
         <FieldRow label="휴대폰" value={c.mobile ? formatPhone(c.mobile) : null} mono />
         <FieldRow label="팩스" value={c.fax ? formatPhone(c.fax) : null} mono />
