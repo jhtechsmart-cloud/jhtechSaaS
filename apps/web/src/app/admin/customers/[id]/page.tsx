@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Toaster } from "@/components/ui/sonner";
+import { SavedToast } from "./_components/SavedToast";
 import { requireCustomersEdit } from "@/lib/auth/guard";
 import { getCompanyDetail, getCustomerHistory } from "@/lib/customers/queries";
 import { summarizeApplications, summarizeRequests } from "@/lib/customers/history";
@@ -125,6 +126,7 @@ export default async function CustomerDetailPage({
       </div>
 
       <Toaster position="bottom-center" />
+      <SavedToast id={id} />
     </div>
   );
 }

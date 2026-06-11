@@ -132,7 +132,9 @@ export async function updateCustomer(id: string, values: CompanyFormValues): Pro
   const eqErr = await applyEquipmentDiff(supabase, id, v);
   if (eqErr) { console.error("[customers.update] 장비 저장 실패", eqErr); return { error: "보유장비를 저장하지 못했습니다." }; }
   revalidatePath("/admin/customers");
-  redirect("/admin/customers");
+  revalidatePath(`/admin/customers/${id}`);
+  // 저장 후 상세 페이지로 복귀(수정 폼 개편 UX — 도착 화면에서 저장 토스트).
+  redirect(`/admin/customers/${id}`);
 }
 
 // 업체 삭제. company_equipment는 FK cascade로 자동 삭제.
