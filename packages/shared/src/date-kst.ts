@@ -4,7 +4,12 @@ const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
 
 type KstParts = { year: number; month: number; day: number; hour: number; minute: number };
 
+// 오프셋 표기(Z 또는 ±HH:mm) 필수 — 없으면 new Date()가 머신 로컬타임으로 해석해
+// KST 머신에서 +9h가 이중 적용된다. PostgREST는 항상 오프셋 포함 ISO를 내려준다.
+const HAS_OFFSET = /([zZ]|[+-]\d{2}:?\d{2})$/;
+
 function kstParts(iso: string): KstParts | null {
+  if (!HAS_OFFSET.test(iso)) return null;
   const ms = new Date(iso).getTime();
   if (Number.isNaN(ms)) return null;
   const k = new Date(ms + KST_OFFSET_MS);

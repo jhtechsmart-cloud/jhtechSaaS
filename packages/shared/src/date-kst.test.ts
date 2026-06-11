@@ -23,6 +23,15 @@ describe("formatKstDate — UTC ISO → KST YYYY.MM.DD", () => {
   test("잘못된 입력은 null", () => {
     expect(formatKstDate("not-a-date")).toBeNull();
   });
+
+  test("타임존 오프셋 없는 문자열은 null(머신 로컬타임 해석 → KST 이중적용 방지)", () => {
+    expect(formatKstDate("2026-06-09 05:01:00")).toBeNull();
+    expect(formatKstDate("2026-06-09T05:01:00")).toBeNull();
+  });
+
+  test("Z 접미사(UTC)는 허용", () => {
+    expect(formatKstDate("2026-06-09T05:01:00Z")).toBe("2026.06.09");
+  });
 });
 
 describe("formatKstDateTime — KST 'YYYY.MM.DD · HH:mm'", () => {

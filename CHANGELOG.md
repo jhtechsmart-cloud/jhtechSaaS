@@ -2,6 +2,12 @@
 
 이 프로젝트의 주요 변경 사항을 기록한다. [Keep a Changelog](https://keepachangelog.com/) 형식, [Semantic Versioning](https://semver.org/)(4자리 MAJOR.MINOR.PATCH.MICRO).
 
+## [0.12.15.2] - 2026-06-11
+
+### Fixed
+- **공개 신청 뒷문 차단(보안)** — anon 키로 `applications` 테이블에 직접 INSERT할 수 있던 초기 정책을 제거. 공개 신청은 서버 검증(개인정보 동의+버전 대조·사업자번호 체크섬·장비 active)을 모두 수행하는 `submit_application` RPC 전용으로 통일(AS·소모품 신청과 동일 패턴). 마이그 `20260611130000`+롤백+db-test.
+- **발급일·견적일자 9시간 오차(KST)** — 견적서 PDF의 견적일자와 상세 화면의 발급일시가 UTC 그대로 표기돼 한국시간 자정~09시 발행 건이 하루 전 날짜로 보이던 문제. shared `formatKstDate/DateTime/KoreanDate` 헬퍼(오프셋 누락 입력 가드 포함, 테스트 11건)로 화면·PDF 공통 수정.
+
 ## [0.12.15.1] - 2026-06-11
 
 ### Fixed
