@@ -2,6 +2,12 @@
 
 이 프로젝트의 주요 변경 사항을 기록한다. [Keep a Changelog](https://keepachangelog.com/) 형식, [Semantic Versioning](https://semver.org/)(4자리 MAJOR.MINOR.PATCH.MICRO).
 
+## [0.12.17.0] - 2026-06-11
+
+### Added
+- **고객 상세 CRM 레이아웃 개편** — 13개 필드 평면 나열·세로 섹션 스택을 CRM 표준(좌=레코드 정보, 우=활동)으로 재구성. 헤더(이니셜 아바타+거래상태+사업자번호 복사)+KPI 스트립(클릭=해당 탭 활성, URL 동기화로 새로고침·공유 유지), 좌측 주 연락처 강조 카드(전화1→휴대폰→전화2→연락처 폴백, 전화/이메일 바로가기)+연락처/사업장(업태 칩)/장부 카드(빈 값 '미입력' 흐림), 우측 견적/보유장비/A/S/소모품 탭(건수 pill·빈 상태 안내+작성 버튼·행 클릭 딥링크). 모바일 1단 스택.
+- **shadcn/ui 도입** — card·tabs·badge·button·sonner 등. 토큰은 DESIGN.md 팔레트에 매핑해 기존 콘솔 화면 무변경(radius·accent·muted 충돌 해소 실측 검증).
+
 ## [0.12.16.0] - 2026-06-11
 
 ### Added
