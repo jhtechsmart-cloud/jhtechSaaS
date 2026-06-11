@@ -26,10 +26,12 @@ export async function completeJob(supabase: SupabaseClient, id: string): Promise
 }
 
 // 실패 — 시도 횟수가 한도 미만이면 재시도(queued)로 되돌리고, 한도 도달이면 failed.
+// 기록 update의 에러를 삼키면 잡이 processing으로 고착되므로 completeJob과 동일하게 throw.
 export async function failJob(supabase: SupabaseClient, job: Job, message: string): Promise<void> {
   const status = job.attempts >= MAX_ATTEMPTS ? "failed" : "queued";
-  await supabase
+  const { error } = await supabase
     .from("jobs")
     .update({ status, last_error: message.slice(0, 500), updated_at: new Date().toISOString() })
     .eq("id", job.id);
+  if (error) throw new Error(`잡 실패 기록 실패: ${error.message}`);
 }

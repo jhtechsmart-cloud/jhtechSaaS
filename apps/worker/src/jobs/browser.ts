@@ -6,7 +6,6 @@ import chromium from "@sparticuz/chromium";
 //  - Linux(Railway 컨테이너) = @sparticuz/chromium(시스템 라이브러리 포함 슬림 크롬).
 //    빌드 때 크롬 다운로드를 안 하므로 Nixpacks 추출 실패를 피한다.
 //  - macOS(로컬 개발/테스트) = 설치된 Google Chrome(channel: "chrome").
-let browserPromise: Promise<Browser> | null = null;
 
 async function launch(): Promise<Browser> {
   if (process.platform === "linux") {
@@ -24,15 +23,58 @@ async function launch(): Promise<Browser> {
   });
 }
 
-export function getBrowser(): Promise<Browser> {
-  if (!browserPromise) browserPromise = launch();
-  return browserPromise;
+type LaunchFn = () => Promise<Browser>;
+
+// 크롬 싱글턴 관리자 — 기동 실패가 박제되거나(거부된 Promise 재사용)
+// 크롬이 도중에 죽은 채(disconnected) 재사용되면 워커가 좀비가 되므로,
+// 둘 다 다음 호출에서 재기동한다. 테스트는 launchFn 주입으로 격리.
+export function createBrowserManager(launchFn: LaunchFn): {
+  get: () => Promise<Browser>;
+  close: () => Promise<void>;
+} {
+  let browserPromise: Promise<Browser> | null = null;
+
+  async function get(): Promise<Browser> {
+    if (browserPromise) {
+      try {
+        const b = await browserPromise;
+        if (b.connected) return b;
+        // 크롬 프로세스 사망(OOM 등) — 아래에서 재기동
+      } catch {
+        // 직전 기동 실패 — 아래에서 재기동
+      }
+      browserPromise = null;
+    }
+    browserPromise = launchFn();
+    try {
+      return await browserPromise;
+    } catch (e) {
+      browserPromise = null;
+      throw e;
+    }
+  }
+
+  async function close(): Promise<void> {
+    if (!browserPromise) return;
+    const pending = browserPromise;
+    browserPromise = null;
+    try {
+      const b = await pending;
+      await b.close();
+    } catch {
+      // 이미 죽었거나 기동 실패 — 정리할 것 없음
+    }
+  }
+
+  return { get, close };
 }
 
-export async function closeBrowser(): Promise<void> {
-  if (browserPromise) {
-    const b = await browserPromise;
-    await b.close();
-    browserPromise = null;
-  }
+const manager = createBrowserManager(launch);
+
+export function getBrowser(): Promise<Browser> {
+  return manager.get();
+}
+
+export function closeBrowser(): Promise<void> {
+  return manager.close();
 }
