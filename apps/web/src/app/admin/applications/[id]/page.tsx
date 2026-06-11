@@ -140,7 +140,7 @@ export default async function ApplicationDetailPage({
   // 견적서 PDF 경로(발행 상태만) — 존재 여부가 버튼 활성화 신호.
   // 실제 다운로드는 /admin/quotes/[id]/pdf 라우트가 클릭 시점에 서명URL을 새로 발급(박제 시 10분 만료 문제).
   const pdfPath = quote?.status === "issued" ? (quote.pdf_url ?? null) : null;
-  const pdfUrl = pdfPath;
+  const pdfReady = Boolean(pdfPath);
 
   // 사진 4슬롯 병렬 서명URL
   // ⚠️ anon이 RPC 우회 직접 INSERT로 photos 경로를 주입할 수 있어,
@@ -303,7 +303,7 @@ export default async function ApplicationDetailPage({
             assigneeName={assigneeName}
             email={str(r.email)}
             phone={formatPhone(str(r.phone) ?? "") || null}
-            pdfUrl={pdfUrl}
+            pdfReady={pdfReady}
             canReissue={canQuote}
             canWrite={canQuote}
           />

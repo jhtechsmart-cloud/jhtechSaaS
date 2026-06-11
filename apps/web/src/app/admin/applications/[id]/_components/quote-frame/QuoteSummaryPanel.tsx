@@ -8,12 +8,12 @@ type LineRow = { name: string; unitPrice: number; quantity: number };
 // 우측 sticky 요약 패널 — 소계(+서브 라인)·합계·발급정보·발송정보. 메일발송은 비활성(후속).
 export function QuoteSummaryPanel({
   applicationId, quoteId, quoteNo, statusLabel, equipmentSubtotal, optionSubtotal, items, options, total,
-  issuedAtLabel, validUntilLabel, assigneeName, email, phone, pdfUrl, canReissue, preview, canWrite,
+  issuedAtLabel, validUntilLabel, assigneeName, email, phone, pdfReady, canReissue, preview, canWrite,
 }: {
   applicationId: string; quoteId: string | null; quoteNo: string | null; statusLabel: string;
   equipmentSubtotal: number; optionSubtotal: number; items: LineRow[]; options: LineRow[]; total: string;
   issuedAtLabel: string | null; validUntilLabel: string | null; assigneeName: string | null;
-  email: string | null; phone: string | null; pdfUrl: string | null; canReissue: boolean;
+  email: string | null; phone: string | null; pdfReady: boolean; canReissue: boolean;
   preview?: boolean; // 미발행 — 예상치 + '견적 작성' 유도
   canWrite?: boolean; // quotes.write — 견적 작성 버튼 노출
 }) {
@@ -53,7 +53,7 @@ export function QuoteSummaryPanel({
                 <Link href={`/admin/applications/${applicationId}/quote/new?from=${quoteId}`} className="flex-1 rounded-md border border-border py-2 text-center text-small font-medium text-text">수정</Link>
               )}
               {quoteId ? (
-                <QuotePdfButton quoteId={quoteId} initialPdfUrl={pdfUrl} />
+                <QuotePdfButton quoteId={quoteId} initialReady={pdfReady} />
               ) : (
                 <span className="flex-1 cursor-not-allowed rounded-md bg-surface-2 py-2 text-center text-small font-medium text-muted">견적서 확인</span>
               )}

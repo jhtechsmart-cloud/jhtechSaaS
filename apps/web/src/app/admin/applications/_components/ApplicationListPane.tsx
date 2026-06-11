@@ -70,6 +70,11 @@ export function ApplicationListPane({
     if (scope === "active" && q.trim() === "") {
       setRows(initialRows);
       setHasMore(initialHasMore);
+      // 리셋 시점에 in-flight loadMore 응답을 무효화 — 안 올리면 옛 offset 페이지가
+      // 새 initialRows 위에 append돼 행이 중복된다.
+      // 렌더 중 ref 쓰기이지만 위 setRows 리셋과 한 묶음의 멱등 조정이라 인라인 예외(ImageUploader 전례).
+      // eslint-disable-next-line react-hooks/refs
+      reqSeq.current += 1;
     }
   }
 

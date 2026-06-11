@@ -8,8 +8,8 @@ import { getQuotePdfUrl } from "@/lib/quotes/actions";
 const POLL_MS = 2500;
 const MAX_ATTEMPTS = 24; // 약 60초
 
-export function QuotePdfButton({ quoteId, initialPdfUrl }: { quoteId: string; initialPdfUrl: string | null }) {
-  const [ready, setReady] = useState(Boolean(initialPdfUrl));
+export function QuotePdfButton({ quoteId, initialReady }: { quoteId: string; initialReady: boolean }) {
+  const [ready, setReady] = useState(initialReady);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
