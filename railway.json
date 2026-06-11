@@ -6,7 +6,9 @@
       "apps/worker/**",
       "packages/shared/**",
       "pnpm-lock.yaml",
-      "railway.json"
+      "railway.json",
+      "pnpm-workspace.yaml",
+      "package.json"
     ]
   },
   "deploy": {
