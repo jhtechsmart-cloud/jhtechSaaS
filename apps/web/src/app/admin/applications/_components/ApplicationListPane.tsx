@@ -35,6 +35,8 @@ export function ApplicationListPane({
   const [hasMore, setHasMore] = useState(initialHasMore);
   const [loading, setLoading] = useState(false);
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // 요청 시퀀스 — 먼저 출발한 느린 응답이 나중에 도착해 최신 결과를 덮어쓰는 레이스 방지.
+  const reqSeq = useRef(0);
 
   // scope/q 변경 → 첫 페이지 재조회. 초기(scope=active,q="")는 서버 초기값 사용하므로 스킵.
   const isInitial = useRef(true);
@@ -42,11 +44,18 @@ export function ApplicationListPane({
     if (isInitial.current) { isInitial.current = false; return; }
     if (debounce.current) clearTimeout(debounce.current);
     debounce.current = setTimeout(async () => {
+      const seq = ++reqSeq.current;
       setLoading(true);
-      const res = await fetchApplicationsPage({ scope, q: q.trim() || undefined, offset: 0, limit: PAGE });
-      setRows(res.rows);
-      setHasMore(res.hasMore);
-      setLoading(false);
+      try {
+        const res = await fetchApplicationsPage({ scope, q: q.trim() || undefined, offset: 0, limit: PAGE });
+        if (seq !== reqSeq.current) return; // 더 새 요청이 출발함 — 이 응답은 폐기
+        setRows(res.rows);
+        setHasMore(res.hasMore);
+      } catch {
+        // 실패 시 기존 목록 유지(다음 입력에서 재시도) — loading 고착만 방지
+      } finally {
+        if (seq === reqSeq.current) setLoading(false);
+      }
     }, 300);
     return () => { if (debounce.current) clearTimeout(debounce.current); };
   }, [scope, q]);
@@ -61,15 +70,27 @@ export function ApplicationListPane({
     if (scope === "active" && q.trim() === "") {
       setRows(initialRows);
       setHasMore(initialHasMore);
+      // 리셋 시점에 in-flight loadMore 응답을 무효화 — 안 올리면 옛 offset 페이지가
+      // 새 initialRows 위에 append돼 행이 중복된다.
+      // 렌더 중 ref 쓰기이지만 위 setRows 리셋과 한 묶음의 멱등 조정이라 인라인 예외(ImageUploader 전례).
+      // eslint-disable-next-line react-hooks/refs
+      reqSeq.current += 1;
     }
   }
 
   async function loadMore() {
+    const seq = ++reqSeq.current;
     setLoading(true);
-    const res = await fetchApplicationsPage({ scope, q: q.trim() || undefined, offset: rows.length, limit: PAGE });
-    setRows((prev) => [...prev, ...res.rows]);
-    setHasMore(res.hasMore);
-    setLoading(false);
+    try {
+      const res = await fetchApplicationsPage({ scope, q: q.trim() || undefined, offset: rows.length, limit: PAGE });
+      if (seq !== reqSeq.current) return; // 응답 대기 중 검색·탭 전환됨 — 이어붙이지 않음
+      setRows((prev) => [...prev, ...res.rows]);
+      setHasMore(res.hasMore);
+    } catch {
+      // 실패 시 기존 목록 유지 — loading 고착만 방지
+    } finally {
+      if (seq === reqSeq.current) setLoading(false);
+    }
   }
 
   // 날짜 그룹 버킷팅(현재 로드된 rows).
