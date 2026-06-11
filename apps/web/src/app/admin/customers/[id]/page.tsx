@@ -90,6 +90,8 @@ export default async function CustomerDetailPage({
           <DetailField label="전화1" value={formatPhone(str(c.phone1) ?? "")} mono />
           <DetailField label="전화2" value={formatPhone(str(c.phone2) ?? "")} mono />
           <DetailField label="팩스" value={formatPhone(str(c.fax) ?? "")} mono />
+          <DetailField label="휴대폰" value={formatPhone(str(c.mobile) ?? "")} mono />
+          <DetailField label="장부번호(구 시스템)" value={c.ledger_no != null ? String(c.ledger_no) : null} mono />
           <DetailField label="실제주소1" value={str(c.address_actual1)} />
           <DetailField label="실제주소2" value={str(c.address_actual2)} />
         </div>

@@ -8,6 +8,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireCustomersEdit, requireCustomersDelete, requireCustomersViewAll } from "@/lib/auth/guard";
 import { companyFormSchema, type CompanyFormValues } from "@/lib/customers/schema";
+import { companyPageParamsSchema } from "@/lib/customers/page-params";
+import { listCompaniesPage, type CompanyListRow } from "@/lib/customers/queries";
 import { diffEquipment } from "@/lib/customers/equipment-diff";
 
 export type CustomerActionResult = { error: string } | null;
@@ -58,6 +60,7 @@ function companyRow(v: CompanyFormValues) {
     phone1: v.phone1 || null,
     phone2: v.phone2 || null,
     fax: v.fax || null,
+    mobile: v.mobile || null,
     address_actual1: v.address_actual1 || null,
     address_actual2: v.address_actual2 || null,
     note: v.note || null,
@@ -166,4 +169,20 @@ export async function searchApplicationsAction(query: string): Promise<{ error: 
   if (access.status === "forbidden") return { error: "권한이 없습니다." };
   const { searchApplicationsForCustomer } = await import("@/lib/customers/queries");
   return searchApplicationsForCustomer(query);
+}
+
+// 클라 목록이 검색·필터·더보기 시 호출. 권한 가드 + 파라미터 검증 후 페이지 반환.
+export async function fetchCompaniesPage(opts: {
+  scope: "all" | "mine" | "unassigned";
+  sort: "name" | "recent";
+  q?: string;
+  offset: number;
+  limit: number;
+}): Promise<{ rows: CompanyListRow[]; hasMore: boolean }> {
+  const access = await requireCustomersEdit();
+  if (access.status === "forbidden") return { rows: [], hasMore: false };
+  // 직접 POST 방어 — 음수 offset·거대 limit·임의 scope 거부.
+  const parsed = companyPageParamsSchema.safeParse(opts);
+  if (!parsed.success) return { rows: [], hasMore: false };
+  return listCompaniesPage({ ...parsed.data, userId: access.userId });
 }

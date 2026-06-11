@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { requireCustomersEdit } from "@/lib/auth/guard";
-import { listCompanies } from "@/lib/customers/queries";
+import { listCompaniesPage, companyCounts } from "@/lib/customers/queries";
 import { CompanyTable } from "./_components/CompanyTable";
 import { signOut } from "@/app/login/actions";
 
-// 서버 컴포넌트 — 업체 전량 fetch 후 클라이언트 테이블에 전달(검색·필터는 거기서).
+// 서버 컴포넌트 — 첫 페이지(이름순 30건)+카운트만 fetch, 검색·필터·더보기는 클라가 서버 액션 호출.
+// ⚠️ 전량 fetch 금지(PostgREST 1000행 캡 — 엑셀 이관 1,270건).
 // ⚠️ admin/layout은 equipment.manage 전용 가드 → customers.edit 별도 확인 필수.
 export default async function CustomersListPage() {
   const access = await requireCustomersEdit();
@@ -23,12 +24,22 @@ export default async function CustomersListPage() {
     );
   }
 
-  const items = await listCompanies();
+  const [{ rows, hasMore }, counts] = await Promise.all([
+    listCompaniesPage({ scope: "all", sort: "name", offset: 0, limit: 30, userId: access.userId }),
+    companyCounts(),
+  ]);
 
   return (
     <section className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-h1 font-semibold text-text">고객</h1>
+        <div className="flex items-baseline gap-3">
+          <h1 className="text-h1 font-semibold text-text">고객</h1>
+          <span className="text-small text-muted">
+            전체 <span className="font-semibold tabular-nums text-text">{counts.total}</span>
+            {" · "}배정 <span className="tabular-nums">{counts.assigned}</span>
+            {" · "}미배정 <span className="tabular-nums">{counts.unassigned}</span>
+          </span>
+        </div>
         <Link
           href="/admin/customers/new"
           className="rounded-md bg-accent px-4 py-2 text-body font-medium text-white"
@@ -36,7 +47,7 @@ export default async function CustomersListPage() {
           + 새 고객
         </Link>
       </div>
-      <CompanyTable items={items} userId={access.userId} />
+      <CompanyTable initialRows={rows} initialHasMore={hasMore} userId={access.userId} />
     </section>
   );
 }
