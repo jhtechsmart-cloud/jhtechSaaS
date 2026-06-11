@@ -17,6 +17,8 @@ export async function runOnce(supabase: SupabaseClient): Promise<boolean> {
     }
     await completeJob(supabase, job.id);
   } catch (e) {
+    // failJob 자체가 실패(throw)해도 원래 실패 원인이 소실되지 않게 선기록.
+    console.error(`[worker] 잡 처리 실패 id=${job.id} type=${job.type}`, e);
     await failJob(supabase, job, e instanceof Error ? e.message : String(e));
   }
   return true;
