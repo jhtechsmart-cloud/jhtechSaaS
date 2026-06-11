@@ -25,13 +25,31 @@ export type CompanyDetailFields = {
 };
 
 // 필드 한 행 — 라벨(96px 고정·흐림) / 값(우정렬·bold). 빈 값 = "미입력" 흐림.
-function FieldRow({ label, value, mono }: { label: string; value: string | null; mono?: boolean }) {
+// wrap: 주소·장부명처럼 긴 값은 라벨 아래 전체 폭으로 여러 줄 표시(말줄임으로 내용이 잘리지 않게).
+function FieldRow({ label, value, mono, wrap }: { label: string; value: string | null; mono?: boolean; wrap?: boolean }) {
   const v = displayValue(value);
+  if (wrap) {
+    return (
+      <div className="border-b border-dashed border-border py-2 last:border-b-0">
+        <div className="text-small text-muted">{label}</div>
+        {v ? (
+          <div className={`mt-0.5 break-words text-body font-semibold leading-snug text-text ${mono ? "font-mono tabular-nums" : ""}`}>
+            {v}
+          </div>
+        ) : (
+          <div className="mt-0.5 text-small text-border">미입력</div>
+        )}
+      </div>
+    );
+  }
   return (
     <div className="flex items-baseline justify-between gap-3 border-b border-dashed border-border py-2 last:border-b-0">
       <span className="w-24 shrink-0 text-small text-muted">{label}</span>
       {v ? (
-        <span className={`min-w-0 truncate text-right text-body font-semibold text-text ${mono ? "font-mono tabular-nums" : ""}`}>
+        <span
+          title={v}
+          className={`min-w-0 truncate text-right text-body font-semibold text-text ${mono ? "font-mono tabular-nums" : ""}`}
+        >
           {v}
         </span>
       ) : (
@@ -110,7 +128,7 @@ export function CustomerInfoCards({ c }: { c: CompanyDetailFields }) {
       </InfoCard>
 
       <InfoCard title="사업장">
-        <FieldRow label="주소(사업장)" value={c.address} />
+        <FieldRow label="주소(사업장)" value={c.address} wrap />
         <div className="flex items-baseline justify-between gap-3 border-b border-dashed border-border py-2">
           <span className="w-24 shrink-0 text-small text-muted">업태</span>
           {chips.length > 0 ? (
@@ -123,11 +141,11 @@ export function CustomerInfoCards({ c }: { c: CompanyDetailFields }) {
             <span className="text-small text-border">미입력</span>
           )}
         </div>
-        <FieldRow label="업종(종목)" value={c.biz_item} />
+        <FieldRow label="업종(종목)" value={c.biz_item} wrap />
         {actual1 || actual2 ? (
           <>
-            <FieldRow label="실제주소1" value={actual1} />
-            <FieldRow label="실제주소2" value={actual2} />
+            <FieldRow label="실제주소1" value={actual1} wrap />
+            <FieldRow label="실제주소2" value={actual2} wrap />
           </>
         ) : (
           // 둘 다 비었으면 1행으로 합침(스펙)
@@ -136,7 +154,7 @@ export function CustomerInfoCards({ c }: { c: CompanyDetailFields }) {
       </InfoCard>
 
       <InfoCard title="장부·회계">
-        <FieldRow label="장부명" value={c.ledger_name} />
+        <FieldRow label="장부명" value={c.ledger_name} wrap />
         <FieldRow label="장부번호(구 시스템)" value={c.ledger_no != null ? String(c.ledger_no) : null} mono />
       </InfoCard>
     </>
