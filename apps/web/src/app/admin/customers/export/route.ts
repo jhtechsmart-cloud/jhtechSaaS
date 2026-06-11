@@ -8,7 +8,9 @@ const MAX_ROWS = 5000;
 
 function csvCell(v: string | number | null): string {
   if (v == null) return "";
-  const s = String(v);
+  let s = String(v);
+  // 수식 주입 중화 — 익명 신청폼 유래 문자열(업체명 등)이 =HYPERLINK() 등으로 Excel서 실행되는 것 차단
+  if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
