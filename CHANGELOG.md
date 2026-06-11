@@ -2,6 +2,14 @@
 
 이 프로젝트의 주요 변경 사항을 기록한다. [Keep a Changelog](https://keepachangelog.com/) 형식, [Semantic Versioning](https://semver.org/)(4자리 MAJOR.MINOR.PATCH.MICRO).
 
+## [0.12.15.1] - 2026-06-11
+
+### Fixed
+- **PDF 작업 영구 유실 방지(워커 안정화)** — 워커가 잡을 집은 채 죽으면(재배포·OOM) 그 PDF 잡이 `processing`으로 영원히 방치되던 구멍을 막았다. ① `claim_next_job`에 가시성 타임아웃: 5분 넘게 processing인 잡(죽은 워커)을 재클레임, 시도 한도(3회) 소진 잡은 `failed`+사유로 확정해 좀비 행 없이 관측 가능(마이그 `20260611120000`+롤백+db-test 5건). ② SIGTERM/SIGINT graceful shutdown: Railway 재배포 시 진행 중 잡을 마치고 크롬을 정리한 뒤 종료(폴링 루프 `loop.ts` 분리+단위테스트). ③ 크롬 싱글턴 복구: 기동 실패 Promise 박제·죽은(disconnected) 크롬 재사용으로 모든 PDF 잡이 조용히 실패하던 좀비 상태 → 다음 호출에서 자동 재기동+잔존 크롬 best-effort 정리. ④ 완료/실패 기록에 `status=processing` 펜스(배포 중첩 시 done 역행 차단)+0행 경고, `failJob` 기록 에러 throw(고착 방지), 잡 실패 원인 선기록(원인 소실 방지).
+
+### Changed
+- 루트 `package.json` 버전을 VERSION 파일과 동기화(0.12.12.0에 멈춰 있던 드리프트 해소).
+
 ## [0.12.15.0] - 2026-06-10
 
 ### Added
