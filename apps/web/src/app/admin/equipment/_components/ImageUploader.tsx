@@ -105,9 +105,15 @@ export function ImageUploader({
   async function handleRemove(index: number) {
     const path = value[index];
     if (!confirm("이 이미지를 삭제할까요?")) return;
-    const supabase = createSupabaseBrowserClient();
-    await supabase.storage.from("equipment-images").remove([path]).catch(() => {});
-    sessionUploads.current.delete(path);
+    if (sessionUploads.current.has(path)) {
+      // 이 세션에 올린(미저장) 객체만 즉시 삭제 — 아직 DB가 참조하지 않으므로 안전.
+      const supabase = createSupabaseBrowserClient();
+      await supabase.storage.from("equipment-images").remove([path]).catch(() => {});
+      sessionUploads.current.delete(path);
+    }
+    // 기존(저장된) 이미지는 폼 state에서만 제거 — 즉시 스토리지 삭제하면 폼 취소 시
+    // DB photos가 깨진 경로를 참조해 공개 카탈로그 이미지가 깨진다. 저장 후 미참조
+    // 객체는 고아로 남고, 고아 청소는 별도 배치(백로그)에서 처리.
     onChange(value.filter((_, i) => i !== index));
   }
 

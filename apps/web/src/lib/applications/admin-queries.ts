@@ -152,11 +152,13 @@ export async function countApplicationsByGroup(): Promise<{ active: number; clos
 // 견적 단건(admin 상세) — profiles 조인 + biz_no→companies 매칭(application쪽 JS 정규화).
 export async function getApplicationForAdmin(id: string) {
   const supabase = await createSupabaseServerClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("applications")
     .select("*, profiles:assignee_id(name)")
     .eq("id", id)
     .maybeSingle();
+  // DB/RLS 장애가 "찾을 수 없음"으로 위장되지 않게 로깅(이 파일의 다른 함수와 동일 규약).
+  if (error) console.error("[applications.getForAdmin]", error);
   if (!data) return null;
 
   // companies.biz_no는 upsert RPC가 숫자정규화 저장 → application쪽만 정규화해 단순조회.

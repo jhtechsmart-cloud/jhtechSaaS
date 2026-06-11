@@ -8,6 +8,7 @@ import {
   type ApplicationListRow,
 } from "./admin-queries";
 import { applicationStatusSchema } from "./status-schema";
+import { pageParamsSchema } from "./page-params";
 import { nextStatusOnAssign } from "./assign-logic";
 import type { ApplicationStatus } from "@/lib/customers/history";
 
@@ -110,7 +111,7 @@ export async function updateApplicationStatus(
   return { ok: true };
 }
 
-// 클라 목록 패널이 더보기·탭·검색 시 호출. 권한 가드 후 페이지 반환.
+// 클라 목록 패널이 더보기·탭·검색 시 호출. 권한 가드 + 파라미터 검증 후 페이지 반환.
 export async function fetchApplicationsPage(opts: {
   scope: ListScope;
   q?: string;
@@ -119,7 +120,10 @@ export async function fetchApplicationsPage(opts: {
 }): Promise<{ rows: ApplicationListRow[]; hasMore: boolean }> {
   const access = await requireApplicationsConsole();
   if (access.status === "forbidden") return { rows: [], hasMore: false };
-  return listApplicationsPage(opts);
+  // 직접 POST 방어 — 음수 offset·거대 limit·임의 scope 거부.
+  const parsed = pageParamsSchema.safeParse(opts);
+  if (!parsed.success) return { rows: [], hasMore: false };
+  return listApplicationsPage(parsed.data);
 }
 
 // 미등록 고객 등록 — customers.edit 필요(RPC 내부에서도 재검증). 반환 company_id로 즉시 P-F 링크.
