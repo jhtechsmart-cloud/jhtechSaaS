@@ -40,7 +40,7 @@ export function SidebarNav({ items, expanded = true }: { items: NavItem[]; expan
                 key={it.href}
                 href={it.href}
                 title={expanded ? undefined : it.label}
-                className={`group relative flex items-center gap-3 rounded-full border px-3 py-2 text-body font-semibold transition-colors ${
+                className={`group relative flex items-center gap-3 rounded-full border py-2 text-body font-semibold transition-colors ${expanded ? "px-3" : "justify-center px-0"} ${
                   active
                     ? "border-transparent bg-accent text-white shadow-[0_4px_12px_rgba(23,100,85,.22)]"
                     : "border-transparent text-sidebar-text hover:border-border hover:bg-surface hover:text-text"

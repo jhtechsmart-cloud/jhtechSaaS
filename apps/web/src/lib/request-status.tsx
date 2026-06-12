@@ -5,11 +5,11 @@ export type RequestStatus = (typeof REQUEST_STATUSES)[number];
 
 // 라이트 민트 테마(2026-06-12): 배지 3톤(미처리=코랄옅음/중립=muted/긍정=민트), color=장식용 포인트.
 export const STATUS_META: Record<RequestStatus, { label: string; color: string; fg: string; bg: string }> = {
-  received: { label: "접수", color: "#34B8A5", fg: "#C25434", bg: "#FDEEE8" }, // 미처리
+  received: { label: "접수", color: "#E98668", fg: "#C25434", bg: "#FDEEE8" }, // 미처리
   in_progress: { label: "진행중", color: "#D3E478", fg: "#4D6B63", bg: "#EEF5F2" }, // 중립
   on_hold: { label: "보류", color: "#C8D8D2", fg: "#4D6B63", bg: "#EEF5F2" }, // 중립(멈춤)
-  done: { label: "완료", color: "#176455", fg: "#176455", bg: "#D9F3E9" }, // 긍정
-  canceled: { label: "취소", color: "#E98668", fg: "#C25434", bg: "#FDEEE8" }, // 부정
+  done: { label: "완료", color: "#34B8A5", fg: "#176455", bg: "#D9F3E9" }, // 긍정
+  canceled: { label: "취소", color: "#9F3F26", fg: "#C25434", bg: "#FDEEE8" }, // 부정
 };
 
 export function StatusBadge({ status }: { status: RequestStatus }) {

@@ -6,9 +6,9 @@ import { Icon } from "../../_components/Icon";
 
 // 도메인별 색 — 네이비 베이스로 통일(견적=딥네이비, A/S=밝은네이비, 소모품=틸).
 const DOMAIN_COLOR: Record<RequestDomain, string> = {
-  application: "#176455", // 견적 — 소프트 인디고
-  service: "#34B8A5", // A/S — 밝은 인디고
-  supply: "#D3E478", // 소모품 — 연한 틸
+  application: "#176455", // 견적 — 파인
+  service: "#34B8A5", // A/S — 틸
+  supply: "#D3E478", // 소모품 — 라임
 };
 const DOMAIN_HREF: Record<RequestDomain, string> = {
   application: "/admin/applications",

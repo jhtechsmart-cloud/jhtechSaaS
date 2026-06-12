@@ -1,21 +1,6 @@
 import type { BarSegment } from "@/lib/dashboard/bars";
 
-// 상태 키 → 파스텔 색. 도넛/범례 공통. (진한 상태 스파인 색 대신 부드러운 파스텔)
-const PASTEL: Record<string, string> = {
-  new: "#34B8A5", // 접수 — 틸
-  assigned: "#D3E478", // 배정 — 라임
-  quoted: "#BFE6C1", // 견적중 — 파인
-  closed: "#176455", // 완료 — 파인
-  received: "#34B8A5", // 접수
-  in_progress: "#BFE6C1", // 진행중
-  on_hold: "#C8D8D2", // 보류 — 뉴트럴
-  done: "#176455", // 완료
-  canceled: "#E98668", // 취소 — 코랄
-};
-
-function pastelize(segments: BarSegment[]): BarSegment[] {
-  return segments.map((s) => ({ ...s, color: PASTEL[s.key] ?? s.color }));
-}
+// 색은 세그먼트가 들고 온 META.color 그대로(막대 차트와 동일 단색 포인트 — 도넛↔막대 드리프트 방지).
 
 // 전체현황 도넛 — 도메인 1개 = 링 1개, 가운데 총계, 아래 범례. 집계 실패 시 error.
 export function StatusDonut({
@@ -38,7 +23,7 @@ export function StatusDonut({
     );
   }
 
-  const segs = pastelize(segments);
+  const segs = segments;
   const total = segs.reduce((s, x) => s + x.count, 0);
   let offset = 0;
 

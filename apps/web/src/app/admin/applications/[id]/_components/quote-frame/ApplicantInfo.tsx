@@ -36,7 +36,7 @@ export function ApplicantInfo({
         }
         badge={
           companyId ? (
-            <span className="rounded-full bg-[#16a34a]/12 px-2 py-0.5 text-micro font-medium text-accent">등록 고객</span>
+            <span className="rounded-full bg-mint px-2 py-0.5 text-micro font-medium text-accent">등록 고객</span>
           ) : (
             <span className="rounded-full bg-coral-soft px-2 py-0.5 text-micro font-semibold text-coral-text">미등록 고객</span>
           )

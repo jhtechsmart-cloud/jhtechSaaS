@@ -78,8 +78,8 @@ function inputCls(dirty: boolean, mono?: boolean): string {
   return [
     INPUT_BASE,
     mono ? "font-mono tabular-nums" : "",
-    // 변경된 필드는 라임 톤 하이라이트(저장 전 시각 추적)
-    dirty ? "border-lime bg-lime/15" : "border-border",
+    // 변경된 필드는 틸 톤 하이라이트(저장 전 시각 추적)
+    dirty ? "border-accent-ring bg-accent-soft/60" : "border-border",
   ].join(" ");
 }
 

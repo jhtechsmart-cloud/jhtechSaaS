@@ -50,10 +50,10 @@
   --secondary: #BFE6C1;          /* 소프트 그린 — 보조 CTA */
   --secondary-foreground: #0F4439;
   --muted: #EEF5F2;              /* 보조 표면(인풋 bg·thead) */
-  --muted-foreground: #5E7C73;   /* ⚠️ 스펙 #92ACA4는 대비 2.4:1(AA 미달) → 4.6:1로 조정 */
+  --muted-foreground: #53706a;   /* ⚠️ 스펙 #92ACA4는 2.4:1(AA 미달) → 페이지 배경 위에서도 5.0:1로 조정 */
   --accent: #DEF4EF;             /* 틸 옅음 — 액센트 배경(hover 틴트) */
   --accent-foreground: #176455;
-  --destructive: #C25434;        /* 코랄 텍스트·액션(#E98668은 대비 미달 → 장식·게이지용) */
+  --destructive: #A8442A;        /* 코랄 텍스트·액션(#E98668은 장식·게이지용) */
   --border: #DFEAE5;
   --input: #DFEAE5;
   --ring: #34B8A5;               /* 액센트 틸 — 포커스 링 */
@@ -85,7 +85,7 @@
   /* 코랄(경고·삭제) */
   --color-coral: #E98668;       /* 장식·게이지·아이콘(텍스트 비권장 — 대비 2.6:1) */
   --color-coral-soft: #FDEEE8;  /* 코랄 옅음 배경 */
-  --color-coral-text: #C25434;  /* 코랄 텍스트(배지·경고 글자, AA 충족) */
+  --color-coral-text: #A8442A;  /* 코랄 텍스트 — 코랄옅음 배경 위 5.3:1(AA) */
 
   /* 중립(라이트 민트 뉴트럴) */
   --color-bg: #F3F8F6;          /* 페이지·사이드바 배경 */
@@ -103,7 +103,7 @@
   /* 상태 — 의미 매핑 유지, 색만 민트·코랄 체계로 */
   --color-active: #176455;      /* 운영중·긍정 */
   --color-inactive: #92ACA4;    /* 비활성 */
-  --color-danger: #C25434;      /* 에러·삭제 */
+  --color-danger: #A8442A;      /* 에러·삭제 */
 
   /* 타이포 스케일(px) — 유지 */
   --text-display: 1.75rem;
@@ -145,26 +145,28 @@ body {
     font-weight: 800;
     letter-spacing: -0.01em;
   }
-  /* 인풋·셀렉트 = pill(스펙). textarea는 카드 라운드(14px). */
-  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]),
-  select {
-    border-radius: 9999px;
-  }
-  textarea {
-    border-radius: 14px;
-  }
-  /* 포커스 링 통일 — 0 0 0 3px 틸옅음 + 틸 보더 */
-  input:focus-visible,
-  select:focus-visible,
-  textarea:focus-visible {
-    outline: none;
-    border-color: #34B8A5;
-    box-shadow: 0 0 0 3px #DEF4EF;
-  }
-  button:focus-visible,
-  a:focus-visible,
-  [role="button"]:focus-visible {
-    outline: none;
-    box-shadow: 0 0 0 3px #DEF4EF;
-  }
+}
+
+/* ── 전역 인풋·포커스(스펙) — ⚠️ 의도적으로 unlayered: Tailwind 유틸(rounded-md·border-border)을
+   이겨야 기존 인풋 전부에 pill·틸 포커스가 적용된다(레이어 CSS는 unlayered에 진다). */
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]),
+select {
+  border-radius: 9999px;
+}
+textarea {
+  border-radius: 14px;
+}
+/* 포커스 — 틸옅음 헤일로 + 틸 외곽선(시인성: 헤일로 단독은 1.15:1라 외곽 링 추가) */
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  border-color: #34B8A5;
+  box-shadow: 0 0 0 3px #DEF4EF, 0 0 0 4px #34B8A5;
+}
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px #DEF4EF, 0 0 0 4px #34B8A5;
 }

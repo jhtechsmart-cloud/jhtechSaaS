@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { APPLICATION_STATUS_META, APPLICATION_STATUSES } from "./application-status";
 
-// 5단계: 접수 #2563EB · 배정 #7C3AED · 견적중 #D97706 · 견적발송 #16A34A(발송 성공) · 완료 #3a3770(네이비 종결)
+// 5단계(라이트 테마 3톤): 접수=코랄옅음(미처리) · 배정/견적중=중립 muted · 견적발송/완료=민트(긍정)
 describe("application status 색 스파인 (5단계)", () => {
   test("배정·견적중=중립 muted — 스왑 회귀 방지", () => {
     expect(APPLICATION_STATUS_META.assigned.bg).toBe("#EEF5F2");

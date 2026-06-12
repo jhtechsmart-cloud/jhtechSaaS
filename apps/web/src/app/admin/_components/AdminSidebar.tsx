@@ -69,7 +69,7 @@ export function AdminSidebar({
       <SidebarNav items={items} expanded={expanded} />
 
       {/* 프로필 */}
-      <div className="mx-3 mb-4 mt-2 flex items-center gap-3 rounded-[12px] border border-border bg-surface px-3 py-3 shadow-card">
+      <div className={`mb-4 mt-2 flex items-center gap-3 rounded-[12px] border border-border bg-surface py-3 shadow-card ${expanded ? "mx-3 px-3" : "mx-2 justify-center px-0"}`}>
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-soft text-small font-bold text-accent">
           {isAdmin ? "관" : "영"}
         </span>
