@@ -101,7 +101,7 @@ export function ServiceRequestTable({ items }: { items: ServiceRequestListRow[] 
                   <td className="max-w-xs py-2 pr-4">
                     <span className="block max-w-xs truncate text-text">{it.contact_company}</span>
                     {!it.verified && (
-                      <span className="rounded-sm bg-amber-100 px-1.5 py-0.5 text-micro font-medium text-amber-700">미확인</span>
+                      <span className="rounded-sm bg-coral-soft px-1.5 py-0.5 text-micro font-semibold text-coral-text">미확인</span>
                     )}
                   </td>
                   <td className="max-w-xs py-2 pr-4">

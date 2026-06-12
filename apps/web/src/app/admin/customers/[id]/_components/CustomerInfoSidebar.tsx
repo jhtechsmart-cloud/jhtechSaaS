@@ -37,7 +37,7 @@ function FieldRow({ label, value, mono, wrap }: { label: string; value: string |
             {v}
           </div>
         ) : (
-          <div className="mt-0.5 text-small text-border">미입력</div>
+          <div className="mt-0.5 text-small text-empty">미입력</div>
         )}
       </div>
     );
@@ -53,7 +53,7 @@ function FieldRow({ label, value, mono, wrap }: { label: string; value: string |
           {v}
         </span>
       ) : (
-        <span className="text-right text-small text-border">미입력</span>
+        <span className="text-right text-small text-empty">미입력</span>
       )}
     </div>
   );
@@ -74,7 +74,7 @@ function InfoCard({ title, children }: { title: string; children: React.ReactNod
 export function PrimaryContactCard({ c }: { c: CompanyDetailFields }) {
   const { phone, email, emailSafe } = pickPrimaryContact(c);
   return (
-    <Card className="gap-0 border-0 bg-navy py-4 text-white shadow-card">
+    <Card className="gap-0 border-0 bg-pine py-4 text-white shadow-card">
       <CardContent className="px-4">
         <h3 className="mb-2 text-small font-semibold uppercase tracking-wide text-white/55">주 연락처</h3>
         {phone || email ? (
@@ -138,7 +138,7 @@ export function CustomerInfoCards({ c }: { c: CompanyDetailFields }) {
               ))}
             </span>
           ) : (
-            <span className="text-small text-border">미입력</span>
+            <span className="text-small text-empty">미입력</span>
           )}
         </div>
         <FieldRow label="업종(종목)" value={c.biz_item} wrap />

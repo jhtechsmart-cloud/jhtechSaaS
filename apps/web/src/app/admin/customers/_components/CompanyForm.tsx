@@ -78,8 +78,8 @@ function inputCls(dirty: boolean, mono?: boolean): string {
   return [
     INPUT_BASE,
     mono ? "font-mono tabular-nums" : "",
-    // 변경된 필드는 amber 톤 하이라이트(저장 전 시각 추적)
-    dirty ? "border-amber-400 bg-amber-50" : "border-border",
+    // 변경된 필드는 틸 톤 하이라이트(저장 전 시각 추적)
+    dirty ? "border-accent-ring bg-accent-soft/60" : "border-border",
   ].join(" ");
 }
 
@@ -459,7 +459,7 @@ function Field({
 }) {
   return (
     <label className="flex min-w-0 flex-col gap-1">
-      <span className={`text-small ${dirty ? "font-semibold text-amber-700" : "text-muted"} ${hideLabel ? "sr-only" : ""}`}>
+      <span className={`text-small ${dirty ? "font-bold text-accent-2" : "text-muted"} ${hideLabel ? "sr-only" : ""}`}>
         {label}
         {required && <span className="text-danger"> *</span>}
       </span>

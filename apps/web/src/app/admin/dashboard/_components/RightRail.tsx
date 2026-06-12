@@ -6,9 +6,9 @@ import { Icon } from "../../_components/Icon";
 
 // 도메인별 색 — 네이비 베이스로 통일(견적=딥네이비, A/S=밝은네이비, 소모품=틸).
 const DOMAIN_COLOR: Record<RequestDomain, string> = {
-  application: "#6360c4", // 견적 — 소프트 인디고
-  service: "#8f8ce0", // A/S — 밝은 인디고
-  supply: "#38a3c0", // 소모품 — 연한 틸
+  application: "#176455", // 견적 — 파인
+  service: "#34B8A5", // A/S — 틸
+  supply: "#D3E478", // 소모품 — 라임
 };
 const DOMAIN_HREF: Record<RequestDomain, string> = {
   application: "/admin/applications",
@@ -19,7 +19,7 @@ const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
 function statusMeta(r: RecentRequest): { label: string; color: string } {
   const meta = r.domain === "application" ? APPLICATION_STATUS_META : STATUS_META;
-  return (meta as Record<string, { label: string; color: string }>)[r.status] ?? { label: r.status, color: "#686d8a" };
+  return (meta as Record<string, { label: string; color: string }>)[r.status] ?? { label: r.status, color: "#4D6B63" };
 }
 
 // 우측 레일: 이번 달 캘린더(신청 제출일에 점) + 이번 달 신청 리스트. "이벤트"가 없으므로 신청을 표시.

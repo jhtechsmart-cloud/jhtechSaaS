@@ -19,7 +19,7 @@ function Meta({ label, value, mono }: { label: string; value: string | null; mon
       {v ? (
         <span className={`text-small font-bold text-text ${mono ? "font-mono tabular-nums" : ""}`}>{v}</span>
       ) : (
-        <span className="text-small text-border">미입력</span>
+        <span className="text-small text-empty">미입력</span>
       )}
     </span>
   );

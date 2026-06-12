@@ -10,12 +10,17 @@ export const APPLICATION_STATUSES: readonly ApplicationStatus[] = [
   "closed",
 ] as const;
 
-export const APPLICATION_STATUS_META: Record<ApplicationStatus, { label: string; color: string }> = {
-  new: { label: "접수", color: "#2563EB" },
-  assigned: { label: "배정", color: "#7C3AED" },
-  quoted: { label: "견적중", color: "#D97706" },
-  quote_sent: { label: "견적발송", color: "#16A34A" }, // 발행됨(발송 성공 — DESIGN.md 스파인 green)
-  closed: { label: "완료", color: "#3a3770" }, // 건 종결(네이비)
+// 라이트 민트 테마(2026-06-12): 배지 = 미처리(코랄옅음)/중립(muted)/긍정(민트) 3톤.
+// color = 대시보드 막대·도넛 공용 단색 포인트(코랄=미처리·라임/소프트그린=중립·틸/파인=긍정) — 5색 상호 구분.
+export const APPLICATION_STATUS_META: Record<
+  ApplicationStatus,
+  { label: string; color: string; fg: string; bg: string }
+> = {
+  new: { label: "접수", color: "#E98668", fg: "#C25434", bg: "#FDEEE8" }, // 미처리 — 주의 환기
+  assigned: { label: "배정", color: "#D3E478", fg: "#4D6B63", bg: "#EEF5F2" }, // 중립
+  quoted: { label: "견적중", color: "#BFE6C1", fg: "#4D6B63", bg: "#EEF5F2" }, // 중립
+  quote_sent: { label: "견적발송", color: "#34B8A5", fg: "#176455", bg: "#D9F3E9" }, // 긍정
+  closed: { label: "완료", color: "#176455", fg: "#176455", bg: "#D9F3E9" }, // 긍정(종결)
 };
 
 // testId: 상세의 "권위 상태" 단언용 data-testid(기본 "app-status"). 목록처럼 여러 배지가
@@ -31,8 +36,8 @@ export function ApplicationStatusBadge({
   return (
     <span
       {...(testId ? { "data-testid": testId } : {})}
-      className="inline-block rounded-sm px-2 py-0.5 text-small font-medium"
-      style={{ color: m.color, backgroundColor: `${m.color}1A` }}
+      className="inline-block rounded-full px-2.5 py-0.5 text-small font-semibold"
+      style={{ color: m.fg, backgroundColor: m.bg }}
     >
       {m.label}
     </span>

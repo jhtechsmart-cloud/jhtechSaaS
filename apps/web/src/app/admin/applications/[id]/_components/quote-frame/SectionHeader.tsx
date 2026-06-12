@@ -16,8 +16,8 @@ export function SectionHeader({
   return (
     <div className="mb-4 flex items-center justify-between gap-3 border-b border-border pb-2.5">
       <div className="flex items-center gap-2">
-        {/* 네이비 세로막대 — 페이지 통일색(#0B1F3A) */}
-        <span aria-hidden className="h-3.5 w-1 shrink-0 rounded-full bg-navy" />
+        {/* 네이비 세로막대 — 페이지 통일색(파인 그린 토큰) */}
+        <span aria-hidden className="h-3.5 w-1 shrink-0 rounded-full bg-pine" />
         <h2 className="text-body font-semibold text-text">{title}</h2>
         {badge}
       </div>

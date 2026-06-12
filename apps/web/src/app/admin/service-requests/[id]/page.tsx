@@ -60,7 +60,7 @@ export default async function ServiceRequestDetailPage({
         <div className="text-small text-muted">접수번호</div>
         <div className="font-mono tabular-nums text-h1 text-text">{str(r.seq_no)}</div>
         {r.company_id == null && (
-          <span className="mt-1 inline-block rounded-sm bg-amber-100 px-2 py-0.5 text-small font-medium text-amber-700">
+          <span className="mt-1 inline-block rounded-sm bg-coral-soft px-2 py-0.5 text-small font-semibold text-coral-text">
             미확인 고객 — 콜백으로 검증 필요
           </span>
         )}
