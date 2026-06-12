@@ -3,29 +3,35 @@ import { requireAnyConsoleCapability } from "@/lib/auth/guard";
 import { countNewApplications } from "@/lib/applications/admin-queries";
 import { countUnreadServiceRequests } from "@/lib/service-requests/queries";
 import { countUnreadSupplyRequests } from "@/lib/supply-requests/queries";
-import {
-  countApplicationsByStatus,
-  countServiceByStatus,
-  countSupplyByStatus,
-  countCustomers,
-  countCompanyEquipment,
-  countActiveEquipment,
-  assigneeLoad,
-} from "@/lib/dashboard/aggregates";
-import { toBarSegments, isDashboardEmpty } from "@/lib/dashboard/bars";
+import { countApplicationsByStatus } from "@/lib/dashboard/aggregates";
 import { listRecentRequests } from "@/lib/dashboard/recent";
-import { APPLICATION_STATUS_META, APPLICATION_STATUSES } from "@/lib/application-status";
-import { STATUS_META } from "@/lib/request-status";
-import { SERVICE_REQUEST_STATUSES } from "@/lib/service-requests/status";
-import { SUPPLY_REQUEST_STATUSES } from "@/lib/supply-requests/status";
-import { ActionQueue } from "./_components/ActionQueue";
-import { StatusDonut } from "./_components/StatusDonut";
-import { ReferenceCounts } from "./_components/ReferenceCounts";
-import { EmptyOnboarding } from "./_components/EmptyOnboarding";
-import { AssigneeLoad } from "./_components/AssigneeLoad";
-import { RightRail } from "./_components/RightRail";
+import {
+  customersWithNewThisMonth,
+  inProgressQuotes,
+  listCalendarEvents,
+  staleQuoteSentCount,
+  weekDemoDelivery,
+} from "@/lib/dashboard/v2-queries";
+import {
+  buildTwoWeekDays,
+  buildWeeklyUnits,
+  demoUtilization,
+  pipelineRows,
+  type ActivityType,
+} from "@/lib/dashboard/v2-logic";
+import { listUpcomingSchedules } from "@/lib/demo-reservations/queries";
+import { addDaysKst, kstDateOf, todayKst } from "@/lib/format/kst";
+import { KpiCards } from "./_components/KpiCards";
+import { TwoWeekCalendar } from "./_components/TwoWeekCalendar";
+import { PipelineRows } from "./_components/PipelineRows";
+import { WeeklyUnitChart } from "./_components/WeeklyUnitChart";
+import { DashboardRightRail } from "./_components/DashboardRightRail";
+import { RecentActivity } from "./_components/RecentActivity";
 
-// settled 결과 → 값 또는 null(실패). 블록별 에러 흡수(한 집계 실패가 전체를 무너뜨리지 않음).
+// 대시보드 v2 — "현황 + 2주 일정" 중심: KPI 4장 / 2주 캘린더(전체 폭) / 파이프라인 세로 행 /
+// 주간 단위블록 / 우측 일정 레일 / 최근 활동. 역할 분기는 RLS 행 스코프가 자동 적용
+// (영업 = 본인 배정+미배정, 관리자 = 전체) — 라벨도 가시 범위에 정직하게.
+
 function val<T>(r: PromiseSettledResult<T>): T | null {
   return r.status === "fulfilled" ? r.value : null;
 }
@@ -41,87 +47,112 @@ export default async function DashboardPage() {
     );
   }
 
+  const today = todayKst();
+  const days = buildTwoWeekDays(today);
+  const weekStart = days[0].date; // 이번 주 월
+  const weekEndExclusive = days[7].date; // 다음 주 월(미포함 경계)
+  const twoWeekEndExclusive = addDaysKst(days[13].date, 1);
+  const monthFirst = `${today.slice(0, 7)}-01`;
+  const nowIso = new Date().toISOString();
+
   const [
     newApps, unreadSvc, unreadSup,
-    appByStatus, svcByStatus, supByStatus,
-    customers, equipment, catalog,
+    appByStatus, inProgress, weekSched, customers, stale,
+    events, upcoming, recent,
   ] = await Promise.allSettled([
-    countNewApplications(), countUnreadServiceRequests(), countUnreadSupplyRequests(),
-    countApplicationsByStatus(), countServiceByStatus(), countSupplyByStatus(),
-    countCustomers(), countCompanyEquipment(), countActiveEquipment(),
+    countNewApplications(),
+    countUnreadServiceRequests(),
+    countUnreadSupplyRequests(),
+    countApplicationsByStatus(),
+    inProgressQuotes(),
+    weekDemoDelivery(weekStart, weekEndExclusive),
+    customersWithNewThisMonth(monthFirst),
+    staleQuoteSentCount(nowIso),
+    listCalendarEvents(weekStart, twoWeekEndExclusive),
+    listUpcomingSchedules(today, 5),
+    listRecentRequests(40),
   ]);
 
-  const appCounts = val(appByStatus);
-  const svcCounts = val(svcByStatus);
-  const supCounts = val(supByStatus);
+  // KPI ① 처리 대기 — 셋 다 성공해야 합산 표시(부분 실패를 작은 수로 위장 금지)
+  const nApps = val(newApps);
+  const nSvc = val(unreadSvc);
+  const nSup = val(unreadSup);
+  const pending =
+    nApps != null && nSvc != null && nSup != null
+      ? { total: nApps + nSvc + nSup, apps: nApps, service: nSvc, supply: nSup }
+      : null;
 
-  const totals = {
-    applications: appCounts ? Object.values(appCounts).reduce((s, n) => s + n, 0) : 0,
-    service: svcCounts ? Object.values(svcCounts).reduce((s, n) => s + n, 0) : 0,
-    supply: supCounts ? Object.values(supCounts).reduce((s, n) => s + n, 0) : 0,
-  };
-  // 모든 도메인 집계가 성공 + 전부 0일 때만 빈상태(집계 실패를 빈상태로 위장 금지).
-  const allFetched = appCounts != null && svcCounts != null && supCounts != null;
-  const empty = allFetched && isDashboardEmpty(totals);
-
-  // 담당자별 부하 — users.manage만(profiles 이름 RLS). 실패는 null로 흡수.
-  const loadRows = can(access.permissions, "users.manage")
-    ? await assigneeLoad().catch(() => null)
+  const weekRaw = val(weekSched);
+  const weekSchedule = weekRaw
+    ? {
+        demoCount: weekRaw.demoCount,
+        deliveryCount: weekRaw.deliveryCount,
+        utilization: demoUtilization(weekRaw.demoMinutes),
+      }
     : null;
 
-  // 우측 레일(캘린더 + 이번 달 신청) — 실패는 빈 배열로 흡수.
-  const recent = await listRecentRequests().catch(() => []);
+  const appCounts = val(appByStatus);
+  const recentRows = val(recent) ?? [];
 
-  // 현황 라벨은 가시 범위에 정직하게 — view_all 보유자는 "전체", 본인 스코프 영업은 "내".
-  // (RLS가 영업에겐 본인+미배정 풀만 보여주므로 "전체"라 적으면 거짓 현황이 된다.)
+  // 주간 활동 — 이번 주(월~일) 신청 3종을 KST 날짜로 그룹(블록 1개=1건)
+  const domainToType: Record<string, ActivityType> = {
+    application: "quote",
+    service: "service",
+    supply: "supply",
+  };
+  const weekItems = recentRows
+    .map((r) => ({
+      date: kstDateOf(r.created_at) ?? "",
+      type: domainToType[r.domain],
+      title: `${r.company} ${r.typeLabel}`,
+    }))
+    .filter((i) => i.date >= weekStart && i.date < weekEndExclusive);
+  const weeklyUnits = buildWeeklyUnits(
+    weekItems,
+    days.slice(0, 7).map((d) => d.date),
+  );
+
+  // 이번 달 신청(우측 레일) — recent에서 월초 이후만 5건
+  const monthRequests = recentRows
+    .filter((r) => (kstDateOf(r.created_at) ?? "") >= monthFirst)
+    .slice(0, 5);
+
+  // 현황 라벨은 가시 범위에 정직하게(영업의 RLS 스코프 = 본인+미배정)
   const hasFullView =
     can(access.permissions, "applications.view_all") ||
-    can(access.permissions, "service_requests.view_all") ||
-    can(access.permissions, "supply_requests.view_all");
-  const statusTitle = hasFullView ? "전체 현황" : "내 현황";
+    can(access.permissions, "users.manage");
+  const scopeLabel = hasFullView ? "전체" : "내 담당";
 
   return (
     <div className="flex flex-col gap-5">
       <div>
         <h1 className="text-h1 font-semibold text-text">대시보드</h1>
-        <p className="text-small text-muted">오늘 처리할 일과 전체 현황을 한눈에</p>
+        <p className="text-small text-muted">{scopeLabel} 현황과 2주 일정을 한눈에</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_340px]">
-        {/* 본문 */}
-        <div className="flex flex-col gap-5">
-          {empty ? (
-            <EmptyOnboarding permissions={access.permissions} />
-          ) : (
-            <ActionQueue counts={{ applications: val(newApps), service: val(unreadSvc), supply: val(unreadSup) }} />
-          )}
+      <KpiCards
+        pending={pending}
+        inProgress={val(inProgress)}
+        weekSchedule={weekSchedule}
+        customers={val(customers)}
+      />
 
-          <section className="flex flex-col gap-5 rounded-2xl border border-border bg-surface p-6 shadow-md">
-            <p className="text-h2 font-semibold text-text">{statusTitle}</p>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <StatusDonut
-                title="견적"
-                error={appCounts == null}
-                segments={appCounts ? toBarSegments(appCounts, APPLICATION_STATUS_META, APPLICATION_STATUSES) : []}
-              />
-              <StatusDonut
-                title="A/S"
-                error={svcCounts == null}
-                segments={svcCounts ? toBarSegments(svcCounts, STATUS_META, SERVICE_REQUEST_STATUSES) : []}
-              />
-              <StatusDonut
-                title="소모품"
-                error={supCounts == null}
-                segments={supCounts ? toBarSegments(supCounts, STATUS_META, SUPPLY_REQUEST_STATUSES) : []}
-              />
-            </div>
-            <ReferenceCounts customers={val(customers)} equipment={val(equipment)} catalog={val(catalog)} />
-            {can(access.permissions, "users.manage") && loadRows && <AssigneeLoad rows={loadRows} />}
-          </section>
+      <TwoWeekCalendar days={days} events={val(events) ?? []} />
+
+      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[1fr_330px]">
+        <div className="flex min-w-0 flex-col gap-5">
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+            <PipelineRows
+              rows={pipelineRows(
+                appCounts ?? { new: 0, assigned: 0, quoted: 0, quote_sent: 0, closed: 0 },
+              )}
+              staleCount={val(stale) ?? 0}
+            />
+            <WeeklyUnitChart days={weeklyUnits} />
+          </div>
+          <RecentActivity requests={recentRows.slice(0, 8)} />
         </div>
-
-        {/* 우측 레일 */}
-        <RightRail requests={recent} />
+        <DashboardRightRail upcoming={val(upcoming) ?? []} monthRequests={monthRequests} />
       </div>
     </div>
   );
