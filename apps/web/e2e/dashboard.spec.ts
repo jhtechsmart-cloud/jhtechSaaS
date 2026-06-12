@@ -1,37 +1,54 @@
 import { test, expect, type Page } from "@playwright/test";
 
-// E5b — 대시보드 E2E. 데이터 상태에 무관하게(빈상태/액션큐 둘 중 하나) 안정적으로 검증한다.
+// 대시보드 v2 E2E — 데이터 상태에 무관하게 안정적으로 검증한다(시드 불요).
 //  A) 로그인 후 첫화면이 /admin/dashboard 이고 h1 "대시보드"가 보인다.
-//  B) /admin/dashboard 진입 시 빈상태 카드 또는 액션큐 중 하나가 보인다(시드 불요).
+//  B) v2 골격 4종(KPI '처리 대기'·2주 일정·견적 파이프라인·주간 활동·일정 레일)이 렌더된다.
+//  C) 영업 계정 로그인 → 본인 스코프 라벨("내 담당") 노출(RLS 분기 확인).
 const ADMIN_EMAIL = process.env.E2E_ADMIN_EMAIL ?? "admin@jhtech.local";
 const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD ?? "jhtech-admin-dev";
+const SALES_EMAIL = process.env.E2E_SALES_EMAIL ?? "sales@jhtech.local";
+const SALES_PASSWORD = process.env.E2E_SALES_PASSWORD ?? "jhtech-sales-dev";
 
-// 다른 spec과 동일한 로그인 메커니즘(getByLabel + 로그인 버튼).
-async function login(page: Page) {
+async function login(page: Page, email = ADMIN_EMAIL, password = ADMIN_PASSWORD) {
   await page.goto("/login");
-  await page.getByLabel("이메일").fill(ADMIN_EMAIL);
-  await page.getByLabel("비밀번호").fill(ADMIN_PASSWORD);
+  await page.getByLabel("이메일").fill(email);
+  await page.getByLabel("비밀번호").fill(password);
   await page.getByRole("button", { name: "로그인" }).click();
-  // 로그인 후 랜딩은 콘솔(/admin/...). E5b부터 첫화면이 /admin/dashboard 로 이동.
   await page.waitForURL(/\/admin\//, { timeout: 20_000 });
 }
 
-test.describe.serial("E5b 대시보드 E2E", () => {
+test.describe.serial("대시보드 v2 E2E", () => {
   test("로그인 후 첫화면 = /admin/dashboard + 헤딩 노출", async ({ page }) => {
     await login(page);
-    // 첫화면 URL 단언(E5b 랜딩 전환).
     await expect(page).toHaveURL(/\/admin\/dashboard$/, { timeout: 15_000 });
     await expect(page.getByRole("heading", { name: "대시보드" })).toBeVisible({ timeout: 15_000 });
   });
 
-  test("대시보드 = 빈상태 또는 액션큐 중 하나 렌더(데이터 무관)", async ({ page }) => {
+  test("v2 골격 — KPI·2주 일정·파이프라인·주간 활동·일정 레일 렌더", async ({ page }) => {
     await login(page);
     await page.goto("/admin/dashboard");
-    await expect(page.getByRole("heading", { name: "대시보드" })).toBeVisible({ timeout: 15_000 });
-    // 데이터가 0이면 빈상태 카드, 1건 이상이면 액션큐 — 둘 중 하나만 보이면 통과.
-    const emptyOrQueue = page
-      .getByTestId("dashboard-empty")
-      .or(page.getByTestId("dashboard-action-queue"));
-    await expect(emptyOrQueue.first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("처리 대기")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("진행 중 견적")).toBeVisible();
+    await expect(page.getByText("이번 주 데모·납품")).toBeVisible();
+    await expect(page.getByText("전체 고객")).toBeVisible();
+    await expect(page.getByText("2주 일정", { exact: true })).toBeVisible();
+    await expect(page.getByText("이번 주", { exact: true })).toBeVisible();
+    await expect(page.getByText("다음 주", { exact: true })).toBeVisible();
+    await expect(page.getByText("견적 파이프라인")).toBeVisible();
+    await expect(page.getByText("주간 활동")).toBeVisible();
+    await expect(page.getByText("데모 및 납품 일정")).toBeVisible();
+    await expect(page.getByRole("link", { name: "예약 관리 →" })).toBeVisible();
+    // 파이프라인 5단계 행(견적 목록 필터 링크)
+    for (const label of ["접수", "배정", "견적중", "견적발송", "완료"]) {
+      await expect(
+        page.getByRole("link", { name: new RegExp(`^${label}`) }).first(),
+      ).toBeVisible();
+    }
+  });
+
+  test("영업 계정 → 본인 스코프 라벨('내 담당') 표시", async ({ page }) => {
+    await login(page, SALES_EMAIL, SALES_PASSWORD);
+    await page.goto("/admin/dashboard");
+    await expect(page.getByText("내 담당 현황과 2주 일정을 한눈에")).toBeVisible({ timeout: 15_000 });
   });
 });
