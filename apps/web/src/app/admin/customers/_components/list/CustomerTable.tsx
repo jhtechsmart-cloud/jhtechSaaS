@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { Building2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { fetchCustomers } from "@/lib/customers/actions";
@@ -9,7 +10,6 @@ import { formatBizNo } from "@jhtechsaas/shared";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { initialOf } from "@/lib/customers/detail-display";
 import { useListParams } from "./useListParams";
 import { TablePagination } from "./TablePagination";
 
@@ -154,8 +154,8 @@ function Row({ r, q, now, onOpen }: { r: CustomerListRow; q: string; now: Date; 
     <TableRow onClick={onOpen} className="cursor-pointer">
       <TableCell>
         <div className="flex items-center gap-2.5">
-          <span aria-hidden className="flex size-8 shrink-0 items-center justify-center rounded-md bg-navy text-small font-bold text-white">
-            {initialOf(r.name)}
+          <span aria-hidden className="flex size-8 shrink-0 items-center justify-center rounded-md bg-accent-soft text-accent">
+            <Building2 className="size-4" />
           </span>
           <span className="min-w-0">
             <Link

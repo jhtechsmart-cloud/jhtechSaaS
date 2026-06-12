@@ -33,20 +33,6 @@ export function splitChips(v: string | null | undefined): string[] {
   return Array.from(new Set(s.split(/[,\s]+/).filter(Boolean)));
 }
 
-// 법인 접두 — 이니셜 추출 시 제거.
-const CORP_PREFIXES = ["(주)", "(유)", "(합)", "주식회사", "유한회사"];
-
-/** 업체명 이니셜(아바타용) — 법인 접두 제거 후 첫 글자. */
-export function initialOf(name: string): string {
-  let s = name.trim();
-  for (const p of CORP_PREFIXES) {
-    if (s.startsWith(p)) {
-      s = s.slice(p.length).trim();
-      break;
-    }
-  }
-  return s.charAt(0).toUpperCase() || "?";
-}
 
 /** 거래상태(파생) — companies에 상태 컬럼이 없어 이력 존재 여부로 표시(표시전용). */
 export function tradeStatusOf(counts: {

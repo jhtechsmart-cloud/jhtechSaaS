@@ -3,7 +3,8 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { formatBizNo } from "@jhtechsaas/shared";
-import { displayValue, initialOf } from "@/lib/customers/detail-display";
+import { Building2 } from "lucide-react";
+import { displayValue } from "@/lib/customers/detail-display";
 import { CopyBizNoButton } from "./CopyBizNoButton";
 import { CustomerKpiStrip, type KpiCell } from "./CustomerKpiStrip";
 
@@ -47,12 +48,12 @@ export function CustomerHeader({
     <Card className="gap-0 overflow-hidden py-0 shadow-card">
       <div className="flex flex-wrap items-start justify-between gap-4 p-5">
         <div className="flex min-w-0 items-center gap-4">
-          {/* 이니셜 아바타(52px, 각진 라운드) */}
+          {/* 회사 아이콘(52px, 각진 라운드 — 단색 SVG) */}
           <span
             aria-hidden
-            className="flex size-[52px] shrink-0 items-center justify-center rounded-lg bg-navy text-h2 font-bold text-white"
+            className="flex size-[52px] shrink-0 items-center justify-center rounded-lg bg-accent-soft text-accent"
           >
-            {initialOf(name)}
+            <Building2 className="size-6" />
           </span>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
