@@ -45,7 +45,6 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   // nav 데이터화 — 권한별 조건 노출 + 아이콘.
   const items: { href: string; label: string; icon: string; show: boolean; badge?: number; section: string }[] = [
     { href: "/admin/dashboard", label: "대시보드", icon: "dashboard", show: true, section: "업무" },
-    { href: "/admin/kpi", label: "KPI", icon: "chart", show: true, section: "업무" },
     {
       href: "/admin/applications", label: "견적", icon: "applications", section: "업무",
       show: anyOf(["applications.view_all", "applications.assign", "applications.status", "applications.claim"]),
