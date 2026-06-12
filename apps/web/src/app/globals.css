@@ -39,7 +39,7 @@
 /* shadcn 시맨틱 변수 실값 — 라이트 민트·파인 그린(2026-06-12 테마 교체).
    다크 모드: 미지원(TODO — 도입 시 .dark 블록 별도 정의). */
 :root {
-  --background: #F3F8F6;
+  --background: #F8FBFA;
   --foreground: #21413A;
   --card: #FFFFFF;
   --card-foreground: #21413A;
@@ -88,8 +88,8 @@
   --color-coral-text: #A8442A;  /* 코랄 텍스트 — 코랄옅음 배경 위 5.3:1(AA) */
 
   /* 중립(라이트 민트 뉴트럴) */
-  --color-bg: #F3F8F6;          /* 페이지·사이드바 배경 */
-  --color-sidebar: #F3F8F6;     /* 사이드바 = 페이지 배경과 동일(라이트) */
+  --color-bg: #F8FBFA;          /* 본문(메인프레임) 배경 — 사이드바보다 한 단계 밝게 */
+  --color-sidebar: #F3F8F6;     /* 사이드바 — 본문보다 살짝 깊은 민트(영역 구분) */
   --color-sidebar-text: #4D6B63;/* 사이드바 라벨 */
   --color-surface: #FFFFFF;     /* 카드 */
   --color-surface-2: #EEF5F2;   /* 보조 표면·트랙·hover */
@@ -121,8 +121,8 @@
   --radius-2xl: 15px;
 
   /* elevation — 한 종류로 통일(파인 틴트의 얕은 그림자) */
-  --shadow-card: 0 3px 14px rgba(23, 100, 85, 0.06);
-  --shadow-card-hover: 0 3px 14px rgba(23, 100, 85, 0.10);
+  --shadow-card: 0 1px 2px rgba(23, 100, 85, 0.05), 0 6px 20px rgba(23, 100, 85, 0.10);
+  --shadow-card-hover: 0 2px 4px rgba(23, 100, 85, 0.07), 0 10px 26px rgba(23, 100, 85, 0.14);
 }
 
 body {

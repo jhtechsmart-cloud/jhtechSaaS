@@ -2,6 +2,11 @@
 
 이 프로젝트의 주요 변경 사항을 기록한다. [Keep a Changelog](https://keepachangelog.com/) 형식, [Semantic Versioning](https://semver.org/)(4자리 MAJOR.MINOR.PATCH.MICRO).
 
+## [0.12.20.1] - 2026-06-12
+
+### Changed
+- **본문·사이드바 톤 분리 + 카드 강조** — 사이드바와 본문 배경이 같아 단조롭던 것을, 본문을 한 단계 밝게(#F8FBFA) 띄우고 사이드바는 깊은 민트(#F3F8F6)를 유지해 영역을 구분. 카드 그림자를 강화해 박스가 배경에서 또렷하게 떠 보이도록 조정.
+
 ## [0.12.20.0] - 2026-06-12
 
 ### Changed
