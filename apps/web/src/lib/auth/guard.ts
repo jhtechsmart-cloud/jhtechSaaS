@@ -92,6 +92,8 @@ export const requireCustomersViewAll = () => requirePermission("customers.view_a
 export const requireConsumablesManage = () => requirePermission("consumables.manage");
 export const requireUsersManage = () => requirePermission("users.manage");
 export const requireQuotesWrite = () => requirePermission("quotes.write");
+export const requireDemoReservationsWrite = () =>
+  requirePermission("demo_reservations.write");
 
 // 신청 3종 콘솔 가드 — 도메인 키 중 하나라도(view_all/assign/status/claim). RLS가 행 스코프 강제.
 export const requireApplicationsConsole = () =>

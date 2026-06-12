@@ -306,6 +306,9 @@ export default async function ApplicationDetailPage({
             pdfReady={pdfReady}
             canReissue={canQuote}
             canWrite={canQuote}
+            isIssued={quote?.status === "issued"}
+            deliveryDate={quote?.delivery_date ?? null}
+            deliveryTime={quote?.delivery_time ?? null}
           />
           <SalesLogPlaceholder />
         </div>

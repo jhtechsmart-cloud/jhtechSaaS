@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { VALID_DAYS } from "@/lib/quotes/banner";
 import { QuotePdfButton } from "./QuotePdfButton";
+import { DeliverySchedule } from "./DeliverySchedule";
 
 const won = (s: string | number) => `₩${Number(s).toLocaleString("ko-KR")}`;
 type LineRow = { name: string; unitPrice: number; quantity: number };
@@ -9,6 +10,7 @@ type LineRow = { name: string; unitPrice: number; quantity: number };
 export function QuoteSummaryPanel({
   applicationId, quoteId, quoteNo, statusLabel, equipmentSubtotal, optionSubtotal, items, options, total,
   issuedAtLabel, validUntilLabel, assigneeName, email, phone, pdfReady, canReissue, preview, canWrite,
+  isIssued, deliveryDate, deliveryTime,
 }: {
   applicationId: string; quoteId: string | null; quoteNo: string | null; statusLabel: string;
   equipmentSubtotal: number; optionSubtotal: number; items: LineRow[]; options: LineRow[]; total: string;
@@ -16,6 +18,8 @@ export function QuoteSummaryPanel({
   email: string | null; phone: string | null; pdfReady: boolean; canReissue: boolean;
   preview?: boolean; // 미발행 — 예상치 + '견적 작성' 유도
   canWrite?: boolean; // quotes.write — 견적 작성 버튼 노출
+  isIssued?: boolean; // 납품 일정 입력 활성 조건(발행 견적만)
+  deliveryDate?: string | null; deliveryTime?: string | null;
 }) {
   return (
     // sticky는 부모 컬럼이 담당(영업일지와 함께 한 덩어리로 고정 → 겹침 방지).
@@ -67,6 +71,15 @@ export function QuoteSummaryPanel({
           <Meta label="유효기간" value={validUntilLabel ? `${validUntilLabel} (${VALID_DAYS}일)` : "발행 시 시작"} />
           <Meta label="담당자" value={assigneeName ?? "미배정"} />
         </div>
+        {quoteId && !preview && (
+          <DeliverySchedule
+            quoteId={quoteId}
+            issued={!!isIssued}
+            initialDate={deliveryDate ?? null}
+            initialTime={deliveryTime ?? null}
+            canWrite={!!canWrite}
+          />
+        )}
         <div className="mt-3 border-t border-border pt-3 text-small">
           <div className="mb-1 text-micro text-muted">발송 정보</div>
           <Meta label="이메일" value={email ?? "-"} />

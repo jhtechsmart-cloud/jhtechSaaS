@@ -63,6 +63,8 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       show: anyOf(["supply_requests.view_all", "supply_requests.status", "supply_requests.claim"]),
       badge: supplyUnread,
     },
+    // 데모예약 — 조회는 전 직원(쓰기만 demo_reservations.write로 게이팅)
+    { href: "/admin/demo-reservations", label: "데모예약", icon: "calendarCheck", show: true, section: "업무" },
     { href: "/admin/equipment", label: "장비", icon: "equipment", show: can(perms, "equipment.manage"), section: "카탈로그" },
     { href: "/admin/consumables", label: "소모품", icon: "consumables", show: can(perms, "consumables.manage"), section: "카탈로그" },
     { href: "/admin/categories", label: "분류", icon: "categories", show: can(perms, "equipment.manage"), section: "카탈로그" },

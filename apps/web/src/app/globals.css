@@ -104,6 +104,8 @@
   --color-active: #176455;      /* 운영중·긍정 */
   --color-inactive: #92ACA4;    /* 비활성 */
   --color-danger: #A8442A;      /* 에러·삭제 */
+  --color-info: #3E7BC0;        /* 파랑 — 납품 일정 dot·칩(데모예약·대시보드 캘린더) */
+  --color-info-soft: #E3EEF9;   /* 파랑 옅음 배경 */
 
   /* 타이포 스케일(px) — 유지 */
   --text-display: 1.75rem;

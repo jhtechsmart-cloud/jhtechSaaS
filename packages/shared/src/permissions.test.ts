@@ -8,10 +8,11 @@ import {
 } from "./permissions";
 
 describe("permission registry", () => {
-  // E5a: capability registry — 18키. *.manage 3키는 step6에서 분해·삭제됨. 새 기능마다 키 추가, 스키마 변경 0.
-  test("registry는 18개 capability 키를 정의한다", () => {
+  // E5a: capability registry — 19키. *.manage 3키는 step6에서 분해·삭제됨. 새 기능마다 키 추가, 스키마 변경 0.
+  test("registry는 19개 capability 키를 정의한다", () => {
     expect([...PERMISSIONS].sort()).toEqual(
       [
+        "demo_reservations.write",
         "applications.view_all",
         "applications.assign",
         "applications.status",
@@ -151,7 +152,7 @@ describe("신규 9키 — can() 동작 + users.manage 우회", () => {
 });
 
 describe("SALES_PRESET (영업담당 프리셋)", () => {
-  test("정확히 9키로 구성된다", () => {
+  test("정확히 10키로 구성된다", () => {
     expect([...SALES_PRESET].sort()).toEqual(
       [
         "applications.status",
@@ -163,8 +164,14 @@ describe("SALES_PRESET (영업담당 프리셋)", () => {
         "service_requests.claim",
         "supply_requests.status",
         "supply_requests.claim",
+        "demo_reservations.write",
       ].sort(),
     );
+  });
+
+  test("데모예약 쓰기 키가 registry·프리셋에 존재한다", () => {
+    expect(PERMISSIONS).toContain("demo_reservations.write");
+    expect(SALES_PRESET).toContain("demo_reservations.write");
   });
 
   test("영업이 못 하는 권한은 미포함 (view_all/assign/delete/users)", () => {
