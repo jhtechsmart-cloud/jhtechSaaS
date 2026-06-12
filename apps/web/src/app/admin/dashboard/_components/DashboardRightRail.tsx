@@ -3,6 +3,7 @@ import type { UpcomingScheduleRow } from "@/lib/demo-reservations/queries";
 import type { RecentRequest } from "@/lib/dashboard/recent";
 import { kstDateOf, kstHmOf } from "@/lib/format/kst";
 import { EVENT_META } from "@/lib/dashboard/v2-meta";
+import { SectionHeader } from "@/app/admin/_components/SectionHeader";
 import { ScheduleRow } from "./ScheduleCard";
 
 // 우측 레일 — "데모 및 납품 일정"(최대 5건) + "이번 달 신청". 날짜/시간 2줄 공용 포맷(ScheduleRow).
@@ -15,13 +16,15 @@ export function DashboardRightRail({
 }) {
   return (
     <aside className="flex flex-col gap-5">
-      <section className="flex flex-col gap-2 rounded-2xl border border-border bg-surface p-5 shadow-card">
-        <div className="flex items-center justify-between">
-          <p className="text-body font-semibold text-text">데모 및 납품 일정</p>
-          <Link href="/admin/demo-reservations" className="text-small font-medium text-accent hover:underline">
-            예약 관리 →
-          </Link>
-        </div>
+      <section className="rounded-2xl border border-border bg-surface p-5 shadow-card">
+        <SectionHeader
+          title="데모 및 납품 일정"
+          action={
+            <Link href="/admin/demo-reservations" className="shrink-0 text-small font-medium text-accent hover:underline">
+              예약 관리 →
+            </Link>
+          }
+        />
         {upcoming.length === 0 ? (
           <p className="py-3 text-small text-empty">다가오는 데모·납품 일정이 없습니다</p>
         ) : (
@@ -44,8 +47,8 @@ export function DashboardRightRail({
         )}
       </section>
 
-      <section className="flex flex-col gap-2 rounded-2xl border border-border bg-surface p-5 shadow-card">
-        <p className="text-body font-semibold text-text">이번 달 신청</p>
+      <section className="rounded-2xl border border-border bg-surface p-5 shadow-card">
+        <SectionHeader title="이번 달 신청" />
         {monthRequests.length === 0 ? (
           <p className="py-3 text-small text-empty">이번 달 신청이 없습니다</p>
         ) : (

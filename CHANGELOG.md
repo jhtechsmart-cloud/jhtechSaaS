@@ -2,6 +2,11 @@
 
 이 프로젝트의 주요 변경 사항을 기록한다. [Keep a Changelog](https://keepachangelog.com/) 형식, [Semantic Versioning](https://semver.org/)(4자리 MAJOR.MINOR.PATCH.MICRO).
 
+## [0.13.1.2] - 2026-06-12
+
+### Changed
+- **대시보드 하단 박스 제목 통일(피드백 반영)** — 견적 파이프라인·주간 활동·최근 활동·데모 및 납품 일정·이번 달 신청 5개 박스에 견적 화면과 동일한 섹션 헤더(파인 세로 막대 + 제목 + 하단 구분선) 적용, 제목과 내용 영역을 시각적으로 분리. SectionHeader 컴포넌트를 콘솔 공용(`admin/_components`)으로 승격(견적 화면 임포트는 재export로 호환 유지). 최상단 KPI 4장·2주 일정은 기존 그대로.
+
 ## [0.13.1.1] - 2026-06-12
 
 ### Changed
