@@ -357,6 +357,22 @@
       "priority": "P3",
       "status": "Draft",
       "phase": "S7"
+    },
+    {
+      "id": "F-018",
+      "name": "데모예약(데모센터 일정·중복 차단)",
+      "scope": "운영(내부)",
+      "priority": "P1",
+      "status": "Launched",
+      "phase": "-"
+    },
+    {
+      "id": "F-019",
+      "name": "대시보드 v2(현황+2주 일정)",
+      "scope": "운영(내부)",
+      "priority": "P1",
+      "status": "Launched",
+      "phase": "-"
     }
   ]
 }
