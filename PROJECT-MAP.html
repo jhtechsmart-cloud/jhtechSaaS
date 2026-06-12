@@ -69,7 +69,7 @@
 <div class="wrap">
   <h1>프로젝트 지도</h1>
   <div class="sub">지금까지 만들어진 파일이 <b>어디에</b> 있고, <b>각 단계가 어떤 파일을 만드는지</b>, 문제 시 <b>어디를 봐야 하는지</b>.</div>
-  <div class="upd">갱신: 2026-06-09 (세션6 · 견적 프레임 재구성·시각폴리시 + 고객 거래처장부 확장(업종) + 견적 미발행 미리보기 + 견적 폼 카탈로그 개편·포함옵션 스냅샷 · 프로덕션 6배포 v0.12.7→v0.12.12) · 명령어 <code>/map</code> 으로 재생성</div>
+  <div class="upd">갱신: 2026-06-13 (세션9 · <b>데모예약 신규(EXCLUDE 겹침 차단·15분 슬롯) + 대시보드 v2(현황+2주 일정) + A/S·소모품 목록 고객목록 레이아웃 통일 + KPI 삭제</b> · 하루 6배포 v0.13.0.0→v0.13.2.0, PR#101~#106) · 직전: 세션7 견적서 PDF(v0.12.13~15), 세션8 전체코드감사 4PR·거래처 1,270곳 이관·CRM 상세·고객목록/수정폼 개편·라이트 민트 테마(v0.12.15.1~v0.12.20.1) · 명령어 <code>/map</code> 으로 재생성</div>
 
   <div class="lead">
     <b>핵심:</b> 이 프로젝트의 산출물은 <b>4곳에 흩어져</b> 있습니다. 코드·설정만 프로젝트 폴더 안에 있고,
@@ -104,17 +104,17 @@
     <tr><td class="path">apps/web/AGENTS.md · CLAUDE.md</td><td>web AI 지침</td><td>"이 Next.js는 학습데이터와 다름, docs 확인" 경고</td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">apps/worker/package.json · tsconfig.json</td><td>워커 설정</td><td>tsx + typescript + @types/node, shared 의존</td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">packages/shared/package.json</td><td>공유 패키지</td><td>permissions registry·Supabase 팩토리·도메인 타입·seed 가드</td><td><span class="tag t-commit">커밋</span></td></tr>
-    <tr><td class="path">VERSION · CHANGELOG.md</td><td>버전·변경이력</td><td>4자리 버전(현재 <b>0.12.12.0</b> — E5 견적 백엔드~PDF v0.12.3~7.0 · 의뢰관리 2분할/상단바/견적프레임 v0.12.8~9.0 · <b>시각폴리시+하이픈 v0.12.10.0 · 고객 거래처장부+업종+미발행미리보기 v0.12.11.0 · 견적폼 카탈로그개편+포함옵션 스냅샷+요청장비 프리필 v0.12.12.0</b>) + Keep a Changelog</td><td><span class="tag t-commit">커밋</span></td></tr>
-    <tr><td class="path">supabase/migrations/*.sql</td><td>DB 마이그레이션</td><td><b>42개</b>. E1~P-F + E5a 4 + 담당자전파 + E5 견적 3(채번·불변트리거·create RPC·jobs큐) + 견적발송 상태 + <b>견적프레임용 셀렉트 + <code>20260609150000</code> companies 거래처장부 9컬럼(담당자·업태·업종·장부명·전화1/2·팩스·실제주소, nullable+CHECK)</b>. 전부 원격 적용·동기(<code>db push</code>). ※ 포함옵션 kind는 jsonb라 마이그 불필요</td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">VERSION · CHANGELOG.md</td><td>버전·변경이력</td><td>4자리 버전(현재 <b>0.13.2.0</b> — 견적서 PDF v0.12.13~15 · 전체코드감사 4PR·거래처 1,270곳 이관·CRM 상세·고객목록/수정폼 개편 v0.12.15.1~v0.12.19 · 라이트 민트·파인 테마 v0.12.20 · <b>데모예약+납품일 v0.13.0.0 · 대시보드 v2 v0.13.1.0 · 시각 다듬기(달력·음영 배지·섹션헤더) v0.13.1.1~2 · A/S·소모품 목록 통일+KPI 삭제 v0.13.2.0</b>) + Keep a Changelog</td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">supabase/migrations/*.sql</td><td>DB 마이그레이션</td><td><b>49개</b>. E1~P-F + E5 견적 + 견적 PDF 컬럼 + 워커 안정화 + companies 거래처장부/이관 컬럼 + 고객목록 검색(pg_trgm·companies_list 뷰) + <b><code>20260612150000</code> demo_reservations(tstzrange·EXCLUDE 겹침차단·15분 CHECK·btree_gist) + <code>20260612150001</code> quotes.delivery_date/time</b>. 전부 원격 적용·동기(<code>db push</code>)</td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">supabase/rollback/*.sql · seed/seed-local.sh</td><td>롤백·시드</td><td>마이그레이션 역스크립트(단수 디렉토리) + 로컬 시드 헬퍼. ⚠️ e2e·db-tests는 <b>db reset + seed-local 후</b> 실행(데모/잔여 데이터가 카탈로그매칭·전역카운트 단언 오염)</td><td><span class="tag t-commit">커밋</span></td></tr>
-    <tr><td class="path">packages/db-tests/ · apps/worker (vitest)</td><td>RLS·큐·워커 테스트</td><td>pg set role+jwt 하니스, <b>307 RLS 단언</b>(+E5 채번/불변·create RPC 교차검증·jobs 큐·companies 확장컬럼·견적 kind 저장/금액불변). <b>워커 통합테스트</b>: 발행→잡→runOnce→PDF→pdf_url 증명. ⚠️ 워커 테스트도 로컬 Supabase 필요</td><td><span class="tag t-commit">커밋</span></td></tr>
-    <tr><td class="path">apps/web/src/{lib,app,proxy.ts}</td><td>web 구현(E2·E3·M2)</td><td>인증·장비 admin(E2) + 공개 카탈로그/상세/견적요청(E3·P-A) + 고객 마스터(P-B) + 소모품·분류 admin(P-C) + A/S(P-D) + 소모품 공개폼(P-E) + <b>고객 통합이력 /admin/customers/[id]</b>(P-F: lib/customers/history) + 공개폼 UX(v0.9.1.0) + <b>E4 견적 트리아지 콘솔(/admin/applications)</b>(v0.10.0.0) + <b>E5a 권한모델·/admin/users 사용자관리</b>(capability 액션키 18종·self-claim·임시PW모달, v0.11.0.0) + <b>E5b 역할인식 대시보드(/admin/dashboard: lib/dashboard/{aggregates,bars,recent}·StatusDonut·RightRail)</b>(v0.12.0.0) + <b>콘솔 UI 리디자인(globals.css v3·라이트 사이드바·Icon)</b>(v0.12.1.0). <i>코드 — 상세는 코드 직접</i></td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">packages/db-tests/ · apps/worker (vitest)</td><td>RLS·큐·워커 테스트</td><td>pg set role+jwt 하니스, <b>339 RLS 단언</b>(+<b>데모예약 동시성(독립 커넥션 2개·전용 fixture id로 EXCLUDE 병렬 INSERT→1성공·1×23P01)·15분 CHECK·납품일 동결예외</b>). <b>워커 통합테스트</b>: 발행→잡→runOnce→PDF→pdf_url 증명. ⚠️ db-tests·워커 테스트는 로컬 Supabase 필요(클린 reset+seed-local)</td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">apps/web/src/{lib,app,proxy.ts}</td><td>web 구현(E2~E5·M2·운영)</td><td>인증·장비 admin(E2) + 공개 카탈로그/상세/견적요청(E3·P-A) + 고객 마스터(P-B) + 소모품/분류 admin(P-C) + A/S(P-D) + 소모품(P-E) + 고객 통합이력(P-F) + <b>E4 트리아지 콘솔·E5a 권한모델·E5 견적 작성/PDF</b> + <b>고객 CRM 상세·목록 데이터테이블(pg_trgm 통합검색)·수정폼 그룹카드</b> + <b>라이트 민트·파인 테마(globals.css)</b> + <b>데모예약(/admin/demo-reservations: lib/demo-reservations/{slots,actions,queries}·월캘린더·타임라인·15분 슬롯폼)</b> + <b>대시보드 v2(/admin/dashboard: lib/dashboard/{v2-logic,v2-queries,v2-meta}·2주캘린더·파이프라인·주간블록·일정레일)</b> + <b>A/S·소모품 목록 = 고객목록 레이아웃(공용 _components/request-list/{QuickFilterCards,RequestToolbar})</b>. <i>코드 — 상세는 코드 직접</i></td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">docs/roadmap.json · ROADMAP.md</td><td>로드맵 단일원본·생성물</td><td>단계(E1~E7·M2 P-A~P-G) status 원본 → <span class="mono">pnpm roadmap:sync</span>로 ROADMAP.md 생성 + Notion 동기화</td><td><span class="tag t-commit">커밋</span></td></tr>
-    <tr><td class="path">docs/superpowers/{specs,plans}/</td><td>설계·플랜 문서</td><td>E2·E3 spec/plan + M2 고객 포털 + P-C + E5 견적 7종 + <b>2026-06-08: 콘솔 색재단장(console-color-retheme) · 의뢰관리 2분할 셸(applications-two-pane-shell)</b> spec·plan. <b>P-D~P-F는 ~/.gstack·이슈 본문</b></td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">docs/superpowers/{specs,plans}/</td><td>설계·플랜 문서</td><td>E2·E3 spec/plan + M2 고객 포털 + E5 견적 7종 + 견적 프레임/2분할 셸/색재단장 + 견적서 PDF + <b>하이웍스 메일 연구노트(2026-06-10, 스펙 대기) · 데모예약+대시보드 v2 플랜(2026-06-12-demo-reservations-dashboard-v2)</b>. <b>P-D~P-F·세션8 작업은 ~/.gstack·이슈 본문</b></td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">scripts/roadmap-sync.sh</td><td>로드맵 동기화 래퍼</td><td>~/scripts/claude-notion-sync 엔진 호출(토큰 재사용)</td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">.vercel/project.json</td><td>Vercel 링크</td><td>repo 루트 링크(Root Dir=apps/web). vercel link 산출</td><td><span class="tag t-ignore">gitignore</span></td></tr>
     <tr><td class="path">apps/worker/src/seed-admin.ts</td><td>관리자 시드</td><td>service_role 부트스트랩(프로덕션 비번 가드)</td><td><span class="tag t-commit">커밋</span></td></tr>
-    <tr><td class="path">dev-notes/</td><td>개발 일지</td><td>일별 노트 18일치(.md) + 대시보드(HTML, /devnote) — …E5 견적 풀스택 + <b>색 재단장·의뢰관리 2분할(2026-06-09)</b></td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">dev-notes/</td><td>개발 일지</td><td>일별 노트 22일치(.md) + 대시보드(HTML, /devnote) — …견적 PDF + <b>데모예약·대시보드 v2·신청목록 통일(2026-06-13)</b></td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">supabase/.temp/linked-project.json</td><td>원격 링크 기록</td><td>supabase link 산출(원격 프로젝트 ref)</td><td><span class="tag t-ignore">로컬</span></td></tr>
     <tr><td class="path">apps/web/.env.local</td><td>web 실제 환경변수</td><td><b>시크릿</b> — Supabase URL/anon key</td><td><span class="tag t-ignore">gitignore</span></td></tr>
     <tr><td class="path">apps/worker/.env</td><td>워커 실제 환경변수</td><td><b>시크릿</b> — service_role, Gmail 앱비밀번호</td><td><span class="tag t-ignore">gitignore</span></td></tr>
@@ -158,9 +158,9 @@
     <tr><td class="path">#38</td><td>E5a 권한모델 + /admin/users 사용자관리 <span style="color:var(--sent);font-weight:600">✅ 머지·배포 v0.11.0.0 (CLOSED, PR#40)</span></td><td>#5</td></tr>
     <tr><td class="path">#46</td><td>E5b 역할 인식 요약 대시보드 <span style="color:var(--sent);font-weight:600">✅ 머지·배포 v0.12.0.0 (CLOSED, PR#47)</span></td><td>#38</td></tr>
     <tr><td class="path">#48·#49·#50</td><td>담당자 고객전파(+IDOR) v0.12.0.1 · 콘솔 리디자인+장비상세404수정 v0.12.1.0 · DESIGN.md v3 v0.12.1.1 <span style="color:var(--sent);font-weight:600">✅ 머지·배포</span></td><td>E5b</td></tr>
-    <tr><td class="path">#6·#59</td><td>E5 견적 작성+통합 PDF(워커) <span style="color:var(--sent);font-weight:600">✅ 백엔드~UI~PDF골격 v0.12.3~6.0 + Railway 워커 실배포(세션5, PDF고리 라이브)</span> · 실견적양식 레이아웃 대기</td><td>#2,#3,#5</td></tr>
-    <tr><td class="path">UI</td><td>콘솔 색 재단장(딥네이비+스틸블루) <span style="color:var(--sent);font-weight:600">✅ PR#69</span> · 의뢰관리 2분할+확장형목록+사이드바접기 <span style="color:var(--sent);font-weight:600">✅ PR#70(2단계 슬라이스1/4)</span> · 슬라이스2~4 진행예정</td><td>—</td></tr>
-    <tr><td class="path">#7</td><td>E6 메일 발송(워커)</td><td>#2,#6</td></tr>
+    <tr><td class="path">#6·#59</td><td>E5 견적 작성+통합 PDF(워커) <span style="color:var(--sent);font-weight:600">✅ 백엔드~UI~PDF 실양식 라이브 v0.12.3~15(Puppeteer HTML→PDF·@sparticuz 크롬·Railway 워커)</span></td><td>#2,#3,#5</td></tr>
+    <tr><td class="path">UI·운영</td><td>딥네이비 테마→<b>라이트 민트·파인 테마 v0.12.20</b> · 거래처 1,270곳 이관·CRM 상세·고객목록/수정폼 개편(세션8) · <b>데모예약+대시보드 v2+신청목록 통일 v0.13.0~2(세션9, PR#101~106)</b> <span style="color:var(--sent);font-weight:600">✅ 라이브</span></td><td>—</td></tr>
+    <tr><td class="path">#7</td><td>E6 메일 발송(워커) <span style="color:var(--new);font-weight:600">● 다음 — 하이웍스 API 스펙 대기</span></td><td>#2,#6</td></tr>
     <tr><td class="path">#8</td><td>E7 업체 이력</td><td>#4~#7</td></tr>
     <tr><td colspan="3" style="background:var(--surface);font-weight:600">▼ M2 — 고객 포털 & 운영 백본 (신규 마일스톤, 2026-06-01)</td></tr>
     <tr><td class="path">#18</td><td>[EPIC] M2 고객 포털 (견적v2·고객마스터·AS·소모품·이력·알림)</td><td>—</td></tr>
@@ -220,13 +220,16 @@
     <tr><td>"다음 세션이 기억하는 상태"</td><td class="path">~/.claude/…/memory/jhtechsaas-project.md</td></tr>
     <tr><td>"환경변수·시크릿(키·비번)"</td><td class="path">apps/web/.env.local · apps/worker/.env (gitignore, 로컬만)</td></tr>
     <tr><td>"Supabase 연결 설정"</td><td class="path">supabase/config.toml + 위 .env 값</td></tr>
-    <tr><td>"빌드/의존성 문제"</td><td class="path">package.json · pnpm-workspace.yaml · pnpm-lock.yaml</td></tr>
+    <tr><td>"빌드/의존성 문제"</td><td class="path">package.json · pnpm-workspace.yaml · pnpm-lock.yaml (라우트 삭제 후 typecheck 깨지면 rm -rf apps/web/.next)</td></tr>
     <tr><td>"GitHub 인증(다계정)"</td><td class="path">~/.ssh/config (Host github-jhtech)</td></tr>
+    <tr><td>"데모예약 겹침 차단·15분 슬롯 로직"</td><td class="path">supabase/migrations/…_demo_reservations.sql (EXCLUDE) · apps/web/src/lib/demo-reservations/slots.ts (순수 로직) · packages/db-tests/…_demo_reservations.test.ts (동시성)</td></tr>
+    <tr><td>"대시보드 집계·이벤트 색"</td><td class="path">apps/web/src/lib/dashboard/{v2-queries,v2-logic,v2-meta}.ts (EVENT_META=색 단일출처)</td></tr>
+    <tr><td>"레이아웃 확인용 샘플 데이터(로컬)"</td><td class="path">scripts/seed-requests-sample.mjs (A/S 7·소모품 8, 로컬 service_role)</td></tr>
   </table>
 
   <footer>
     <b>jhtechSaaS</b> · 이 문서는 <code>/map</code> 명령어로 언제든 재생성됩니다(4곳 재스캔). 프로젝트가 진행되며 단계·파일이 늘면 자동 반영됩니다.<br>
-    디자인: DESIGN.md 기준(v3 — Plus Jakarta Sans+Pretendard · 소프트 인디고 · 명료함 · 상태 색).
+    디자인: DESIGN.md 기준(2026-06-12 라이트 민트·파인 그린 테마 — Pretendard 단일 · 파인 #176455 주색 · 일정 이벤트 5색 · 명료함 · 상태 3톤).
   </footer>
 </div>
 </body>
