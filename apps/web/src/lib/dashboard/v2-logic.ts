@@ -2,7 +2,8 @@
 // 전부 KST "YYYY-MM-DD" 문자열 기반(타임존 연산은 kst.ts에서 끝남).
 
 import { addDaysKst } from "@/lib/format/kst";
-import { APPLICATION_STATUSES, type ApplicationStatus } from "@/lib/application-status";
+import { APPLICATION_STATUSES } from "@/lib/application-status";
+import type { ApplicationStatus } from "@/lib/customers/history";
 import { CLOSE_HOUR, OPEN_HOUR } from "@/lib/demo-reservations/constants";
 
 /** 캘린더 이벤트 5종 — 견적(파인)·A/S(코랄)·소모품(라임)·데모(틸)·납품(파랑). */
