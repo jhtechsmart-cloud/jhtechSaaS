@@ -161,7 +161,7 @@ function Row({ r, q, now, onOpen }: { r: CustomerListRow; q: string; now: Date; 
             <Link
               href={`/admin/customers/${r.id}`}
               onClick={(e) => e.stopPropagation()}
-              className="block max-w-60 truncate text-body font-bold text-text hover:text-accent"
+              className="block max-w-60 truncate text-body font-medium text-text hover:text-accent"
             >
               <Mark text={r.name} q={q} />
             </Link>
