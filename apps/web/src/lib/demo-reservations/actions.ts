@@ -5,9 +5,13 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { requireDemoReservationsWrite } from "@/lib/auth/guard";
+import {
+  requireAnyConsoleCapability,
+  requireDemoReservationsWrite,
+} from "@/lib/auth/guard";
 import { kstRangeIso } from "./slots";
 import { createReservationSchema } from "./schema";
+import { listReservationsForDate, type DemoReservationRow } from "./queries";
 
 export type ReservationActionResult =
   | { status: "ok"; date: string }
@@ -56,6 +60,20 @@ export async function createDemoReservation(
 
   revalidatePath("/admin/demo-reservations");
   return { status: "ok", date: v.date };
+}
+
+/** 등록 폼의 날짜 변경 시 해당일 예약 재조회(useQuery용 fetch 래퍼 — 조회는 콘솔 전 직원). */
+export async function fetchDayReservations(
+  date: unknown,
+): Promise<DemoReservationRow[]> {
+  const access = await requireAnyConsoleCapability();
+  if (access.status === "forbidden") return [];
+  const parsed = z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .safeParse(date);
+  if (!parsed.success) return [];
+  return listReservationsForDate(parsed.data);
 }
 
 export async function cancelDemoReservation(

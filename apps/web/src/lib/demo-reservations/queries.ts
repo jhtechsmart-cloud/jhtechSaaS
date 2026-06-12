@@ -115,6 +115,27 @@ export async function listDotDaysForMonth(
   return { demo: [...demo], delivery: [...delivery] };
 }
 
+export interface EquipmentOptionRow {
+  id: string;
+  name: string;
+  model: string | null;
+}
+
+/** 데모 장비 선택용 active 카탈로그(이름순). */
+export async function listActiveEquipmentOptions(): Promise<EquipmentOptionRow[]> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("equipment")
+    .select("id,name,model")
+    .eq("status", "active")
+    .order("name", { ascending: true });
+  if (error) {
+    console.error("[demo_reservations.equipmentOptions]", error);
+    return [];
+  }
+  return (data ?? []) as EquipmentOptionRow[];
+}
+
 export interface UpcomingScheduleRow {
   kind: "demo" | "delivery";
   id: string;
