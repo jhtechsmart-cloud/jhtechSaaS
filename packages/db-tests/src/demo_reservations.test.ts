@@ -161,8 +161,11 @@ describe("demo_reservations — 겹침 차단(EXCLUDE)", () => {
   });
 
   test("동시성: 같은 시간대 병렬 INSERT 2건 → 정확히 1건 성공·1건 23P01", async () => {
-    // 레이스 검증은 커밋이 실제로 일어나야 해서 rollback 트랜잭션 밖에서
-    // 독립 커넥션 2개로 진행하고, 끝에 postgres로 잔여 행/유저를 정리한다.
+    // 레이스 검증은 커밋이 실제로 일어나야 해서 rollback 트랜잭션 밖에서 독립 커넥션 2개로
+    // 진행한다. ⚠️ vitest가 테스트 파일을 병렬 실행하므로 다른 파일이 쓰는 공유 fixture
+    // (UID.sales1·장비 id)를 만지면 교차 데드락(40P01) — 이 테스트 전용 id만 사용한다.
+    const RACE_UID = "00000000-0000-0000-0000-0000000000c9";
+    const RACE_EQ = "00000000-0000-0000-0000-00000000e0c9";
     const a = await makeClient();
     const b = await makeClient();
     const marker = "race-test-marker";
@@ -172,25 +175,33 @@ describe("demo_reservations — 겹침 차단(EXCLUDE)", () => {
         "delete from public.demo_reservations where memo=$1",
         [marker],
       );
-      await seedAuthUser(c, UID.sales1, "race-s1@jhtech.test").catch(() => {});
+      await seedAuthUser(c, RACE_UID, "race-s1@jhtech.test").catch(() => {});
       await c.query(
         "update public.profiles set permissions='{demo_reservations.write}' where id=$1",
-        [UID.sales1],
+        [RACE_UID],
       );
       await c.query(
-        "insert into public.equipment (id,name,base_price,status) values ($1,'데모장비',1000,'active') on conflict (id) do nothing",
-        [EQ],
+        "insert into public.equipment (id,name,base_price,status) values ($1,'레이스데모장비',1000,'active') on conflict (id) do nothing",
+        [RACE_EQ],
       );
 
       const tr = range("2026-07-02", "10:00", "11:30");
+      // set local은 트랜잭션 안에서만 유효 → 명시 BEGIN/COMMIT으로 RLS 역할 적용 상태로 경쟁시킨다.
       const run = async (client: Client) => {
-        await asUser(client, UID.sales1);
-        await client.query(
-          `insert into public.demo_reservations
-             (customer_name, equipment_id, time_range, created_by, memo)
-           values ('레이스', $1, $2::tstzrange, $3, $4)`,
-          [EQ, tr, UID.sales1, marker],
-        );
+        await client.query("begin");
+        try {
+          await asUser(client, RACE_UID);
+          await client.query(
+            `insert into public.demo_reservations
+               (customer_name, equipment_id, time_range, created_by, memo)
+             values ('레이스', $1, $2::tstzrange, $3, $4)`,
+            [RACE_EQ, tr, RACE_UID, marker],
+          );
+          await client.query("commit");
+        } catch (e) {
+          await client.query("rollback");
+          throw e;
+        }
       };
       const results = await Promise.allSettled([run(a), run(b)]);
       const ok = results.filter((r) => r.status === "fulfilled");
@@ -212,7 +223,7 @@ describe("demo_reservations — 겹침 차단(EXCLUDE)", () => {
       await c.query("delete from public.demo_reservations where memo=$1", [
         marker,
       ]);
-      await c.query("delete from public.equipment where id=$1", [EQ]).catch(
+      await c.query("delete from public.equipment where id=$1", [RACE_EQ]).catch(
         () => {},
       );
       await c
