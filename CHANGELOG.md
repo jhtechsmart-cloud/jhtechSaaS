@@ -2,6 +2,11 @@
 
 이 프로젝트의 주요 변경 사항을 기록한다. [Keep a Changelog](https://keepachangelog.com/) 형식, [Semantic Versioning](https://semver.org/)(4자리 MAJOR.MINOR.PATCH.MICRO).
 
+## [0.12.19.1] - 2026-06-12
+
+### Changed
+- 고객 목록·상세의 회사 이니셜 아바타를 단색 SVG 빌딩 아이콘으로 교체(스틸블루 모노톤, 콘솔 아이콘 패턴 통일).
+
 ## [0.12.19.0] - 2026-06-12
 
 ### Added
