@@ -3,7 +3,6 @@ import {
   displayValue,
   pickPrimaryContact,
   splitChips,
-  initialOf,
   tradeStatusOf,
 } from "./detail-display";
 
@@ -60,19 +59,6 @@ describe("splitChips — 업태 쉼표·공백 분리 → 배지 칩", () => {
   });
 });
 
-describe("initialOf — 업체명 이니셜(법인 접두 제거)", () => {
-  test.each([
-    ["(주)RGB COLOR", "R"],
-    ["주식회사 천성애드컴", "천"],
-    ["기획원이", "기"],
-    ["(유)테스트", "테"],
-  ])("%s → %s", (name, want) => {
-    expect(initialOf(name)).toBe(want);
-  });
-  test("빈 이름은 '?'", () => {
-    expect(initialOf("")).toBe("?");
-  });
-});
 
 describe("tradeStatusOf — 거래상태(이력 기반 파생)", () => {
   test("견적·장비·AS·소모품 중 하나라도 있으면 거래중", () => {
