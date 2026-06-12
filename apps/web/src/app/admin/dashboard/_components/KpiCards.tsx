@@ -20,14 +20,14 @@ function Card({
 }) {
   const inner = (
     <div
-      className={`flex h-full flex-col gap-1 rounded-2xl border p-5 shadow-card transition-shadow ${
+      className={`flex h-full flex-col gap-1 rounded-2xl border bg-gradient-to-br p-5 shadow-card transition-shadow ${
         warn
-          ? "border-coral bg-coral-soft"
-          : "border-border bg-surface"
+          ? "border-coral from-coral-soft to-[#FBE2D6]"
+          : "border-border from-surface to-mint-hover"
       } ${href ? "hover:shadow-card-hover" : ""}`}
     >
       <p className={`text-small font-medium ${warn ? "text-coral-text" : "text-muted"}`}>{label}</p>
-      <p className={`text-display font-extrabold tracking-tight tabular-nums ${warn ? "text-coral-text" : "text-text"}`}>
+      <p className={`text-display font-bold tracking-tight tabular-nums ${warn ? "text-coral-text" : "text-text"}`}>
         {value}
       </p>
       {sub && <p className={`text-micro ${warn ? "text-coral-text/80" : "text-muted"}`}>{sub}</p>}

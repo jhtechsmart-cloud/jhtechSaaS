@@ -34,7 +34,10 @@ export function DashboardRightRail({
                 end={u.end}
                 title={u.title}
                 href={u.href}
-                accentColor={EVENT_META[u.kind === "demo" ? "demo" : "delivery"].color}
+                tint={{
+                  bg: EVENT_META[u.kind === "demo" ? "demo" : "delivery"].bg,
+                  fg: EVENT_META[u.kind === "demo" ? "demo" : "delivery"].fg,
+                }}
               />
             ))}
           </div>
