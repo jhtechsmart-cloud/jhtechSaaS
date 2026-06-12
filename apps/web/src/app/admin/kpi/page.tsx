@@ -2,7 +2,7 @@ import { requireAnyConsoleCapability } from "@/lib/auth/guard";
 
 // KPI 디자인 시안 — Stripe 결(넉넉한 여백·큰 숫자·차분한 색·좌측정렬·강조 1곳).
 // 데이터는 전부 샘플(프로덕션 집계 0이라 디자인 검증용). 실집계 배선은 후속.
-// 프로젝트 v3 토큰(globals.css) 사용: Plus Jakarta+Pretendard·인디고 액센트·시맨틱 색.
+// 프로젝트 테마 토큰(globals.css) 사용: Pretendard·파인 액센트·시맨틱 색.
 
 // ── 샘플 데이터 ─────────────────────────────────────────────
 const REVENUE_12M = [62, 71, 68, 84, 79, 92, 88, 103, 96, 112, 118, 124]; // 백만원 단위
