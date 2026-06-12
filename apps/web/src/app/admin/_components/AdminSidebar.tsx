@@ -53,14 +53,14 @@ export function AdminSidebar({
           <Icon name="dashboard" size={18} />
         </span>
         <span className={`flex min-w-0 flex-1 flex-col leading-tight ${fade(expanded)}`}>
-          <span className="truncate text-body font-semibold text-white">재현테크</span>
+          <span className="truncate text-body font-extrabold tracking-tight text-accent-2">재현테크</span>
           <span className="truncate text-micro text-sidebar-text">견적관리 콘솔</span>
         </span>
         <button
           onClick={toggle}
           title={pinnedCollapsed ? "사이드바 고정(펼친 채 유지)" : "사이드바 접기"}
           aria-label="사이드바 접기/펴기"
-          className={`shrink-0 rounded-md p-1 text-sidebar-text hover:bg-navy-2 hover:text-white ${fade(expanded)}`}
+          className={`shrink-0 rounded-md p-1 text-sidebar-text hover:bg-surface hover:text-text ${fade(expanded)}`}
         >
           <Icon name={pinnedCollapsed ? "chevronRight" : "chevronLeft"} size={18} />
         </button>
@@ -69,16 +69,16 @@ export function AdminSidebar({
       <SidebarNav items={items} expanded={expanded} />
 
       {/* 프로필 */}
-      <div className="mx-3 mb-4 mt-2 flex items-center gap-3 rounded-lg bg-navy-2 px-3 py-3">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-navy-3 text-small font-semibold text-white">
+      <div className="mx-3 mb-4 mt-2 flex items-center gap-3 rounded-[12px] border border-border bg-surface px-3 py-3 shadow-card">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-soft text-small font-bold text-accent">
           {isAdmin ? "관" : "영"}
         </span>
         <span className={`flex min-w-0 flex-1 flex-col leading-tight ${fade(expanded)}`}>
-          <span className="truncate text-small font-medium text-white">{isAdmin ? "관리자" : "영업담당"}</span>
+          <span className="truncate text-small font-semibold text-text">{isAdmin ? "관리자" : "영업담당"}</span>
           <span className="truncate text-micro text-sidebar-text">재현테크</span>
         </span>
         <form action={signOut} className={`shrink-0 ${fade(expanded)}`}>
-          <button className="text-sidebar-text transition-colors hover:text-white" aria-label="로그아웃" title="로그아웃">
+          <button className="text-sidebar-text transition-colors hover:text-danger" aria-label="로그아웃" title="로그아웃">
             <Icon name="logout" size={18} />
           </button>
         </form>

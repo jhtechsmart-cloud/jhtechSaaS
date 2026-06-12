@@ -43,29 +43,30 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   const initialOverride = sc === "1" ? true : sc === "0" ? false : null;
 
   // nav 데이터화 — 권한별 조건 노출 + 아이콘.
-  const items: { href: string; label: string; icon: string; show: boolean; badge?: number }[] = [
-    { href: "/admin/dashboard", label: "대시보드", icon: "dashboard", show: true },
-    { href: "/admin/kpi", label: "KPI", icon: "chart", show: true },
+  const items: { href: string; label: string; icon: string; show: boolean; badge?: number; section: string }[] = [
+    { href: "/admin/dashboard", label: "대시보드", icon: "dashboard", show: true, section: "업무" },
+    { href: "/admin/kpi", label: "KPI", icon: "chart", show: true, section: "업무" },
     {
-      href: "/admin/applications", label: "견적", icon: "applications",
+      href: "/admin/applications", label: "견적", icon: "applications", section: "업무",
       show: anyOf(["applications.view_all", "applications.assign", "applications.status", "applications.claim"]),
       badge: newApps,
     },
-    { href: "/admin/customers", label: "고객", icon: "customers", show: anyOf(["customers.edit", "customers.view_all"]) },
+    // TODO(테마 스펙): 고객 메뉴 건수 칩 — 전체 고객 카운트 쿼리 연결 시 badge 추가
+    { href: "/admin/customers", label: "고객", icon: "customers", show: anyOf(["customers.edit", "customers.view_all"]), section: "업무" },
     {
-      href: "/admin/service-requests", label: "A/S", icon: "service",
+      href: "/admin/service-requests", label: "A/S", icon: "service", section: "업무",
       show: anyOf(["service_requests.view_all", "service_requests.status", "service_requests.claim"]),
       badge: unread,
     },
     {
-      href: "/admin/supply-requests", label: "소모품신청", icon: "supply",
+      href: "/admin/supply-requests", label: "소모품신청", icon: "supply", section: "업무",
       show: anyOf(["supply_requests.view_all", "supply_requests.status", "supply_requests.claim"]),
       badge: supplyUnread,
     },
-    { href: "/admin/equipment", label: "장비", icon: "equipment", show: can(perms, "equipment.manage") },
-    { href: "/admin/consumables", label: "소모품", icon: "consumables", show: can(perms, "consumables.manage") },
-    { href: "/admin/categories", label: "분류", icon: "categories", show: can(perms, "equipment.manage") },
-    { href: "/admin/users", label: "사용자", icon: "users", show: can(perms, "users.manage") },
+    { href: "/admin/equipment", label: "장비", icon: "equipment", show: can(perms, "equipment.manage"), section: "카탈로그" },
+    { href: "/admin/consumables", label: "소모품", icon: "consumables", show: can(perms, "consumables.manage"), section: "카탈로그" },
+    { href: "/admin/categories", label: "분류", icon: "categories", show: can(perms, "equipment.manage"), section: "카탈로그" },
+    { href: "/admin/users", label: "사용자", icon: "users", show: can(perms, "users.manage"), section: "관리" },
   ];
 
   return (
