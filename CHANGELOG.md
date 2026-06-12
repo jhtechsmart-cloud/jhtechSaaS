@@ -2,6 +2,16 @@
 
 이 프로젝트의 주요 변경 사항을 기록한다. [Keep a Changelog](https://keepachangelog.com/) 형식, [Semantic Versioning](https://semver.org/)(4자리 MAJOR.MINOR.PATCH.MICRO).
 
+## [0.13.2.0] - 2026-06-12
+
+### Changed
+- **A/S 신청·소모품 신청 목록을 고객목록과 동일한 레이아웃으로 개편** — KPI 빠른 필터 카드 4장(전체/접수·미처리/진행중/완료, 클릭=필터, 하단 게이지 바) + 통합 검색 툴바(`/` 단축키, 상태·담당 Select, 필터 초기화) + 데이터 테이블(아이콘+업체명·접수번호 서브라인, 미열람 점·미확인 배지, sticky 헤더). 공용 컴포넌트(QuickFilterCards·RequestToolbar)로 두 페이지가 같은 패턴 공유.
+- 고객 목록 업체명 굵기 완화(bold→medium).
+- 레이아웃 확인용 샘플 시드 스크립트 추가(`scripts/seed-requests-sample.mjs` — 로컬 전용, A/S 7건·소모품 8건 상태 분포 시드).
+
+### Removed
+- KPI 메뉴·페이지 삭제(사이드바·`/admin/kpi`) — 대시보드 v2가 운영지표를 대체.
+
 ## [0.13.1.2] - 2026-06-12
 
 ### Changed
