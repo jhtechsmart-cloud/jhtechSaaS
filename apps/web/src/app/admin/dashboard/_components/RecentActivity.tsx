@@ -1,12 +1,13 @@
 import type { RecentRequest } from "@/lib/dashboard/recent";
 import { kstDateOf, kstHmOf } from "@/lib/format/kst";
+import { SectionHeader } from "@/app/admin/_components/SectionHeader";
 import { ScheduleRow } from "./ScheduleCard";
 
 // 최근 활동 — 신청 3종 최신순. 일정 레일과 동일한 날짜/시간 2줄 형식(ScheduleRow 공용).
 export function RecentActivity({ requests }: { requests: RecentRequest[] }) {
   return (
-    <section className="flex flex-col gap-2 rounded-2xl border border-border bg-surface p-6 shadow-card">
-      <p className="text-h2 font-semibold text-text">최근 활동</p>
+    <section className="rounded-2xl border border-border bg-surface p-6 shadow-card">
+      <SectionHeader title="최근 활동" />
       {requests.length === 0 ? (
         <p className="py-3 text-small text-empty">최근 활동이 없습니다</p>
       ) : (
