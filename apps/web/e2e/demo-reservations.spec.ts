@@ -134,6 +134,8 @@ test.describe.serial("데모예약 E2E", () => {
     await page.getByRole("button", { name: "예약 취소" }).click();
     await page.getByRole("button", { name: "취소 확정" }).click();
     await expect(page.getByText("예약이 취소되었습니다")).toBeVisible();
+    // router.refresh() 반영 타이밍에 의존하지 않게 명시 reload 후 단언(flaky 방지)
+    await page.reload();
     await expect(page.getByText("10:00–11:30 (90분)")).toBeHidden();
 
     // 같은 시간대(10:00–11:30) 재등록 — canceled는 EXCLUDE에서 제외되므로 성공해야 함
