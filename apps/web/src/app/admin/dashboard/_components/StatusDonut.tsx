@@ -2,15 +2,15 @@ import type { BarSegment } from "@/lib/dashboard/bars";
 
 // 상태 키 → 파스텔 색. 도넛/범례 공통. (진한 상태 스파인 색 대신 부드러운 파스텔)
 const PASTEL: Record<string, string> = {
-  new: "#9db8f2", // 접수 — 소프트 블루
-  assigned: "#c3acef", // 배정 — 소프트 바이올렛
-  quoted: "#f4cf99", // 견적중 — 소프트 앰버
-  closed: "#9bd9ae", // 완료 — 소프트 그린
-  received: "#9db8f2", // 접수
-  in_progress: "#f4cf99", // 진행중
-  on_hold: "#c1c8d6", // 보류 — 소프트 슬레이트
-  done: "#9bd9ae", // 완료
-  canceled: "#f2a6a6", // 취소 — 소프트 레드
+  new: "#34B8A5", // 접수 — 틸
+  assigned: "#D3E478", // 배정 — 라임
+  quoted: "#BFE6C1", // 견적중 — 파인
+  closed: "#176455", // 완료 — 파인
+  received: "#34B8A5", // 접수
+  in_progress: "#BFE6C1", // 진행중
+  on_hold: "#C8D8D2", // 보류 — 뉴트럴
+  done: "#176455", // 완료
+  canceled: "#E98668", // 취소 — 코랄
 };
 
 function pastelize(segments: BarSegment[]): BarSegment[] {

@@ -66,11 +66,11 @@
   --font-sans: "Pretendard", system-ui, sans-serif;
   --font-mono: "Pretendard", system-ui, sans-serif;
 
-  /* 주색 — 파인 그린. (구 navy 토큰명은 사용처 호환을 위해 유지하고 값만 파인으로:
-     예외 2곳(사이드바 로고박스·고객상세 주 연락처 카드)이 bg-navy로 진한 블록을 유지) */
-  --color-navy: #176455;        /* 파인 — 유일하게 허용된 진한 블록 */
-  --color-navy-2: #1D7B68;      /* 파인 hover/raised */
-  --color-navy-3: #0F4439;      /* 딥 파인 — 헤딩·강조 */
+  /* 주색 — 파인 그린. (pine 토큰:
+     예외 2곳(사이드바 로고박스·고객상세 주 연락처 카드)이 bg-pine으로 진한 블록을 유지) */
+  --color-pine: #176455;        /* 파인 — 유일하게 허용된 진한 블록 */
+  --color-pine-2: #1D7B68;      /* 파인 hover/raised */
+  --color-pine-3: #0F4439;      /* 딥 파인 — 헤딩·강조 */
   --color-accent: #176455;      /* 주색: 버튼·active·아이콘 */
   --color-accent-2: #0F4439;    /* 진한 강조 */
   --color-accent-soft: #DEF4EF; /* 틸 옅음: 아이콘칩·액센트 배경 */

@@ -21,7 +21,7 @@ function Mark({ text, q }: { text: string; q: string }) {
     <>
       {highlightParts(text, q).map((p, i) =>
         p.match ? (
-          <mark key={i} className="rounded-sm bg-amber-100 px-0 text-inherit">{p.text}</mark>
+          <mark key={i} className="rounded-sm bg-mint px-0 text-inherit">{p.text}</mark>
         ) : (
           <span key={i}>{p.text}</span>
         ),

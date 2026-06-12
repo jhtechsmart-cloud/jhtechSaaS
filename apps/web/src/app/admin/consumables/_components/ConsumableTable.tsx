@@ -88,7 +88,7 @@ export function ConsumableTable({ items }: { items: ConsumableListRow[] }) {
                   <td className="py-2 pr-4">{it.sku ? <span className="font-mono tabular-nums text-text">{it.sku}</span> : <span className="text-muted">-</span>}</td>
                   <td className="py-2 pr-4">
                     {it.scope_count === 0
-                      ? <span className="rounded-sm bg-amber-100 px-2 py-0.5 text-small font-medium text-amber-700">미지정</span>
+                      ? <span className="rounded-sm bg-coral-soft px-2 py-0.5 text-small font-semibold text-coral-text">미지정</span>
                       : <span className="text-text">{it.scope_summary}</span>}
                   </td>
                   <td className="py-2 pr-4">

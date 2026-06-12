@@ -36,9 +36,9 @@ export function ApplicantInfo({
         }
         badge={
           companyId ? (
-            <span className="rounded-full bg-[#16a34a]/12 px-2 py-0.5 text-micro font-medium text-[#16a34a]">등록 고객</span>
+            <span className="rounded-full bg-[#16a34a]/12 px-2 py-0.5 text-micro font-medium text-accent">등록 고객</span>
           ) : (
-            <span className="rounded-full bg-amber-400/15 px-2 py-0.5 text-micro font-medium text-amber-700">미등록 고객</span>
+            <span className="rounded-full bg-coral-soft px-2 py-0.5 text-micro font-semibold text-coral-text">미등록 고객</span>
           )
         }
       />
@@ -55,7 +55,7 @@ export function ApplicantInfo({
         <div className="text-micro font-medium uppercase tracking-wide text-muted">요청 장비</div>
         <div className="mt-1 text-body font-medium text-text">{equipmentName || "-"}</div>
         {requirements && (
-          <div className="mt-2 rounded-sm border-l-2 border-navy bg-surface-2 p-3">
+          <div className="mt-2 rounded-sm border-l-2 border-pine bg-surface-2 p-3">
             <p className="whitespace-pre-wrap text-body text-text">{requirements}</p>
           </div>
         )}

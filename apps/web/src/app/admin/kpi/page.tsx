@@ -16,10 +16,10 @@ const ASSIGNEE_REVENUE = [
 ];
 
 const REQUEST_MIX = [
-  { label: "접수", value: 84, color: "#9db8f2" },
-  { label: "진행중", value: 62, color: "#f4cf99" },
-  { label: "완료", value: 168, color: "#9bd9ae" },
-  { label: "보류", value: 14, color: "#c1c8d6" },
+  { label: "접수", value: 84, color: "#34B8A5" },
+  { label: "진행중", value: 62, color: "#BFE6C1" },
+  { label: "완료", value: 168, color: "#176455" },
+  { label: "보류", value: 14, color: "#C8D8D2" },
 ];
 
 const TOP_CONSUMABLES = [
