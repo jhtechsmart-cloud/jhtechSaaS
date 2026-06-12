@@ -32,8 +32,11 @@ test.describe.serial("대시보드 v2 E2E", () => {
     await expect(page.getByText("이번 주 데모·납품")).toBeVisible();
     await expect(page.getByText("전체 고객")).toBeVisible();
     await expect(page.getByText("2주 일정", { exact: true })).toBeVisible();
-    await expect(page.getByText("이번 주", { exact: true })).toBeVisible();
-    await expect(page.getByText("다음 주", { exact: true })).toBeVisible();
+    // 일반 달력 형태 — 연·월 라벨("2026년 6월" 등) + 요일 헤더 + 오늘 마커
+    await expect(page.getByText(/^\d{4}년 \d{1,2}월/)).toBeVisible();
+    await expect(page.getByText("월", { exact: true })).toBeVisible();
+    await expect(page.getByText("일", { exact: true })).toBeVisible();
+    await expect(page.getByText("오늘", { exact: true })).toBeVisible();
     await expect(page.getByText("견적 파이프라인")).toBeVisible();
     await expect(page.getByText("주간 활동")).toBeVisible();
     await expect(page.getByText("데모 및 납품 일정")).toBeVisible();
