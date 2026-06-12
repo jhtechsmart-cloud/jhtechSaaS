@@ -1,7 +1,814 @@
 {
-  "generated_at": "2026-06-09T20:23:34",
+  "generated_at": "2026-06-13T00:42:18",
   "project_root": "/Users/seonjecho/Projects/jhtechSaaS",
-  "total_functions": 0,
-  "categories": {},
-  "functions": []
+  "total_functions": 23,
+  "categories": {
+    "production": 23
+  },
+  "functions": [
+    {
+      "name": "arg",
+      "file": "apps/worker/dist/import-customers.js",
+      "line": 16,
+      "signature": "function arg(name)",
+      "description": "arg",
+      "body_preview": "function arg(name) {\n    const i = process.argv.indexOf(name);\n    return i >= 0 ? (process.argv[i + 1] ?? null) : null;\n}\nasync function main() {\n    const file = arg(\"--file\");\n    const execute = process.argv.includes(\"--execute\");\n    if (!file) {",
+      "category": "production",
+      "is_async": false,
+      "callers": [
+        {
+          "file": "apps/worker/dist/import-customers.js",
+          "line": 21,
+          "snippet": "const file = arg(\"--file\");"
+        }
+      ],
+      "triggers": [],
+      "description_source": "heuristic"
+    },
+    {
+      "name": "main",
+      "file": "apps/worker/dist/import-customers.js",
+      "line": 20,
+      "signature": "async function main()",
+      "description": "main",
+      "body_preview": "async function main() {\n    const file = arg(\"--file\");\n    const execute = process.argv.includes(\"--execute\");\n    if (!file) {\n        console.error(\"사용법: tsx src/import-customers.ts --file <customers.json> [--execute]\");\n        process.exit(1);\n    }\n    const raws = JSON.parse(readFileSync(file, \"utf-8\"));",
+      "category": "production",
+      "is_async": true,
+      "callers": [
+        {
+          "file": "apps/worker/dist/seed-admin.js",
+          "line": 89,
+          "snippet": "main().catch((e) => {"
+        },
+        {
+          "file": "apps/worker/dist/seed-equipment-categories.js",
+          "line": 91,
+          "snippet": "main().catch((e) => {"
+        },
+        {
+          "file": "apps/worker/dist/index.js",
+          "line": 32,
+          "snippet": "main().catch((e) => {"
+        },
+        {
+          "file": "apps/worker/dist/import-customers.js",
+          "line": 113,
+          "snippet": "main().catch((e) => {"
+        },
+        {
+          "file": "apps/worker/dist/seed-equipment.js",
+          "line": 124,
+          "snippet": "main().catch((e) => {"
+        }
+      ],
+      "triggers": [],
+      "description_source": "heuristic"
+    },
+    {
+      "name": "clean",
+      "file": "apps/worker/dist/import/customers-transform.js",
+      "line": 9,
+      "signature": "function clean(v, key)",
+      "description": "clean",
+      "body_preview": "function clean(v, key) {\n    const t = (v ?? \"\").trim();\n    if (!t)\n        return null;\n    const max = LEN[key] ?? 200;\n    return t.length > max ? t.slice(0, max) : t;\n}\nexport function cleanRow(raw) {",
+      "category": "production",
+      "is_async": false,
+      "callers": [
+        {
+          "file": "apps/worker/dist/import/customers-transform.js",
+          "line": 21,
+          "snippet": "const emailRaw = clean(raw[\"이메일\"], \"email\");"
+        },
+        {
+          "file": "apps/worker/dist/import/customers-transform.js",
+          "line": 24,
+          "snippet": "ledgerName: clean(raw[\"장부명\"], \"ledgerName\") ?? \"\","
+        },
+        {
+          "file": "apps/worker/dist/import/customers-transform.js",
+          "line": 25,
+          "snippet": "name: clean(raw[\"거래처명\"], \"name\") ?? \"\","
+        },
+        {
+          "file": "apps/worker/dist/import/customers-transform.js",
+          "line": 28,
+          "snippet": "ceo: clean(raw[\"대표자\"], \"ceo\"),"
+        },
+        {
+          "file": "apps/worker/dist/import/customers-transform.js",
+          "line": 29,
+          "snippet": "address: clean(raw[\"사업주소\"], \"address\"),"
+        },
+        {
+          "file": "apps/worker/dist/import/customers-transform.js",
+          "line": 30,
+          "snippet": "bizType: clean(raw[\"업태\"], \"bizType\"),"
+        },
+        {
+          "file": "apps/worker/dist/import/customers-transform.js",
+          "line": 31,
+          "snippet": "bizItem: clean(raw[\"종목\"], \"bizItem\"),"
+        },
+        {
+          "file": "apps/worker/dist/import/customers-transform.js",
+          "line": 32,
+          "snippet": "addressActual1: clean(raw[\"실제주소1\"], \"addressActual1\"),"
+        },
+        {
+          "file": "apps/worker/dist/import/customers-transform.js",
+          "line": 33,
+          "snippet": "addressActual2: clean(raw[\"실제주소2\"], \"addressActual2\"),"
+        },
+        {
+          "file": "apps/worker/dist/import/customers-transform.js",
+          "line": 34,
+          "snippet": "phone1: clean(raw[\"전화1\"], \"phone1\"),"
+        }
+      ],
+      "triggers": [],
+      "callers_more": 4,
+      "description_source": "heuristic"
+    },
+    {
+      "name": "richness",
+      "file": "apps/worker/dist/import/customers-transform.js",
+      "line": 44,
+      "signature": "function richness(c)",
+      "description": "richness — 같은 사업번호 그룹 병합 — 정보 많은 행이 대표(동률이면 장부번호 큰 쪽=최신), | 코드 주석: 정보량 = 채워진 필드 수(병합 대표 행 선택 기준).",
+      "body_preview": "function richness(c) {\n    return Object.values(c).filter((v) => v !== null && v !== \"\").length;\n}\nconst IMPORT_TAG = (n) => `엑셀 이관(장부 ${n})`;\n// 같은 사업번호 그룹 병합 — 정보 많은 행이 대표(동률이면 장부번호 큰 쪽=최신),\n// 대표의 빈 칸은 나머지 행 값으로 보충. 구 장부는 노트에 보존.\nfunction mergeGroup(rows) {\n    const sorted = [...rows].sort((a, b) => richness(b) - richness(a) || b.ledgerNo - a.ledgerNo);",
+      "category": "production",
+      "is_async": false,
+      "callers": [
+        {
+          "file": "apps/worker/dist/import/customers-transform.js",
+          "line": 51,
+          "snippet": "const sorted = [...rows].sort((a, b) => richness(b) - richness(a) || b.ledgerNo - a.ledgerNo);"
+        },
+        {
+          "file": "apps/worker/dist/import/customers-transform.js",
+          "line": 51,
+          "snippet": "const sorted = [...rows].sort((a, b) => richness(b) - richness(a) || b.ledgerNo - a.ledgerNo);"
+        }
+      ],
+      "triggers": [],
+      "description_source": "heuristic"
+    },
+    {
+      "name": "mergeGroup",
+      "file": "apps/worker/dist/import/customers-transform.js",
+      "line": 50,
+      "signature": "function mergeGroup(rows)",
+      "description": "같은 사업번호 그룹 병합 — 정보 많은 행이 대표(동률이면 장부번호 큰 쪽=최신), 대표의 빈 칸은 나머지 행 값으로 보충. 구 장부는 노트에 보존.",
+      "body_preview": "function mergeGroup(rows) {\n    const sorted = [...rows].sort((a, b) => richness(b) - richness(a) || b.ledgerNo - a.ledgerNo);\n    const primary = { ...sorted[0] };\n    const rest = sorted.slice(1);\n    for (const r of rest) {\n        for (const key of Object.keys(primary)) {\n            if (key === \"note\" || key === \"ledgerNo\")\n                continue;",
+      "category": "production",
+      "is_async": false,
+      "callers": [
+        {
+          "file": "apps/worker/dist/import/customers-transform.js",
+          "line": 105,
+          "snippet": "companies.push(mergeGroup(g));"
+        }
+      ],
+      "triggers": [],
+      "description_source": "comment"
+    },
+    {
+      "name": "raw",
+      "file": "apps/worker/dist/import/customers-transform.test.js",
+      "line": 6,
+      "signature": "function raw(over = {})",
+      "description": "거래처 엑셀(회계 프로그램 내보내기) → companies 행 변환의 순수 로직. 실데이터 양상: 고정폭 공백 패딩, 이메일 \"-\", 13자리 불량 사업번호 1건, 같은 사업번호의 분리 장부((장비)/(NEW)) 30쌍 → 병합.",
+      "body_preview": "function raw(over = {}) {\n    return {\n        장부번호: \"102.0\",\n        장부명: \"(주)RGB COLOR\",\n        거래처명: \"(주)RGB COLOR\",\n        사업번호: \"211-86-66585\",\n        대표자: \"최용규\",\n        사업주소: \"경기도 군포시 금정동 694-6 \",",
+      "category": "production",
+      "is_async": false,
+      "callers": [
+        {
+          "file": "apps/worker/dist/import/customers-transform.test.js",
+          "line": 30,
+          "snippet": "const c = cleanRow(raw());"
+        },
+        {
+          "file": "apps/worker/dist/import/customers-transform.test.js",
+          "line": 38,
+          "snippet": "const c = cleanRow(raw({ 전화2: \"\", 실제주소1: \"   \" }));"
+        },
+        {
+          "file": "apps/worker/dist/import/customers-transform.test.js",
+          "line": 43,
+          "snippet": "expect(cleanRow(raw({ 이메일: \"-\" })).email).toBeNull();"
+        },
+        {
+          "file": "apps/worker/dist/import/customers-transform.test.js",
+          "line": 46,
+          "snippet": "const c = cleanRow(raw({ 사업번호: \"6903281464820\" }));"
+        },
+        {
+          "file": "apps/worker/dist/import/customers-transform.test.js",
+          "line": 51,
+          "snippet": "const c = cleanRow(raw({ 거래처명: \"가\".repeat(250) }));"
+        },
+        {
+          "file": "apps/worker/dist/import/customers-transform.test.js",
+          "line": 57,
+          "snippet": "const a = raw({ 장부번호: \"170.0\", 장부명: \"기획원이\", 사업주소: \"경기도 안산시\", 팩스: \"\" });"
+        },
+        {
+          "file": "apps/worker/dist/import/customers-transform.test.js",
+          "line": 58,
+          "snippet": "const b = raw({ 장부번호: \"666.0\", 장부명: \"기획원이(장비)\", 사업주소: \"\", 전화1: \"\", 담당자: \"\", 휴대폰: \"\", 이메일: \"\", 팩스: \"031-111-2222\" });"
+        },
+        {
+          "file": "apps/worker/dist/import/customers-transform.test.js",
+          "line": 71,
+          "snippet": "const a = raw({ 장부번호: \"111.0\", 장부명: \"(주)수아트\" });"
+        },
+        {
+          "file": "apps/worker/dist/import/customers-transform.test.js",
+          "line": 72,
+          "snippet": "const b = raw({ 장부번호: \"1243.0\", 장부명: \"(주)수아트(NEW)\" });"
+        },
+        {
+          "file": "apps/worker/dist/import/customers-transform.test.js",
+          "line": 78,
+          "snippet": "const { companies, skipped } = transformRows([raw({ 거래처명: \"일반고객\", 장부명: \"일반고객\", 사업번호: \"\" })]);"
+        }
+      ],
+      "triggers": [],
+      "callers_more": 3,
+      "description_source": "comment"
+    },
+    {
+      "name": "main",
+      "file": "apps/worker/dist/index.js",
+      "line": 10,
+      "signature": "async function main()",
+      "description": "main — Railway 재배포·중지 시 SIGTERM — 진행 중 잡을 마치고 크롬 정리 후 종료(잡 고아 방지).",
+      "body_preview": "async function main() {\n    const env = loadEnv();\n    const supabase = createServiceClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);\n    // Railway 재배포·중지 시 SIGTERM — 진행 중 잡을 마치고 크롬 정리 후 종료(잡 고아 방지).\n    let stopping = false;\n    const requestStop = (signal) => {\n        console.log(`[worker] ${signal} 수신 — 진행 중 잡을 마치고 종료합니다`);\n        stopping = true;",
+      "category": "production",
+      "is_async": true,
+      "callers": [
+        {
+          "file": "apps/worker/dist/seed-admin.js",
+          "line": 89,
+          "snippet": "main().catch((e) => {"
+        },
+        {
+          "file": "apps/worker/dist/seed-equipment-categories.js",
+          "line": 91,
+          "snippet": "main().catch((e) => {"
+        },
+        {
+          "file": "apps/worker/dist/index.js",
+          "line": 32,
+          "snippet": "main().catch((e) => {"
+        },
+        {
+          "file": "apps/worker/dist/import-customers.js",
+          "line": 113,
+          "snippet": "main().catch((e) => {"
+        },
+        {
+          "file": "apps/worker/dist/seed-equipment.js",
+          "line": 124,
+          "snippet": "main().catch((e) => {"
+        }
+      ],
+      "triggers": [],
+      "description_source": "heuristic"
+    },
+    {
+      "name": "requestStop",
+      "file": "apps/worker/dist/index.js",
+      "line": 15,
+      "signature": "function requestStop(signal)",
+      "description": "stop",
+      "body_preview": "    const requestStop = (signal) => {\n        console.log(`[worker] ${signal} 수신 — 진행 중 잡을 마치고 종료합니다`);\n        stopping = true;\n    };\n    process.on(\"SIGTERM\", () => requestStop(\"SIGTERM\"));\n    process.on(\"SIGINT\", () => requestStop(\"SIGINT\"));\n    console.log(\"jhtechSaaS worker: jobs 폴링 시작\");\n    await runLoop({",
+      "category": "production",
+      "is_async": false,
+      "callers": [
+        {
+          "file": "apps/worker/dist/index.js",
+          "line": 19,
+          "snippet": "process.on(\"SIGTERM\", () => requestStop(\"SIGTERM\"));"
+        },
+        {
+          "file": "apps/worker/dist/index.js",
+          "line": 20,
+          "snippet": "process.on(\"SIGINT\", () => requestStop(\"SIGINT\"));"
+        }
+      ],
+      "triggers": [],
+      "description_source": "heuristic"
+    },
+    {
+      "name": "toDataUri",
+      "file": "apps/worker/dist/jobs/assets.js",
+      "line": 6,
+      "signature": "async function toDataUri(relPath, mime)",
+      "description": "data uri",
+      "body_preview": "async function toDataUri(relPath, mime) {\n    const abs = fileURLToPath(new URL(`../../assets/${relPath}`, import.meta.url));\n    const buf = await readFile(abs);\n    return `data:${mime};base64,${buf.toString(\"base64\")}`;\n}\nexport async function getFontDataUri() {\n    if (!fontUri)\n        fontUri = await toDataUri(\"NotoSansKR-Regular.otf\", \"font/otf\");",
+      "category": "production",
+      "is_async": true,
+      "callers": [
+        {
+          "file": "apps/worker/dist/jobs/assets.js",
+          "line": 13,
+          "snippet": "fontUri = await toDataUri(\"NotoSansKR-Regular.otf\", \"font/otf\");"
+        },
+        {
+          "file": "apps/worker/dist/jobs/assets.js",
+          "line": 18,
+          "snippet": "stampUri = await toDataUri(\"stamp.png\", \"image/png\");"
+        }
+      ],
+      "triggers": [],
+      "description_source": "heuristic"
+    },
+    {
+      "name": "launch",
+      "file": "apps/worker/dist/jobs/browser.js",
+      "line": 8,
+      "signature": "async function launch()",
+      "description": "상주 워커 — 크롬을 1회 기동해 잡마다 재사용(콜드스타트 1회). 페이지는 잡마다 생성·close. 크롬 바이너리: - Linux(Railway 컨테이너) = @sparticuz/chromium(시스템 라이브러리 포함 슬림 크롬). 빌드 때 크롬 다운로드를 안 하므로 Nixpacks 추출 실패를 피한다. - macOS(로컬 개발/테스트) = 설치된 Google Chrome(channel: \"chrome\").",
+      "body_preview": "async function launch() {\n    if (process.platform === \"linux\") {\n        return puppeteer.launch({\n            args: chromium.args,\n            executablePath: await chromium.executablePath(),\n            headless: true,\n        });\n    }",
+      "category": "production",
+      "is_async": true,
+      "callers": [
+        {
+          "file": "apps/worker/dist/jobs/browser.js",
+          "line": 10,
+          "snippet": "return puppeteer.launch({"
+        },
+        {
+          "file": "apps/worker/dist/jobs/browser.js",
+          "line": 17,
+          "snippet": "return puppeteer.launch({"
+        }
+      ],
+      "triggers": [],
+      "description_source": "comment"
+    },
+    {
+      "name": "get",
+      "file": "apps/worker/dist/jobs/browser.js",
+      "line": 30,
+      "signature": "async function get()",
+      "description": "조회",
+      "body_preview": "    async function get() {\n        if (browserPromise) {\n            try {\n                const b = await browserPromise;\n                if (b.connected)\n                    return b;\n                // 크롬 프로세스 사망(OOM 등) — 잔존 프로세스·임시 프로필 best-effort 정리 후 재기동\n                await b.close().catch(() => { });",
+      "category": "production",
+      "is_async": true,
+      "callers": [
+        {
+          "file": "apps/worker/dist/jobs/browser.test.js",
+          "line": 15,
+          "snippet": "await expect(m.get()).rejects.toThrow(\"launch fail\");"
+        },
+        {
+          "file": "apps/worker/dist/jobs/browser.test.js",
+          "line": 16,
+          "snippet": "await expect(m.get()).resolves.toBe(b);"
+        },
+        {
+          "file": "apps/worker/dist/jobs/browser.test.js",
+          "line": 23,
+          "snippet": "await expect(m.get()).resolves.toBe(b);"
+        },
+        {
+          "file": "apps/worker/dist/jobs/browser.test.js",
+          "line": 24,
+          "snippet": "await expect(m.get()).resolves.toBe(b);"
+        },
+        {
+          "file": "apps/worker/dist/jobs/browser.test.js",
+          "line": 32,
+          "snippet": "await m.get(); // 첫 기동(이후 죽었다고 가정 = connected false)"
+        },
+        {
+          "file": "apps/worker/dist/jobs/browser.test.js",
+          "line": 33,
+          "snippet": "await expect(m.get()).resolves.toBe(alive);"
+        },
+        {
+          "file": "apps/worker/dist/jobs/browser.test.js",
+          "line": 43,
+          "snippet": "await m.get();"
+        },
+        {
+          "file": "apps/worker/dist/jobs/browser.test.js",
+          "line": 44,
+          "snippet": "await expect(m.get()).resolves.toBe(alive);"
+        },
+        {
+          "file": "apps/worker/dist/jobs/browser.test.js",
+          "line": 49,
+          "snippet": "await expect(m.get()).rejects.toThrow(\"launch fail\");"
+        },
+        {
+          "file": "apps/worker/dist/jobs/browser.test.js",
+          "line": 57,
+          "snippet": "await m.get();"
+        }
+      ],
+      "triggers": [],
+      "callers_more": 4,
+      "description_source": "heuristic"
+    },
+    {
+      "name": "close",
+      "file": "apps/worker/dist/jobs/browser.js",
+      "line": 53,
+      "signature": "async function close()",
+      "description": "닫기",
+      "body_preview": "    async function close() {\n        if (!browserPromise)\n            return;\n        const pending = browserPromise;\n        browserPromise = null;\n        try {\n            const b = await pending;\n            await b.close();",
+      "category": "production",
+      "is_async": true,
+      "callers": [
+        {
+          "file": "apps/worker/dist/jobs/browser.test.js",
+          "line": 50,
+          "snippet": "await expect(m.close()).resolves.toBeUndefined();"
+        },
+        {
+          "file": "apps/worker/dist/jobs/browser.test.js",
+          "line": 58,
+          "snippet": "await m.close();"
+        },
+        {
+          "file": "apps/worker/dist/jobs/render-quote-pdf.js",
+          "line": 20,
+          "snippet": "await page.close();"
+        },
+        {
+          "file": "apps/worker/dist/jobs/browser.js",
+          "line": 37,
+          "snippet": "await b.close().catch(() => { });"
+        },
+        {
+          "file": "apps/worker/dist/jobs/browser.js",
+          "line": 60,
+          "snippet": "await b.close();"
+        },
+        {
+          "file": "apps/worker/dist/jobs/browser.js",
+          "line": 73,
+          "snippet": "return manager.close();"
+        }
+      ],
+      "triggers": [],
+      "description_source": "heuristic"
+    },
+    {
+      "name": "fakeBrowser",
+      "file": "apps/worker/dist/jobs/browser.test.js",
+      "line": 4,
+      "signature": "function fakeBrowser(connected = true)",
+      "description": "실제 크롬 대신 connected/close만 흉내내는 가짜 Browser.",
+      "body_preview": "function fakeBrowser(connected = true) {\n    return { connected, close: vi.fn().mockResolvedValue(undefined) };\n}\ndescribe(\"createBrowserManager — 크롬 싱글턴 복구\", () => {\n    test(\"기동 실패가 박제되지 않는다 — 다음 호출에서 재기동\", async () => {\n        const b = fakeBrowser();\n        const launch = vi\n            .fn()",
+      "category": "production",
+      "is_async": false,
+      "callers": [
+        {
+          "file": "apps/worker/dist/jobs/browser.test.js",
+          "line": 9,
+          "snippet": "const b = fakeBrowser();"
+        },
+        {
+          "file": "apps/worker/dist/jobs/browser.test.js",
+          "line": 20,
+          "snippet": "const b = fakeBrowser();"
+        },
+        {
+          "file": "apps/worker/dist/jobs/browser.test.js",
+          "line": 28,
+          "snippet": "const dead = fakeBrowser(false);"
+        },
+        {
+          "file": "apps/worker/dist/jobs/browser.test.js",
+          "line": 29,
+          "snippet": "const alive = fakeBrowser(true);"
+        },
+        {
+          "file": "apps/worker/dist/jobs/browser.test.js",
+          "line": 40,
+          "snippet": "const alive = fakeBrowser(true);"
+        },
+        {
+          "file": "apps/worker/dist/jobs/browser.test.js",
+          "line": 53,
+          "snippet": "const first = fakeBrowser();"
+        },
+        {
+          "file": "apps/worker/dist/jobs/browser.test.js",
+          "line": 54,
+          "snippet": "const second = fakeBrowser();"
+        }
+      ],
+      "triggers": [],
+      "description_source": "comment"
+    },
+    {
+      "name": "stubSupabase",
+      "file": "apps/worker/dist/jobs/queue.test.js",
+      "line": 3,
+      "signature": "function stubSupabase(result)",
+      "description": "supabase",
+      "body_preview": "function stubSupabase(result) {\n    const filters = [];\n    const builder = {\n        eq(col, val) {\n            filters.push([col, val]);\n            return builder;\n        },\n        select: vi.fn().mockResolvedValue(result),",
+      "category": "production",
+      "is_async": false,
+      "callers": [
+        {
+          "file": "apps/worker/dist/jobs/queue.test.js",
+          "line": 22,
+          "snippet": "const { client, filters } = stubSupabase(ok);"
+        },
+        {
+          "file": "apps/worker/dist/jobs/queue.test.js",
+          "line": 28,
+          "snippet": "const { client } = stubSupabase({ data: [], error: null });"
+        },
+        {
+          "file": "apps/worker/dist/jobs/queue.test.js",
+          "line": 35,
+          "snippet": "const { client } = stubSupabase({ data: null, error: { message: \"down\" } });"
+        },
+        {
+          "file": "apps/worker/dist/jobs/queue.test.js",
+          "line": 41,
+          "snippet": "const { client } = stubSupabase({ data: null, error: { message: \"network down\" } });"
+        },
+        {
+          "file": "apps/worker/dist/jobs/queue.test.js",
+          "line": 45,
+          "snippet": "const { client, update } = stubSupabase(ok);"
+        },
+        {
+          "file": "apps/worker/dist/jobs/queue.test.js",
+          "line": 50,
+          "snippet": "const { client, update } = stubSupabase(ok);"
+        },
+        {
+          "file": "apps/worker/dist/jobs/queue.test.js",
+          "line": 55,
+          "snippet": "const { client, filters } = stubSupabase({ data: [], error: null });"
+        }
+      ],
+      "triggers": [],
+      "description_source": "heuristic"
+    },
+    {
+      "name": "makeJob",
+      "file": "apps/worker/dist/jobs/queue.test.js",
+      "line": 16,
+      "signature": "function makeJob(attempts)",
+      "description": "job",
+      "body_preview": "function makeJob(attempts) {\n    return { id: \"j1\", type: \"quote_pdf\", payload: {}, attempts, status: \"processing\" };\n}\nconst ok = { data: [{ id: \"j1\" }], error: null };\ndescribe(\"completeJob — 완료 기록\", () => {\n    test(\"processing 상태일 때만 update하는 펜스를 건다(done 역행 방지)\", async () => {\n        const { client, filters } = stubSupabase(ok);\n        await completeJob(client, \"j1\");",
+      "category": "production",
+      "is_async": false,
+      "callers": [
+        {
+          "file": "apps/worker/dist/jobs/queue.test.js",
+          "line": 42,
+          "snippet": "await expect(failJob(client, makeJob(1), \"boom\")).rejects.toThrow(/잡 실패 기록 실패/);"
+        },
+        {
+          "file": "apps/worker/dist/jobs/queue.test.js",
+          "line": 46,
+          "snippet": "await failJob(client, makeJob(1), \"boom\");"
+        },
+        {
+          "file": "apps/worker/dist/jobs/queue.test.js",
+          "line": 51,
+          "snippet": "await failJob(client, makeJob(MAX_ATTEMPTS), \"boom\");"
+        },
+        {
+          "file": "apps/worker/dist/jobs/queue.test.js",
+          "line": 57,
+          "snippet": "await expect(failJob(client, makeJob(1), \"boom\")).resolves.toBeUndefined();"
+        }
+      ],
+      "triggers": [],
+      "description_source": "heuristic"
+    },
+    {
+      "name": "parseLines",
+      "file": "apps/worker/dist/jobs/quote-pdf.js",
+      "line": 5,
+      "signature": "function parseLines(v)",
+      "description": "lines 파싱 | 코드 주석: 견적 줄(jsonb) → 타입 보정.",
+      "body_preview": "function parseLines(v) {\n    if (!Array.isArray(v))\n        return [];\n    return v\n        .filter((r) => typeof r === \"object\" && r !== null)\n        .map((r) => ({\n        name: typeof r.name === \"string\" ? r.name : \"\",\n        unitPrice: Number(r.unitPrice) || 0,",
+      "category": "production",
+      "is_async": false,
+      "callers": [
+        {
+          "file": "apps/worker/dist/jobs/quote-pdf.js",
+          "line": 47,
+          "snippet": "const items = parseLines(q.items);"
+        },
+        {
+          "file": "apps/worker/dist/jobs/quote-pdf.js",
+          "line": 48,
+          "snippet": "const allOptions = parseLines(q.options);"
+        }
+      ],
+      "triggers": [],
+      "description_source": "heuristic"
+    },
+    {
+      "name": "storageDataUri",
+      "file": "apps/worker/dist/jobs/quote-pdf.js",
+      "line": 18,
+      "signature": "async function storageDataUri(supabase, bucket, path)",
+      "description": "스토리지 객체 → base64 data-URI(없으면 null).",
+      "body_preview": "async function storageDataUri(supabase, bucket, path) {\n    if (!path)\n        return null;\n    const { data, error } = await supabase.storage.from(bucket).download(path);\n    if (error || !data)\n        return null;\n    const buf = Buffer.from(await data.arrayBuffer());\n    const ext = path.split(\".\").pop()?.toLowerCase();",
+      "category": "production",
+      "is_async": true,
+      "callers": [
+        {
+          "file": "apps/worker/dist/jobs/quote-pdf.js",
+          "line": 115,
+          "snippet": "bannerTopDataUri: await storageDataUri(supabase, \"equipment-images\", equipment?.quote_banner_top ?? null),"
+        },
+        {
+          "file": "apps/worker/dist/jobs/quote-pdf.js",
+          "line": 116,
+          "snippet": "bannerBottomDataUri: await storageDataUri(supabase, \"equipment-images\", equipment?.quote_banner_bottom ?? null),"
+        }
+      ],
+      "triggers": [],
+      "description_source": "comment"
+    },
+    {
+      "name": "cleanup",
+      "file": "apps/worker/dist/jobs/runner.integration.test.js",
+      "line": 10,
+      "signature": "async function cleanup()",
+      "description": "정리",
+      "body_preview": "async function cleanup() {\n    const { data: apps } = await supabase.from(\"applications\").select(\"id\").eq(\"company\", CO);\n    for (const a of apps ?? []) {\n        const { data: qs } = await supabase.from(\"quotes\").select(\"id\").eq(\"application_id\", a.id);\n        for (const q of qs ?? []) {\n            await supabase.storage.from(\"quote-pdfs\").remove([`${q.id}.pdf`]);\n        }\n    }",
+      "category": "production",
+      "is_async": true,
+      "callers": [],
+      "triggers": [],
+      "description_source": "heuristic"
+    },
+    {
+      "name": "main",
+      "file": "apps/worker/dist/seed-admin.js",
+      "line": 41,
+      "signature": "async function main()",
+      "description": "main — 개발 편의 계정은 프로덕션에서 건너뛴다.",
+      "body_preview": "async function main() {\n    const sb = createServiceClient(url, key);\n    for (const u of SEED_USERS) {\n        // 개발 편의 계정은 프로덕션에서 건너뛴다.\n        if (!isLocal && u.localOnly) {\n            console.log(`↷ ${u.email} 건너뜀 (개발 전용 계정)`);\n            continue;\n        }",
+      "category": "production",
+      "is_async": true,
+      "callers": [
+        {
+          "file": "apps/worker/dist/seed-admin.js",
+          "line": 89,
+          "snippet": "main().catch((e) => {"
+        },
+        {
+          "file": "apps/worker/dist/seed-equipment-categories.js",
+          "line": 91,
+          "snippet": "main().catch((e) => {"
+        },
+        {
+          "file": "apps/worker/dist/index.js",
+          "line": 32,
+          "snippet": "main().catch((e) => {"
+        },
+        {
+          "file": "apps/worker/dist/import-customers.js",
+          "line": 113,
+          "snippet": "main().catch((e) => {"
+        },
+        {
+          "file": "apps/worker/dist/seed-equipment.js",
+          "line": 124,
+          "snippet": "main().catch((e) => {"
+        }
+      ],
+      "triggers": [],
+      "description_source": "heuristic"
+    },
+    {
+      "name": "ensureCategory",
+      "file": "apps/worker/dist/seed-equipment-categories.js",
+      "line": 32,
+      "signature": "async function ensureCategory(name, parentId, sortOrder)",
+      "description": "이름(+부모)으로 존재 확인 후 없으면 생성. 생성/존재 무관하게 id 반환.",
+      "body_preview": "async function ensureCategory(name, parentId, sortOrder) {\n    let q = sb.from(\"equipment_category\").select(\"id\").eq(\"name\", name);\n    q = parentId === null ? q.is(\"parent_id\", null) : q.eq(\"parent_id\", parentId);\n    const { data: existing, error } = await q.maybeSingle();\n    if (error)\n        throw new Error(`조회 실패 [${name}]: ${error.message}`);\n    if (existing) {\n        console.log(`  = 이미 존재: ${name}`);",
+      "category": "production",
+      "is_async": true,
+      "callers": [
+        {
+          "file": "apps/worker/dist/seed-equipment-categories.js",
+          "line": 68,
+          "snippet": "const topId = await ensureCategory(top.name, null, topSort++);"
+        },
+        {
+          "file": "apps/worker/dist/seed-equipment-categories.js",
+          "line": 71,
+          "snippet": "await ensureCategory(child, topId, childSort++);"
+        }
+      ],
+      "triggers": [],
+      "description_source": "comment"
+    },
+    {
+      "name": "main",
+      "file": "apps/worker/dist/seed-equipment-categories.js",
+      "line": 52,
+      "signature": "async function main()",
+      "description": "main — 1) 입력 전 현황",
+      "body_preview": "async function main() {\n    // 1) 입력 전 현황\n    const { data: before, error: beErr } = await sb\n        .from(\"equipment_category\")\n        .select(\"id, name, parent_id, sort_order\")\n        .order(\"sort_order\");\n    if (beErr)\n        throw new Error(`현황 조회 실패: ${beErr.message}`);",
+      "category": "production",
+      "is_async": true,
+      "callers": [
+        {
+          "file": "apps/worker/dist/seed-admin.js",
+          "line": 89,
+          "snippet": "main().catch((e) => {"
+        },
+        {
+          "file": "apps/worker/dist/seed-equipment-categories.js",
+          "line": 91,
+          "snippet": "main().catch((e) => {"
+        },
+        {
+          "file": "apps/worker/dist/index.js",
+          "line": 32,
+          "snippet": "main().catch((e) => {"
+        },
+        {
+          "file": "apps/worker/dist/import-customers.js",
+          "line": 113,
+          "snippet": "main().catch((e) => {"
+        },
+        {
+          "file": "apps/worker/dist/seed-equipment.js",
+          "line": 124,
+          "snippet": "main().catch((e) => {"
+        }
+      ],
+      "triggers": [],
+      "description_source": "heuristic"
+    },
+    {
+      "name": "resolveCategoryId",
+      "file": "apps/worker/dist/seed-equipment.js",
+      "line": 75,
+      "signature": "async function resolveCategoryId(name)",
+      "description": "소분류 우선, 없으면 대분류로 이름 매칭해 category_id를 찾는다.",
+      "body_preview": "async function resolveCategoryId(name) {\n    const { data, error } = await sb\n        .from(\"equipment_category\")\n        .select(\"id, parent_id\")\n        .eq(\"name\", name);\n    if (error)\n        throw new Error(`분류 조회 실패 [${name}]: ${error.message}`);\n    if (!data || data.length === 0)",
+      "category": "production",
+      "is_async": true,
+      "callers": [
+        {
+          "file": "apps/worker/dist/seed-equipment.js",
+          "line": 102,
+          "snippet": "const categoryId = await resolveCategoryId(eq.categoryName);"
+        }
+      ],
+      "triggers": [],
+      "description_source": "comment"
+    },
+    {
+      "name": "main",
+      "file": "apps/worker/dist/seed-equipment.js",
+      "line": 88,
+      "signature": "async function main()",
+      "description": "main — 멱등: 같은 model이 이미 있으면 건너뛴다.",
+      "body_preview": "async function main() {\n    for (const eq of EQUIPMENT) {\n        // 멱등: 같은 model이 이미 있으면 건너뛴다.\n        const { data: existing, error: exErr } = await sb\n            .from(\"equipment\")\n            .select(\"id\")\n            .eq(\"model\", eq.model)\n            .maybeSingle();",
+      "category": "production",
+      "is_async": true,
+      "callers": [
+        {
+          "file": "apps/worker/dist/seed-admin.js",
+          "line": 89,
+          "snippet": "main().catch((e) => {"
+        },
+        {
+          "file": "apps/worker/dist/seed-equipment-categories.js",
+          "line": 91,
+          "snippet": "main().catch((e) => {"
+        },
+        {
+          "file": "apps/worker/dist/index.js",
+          "line": 32,
+          "snippet": "main().catch((e) => {"
+        },
+        {
+          "file": "apps/worker/dist/import-customers.js",
+          "line": 113,
+          "snippet": "main().catch((e) => {"
+        },
+        {
+          "file": "apps/worker/dist/seed-equipment.js",
+          "line": 124,
+          "snippet": "main().catch((e) => {"
+        }
+      ],
+      "triggers": [],
+      "description_source": "heuristic"
+    }
+  ]
 }
