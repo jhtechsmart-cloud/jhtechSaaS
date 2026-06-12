@@ -11,6 +11,7 @@ export type PermissionGroup =
   | "고객"
   | "A/S"
   | "소모품신청"
+  | "데모예약"
   | "카탈로그"
   | "사용자";
 
@@ -24,7 +25,7 @@ export interface PermissionDef {
 }
 
 /**
- * v2 권한 registry (18키). E5a에서 *.manage(customers/service/supply) 3키를 액션 단위로 분해·삭제.
+ * v2 권한 registry (19키). E5a에서 *.manage(customers/service/supply) 3키를 액션 단위로 분해·삭제.
  * 미래 확장: delivery.dispatch, install.manage, notifications.send 등.
  */
 const PERMISSION_REGISTRY_RAW = [
@@ -122,6 +123,13 @@ const PERMISSION_REGISTRY_RAW = [
     description: "미배정 소모품신청을 본인 담당으로 가져오기",
     group: "소모품신청",
   },
+  // ── 데모예약 (demo_reservations) — 조회는 전 직원(키 불필요), 쓰기만 capability ──
+  {
+    key: "demo_reservations.write",
+    label: "데모예약 등록·수정",
+    description: "데모센터 예약 등록·수정·취소",
+    group: "데모예약",
+  },
   // ── 카탈로그 ──
   {
     key: "equipment.manage",
@@ -173,6 +181,7 @@ export const SALES_PRESET: PermissionKey[] = [
   "service_requests.claim",
   "supply_requests.status",
   "supply_requests.claim",
+  "demo_reservations.write",
 ];
 
 /** 관리자 프리셋 — users.manage 단일 super(전체 통과). */
