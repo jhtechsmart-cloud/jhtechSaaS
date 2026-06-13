@@ -1,4 +1,5 @@
 import type { MatchableEquipmentWithOptions } from "@/lib/quotes/equipment-match.server";
+import { publicImageUrl } from "@/lib/equipment/images";
 import { SectionHeader } from "./SectionHeader";
 
 const won = (n: number) => `₩${n.toLocaleString("ko-KR")}`;
@@ -41,7 +42,8 @@ export function SelectedEquipment({
               {/* 이미지 — 더 크게(시안 비율 4:3, 데스크톱 320px) */}
               {eq?.photos[0] ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={eq.photos[0]} alt={it.name} className="aspect-[4/3] w-full shrink-0 rounded-md object-cover sm:w-80" />
+                // photos[0]은 storage 경로 → publicImageUrl로 전체 URL 변환(공개 카탈로그와 동일)
+                <img src={publicImageUrl(eq.photos[0])} alt={it.name} className="aspect-[4/3] w-full shrink-0 rounded-md object-cover sm:w-80" />
               ) : (
                 <div className="flex aspect-[4/3] w-full shrink-0 items-center justify-center rounded-md bg-surface-2 text-small text-muted sm:w-80">
                   이미지 없음
