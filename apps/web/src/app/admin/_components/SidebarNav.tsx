@@ -9,6 +9,8 @@ export type NavItem = { href: string; label: string; icon: string; badge?: numbe
 // 사이드바 nav — 라이트 민트 테마: 활성 = 파인 pill(흰 텍스트+그림자), hover = 흰 pill+보더.
 // 섹션 라벨(업무/카탈로그/관리)로 그룹 구분. 아이콘은 기존 lucide 그대로(색만 상태 따라감).
 // expanded=false면 라벨·섹션은 opacity-0, 배지는 점으로.
+// 아이콘은 고정 40px 레일(size-10)에 중앙 배치 → 펼침/접힘 무관하게 x좌표 불변(토글 시 흔들림 없음).
+// 접힘 시 Link 폭 = 40px 정사각 → 활성 배경이 정원, 아이콘과 정확히 정렬.
 export function SidebarNav({ items, expanded = true }: { items: NavItem[]; expanded?: boolean }) {
   const pathname = usePathname();
 
@@ -40,20 +42,23 @@ export function SidebarNav({ items, expanded = true }: { items: NavItem[]; expan
                 key={it.href}
                 href={it.href}
                 title={expanded ? undefined : it.label}
-                className={`group relative flex items-center gap-3 rounded-full border py-2 text-body font-semibold transition-colors ${expanded ? "px-3" : "justify-center px-0"} ${
+                className={`group relative flex items-center rounded-full border text-body font-semibold transition-colors ${expanded ? "w-full" : "w-10"} ${
                   active
                     ? "border-transparent bg-accent text-white shadow-[0_4px_12px_rgba(23,100,85,.22)]"
                     : "border-transparent text-sidebar-text hover:border-border hover:bg-surface hover:text-text"
                 }`}
               >
-                <Icon
-                  name={it.icon}
-                  size={18}
-                  className={`shrink-0 transition-colors ${active ? "text-white" : "text-sidebar-text group-hover:text-text"}`}
-                />
+                {/* 고정 40px 아이콘 레일 — 펼침/접힘 무관 아이콘 중앙 고정 */}
+                <span className="flex size-10 shrink-0 items-center justify-center">
+                  <Icon
+                    name={it.icon}
+                    size={18}
+                    className={`transition-colors ${active ? "text-white" : "text-sidebar-text group-hover:text-text"}`}
+                  />
+                </span>
                 <span
-                  className={`flex-1 truncate whitespace-nowrap transition-opacity duration-150 ${
-                    expanded ? "opacity-100" : "opacity-0"
+                  className={`min-w-0 truncate whitespace-nowrap transition-opacity duration-150 ${
+                    expanded ? "flex-1 pr-3 opacity-100" : "w-0 flex-none opacity-0"
                   }`}
                 >
                   {it.label}
@@ -61,14 +66,14 @@ export function SidebarNav({ items, expanded = true }: { items: NavItem[]; expan
                 {it.badge != null && it.badge > 0 &&
                   (expanded ? (
                     <span
-                      className={`shrink-0 rounded-full px-2 py-0.5 font-mono text-micro font-bold tabular-nums ${
+                      className={`mr-3 shrink-0 rounded-full px-2 py-0.5 font-mono text-micro font-bold tabular-nums ${
                         active ? "bg-white/25 text-white" : "bg-mint text-accent-2"
                       }`}
                     >
                       {it.badge}
                     </span>
                   ) : (
-                    <span className="absolute right-2 top-1.5 size-1.5 rounded-full bg-accent-ring" aria-label={`${it.badge}건`} />
+                    <span className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-accent-ring" aria-label={`${it.badge}건`} />
                   ))}
               </Link>
             );

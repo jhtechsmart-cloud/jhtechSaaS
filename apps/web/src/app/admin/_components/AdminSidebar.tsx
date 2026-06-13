@@ -68,16 +68,16 @@ export function AdminSidebar({
 
       <SidebarNav items={items} expanded={expanded} />
 
-      {/* 프로필 */}
-      <div className={`mb-4 mt-2 flex items-center gap-3 rounded-[12px] border border-border bg-surface py-3 shadow-card ${expanded ? "mx-3 px-3" : "mx-2 justify-center px-0"}`}>
+      {/* 프로필 — 접힘 시 라벨·로그아웃을 폭 0으로 접어 아바타가 중앙(아이콘 레일과 동일 정렬) */}
+      <div className={`mb-4 mt-2 flex items-center rounded-[12px] border border-border bg-surface py-3 shadow-card ${expanded ? "mx-3 gap-3 px-3" : "mx-2 justify-center px-0"}`}>
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-soft text-small font-bold text-accent">
           {isAdmin ? "관" : "영"}
         </span>
-        <span className={`flex min-w-0 flex-1 flex-col leading-tight ${fade(expanded)}`}>
+        <span className={`flex min-w-0 flex-col overflow-hidden leading-tight ${expanded ? "flex-1" : "w-0"} ${fade(expanded)}`}>
           <span className="truncate text-small font-semibold text-text">{isAdmin ? "관리자" : "영업담당"}</span>
           <span className="truncate text-micro text-sidebar-text">재현테크</span>
         </span>
-        <form action={signOut} className={`shrink-0 ${fade(expanded)}`}>
+        <form action={signOut} className={`overflow-hidden ${expanded ? "shrink-0" : "w-0"} ${fade(expanded)}`}>
           <button className="text-sidebar-text transition-colors hover:text-danger" aria-label="로그아웃" title="로그아웃">
             <Icon name="logout" size={18} />
           </button>
