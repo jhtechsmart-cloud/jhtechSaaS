@@ -93,7 +93,9 @@ test.describe.serial("데모예약 E2E", () => {
     await page.getByRole("link", { name: "데모예약" }).click();
     await page.waitForURL(/\/admin\/demo-reservations/);
     await page.goto(`/admin/demo-reservations?date=${DATE}`);
-    await expect(page.getByText(CUSTOMER_SEED)).toBeVisible();
+    // 고객명은 타임라인 + 월간 예약 리스트 두 곳에 노출되므로 first()로 구체화
+    await expect(page.getByText(CUSTOMER_SEED).first()).toBeVisible();
+    // "(90분)" 형식은 타임라인 블록 전용 → 블록 렌더 검증
     await expect(page.getByText("14:00–15:30 (90분)")).toBeVisible();
   });
 
@@ -121,7 +123,8 @@ test.describe.serial("데모예약 E2E", () => {
     await expect(save).toBeEnabled();
     await save.click();
     await page.waitForURL(new RegExp(`/admin/demo-reservations\\?date=${DATE}`), { timeout: 15_000 });
-    await expect(page.getByText(CUSTOMER_NEW)).toBeVisible();
+    // 고객명은 타임라인 + 월간 예약 리스트 두 곳에 노출 → first()
+    await expect(page.getByText(CUSTOMER_NEW).first()).toBeVisible();
     await expect(page.getByText("10:00–11:30 (90분)")).toBeVisible();
   });
 
@@ -146,6 +149,9 @@ test.describe.serial("데모예약 E2E", () => {
     await page.getByRole("button", { name: "10:00", exact: true }).click();
     await page.getByRole("button", { name: /예약 저장/ }).click();
     await page.waitForURL(new RegExp(`/admin/demo-reservations\\?date=${DATE}`), { timeout: 15_000 });
-    await expect(page.getByText(`${CUSTOMER_NEW}2`)).toBeVisible();
+    // 고객명은 타임라인 + 월간 예약 리스트 두 곳에 노출 → first()
+    await expect(page.getByText(`${CUSTOMER_NEW}2`).first()).toBeVisible();
+    // 타임라인 블록 재렌더까지 검증(월간 리스트만으로 통과하지 않게 — "(90분)"은 타임라인 전용)
+    await expect(page.getByText("10:00–11:30 (90분)")).toBeVisible();
   });
 });

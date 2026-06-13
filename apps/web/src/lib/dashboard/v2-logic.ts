@@ -6,7 +6,7 @@ import { APPLICATION_STATUSES } from "@/lib/application-status";
 import type { ApplicationStatus } from "@/lib/customers/history";
 import { CLOSE_HOUR, OPEN_HOUR } from "@/lib/demo-reservations/constants";
 
-/** 캘린더 이벤트 5종 — 견적(파인)·A/S(코랄)·소모품(라임)·데모(틸)·납품(파랑). */
+/** 캘린더 이벤트 5종 — 견적(파인)·A/S(코랄)·소모품(라임)·데모(보라)·납품(파랑). */
 export type CalendarEventType = "quote" | "service" | "supply" | "demo" | "delivery";
 
 export interface CalendarEvent {

@@ -32,7 +32,7 @@ function DayCell({
   const dayLabel = dd === 1 ? `${mm}/1` : String(dd);
   return (
     <div
-      className={`min-h-24 p-1.5 ${day.isToday ? "bg-mint" : "bg-surface"} ${
+      className={`min-h-[115px] p-1.5 ${day.isToday ? "bg-mint" : "bg-surface"} ${
         day.isPast ? "opacity-55" : ""
       }`}
     >
