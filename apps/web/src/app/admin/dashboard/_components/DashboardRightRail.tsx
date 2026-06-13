@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { UpcomingScheduleRow } from "@/lib/demo-reservations/queries";
 import type { RecentRequest } from "@/lib/dashboard/recent";
 import { kstDateOf, kstHmOf } from "@/lib/format/kst";
-import { EVENT_META } from "@/lib/dashboard/v2-meta";
+import { EVENT_META, REQUEST_DOMAIN_EVENT } from "@/lib/dashboard/v2-meta";
 import { SectionHeader } from "@/app/admin/_components/SectionHeader";
 import { ScheduleRow } from "./ScheduleCard";
 
@@ -37,6 +37,7 @@ export function DashboardRightRail({
                 end={u.end}
                 title={u.title}
                 href={u.href}
+                wide
                 tint={{
                   bg: EVENT_META[u.kind === "demo" ? "demo" : "delivery"].bg,
                   fg: EVENT_META[u.kind === "demo" ? "demo" : "delivery"].fg,
@@ -60,6 +61,10 @@ export function DashboardRightRail({
                 start={kstHmOf(r.created_at)}
                 title={`${r.company} ${r.typeLabel}`}
                 subtitle={r.seq_no}
+                tint={{
+                  bg: EVENT_META[REQUEST_DOMAIN_EVENT[r.domain]].bg,
+                  fg: EVENT_META[REQUEST_DOMAIN_EVENT[r.domain]].fg,
+                }}
                 href={
                   r.domain === "application"
                     ? `/admin/applications/${r.id}`
