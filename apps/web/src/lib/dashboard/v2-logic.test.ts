@@ -8,23 +8,32 @@ import {
   type CalendarEvent,
 } from "./v2-logic";
 
-describe("buildTwoWeekDays — 이번 주 월요일부터 14일", () => {
-  test("금요일(2026-06-12) 기준: 6/8(월)~6/21(일), 오늘·지난날 표식", () => {
+describe("buildTwoWeekDays — 이번 주 일요일부터 14일", () => {
+  test("금요일(2026-06-12) 기준: 6/7(일)~6/20(토), 오늘·지난날 표식", () => {
     const days = buildTwoWeekDays("2026-06-12");
     expect(days).toHaveLength(14);
-    expect(days[0].date).toBe("2026-06-08");
-    expect(days[13].date).toBe("2026-06-21");
+    expect(days[0].date).toBe("2026-06-07");
+    expect(days[13].date).toBe("2026-06-20");
     expect(days[0].week).toBe("this");
     expect(days[7].week).toBe("next");
-    expect(days[4]).toMatchObject({ date: "2026-06-12", isToday: true, isPast: false });
-    expect(days[3].isPast).toBe(true); // 6/11(목)
-    expect(days[5].isPast).toBe(false); // 6/13(토)
+    expect(days[5]).toMatchObject({ date: "2026-06-12", isToday: true, isPast: false });
+    expect(days[4].isPast).toBe(true); // 6/11(목)
+    expect(days[6].isPast).toBe(false); // 6/13(토)
   });
 
-  test("일요일 기준: 그 주 월요일로 거슬러 시작(주 시작=월)", () => {
+  test("일요일 기준: 그날이 주 시작(주 시작=일)", () => {
     const days = buildTwoWeekDays("2026-06-14");
-    expect(days[0].date).toBe("2026-06-08");
-    expect(days[6].date).toBe("2026-06-14");
+    expect(days[0].date).toBe("2026-06-14");
+    expect(days[6].date).toBe("2026-06-20");
+  });
+
+  test("토요일(2026-06-13) 기준: 최대 역방향 오프셋(-6) + dow 0=일…6=토", () => {
+    const days = buildTwoWeekDays("2026-06-13");
+    expect(days[0].date).toBe("2026-06-07");
+    expect(days[0].dow).toBe(0); // 일
+    expect(days[6].dow).toBe(6); // 토
+    expect(days[6]).toMatchObject({ date: "2026-06-13", isToday: true });
+    expect(days[13].dow).toBe(6);
   });
 });
 

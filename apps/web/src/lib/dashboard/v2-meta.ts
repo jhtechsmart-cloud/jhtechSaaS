@@ -2,6 +2,7 @@
 // 스펙 매핑: 견적=파인 · A/S=코랄 · 소모품=라임 · 데모=틸 · 납품=파랑.
 
 import type { ActivityType, CalendarEventType } from "./v2-logic";
+import type { RequestDomain } from "@/lib/dashboard/recent";
 
 export const EVENT_META: Record<
   CalendarEventType,
@@ -13,6 +14,13 @@ export const EVENT_META: Record<
   demo: { label: "데모", color: "#34B8A5", bg: "#DEF4EF", fg: "#176455" },
   delivery: { label: "납품", color: "#3E7BC0", bg: "#E3EEF9", fg: "#2D5C94" },
 };
+
+/** 신청 도메인 → 이벤트 색 키(이번 달 신청·최근 활동의 날짜 배지 틴트). */
+export const REQUEST_DOMAIN_EVENT = {
+  application: "quote",
+  service: "service",
+  supply: "supply",
+} as const satisfies Record<RequestDomain, CalendarEventType>;
 
 /** 주간 활동 블록 색(견적·A/S·소모품) — EVENT_META의 부분집합. */
 export const ACTIVITY_META: Record<ActivityType, { label: string; color: string }> = {

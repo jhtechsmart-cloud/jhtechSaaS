@@ -7,7 +7,7 @@ import { EVENT_META } from "@/lib/dashboard/v2-meta";
 // 헤더에 연·월 표기(두 달에 걸치면 "6월–7월"), 요일 헤더 행 + 날짜 2행.
 // 이벤트 칩 5색, 지난 요일 opacity .55, 오늘 민트 하이라이트, 매월 1일은 "M/1"로 월 전환 표시.
 
-const DOW_LABELS = ["월", "화", "수", "목", "금", "토", "일"];
+const DOW_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
 
 /** 14일 범위의 연·월 라벨 — "2026년 6월" 또는 "2026년 6월–7월"(연도 걸치면 둘 다 표기). */
 function monthLabel(days: TwoWeekDay[]): string {
@@ -105,7 +105,7 @@ export function TwoWeekCalendar({
             <div
               key={w}
               className={`bg-surface-2 py-1.5 text-center text-micro font-medium ${
-                i >= 5 ? "text-faint" : "text-muted"
+                i === 0 || i === 6 ? "text-muted-foreground" : "text-muted"
               }`}
             >
               {w}

@@ -154,7 +154,8 @@ test.describe.serial("E5a 권한 모델 E2E", () => {
     await login(page, NEW_EMAIL, newPassword);
     await page.waitForURL(/\/admin\//, { timeout: 20_000 });
     await expect(page.getByText("접근 권한이 없습니다")).toHaveCount(0);
-    await expect(page.getByRole("link", { name: "견적", exact: true })).toBeVisible();
+    // 병렬 테스트가 만든 신청 배지가 붙으면 접근성 이름이 "견적 N"이 됨 — exact 대신 접두 매칭
+    await expect(page.getByRole("link", { name: /^견적( \d+)?$/ })).toBeVisible();
   });
 
   test("3: 비활성(is_active=false) 계정은 로그인해도 콘솔 진입 차단", async ({ page }) => {

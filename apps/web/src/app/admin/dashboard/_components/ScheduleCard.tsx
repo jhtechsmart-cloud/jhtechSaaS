@@ -12,6 +12,7 @@ export function ScheduleRow({
   subtitle,
   href,
   tint,
+  wide,
 }: {
   date: string; // KST "YYYY-MM-DD"
   start: string | null; // "HH:mm"
@@ -21,6 +22,8 @@ export function ScheduleRow({
   href: string;
   /** 이벤트 유형 색 틴트(데모·납품 등) — 없으면 중립 음영(surface-2). */
   tint?: { bg: string; fg: string };
+  /** 시간 범위(시작–종료)를 담는 일정 레일용 넓은 고정폭. 단일시간 목록은 기본(좁은) 폭. */
+  wide?: boolean;
 }) {
   const dateLabel = formatMonthDayWeekday(date) ?? date;
   const timeLabel = formatHmRange(start, end ?? null);
@@ -30,7 +33,7 @@ export function ScheduleRow({
       className="flex items-center gap-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-mint-hover"
     >
       <span
-        className={`flex w-[88px] shrink-0 flex-col rounded-lg px-2.5 py-1.5 ${tint ? "" : "bg-surface-2"}`}
+        className={`flex shrink-0 flex-col items-center rounded-sm px-2.5 py-1.5 text-center ${wide ? "w-[88px]" : "w-20"} ${tint ? "" : "bg-surface-2"}`}
         style={tint ? { backgroundColor: tint.bg } : undefined}
       >
         <span
@@ -40,7 +43,7 @@ export function ScheduleRow({
           {dateLabel}
         </span>
         <span
-          className={`text-micro tabular-nums ${tint ? "opacity-80" : "text-muted"}`}
+          className={`text-micro tabular-nums ${tint ? "" : "text-muted"}`}
           style={tint ? { color: tint.fg } : undefined}
         >
           {timeLabel ?? "시간 미정"}

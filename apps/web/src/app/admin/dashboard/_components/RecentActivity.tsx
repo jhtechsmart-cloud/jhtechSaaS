@@ -1,5 +1,6 @@
 import type { RecentRequest } from "@/lib/dashboard/recent";
 import { kstDateOf, kstHmOf } from "@/lib/format/kst";
+import { EVENT_META, REQUEST_DOMAIN_EVENT } from "@/lib/dashboard/v2-meta";
 import { SectionHeader } from "@/app/admin/_components/SectionHeader";
 import { ScheduleRow } from "./ScheduleCard";
 
@@ -19,6 +20,10 @@ export function RecentActivity({ requests }: { requests: RecentRequest[] }) {
               start={kstHmOf(r.created_at)}
               title={`${r.company} ${r.typeLabel} 접수`}
               subtitle={r.seq_no}
+              tint={{
+                bg: EVENT_META[REQUEST_DOMAIN_EVENT[r.domain]].bg,
+                fg: EVENT_META[REQUEST_DOMAIN_EVENT[r.domain]].fg,
+              }}
               href={
                 r.domain === "application"
                   ? `/admin/applications/${r.id}`

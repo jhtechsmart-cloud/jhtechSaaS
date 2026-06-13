@@ -49,8 +49,8 @@ export default async function DashboardPage() {
 
   const today = todayKst();
   const days = buildTwoWeekDays(today);
-  const weekStart = days[0].date; // 이번 주 월
-  const weekEndExclusive = days[7].date; // 다음 주 월(미포함 경계)
+  const weekStart = days[0].date; // 이번 주 일요일
+  const weekEndExclusive = days[7].date; // 다음 주 일요일(미포함 경계)
   const twoWeekEndExclusive = addDaysKst(days[13].date, 1);
   const monthFirst = `${today.slice(0, 7)}-01`;
   const nowIso = new Date().toISOString();
@@ -94,7 +94,7 @@ export default async function DashboardPage() {
   const appCounts = val(appByStatus);
   const recentRows = val(recent) ?? [];
 
-  // 주간 활동 — 이번 주(월~일) 신청 3종을 KST 날짜로 그룹(블록 1개=1건)
+  // 주간 활동 — 이번 주(일~토) 신청 3종을 KST 날짜로 그룹(블록 1개=1건)
   const domainToType: Record<string, ActivityType> = {
     application: "quote",
     service: "service",

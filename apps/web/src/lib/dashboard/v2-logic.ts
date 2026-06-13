@@ -24,18 +24,17 @@ export interface TwoWeekDay {
   week: "this" | "next";
   isToday: boolean;
   isPast: boolean;
-  /** 0=월 … 6=일 (표시용). */
+  /** 0=일 … 6=토 (표시용). */
   dow: number;
 }
 
-/** 이번 주 월요일부터 14일(이번 주 + 다음 주). 주 시작=월요일. */
+/** 이번 주 일요일부터 14일(이번 주 + 다음 주). 주 시작=일요일. */
 export function buildTwoWeekDays(todayKst: string): TwoWeekDay[] {
   const [y, m, d] = todayKst.split("-").map(Number);
   const jsDow = new Date(Date.UTC(y, m - 1, d)).getUTCDay(); // 0=일
-  const mondayOffset = jsDow === 0 ? -6 : 1 - jsDow;
-  const monday = addDaysKst(todayKst, mondayOffset);
+  const sunday = addDaysKst(todayKst, -jsDow);
   return Array.from({ length: 14 }, (_, i) => {
-    const date = addDaysKst(monday, i);
+    const date = addDaysKst(sunday, i);
     return {
       date,
       week: i < 7 ? ("this" as const) : ("next" as const),
