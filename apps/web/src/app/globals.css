@@ -106,6 +106,8 @@
   --color-danger: #A8442A;      /* 에러·삭제 */
   --color-info: #3E7BC0;        /* 파랑 — 납품 일정 dot·칩(데모예약·대시보드 캘린더) */
   --color-info-soft: #E3EEF9;   /* 파랑 옅음 배경 */
+  --color-demo: #7C5CD3;        /* 보라 — 데모 일정 dot·칩(틸과 견적 초록이 헷갈려 분리) */
+  --color-demo-soft: #ECE9FB;   /* 보라 옅음 배경 */
 
   /* 타이포 스케일(px) — 유지 */
   --text-display: 1.75rem;

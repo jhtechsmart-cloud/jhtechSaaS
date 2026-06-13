@@ -8,12 +8,14 @@ import { todayKst } from "@/lib/format/kst";
 import {
   listDotDaysForMonth,
   listReservationsForDate,
+  listReservationsForMonth,
 } from "@/lib/demo-reservations/queries";
 import { DemoMonthCalendar } from "./_components/DemoMonthCalendar";
 import { DayTimeline } from "./_components/DayTimeline";
+import { MonthReservationList } from "./_components/MonthReservationList";
 import { DemoSavedToast } from "./_components/DemoSavedToast";
 
-// 데모예약 관리 — 좌 월간 캘린더(데모=틸 dot·납품=파랑 dot) + 우 선택일 타임라인(09–18시).
+// 데모예약 관리 — 좌 월간 캘린더(데모=보라 dot·납품=파랑 dot) + 우 선택일 타임라인(09–18시).
 // 선택일은 URL ?date= 단일 상태(딥링크·새로고침 보존). 데모센터는 1곳 — 겹침은 DB가 차단.
 export default async function DemoReservationsPage({
   searchParams,
@@ -40,9 +42,10 @@ export default async function DemoReservationsPage({
   const year = Number(yearStr);
   const month = Number(monthStr);
 
-  const [reservations, dots] = await Promise.all([
+  const [reservations, dots, monthReservations] = await Promise.all([
     listReservationsForDate(date),
     listDotDaysForMonth(year, month),
+    listReservationsForMonth(year, month),
   ]);
 
   const canWrite = can(access.permissions, "demo_reservations.write");
@@ -67,13 +70,16 @@ export default async function DemoReservationsPage({
       </div>
 
       <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[330px_1fr]">
-        <DemoMonthCalendar
-          year={year}
-          month={month}
-          selected={date}
-          demoDays={dots.demo}
-          deliveryDays={dots.delivery}
-        />
+        <div className="flex flex-col gap-5">
+          <DemoMonthCalendar
+            year={year}
+            month={month}
+            selected={date}
+            demoDays={dots.demo}
+            deliveryDays={dots.delivery}
+          />
+          <MonthReservationList month={month} selected={date} reservations={monthReservations} />
+        </div>
         <DayTimeline date={date} reservations={reservations} canWrite={canWrite} />
       </div>
       <DemoSavedToast />

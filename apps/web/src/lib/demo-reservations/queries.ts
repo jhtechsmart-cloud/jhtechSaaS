@@ -75,6 +75,30 @@ export async function listReservationsForDate(
     .filter((r): r is DemoReservationRow => r != null);
 }
 
+/** 선택 월(KST)의 예약 목록 — 취소 제외, 시작시각 오름차순. 캘린더 아래 "이번 달 예약" 리스트용. */
+export async function listReservationsForMonth(
+  year: number,
+  month: number,
+): Promise<DemoReservationRow[]> {
+  const first = `${year}-${String(month).padStart(2, "0")}-01`;
+  const nextFirst =
+    month === 12 ? `${year + 1}-01-01` : `${year}-${String(month + 1).padStart(2, "0")}-01`;
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("demo_reservations")
+    .select(SELECT_COLS)
+    .overlaps("time_range", `[${first}T00:00:00+09:00,${nextFirst}T00:00:00+09:00)`)
+    .neq("status", "canceled")
+    .order("time_range", { ascending: true });
+  if (error) {
+    console.error("[demo_reservations.listForMonth]", error);
+    return [];
+  }
+  return (data ?? [])
+    .map((r) => mapRow(r as Record<string, unknown>))
+    .filter((r): r is DemoReservationRow => r != null);
+}
+
 /** 월 캘린더 dot — 해당 월(KST)의 데모 예약일·납품일 집합. */
 export async function listDotDaysForMonth(
   year: number,

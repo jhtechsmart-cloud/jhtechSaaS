@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { Icon } from "@/app/admin/_components/Icon";
 import { todayKst } from "@/lib/format/kst";
 
-// 월간 캘린더(좌 330px) — 데모 예약일=틸 dot, 납품일=파랑 dot. 날짜 클릭 → ?date= 동기화.
+// 월간 캘린더(좌 330px) — 데모 예약일=보라 dot, 납품일=파랑 dot. 날짜 클릭 → ?date= 동기화.
 // 월 이동은 해당 월 1일로 선택 이동(상태는 URL 하나만 유지).
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
@@ -103,7 +103,7 @@ export function DemoMonthCalendar({
               <span className="absolute bottom-1 flex gap-0.5">
                 {demo.has(date) && (
                   <span
-                    className={`h-1 w-1 rounded-full ${isSelected ? "bg-white" : "bg-accent-ring"}`}
+                    className={`h-1 w-1 rounded-full ${isSelected ? "bg-white" : "bg-demo"}`}
                   />
                 )}
                 {delivery.has(date) && (
@@ -119,7 +119,7 @@ export function DemoMonthCalendar({
 
       <div className="mt-4 flex gap-4 border-t border-row-line pt-3 text-micro text-muted">
         <span className="flex items-center gap-1.5">
-          <span className="h-1.5 w-1.5 rounded-full bg-accent-ring" /> 데모 예약
+          <span className="h-1.5 w-1.5 rounded-full bg-demo" /> 데모 예약
         </span>
         <span className="flex items-center gap-1.5">
           <span className="h-1.5 w-1.5 rounded-full bg-info" /> 납품일

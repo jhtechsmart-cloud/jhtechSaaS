@@ -72,7 +72,7 @@ export function DayTimeline({
               className={`absolute left-14 right-2 overflow-hidden rounded-lg border-l-4 px-3 py-1.5 text-left transition-shadow hover:shadow-card ${
                 r.status === "done"
                   ? "border-inactive bg-surface-2"
-                  : "border-accent-ring bg-accent-soft"
+                  : "border-demo bg-demo-soft"
               }`}
               style={{ top: top + 1, height: Math.max(height - 2, 28) }}
             >
