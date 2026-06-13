@@ -2,6 +2,11 @@
 
 이 프로젝트의 주요 변경 사항을 기록한다. [Keep a Changelog](https://keepachangelog.com/) 형식, [Semantic Versioning](https://semver.org/)(4자리 MAJOR.MINOR.PATCH.MICRO).
 
+## [0.13.2.4] - 2026-06-13
+
+### Fixed
+- **견적 페이지 선택 장비 대표사진이 안 보이던 문제** — 장비 사진이 저장 경로(`equipment/.../*.png`) 그대로 `<img>`에 들어가 깨지던 것을, 공개 URL로 변환(`publicImageUrl`)하도록 수정. 발행본·미발행 미리보기 모두 적용. (장비 목록·카탈로그·견적 PDF 등 다른 화면은 이미 정상이었음 — 이 한 곳만 누락.)
+
 ## [0.13.2.3] - 2026-06-13
 
 ### Changed
