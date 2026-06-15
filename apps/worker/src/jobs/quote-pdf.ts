@@ -1,7 +1,14 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { formatKstKoreanDate, matchEquipmentName, numberToKoreanAmount } from "@jhtechsaas/shared";
 import { buildQuotePdf } from "./render-quote-pdf";
-import { getFontDataUri, getStampDataUri } from "./assets";
+import {
+  getFontDataUri,
+  getStampDataUri,
+  getQuoteBgDataUri,
+  getCompanyLogoDataUri,
+  getTopBannerDataUri,
+  getModelFontDataUri,
+} from "./assets";
 import type { QuoteHtmlData, QuoteHtmlItem, QuoteHtmlIncluded } from "./quote-html";
 
 type QuoteLine = { name: string; unitPrice: number; quantity: number; kind?: "included" | "extra" };
@@ -36,8 +43,8 @@ async function storageDataUri(
 
 // 장비 사양(jsonb SpecGroup[]) 행 — specs 임베드 결과 형식 방어용.
 type EquipmentRow = {
-  quote_banner_top: string | null;
-  quote_banner_bottom: string | null;
+  quote_device_image: string | null;
+  quote_device_name: string | null;
   specs: unknown;
 };
 
@@ -90,7 +97,7 @@ export async function processQuotePdfJob(
   if (app?.equipment_id) {
     const { data } = await supabase
       .from("equipment")
-      .select("quote_banner_top, quote_banner_bottom, specs")
+      .select("quote_device_name, quote_device_image, specs")
       .eq("id", app.equipment_id)
       .single();
     equipment = data ?? null;
@@ -98,7 +105,7 @@ export async function processQuotePdfJob(
   if (!equipment && items[0]) {
     const { data: all } = await supabase
       .from("equipment")
-      .select("id, name, model, quote_banner_top, quote_banner_bottom, specs")
+      .select("id, name, model, quote_device_name, quote_device_image, specs")
       .eq("status", "active");
     const list = (all ?? []) as (EquipmentRow & { name: string; model: string | null })[];
     const m = matchEquipmentName(items[0].name, list);
@@ -136,15 +143,21 @@ export async function processQuotePdfJob(
       "상기금액은 부가세(V.A.T) 별도 금액입니다.",
       "본 견적서의 유효기간은 발행일로부터 1개월입니다.",
     ],
-    bannerTopDataUri: await storageDataUri(
+    // 상단 헤더 큰 텍스트 = 견적 메인 품목명(첫 품목). 없으면 빈 문자열.
+    modelName: htmlItems[0]?.name ?? "",
+    modelFontDataUri: await getModelFontDataUri(),
+    quoteBgDataUri: await getQuoteBgDataUri(),
+    topBannerDataUri: await getTopBannerDataUri(),
+    companyLogoDataUri: await getCompanyLogoDataUri(),
+    deviceImageDataUri: await storageDataUri(
       supabase,
       "equipment-images",
-      equipment?.quote_banner_top ?? null,
+      equipment?.quote_device_image ?? null,
     ),
-    bannerBottomDataUri: await storageDataUri(
+    deviceNameDataUri: await storageDataUri(
       supabase,
       "equipment-images",
-      equipment?.quote_banner_bottom ?? null,
+      equipment?.quote_device_name ?? null,
     ),
     stampDataUri: await getStampDataUri(),
     fontDataUri: await getFontDataUri(),

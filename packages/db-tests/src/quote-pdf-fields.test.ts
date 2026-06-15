@@ -10,7 +10,7 @@ import {
 } from "./helpers";
 
 // 견적서 PDF 신규 컬럼 권한/제약 단언:
-//  - equipment.quote_banner_top/bottom: 경로 형식 CHECK(임의경로 차단) + equipment.manage 보유자만 UPDATE.
+//  - equipment.quote_device_name/image: 경로 형식 CHECK(임의경로 차단) + equipment.manage 보유자만 UPDATE.
 //  - profiles.phone: 담당자 전화 컬럼(users.manage 관리자만 profiles UPDATE — 기존 profiles_update RLS 그대로).
 let c: Client;
 beforeAll(async () => {
@@ -34,17 +34,17 @@ async function seedEquipmentManager(): Promise<void> {
   );
 }
 
-describe("equipment 견적서 배너 컬럼", () => {
-  test("equipment.manage → 유효 경로로 quote_banner_top UPDATE 성공", async () => {
+describe("equipment 견적서 장비 자산 컬럼", () => {
+  test("equipment.manage → 유효 경로로 quote_device_name UPDATE 성공", async () => {
     await inRollbackTx(c, async () => {
       await seedEquipmentManager();
       await asUser(c, UID.admin);
-      // 버킷-상대 경로 = equipment/{장비id}/banner-top.png (CHECK 정규식 통과).
-      const path = `equipment/${EQ}/banner-top.png`;
-      await c.query("update public.equipment set quote_banner_top=$1 where id=$2", [path, EQ]);
+      // 버킷-상대 경로 = equipment/{장비id}/device-name.png (CHECK 정규식 통과).
+      const path = `equipment/${EQ}/device-name.png`;
+      await c.query("update public.equipment set quote_device_name=$1 where id=$2", [path, EQ]);
       await asPostgres(c);
-      const row = (await c.query("select quote_banner_top from public.equipment where id=$1", [EQ])).rows[0];
-      expect(row.quote_banner_top).toBe(path);
+      const row = (await c.query("select quote_device_name from public.equipment where id=$1", [EQ])).rows[0];
+      expect(row.quote_device_name).toBe(path);
     });
   });
 
@@ -53,22 +53,22 @@ describe("equipment 견적서 배너 컬럼", () => {
       await seedEquipmentManager();
       await asUser(c, UID.admin);
       await expect(
-        c.query("update public.equipment set quote_banner_top=$1 where id=$2", ["../evil.png", EQ]),
-      ).rejects.toThrow(/equipment_quote_banner_top_path/);
+        c.query("update public.equipment set quote_device_name=$1 where id=$2", ["../evil.png", EQ]),
+      ).rejects.toThrow(/equipment_quote_device_name_path/);
     });
   });
 
-  test("banner_bottom도 유효/무효 경로를 동일하게 가드", async () => {
+  test("device_image도 유효/무효 경로를 동일하게 가드", async () => {
     await inRollbackTx(c, async () => {
       await seedEquipmentManager();
       await asUser(c, UID.admin);
       // 유효 경로 성공.
-      const path = `equipment/${EQ}/banner-bottom.webp`;
-      await c.query("update public.equipment set quote_banner_bottom=$1 where id=$2", [path, EQ]);
-      // 무효 경로(top 파일명을 bottom 컬럼에) 거부.
+      const path = `equipment/${EQ}/device-image.webp`;
+      await c.query("update public.equipment set quote_device_image=$1 where id=$2", [path, EQ]);
+      // 무효 경로(name 파일명을 image 컬럼에) 거부.
       await expect(
-        c.query("update public.equipment set quote_banner_bottom=$1 where id=$2", [`equipment/${EQ}/banner-top.png`, EQ]),
-      ).rejects.toThrow(/equipment_quote_banner_bottom_path/);
+        c.query("update public.equipment set quote_device_image=$1 where id=$2", [`equipment/${EQ}/device-name.png`, EQ]),
+      ).rejects.toThrow(/equipment_quote_device_image_path/);
     });
   });
 });

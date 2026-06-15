@@ -3,18 +3,18 @@ import { useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { validateImageFile, publicImageUrl } from "@/lib/equipment/images";
 
-// DB CHECK가 허용하는 확장자(견적서 배너 경로). 그 외는 저장 시 CHECK 위반 → 업로드 전 거부.
+// DB CHECK가 허용하는 확장자(견적서 장비 자산 경로). 그 외는 저장 시 CHECK 위반 → 업로드 전 거부.
 const ALLOWED_BANNER_EXT = new Set(["jpg", "jpeg", "png", "webp"]);
 
 type Props = {
   equipmentId: string;
-  slot: "top" | "bottom";
+  slot: "name" | "image";
   value: string;
   onChange: (path: string) => void;
   onUploadingChange: (uploading: boolean) => void; // 폼이 저장 가드
 };
 
-// 견적서 배너 단일 업로더 — equipment-images/equipment/{id}/banner-{slot}.{ext}. 덮어쓰기(upsert).
+// 견적서 장비 자산 단일 업로더 — equipment-images/equipment/{id}/device-{slot}.{ext}. 덮어쓰기(upsert).
 export function BannerUploader({
   equipmentId,
   slot,
@@ -41,7 +41,7 @@ export function BannerUploader({
     setError(null);
     onUploadingChange(true);
     try {
-      const path = `equipment/${equipmentId}/banner-${slot}.${ext}`;
+      const path = `equipment/${equipmentId}/device-${slot}.${ext}`;
       const supabase = createSupabaseBrowserClient();
       const { error: upErr } = await supabase.storage
         .from("equipment-images")
@@ -59,13 +59,13 @@ export function BannerUploader({
   return (
     <div className="flex flex-col gap-2">
       <span className="text-small text-muted">
-        견적서 {slot === "top" ? "상단" : "하단"} 배너
+        {slot === "name" ? "장비 네임 로고 (견적서 좌하단)" : "장비 이미지 (견적서 우하단)"}
       </span>
       {value && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={publicImageUrl(value)}
-          alt={`${slot} 배너`}
+          alt={slot === "name" ? "장비 네임" : "장비 이미지"}
           className="w-full rounded-sm border border-border"
         />
       )}
