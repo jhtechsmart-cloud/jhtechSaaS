@@ -140,13 +140,20 @@ export async function deleteQuoteAction(quoteId: string): Promise<QuoteActionRes
   if (access.status === "forbidden") return { error: "견적 삭제 권한이 없습니다." };
 
   const supabase = await createSupabaseServerClient();
-  // 삭제 후 돌아갈 의뢰 경로를 먼저 확보.
+  // 삭제 후 돌아갈 의뢰 경로 + PDF 경로 확보.
   const { data: q } = await supabase
     .from("quotes")
-    .select("application_id")
+    .select("application_id, pdf_url")
     .eq("id", quoteId)
     .single();
-  const appId = (q as { application_id?: string } | null)?.application_id ?? null;
+  const row = q as { application_id?: string; pdf_url?: string | null } | null;
+  const appId = row?.application_id ?? null;
+
+  // PDF 파일(storage)도 함께 삭제 — DB 행만 지우면 고아 파일이 남는다.
+  if (row?.pdf_url) {
+    const { error: stErr } = await supabase.storage.from("quote-pdfs").remove([row.pdf_url]);
+    if (stErr) console.error("[quotes.delete] PDF 삭제 실패(행은 계속 삭제)", stErr);
+  }
 
   const { error } = await supabase.from("quotes").delete().eq("id", quoteId);
   if (error) {
@@ -157,4 +164,32 @@ export async function deleteQuoteAction(quoteId: string): Promise<QuoteActionRes
   revalidatePath("/admin/applications", "layout");
   if (appId) redirect(`/admin/applications/${appId}`);
   return null;
+}
+
+// 의뢰의 모든 견적 버전 + 모든 PDF 삭제 — 관리자(users.manage)만. 견적을 통째로 비운다.
+export async function deleteAllQuotesForApplicationAction(applicationId: string): Promise<QuoteActionResult> {
+  const access = await requireUsersManage();
+  if (access.status === "forbidden") return { error: "견적 삭제 권한이 없습니다." };
+
+  const supabase = await createSupabaseServerClient();
+  // 모든 버전의 PDF 경로 수집 후 storage 일괄 삭제.
+  const { data: rows } = await supabase
+    .from("quotes")
+    .select("pdf_url")
+    .eq("application_id", applicationId);
+  const paths = (rows ?? [])
+    .map((r) => (r as { pdf_url?: string | null }).pdf_url)
+    .filter((p): p is string => typeof p === "string" && p.length > 0);
+  if (paths.length > 0) {
+    const { error: stErr } = await supabase.storage.from("quote-pdfs").remove(paths);
+    if (stErr) console.error("[quotes.deleteAll] PDF 일괄 삭제 실패(행은 계속 삭제)", stErr);
+  }
+
+  const { error } = await supabase.from("quotes").delete().eq("application_id", applicationId);
+  if (error) {
+    console.error("[quotes.deleteAll] 삭제 실패", error);
+    return { error: "견적을 삭제하지 못했습니다." };
+  }
+  revalidatePath("/admin/applications", "layout");
+  redirect(`/admin/applications/${applicationId}`);
 }
