@@ -25,7 +25,7 @@ export function VersionHistory({
               <th className="px-3 py-2 text-left font-medium">버전</th>
               <th className="px-3 py-2 text-left font-medium">견적번호</th>
               <th className="px-3 py-2 text-left font-medium">발급일시</th>
-              <th className="px-3 py-2 text-right font-medium">합계금액</th>
+              <th className="px-3 py-2 text-right font-medium">합계금액 (VAT 별도)</th>
               <th className="px-3 py-2 text-left font-medium">상태</th>
               <th className="px-3 py-2 text-center font-medium">PDF</th>
             </tr>
@@ -42,7 +42,7 @@ export function VersionHistory({
                   <td className="px-3 py-2 font-medium text-accent">v{q.version}{active ? " 현재" : ""}</td>
                   <td className="px-3 py-2 font-mono tabular-nums text-text">{q.quote_no}</td>
                   <td className="px-3 py-2 font-mono tabular-nums text-muted">{q.issued_at ? dt(q.issued_at) : dt(q.created_at)}</td>
-                  <td className="px-3 py-2 text-right font-mono tabular-nums text-text">{won(q.total)}</td>
+                  <td className="px-3 py-2 text-right font-mono tabular-nums text-text">{won(q.supply_price)}</td>
                   <td className="px-3 py-2 text-muted">{q.status === "issued" ? "발행" : "임시"}</td>
                   <td className="px-3 py-2 text-center" onClick={(e) => e.stopPropagation()}>
                     {q.pdf_url ? (

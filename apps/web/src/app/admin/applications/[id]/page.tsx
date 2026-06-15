@@ -140,9 +140,8 @@ export default async function ApplicationDetailPage({
   // 소계 헬퍼 — 인라인 계산(DB·RPC 값과 별개, 화면 표시전용)
   const equipmentSubtotal = items.reduce((s, r) => s + r.unitPrice * r.quantity, 0);
   const optionSubtotal = optionRows.reduce((s, r) => s + r.unitPrice * r.quantity, 0);
-  // 표시 합계 — 발행 견적은 quote.total(서버 권위), 미발행은 예상(공급가+세액 10% 반올림).
-  const previewTotal = equipmentSubtotal + optionSubtotal + Math.round((equipmentSubtotal + optionSubtotal) * 0.1);
-  const displayTotal = quote ? quote.total : String(previewTotal);
+  // 표시 합계 = 공급가(VAT 별도). 부가세는 화면에 따로 표시하지 않음(견적서 특기사항의 'VAT 별도' 안내로 갈음).
+  const displayTotal = quote ? quote.supply_price : String(equipmentSubtotal + optionSubtotal);
 
   // 유효기간 계산
   const validity = quote?.issued_at ? computeQuoteValidity(quote.issued_at, new Date()) : null;
