@@ -11,7 +11,13 @@ import {
 } from "./assets";
 import type { QuoteHtmlData, QuoteHtmlItem, QuoteHtmlIncluded } from "./quote-html";
 
-type QuoteLine = { name: string; unitPrice: number; quantity: number; kind?: "included" | "extra" };
+type QuoteLine = {
+  name: string;
+  unitPrice: number;
+  quantity: number;
+  kind?: "included" | "extra";
+  equipmentId?: string;
+};
 
 // 견적 줄(jsonb) → 타입 보정.
 function parseLines(v: unknown): QuoteLine[] {
@@ -23,6 +29,7 @@ function parseLines(v: unknown): QuoteLine[] {
       unitPrice: Number(r.unitPrice) || 0,
       quantity: Number(r.quantity) || 0,
       kind: r.kind === "included" || r.kind === "extra" ? r.kind : undefined,
+      equipmentId: typeof r.equipmentId === "string" && r.equipmentId ? r.equipmentId : undefined,
     }));
 }
 
@@ -92,13 +99,18 @@ export async function processQuotePdfJob(
     amount: it.unitPrice * it.quantity,
   }));
 
-  // 2) 장비(배너·specs): application.equipment_id 우선, 없으면 메인품목 이름매칭
+  // 2) 장비(사양·로고·장비이미지) 조회 — 우선순위:
+  //    ① 견적에서 고른 장비 id(items[0].equipmentId, 견적 수정으로 장비 바꾸면 이게 최신)
+  //    ② 폴백: 의뢰 신청 장비(application.equipment_id) — equipmentId 없는 구 견적 하위호환
+  //    ③ 폴백: 메인 품목 이름매칭
+  const quoteEquipmentId = items[0]?.equipmentId ?? null;
   let equipment: EquipmentRow | null = null;
-  if (app?.equipment_id) {
+  for (const eqId of [quoteEquipmentId, app?.equipment_id]) {
+    if (equipment || !eqId) continue;
     const { data } = await supabase
       .from("equipment")
       .select("quote_device_name, quote_device_image, specs")
-      .eq("id", app.equipment_id)
+      .eq("id", eqId)
       .single();
     equipment = data ?? null;
   }

@@ -4,7 +4,7 @@ import { calculateQuote, type QuoteInput, type QuoteResult } from "@jhtechsaas/s
 
 // 폼 한 줄. 입력 중에는 단가·수량이 비거나 NaN일 수 있다.
 // kind: 옵션 줄 구분('included'=포함옵션 스냅샷·단가 0 / 'extra'=추가 과금). 장비 줄은 미지정.
-export type QuoteRow = { name: string; unitPrice: number; quantity: number; kind?: "included" | "extra" };
+export type QuoteRow = { name: string; unitPrice: number; quantity: number; kind?: "included" | "extra"; equipmentId?: string };
 
 // 폼에 넘기는 카탈로그(클라 직렬화 안전). 서버 listEquipmentForMatch에서 가공.
 export type QuoteCatalogItem = {
@@ -37,9 +37,16 @@ export function availableIncludedNames(items: ItemRow[], catalog: QuoteCatalogIt
   return out;
 }
 
-// 장비 행 → 저장용 견적 줄(equipmentId 버림 — 견적 item은 이름 스냅샷).
+// 장비 행 → 저장용 견적 줄. 이름·단가는 스냅샷이되, equipmentId는 보존한다
+// (PDF 워커가 이 id로 사양·로고·장비이미지를 가져옴 — 견적에서 고른 장비 기준).
+// 직접입력 줄(equipmentId="")은 미포함.
 export function itemRowsToLines(items: ItemRow[]): QuoteRow[] {
-  return items.map((i) => ({ name: i.name, unitPrice: i.unitPrice, quantity: i.quantity }));
+  return items.map((i) => ({
+    name: i.name,
+    unitPrice: i.unitPrice,
+    quantity: i.quantity,
+    ...(i.equipmentId ? { equipmentId: i.equipmentId } : {}),
+  }));
 }
 
 // 포함옵션 선택(이름 목록) → 견적 옵션 줄(단가 0·수량 1·kind=included). 금액 영향 없음.
@@ -98,11 +105,13 @@ export function parseQuoteLines(value: unknown): QuoteRow[] {
   return value.map((e) => {
     const o = (e ?? {}) as Record<string, unknown>;
     const kind = o.kind === "included" || o.kind === "extra" ? o.kind : undefined;
+    const equipmentId = typeof o.equipmentId === "string" && o.equipmentId ? o.equipmentId : undefined;
     return {
       name: typeof o.name === "string" ? o.name : "",
       unitPrice: typeof o.unitPrice === "number" && Number.isFinite(o.unitPrice) ? o.unitPrice : 0,
       quantity: typeof o.quantity === "number" && Number.isFinite(o.quantity) ? o.quantity : 0,
       ...(kind ? { kind } : {}),
+      ...(equipmentId ? { equipmentId } : {}),
     };
   });
 }

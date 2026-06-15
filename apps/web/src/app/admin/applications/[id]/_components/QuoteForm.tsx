@@ -17,11 +17,13 @@ import { QuoteLinesEditor } from "@/app/admin/_components/QuoteLinesEditor";
 import { QuoteTotalsAside } from "@/app/admin/_components/QuoteTotalsAside";
 import { QuoteEditModeBanner } from "@/app/admin/_components/QuoteEditModeBanner";
 
-// 저장된 견적 장비줄(이름) → 폼 장비행(카탈로그 이름매칭으로 equipmentId 복원, 미매칭은 직접입력).
+// 저장된 견적 장비줄 → 폼 장비행. 저장된 equipmentId가 있으면 그대로 쓰고(카탈로그에 존재할 때),
+// 없으면 이름매칭으로 복원(구 견적 하위호환), 그래도 없으면 직접입력.
 function toItemRows(initial: QuoteRow[] | undefined, catalog: QuoteCatalogItem[]): ItemRow[] {
   if (!initial || initial.length === 0) return [{ equipmentId: "", name: "", unitPrice: 0, quantity: 1 }];
   return initial.map((it) => {
-    const eq = matchEquipmentName(it.name, catalog);
+    const byId = it.equipmentId ? catalog.find((c) => c.id === it.equipmentId) : undefined;
+    const eq = byId ?? matchEquipmentName(it.name, catalog);
     return { equipmentId: eq?.id ?? "", name: it.name, unitPrice: it.unitPrice, quantity: it.quantity };
   });
 }

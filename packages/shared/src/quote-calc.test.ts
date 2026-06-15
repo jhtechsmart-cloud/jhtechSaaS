@@ -91,6 +91,21 @@ describe("QuoteInputSchema — 견적 입력 경계 검증", () => {
     expect(r.success).toBe(true);
   });
 
+  test("equipmentId를 보존한다(strip 안 함) — PDF 장비 정보 조회용", () => {
+    const r = QuoteInputSchema.safeParse({
+      items: [{ ...validLine, equipmentId: "eq-uuid-1" }],
+      options: [],
+    });
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.items[0].equipmentId).toBe("eq-uuid-1");
+  });
+
+  test("equipmentId는 금액 계산에 영향 없다", () => {
+    const withId = calculateQuote({ items: [{ ...validLine, equipmentId: "eq-1" }], options: [] });
+    const without = calculateQuote({ items: [validLine], options: [] });
+    expect(withId).toEqual(without);
+  });
+
   test("quantity 0·음수·소수 거부", () => {
     for (const quantity of [0, -1, 1.5]) {
       const r = QuoteInputSchema.safeParse({ items: [{ ...validLine, quantity }], options: [] });
