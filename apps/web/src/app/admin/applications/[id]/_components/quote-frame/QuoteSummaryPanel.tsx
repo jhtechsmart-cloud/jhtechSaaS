@@ -11,7 +11,7 @@ type LineRow = { name: string; unitPrice: number; quantity: number };
 export function QuoteSummaryPanel({
   applicationId, quoteId, quoteNo, statusLabel, equipmentSubtotal, optionSubtotal, items, options, total,
   issuedAtLabel, validUntilLabel, assigneeName, email, phone, pdfReady, canReissue, preview, canWrite, canDelete,
-  isIssued, deliveryDate, deliveryTime,
+  quoteCount, isIssued, deliveryDate, deliveryTime,
 }: {
   applicationId: string; quoteId: string | null; quoteNo: string | null; statusLabel: string;
   equipmentSubtotal: number; optionSubtotal: number; items: LineRow[]; options: LineRow[]; total: string;
@@ -20,6 +20,7 @@ export function QuoteSummaryPanel({
   preview?: boolean; // 미발행 — 예상치 + '견적 작성' 유도
   canWrite?: boolean; // quotes.write — 견적 작성 버튼 노출
   canDelete?: boolean; // users.manage — 견적 삭제 버튼 노출
+  quoteCount?: number; // 버전 수 — 2개 이상이면 '이 버전'+'전체' 삭제 버튼 분리
   isIssued?: boolean; // 납품 일정 입력 활성 조건(발행 견적만)
   deliveryDate?: string | null; deliveryTime?: string | null;
 }) {
@@ -66,8 +67,10 @@ export function QuoteSummaryPanel({
             </div>
             {/* 메일 발송 — 후속 이메일 슬라이스에서 활성화(현재 자리만) */}
             <span className="cursor-not-allowed rounded-md border border-dashed border-border py-2 text-center text-small font-medium text-muted">메일 발송 · 준비중</span>
-            {/* 견적 삭제 — 관리자 전용(발행본 포함). 견적이 존재할 때만. */}
-            {quoteId && canDelete && <DeleteQuoteButton quoteId={quoteId} />}
+            {/* 견적 삭제 — 관리자 전용(발행본 포함). 버전 2개+면 '이 버전'+'전체' 분리. */}
+            {quoteId && canDelete && (
+              <DeleteQuoteButton quoteId={quoteId} applicationId={applicationId} multiVersion={(quoteCount ?? 1) > 1} />
+            )}
           </div>
         )}
         <div className="mt-3 flex flex-col gap-1 border-t border-border pt-3 text-small">

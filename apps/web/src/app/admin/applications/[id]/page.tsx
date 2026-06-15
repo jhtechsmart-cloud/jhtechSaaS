@@ -323,6 +323,7 @@ export default async function ApplicationDetailPage({
             canReissue={canQuote}
             canWrite={canQuote}
             canDelete={canDeleteQuote}
+            quoteCount={quotes.length}
             isIssued={quote?.status === "issued"}
             deliveryDate={quote?.delivery_date ?? null}
             deliveryTime={quote?.delivery_time ?? null}
