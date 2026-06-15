@@ -21,6 +21,8 @@ import type { MatchableEquipmentWithOptions } from "@/lib/quotes/equipment-match
 import { QuoteHero } from "./_components/quote-frame/QuoteHero";
 import { SectionHeader } from "./_components/quote-frame/SectionHeader";
 import { VersionHistory } from "./_components/quote-frame/VersionHistory";
+import { VersionDiff } from "./_components/quote-frame/VersionDiff";
+import { diffQuoteVersions } from "@/lib/quotes/diff";
 import { ApplicantInfo } from "./_components/quote-frame/ApplicantInfo";
 import { InstallSurvey } from "./_components/quote-frame/InstallSurvey";
 import { SitePhotos } from "./_components/quote-frame/SitePhotos";
@@ -90,6 +92,16 @@ export default async function ApplicationDetailPage({
     ? quotes.find((q) => q.id === vParam)!
     : pickRepresentativeQuote(quotes);
   const quote = selected ? await getQuote(selected.id) : null;
+
+  // 직전 버전(vN-1) 대비 변경 내역 — 현재 보는 버전 기준. v1(직전 없음)이면 미표시.
+  const prevQuote = selected ? (quotes.find((q) => q.version === selected.version - 1) ?? null) : null;
+  const versionDiff =
+    selected && prevQuote
+      ? diffQuoteVersions(
+          { items: prevQuote.items, options: prevQuote.options },
+          { items: selected.items, options: selected.options },
+        )
+      : null;
 
   // 카탈로그 항상 로드 — 견적 item 매칭 + (미발행 시) 요청 장비 미리보기에 사용.
   const catalog = await listEquipmentForMatch();
@@ -267,6 +279,9 @@ export default async function ApplicationDetailPage({
                 아직 발행된 견적이 없습니다. 견적을 작성하면 버전 이력이 쌓입니다.
               </div>
             </section>
+          )}
+          {versionDiff && prevQuote && selected && (
+            <VersionDiff prevVersion={prevQuote.version} currVersion={selected.version} diff={versionDiff} />
           )}
           <ApplicantInfo
             companyId={companyId}

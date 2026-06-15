@@ -13,6 +13,9 @@ export type QuoteListItem = {
   total: string;
   issued_at: string | null;
   created_at: string;
+  pdf_url: string | null; // 버전별 PDF 버튼(발행본만 존재)
+  items: unknown; // 버전 간 diff용(jsonb)
+  options: unknown; // 버전 간 diff용(jsonb)
 };
 
 // 견적 단건 — 상세·재발행 프리필용. RLS quotes_select가 행 스코프 강제.
@@ -54,7 +57,7 @@ export async function listQuotesForApplication(applicationId: string): Promise<Q
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("quotes")
-    .select("id, quote_no, version, status, supply_price, tax_price, total, issued_at, created_at")
+    .select("id, quote_no, version, status, supply_price, tax_price, total, issued_at, created_at, pdf_url, items, options")
     .eq("application_id", applicationId)
     .order("version", { ascending: false });
   if (error) {
