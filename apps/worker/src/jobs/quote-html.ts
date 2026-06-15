@@ -45,7 +45,19 @@ export function renderQuoteHtml(d: QuoteHtmlData): string {
     .join("");
   const specs = d.specGroups.length
     ? `<div class="band">장비사양 (Specification)</div><div class="specs">${d.specGroups
-        .map((g) => `<div class="spec-group"><div class="spec-title">${esc(g.group)}</div>${g.items.map((i) => `<div class="spec-item">· ${esc(i.label)} : ${esc(i.value)}</div>`).join("")}</div>`)
+        .map(
+          (g) =>
+            `<div class="spec-group"><div class="spec-title">${esc(g.group)}</div><div class="spec-items">${g.items
+              .map((i) => {
+                // 라벨 없는 항목(예: 제품 크기 목록)은 "· 값"만 — "· : 값" 빈 라벨 방지.
+                const label = esc(i.label);
+                const value = esc(i.value);
+                return label
+                  ? `<div class="spec-item">· ${label} : ${value}</div>`
+                  : `<div class="spec-item">· ${value}</div>`;
+              })
+              .join("")}</div></div>`,
+        )
         .join("")}</div>`
     : "";
   const notes = d.notes.map((n, i) => `<div class="note">${i + 1}. ${esc(n)}</div>`).join("");
@@ -64,9 +76,9 @@ body{position:relative;width:210mm;min-height:296mm;color:#111;font-size:13px;
   background-image:url("${d.topBannerDataUri}");background-size:100% 100%;}
 .top-banner .logo{position:absolute;top:4mm;left:8mm;height:12mm;}
 .top-banner .model{position:absolute;left:8mm;bottom:6mm;right:14mm;
-  color:#fff;font-family:'ModelBI',Arial,Helvetica,sans-serif;font-style:italic;font-weight:bold;
+  color:#fff;font-family:'ModelBI','KR',Arial,Helvetica,sans-serif;font-style:italic;font-weight:bold;
   font-size:33px;letter-spacing:.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.pad{padding:6mm 14mm 0;flex:1 1 auto;}
+.pad{padding:4mm 14mm 0;flex:1 1 auto;}
 .head{display:flex;justify-content:space-between;gap:16px;margin-top:2mm;align-items:stretch;}
 .head-left{display:flex;flex-direction:column;flex:1;min-width:0;}
 .meta div{line-height:1.7;}
@@ -92,14 +104,18 @@ table.items th{background:#f3f3f3;}
 table.items td.name{text-align:left;}
 table.items td.num{text-align:right;font-variant-numeric:tabular-nums;}
 table.items tr.total td{font-weight:700;}
-.band{background:#3a4a5a;color:#fff;text-align:center;letter-spacing:6px;padding:5px;margin-top:12px;}
-.specs{display:grid;grid-template-columns:1fr 1fr;gap:2px 18px;padding:8px 2px;}
-.spec-title{font-weight:700;margin-top:4px;}
+.band{background:#3a4a5a;color:#fff;text-align:center;letter-spacing:6px;padding:5px;margin-top:8px;}
+/* 사양 — 그룹 제목 아래 항목을 2컬럼으로(항목 많아도 1페이지 유지). 폰트·줄간격 압축. */
+.specs{padding:6px 2px;font-size:11.5px;}
+.spec-group{margin-bottom:3px;}
+.spec-title{font-weight:700;margin:2px 0 1px;}
+.spec-items{display:grid;grid-template-columns:1fr 1fr;gap:0 18px;}
+.spec-item{line-height:1.4;}
 .note{margin:2px 0;color:#333;}
-/* 하단 좌우 장비 영역 — 배경 조명 위. 좌=네임, 우=이미지. */
-.device{display:flex;justify-content:space-between;align-items:flex-end;padding:0 14mm 12mm;gap:10mm;}
-.device .name-img{width:64mm;max-height:34mm;object-fit:contain;}
-.device .dev-img{width:88mm;max-height:50mm;object-fit:contain;}
+/* 하단 좌우 장비 영역 — 배경 조명 위. 좌=네임, 우=이미지. flex:1 .pad가 하단으로 밀어 1페이지 바닥 고정. */
+.device{display:flex;justify-content:space-between;align-items:flex-end;padding:0 14mm 10mm;gap:10mm;}
+.device .name-img{width:60mm;max-height:30mm;object-fit:contain;}
+.device .dev-img{width:84mm;max-height:46mm;object-fit:contain;}
 </style></head><body>
 <div class="top-banner">
   <img class="logo" src="${d.companyLogoDataUri}">
