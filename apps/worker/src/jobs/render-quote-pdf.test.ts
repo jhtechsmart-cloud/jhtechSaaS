@@ -16,8 +16,10 @@ const data: QuoteHtmlData = {
   extraOptions: [],
   specGroups: [],
   notes: ["부가세 별도"],
-  bannerTopDataUri: null,
-  bannerBottomDataUri: null,
+  quoteBgDataUri: "data:image/png;base64,iVBORw0KGgo=",
+  companyLogoDataUri: "data:image/png;base64,iVBORw0KGgo=",
+  deviceImageDataUri: null,
+  deviceNameDataUri: null,
   stampDataUri: "data:image/png;base64,iVBORw0KGgo=",
   fontDataUri: "data:font/ttf;base64,AAAA",
 };
