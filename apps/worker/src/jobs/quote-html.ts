@@ -17,8 +17,11 @@ export type QuoteHtmlData = {
   extraOptions: QuoteHtmlItem[];
   specGroups: QuoteHtmlSpecGroup[];
   notes: string[];
+  modelName: string;                 // 상단 헤더 큰 텍스트(장비 모델명 전체)
+  modelFontDataUri: string;          // 고정 Arimo Bold Italic(모델명용)
   quoteBgDataUri: string;            // 고정 A4 배경
-  companyLogoDataUri: string;        // 고정 회사 로고(좌상단)
+  topBannerDataUri: string;          // 고정 상단 헤더 배경(회색 띠)
+  companyLogoDataUri: string;        // 고정 회사 로고(상단 헤더 좌측)
   deviceImageDataUri: string | null; // 장비별 우하단 이미지
   deviceNameDataUri: string | null;  // 장비별 좌하단 네임
   stampDataUri: string;
@@ -49,14 +52,21 @@ export function renderQuoteHtml(d: QuoteHtmlData): string {
 
   return `<!doctype html><html lang="ko"><head><meta charset="utf-8"><style>
 @font-face{font-family:'KR';src:url("${d.fontDataUri}");}
+@font-face{font-family:'ModelBI';src:url("${d.modelFontDataUri}");font-weight:bold;font-style:italic;}
 @page{size:A4;margin:0;}
 *{box-sizing:border-box;margin:0;padding:0;font-family:'KR',sans-serif;}
 /* 배경 이미지를 페이지 전체에 깔고, 본문은 그 위 레이어. A4 높이 채워 하단 장비 영역을 바닥 고정. */
 body{position:relative;width:210mm;min-height:296mm;color:#111;font-size:13px;
   background-image:url("${d.quoteBgDataUri}");background-size:cover;background-position:center;
   display:flex;flex-direction:column;}
-.logo{width:46mm;margin:10mm 0 2mm 14mm;display:block;}
-.pad{padding:0 14mm;flex:1 1 auto;}
+/* 상단 헤더 — 회색 띠 배경(고정) 위에 좌측 로고 + 큰 모델명 텍스트(흰색 이탤릭). */
+.top-banner{position:relative;width:100%;height:42mm;
+  background-image:url("${d.topBannerDataUri}");background-size:100% 100%;}
+.top-banner .logo{position:absolute;top:4mm;left:8mm;height:12mm;}
+.top-banner .model{position:absolute;left:8mm;bottom:6mm;right:14mm;
+  color:#fff;font-family:'ModelBI',Arial,Helvetica,sans-serif;font-style:italic;font-weight:bold;
+  font-size:33px;letter-spacing:.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pad{padding:6mm 14mm 0;flex:1 1 auto;}
 .head{display:flex;justify-content:space-between;gap:16px;margin-top:2mm;align-items:stretch;}
 .head-left{display:flex;flex-direction:column;flex:1;min-width:0;}
 .meta div{line-height:1.7;}
@@ -91,7 +101,10 @@ table.items tr.total td{font-weight:700;}
 .device .name-img{width:64mm;max-height:34mm;object-fit:contain;}
 .device .dev-img{width:88mm;max-height:50mm;object-fit:contain;}
 </style></head><body>
-<img class="logo" src="${d.companyLogoDataUri}">
+<div class="top-banner">
+  <img class="logo" src="${d.companyLogoDataUri}">
+  <div class="model">${esc(d.modelName)}</div>
+</div>
 <div class="pad">
   <div class="head">
     <div class="head-left">

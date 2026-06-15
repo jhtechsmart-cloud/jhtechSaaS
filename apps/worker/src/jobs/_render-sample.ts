@@ -2,7 +2,14 @@ import { readFile, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { buildQuotePdf } from "./render-quote-pdf";
-import { getFontDataUri, getStampDataUri, getQuoteBgDataUri, getCompanyLogoDataUri } from "./assets";
+import {
+  getFontDataUri,
+  getStampDataUri,
+  getQuoteBgDataUri,
+  getCompanyLogoDataUri,
+  getTopBannerDataUri,
+  getModelFontDataUri,
+} from "./assets";
 import type { QuoteHtmlData } from "./quote-html";
 
 // 로컬 시각 검증 전용 — 실제 워커 잡이 아니다. 고정 자산은 assets.ts로,
@@ -32,7 +39,10 @@ async function main() {
       "상기금액은 부가세(V.A.T) 별도 금액입니다.",
       "본 견적서의 유효기간은 발행일로부터 1개월입니다.",
     ],
+    modelName: "MULTICUT ECO SG1625 Digital Cutter",
+    modelFontDataUri: await getModelFontDataUri(),
     quoteBgDataUri: await getQuoteBgDataUri(),
+    topBannerDataUri: await getTopBannerDataUri(),
     companyLogoDataUri: await getCompanyLogoDataUri(),
     deviceImageDataUri: await fileUri(join(dir, "4_SG1625-new.png"), "image/png"),
     deviceNameDataUri: await fileUri(join(dir, "5_멀티컷SG1625-logo.png"), "image/png"),

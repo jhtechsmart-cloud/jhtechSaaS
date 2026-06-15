@@ -14,7 +14,10 @@ const base: QuoteHtmlData = {
   extraOptions: [],
   specGroups: [],
   notes: ["상기금액은 부가세(V.A.T) 별도 금액입니다.", "본 견적서의 유효기간은 발행일로부터 1개월입니다."],
+  modelName: "MULTICUT ECO SG1625 Digital Cutter",
+  modelFontDataUri: "data:font/ttf;base64,MODELFONT",
   quoteBgDataUri: "data:image/jpeg;base64,BG",
+  topBannerDataUri: "data:image/png;base64,TOPBANNER",
   companyLogoDataUri: "data:image/png;base64,LOGO",
   deviceImageDataUri: "data:image/png;base64,DEV",
   deviceNameDataUri: "data:image/png;base64,NAME",
@@ -32,9 +35,11 @@ describe("renderQuoteHtml", () => {
     expect(html).toContain("멀티컷 에코 SG1625");
     expect(html).toContain("113-81-80804"); // 공급자
     expect(html).toContain("data:image/jpeg;base64,BG");   // 배경
+    expect(html).toContain("data:image/png;base64,TOPBANNER"); // 상단 헤더 배경
     expect(html).toContain("data:image/png;base64,LOGO");  // 회사 로고
     expect(html).toContain("data:image/png;base64,DEV");   // 우하단 장비 이미지
     expect(html).toContain("data:image/png;base64,NAME");  // 좌하단 장비 네임
+    expect(html).toContain("MULTICUT ECO SG1625 Digital Cutter"); // 상단 모델명
   });
   test("포함옵션은 '포함'으로, 추가옵션은 금액으로 렌더", () => {
     const html = renderQuoteHtml({

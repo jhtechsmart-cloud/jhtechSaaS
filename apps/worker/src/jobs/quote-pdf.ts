@@ -1,7 +1,14 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { formatKstKoreanDate, matchEquipmentName, numberToKoreanAmount } from "@jhtechsaas/shared";
 import { buildQuotePdf } from "./render-quote-pdf";
-import { getFontDataUri, getStampDataUri, getQuoteBgDataUri, getCompanyLogoDataUri } from "./assets";
+import {
+  getFontDataUri,
+  getStampDataUri,
+  getQuoteBgDataUri,
+  getCompanyLogoDataUri,
+  getTopBannerDataUri,
+  getModelFontDataUri,
+} from "./assets";
 import type { QuoteHtmlData, QuoteHtmlItem, QuoteHtmlIncluded } from "./quote-html";
 
 type QuoteLine = { name: string; unitPrice: number; quantity: number; kind?: "included" | "extra" };
@@ -136,7 +143,11 @@ export async function processQuotePdfJob(
       "상기금액은 부가세(V.A.T) 별도 금액입니다.",
       "본 견적서의 유효기간은 발행일로부터 1개월입니다.",
     ],
+    // 상단 헤더 큰 텍스트 = 견적 메인 품목명(첫 품목). 없으면 빈 문자열.
+    modelName: htmlItems[0]?.name ?? "",
+    modelFontDataUri: await getModelFontDataUri(),
     quoteBgDataUri: await getQuoteBgDataUri(),
+    topBannerDataUri: await getTopBannerDataUri(),
     companyLogoDataUri: await getCompanyLogoDataUri(),
     deviceImageDataUri: await storageDataUri(
       supabase,
