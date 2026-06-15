@@ -2,6 +2,7 @@ import Link from "next/link";
 import { VALID_DAYS } from "@/lib/quotes/banner";
 import { QuotePdfButton } from "./QuotePdfButton";
 import { DeliverySchedule } from "./DeliverySchedule";
+import { DeleteQuoteButton } from "./DeleteQuoteButton";
 
 const won = (s: string | number) => `₩${Number(s).toLocaleString("ko-KR")}`;
 type LineRow = { name: string; unitPrice: number; quantity: number };
@@ -9,7 +10,7 @@ type LineRow = { name: string; unitPrice: number; quantity: number };
 // 우측 sticky 요약 패널 — 소계(+서브 라인)·합계·발급정보·발송정보. 메일발송은 비활성(후속).
 export function QuoteSummaryPanel({
   applicationId, quoteId, quoteNo, statusLabel, equipmentSubtotal, optionSubtotal, items, options, total,
-  issuedAtLabel, validUntilLabel, assigneeName, email, phone, pdfReady, canReissue, preview, canWrite,
+  issuedAtLabel, validUntilLabel, assigneeName, email, phone, pdfReady, canReissue, preview, canWrite, canDelete,
   isIssued, deliveryDate, deliveryTime,
 }: {
   applicationId: string; quoteId: string | null; quoteNo: string | null; statusLabel: string;
@@ -18,6 +19,7 @@ export function QuoteSummaryPanel({
   email: string | null; phone: string | null; pdfReady: boolean; canReissue: boolean;
   preview?: boolean; // 미발행 — 예상치 + '견적 작성' 유도
   canWrite?: boolean; // quotes.write — 견적 작성 버튼 노출
+  canDelete?: boolean; // users.manage — 견적 삭제 버튼 노출
   isIssued?: boolean; // 납품 일정 입력 활성 조건(발행 견적만)
   deliveryDate?: string | null; deliveryTime?: string | null;
 }) {
@@ -64,6 +66,8 @@ export function QuoteSummaryPanel({
             </div>
             {/* 메일 발송 — 후속 이메일 슬라이스에서 활성화(현재 자리만) */}
             <span className="cursor-not-allowed rounded-md border border-dashed border-border py-2 text-center text-small font-medium text-muted">메일 발송 · 준비중</span>
+            {/* 견적 삭제 — 관리자 전용(발행본 포함). 견적이 존재할 때만. */}
+            {quoteId && canDelete && <DeleteQuoteButton quoteId={quoteId} />}
           </div>
         )}
         <div className="mt-3 flex flex-col gap-1 border-t border-border pt-3 text-small">

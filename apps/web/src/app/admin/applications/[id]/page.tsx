@@ -79,6 +79,7 @@ export default async function ApplicationDetailPage({
   const canStatus = can(access.permissions, "applications.status");
   const canManageCustomers = can(access.permissions, "customers.edit");
   const canQuote = can(access.permissions, "quotes.write");
+  const canDeleteQuote = can(access.permissions, "users.manage");
 
   // 견적 목록 조회
   const quotes = await listQuotesForApplication(id);
@@ -216,7 +217,8 @@ export default async function ApplicationDetailPage({
   );
 
   return (
-    <div>
+    // 대시보드·고객목록과 동일한 고정폭(1180) 중앙정렬 — 2분할 우측 상세가 화면 따라 늘어나 글자 간격이 벌어지던 문제 해소.
+    <div className="mx-auto w-full max-w-[1180px]">
       {/* 히어로 — 네이비 배경, 견적 식별·상태·4스탯. ApplicationStatusBadge(testid=app-status) 포함. */}
       <QuoteHero
         company={str(r.company) ?? ""}
@@ -306,6 +308,7 @@ export default async function ApplicationDetailPage({
             pdfReady={pdfReady}
             canReissue={canQuote}
             canWrite={canQuote}
+            canDelete={canDeleteQuote}
             isIssued={quote?.status === "issued"}
             deliveryDate={quote?.delivery_date ?? null}
             deliveryTime={quote?.delivery_time ?? null}
