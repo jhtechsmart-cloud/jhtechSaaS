@@ -75,7 +75,7 @@ export default async function NewQuotePage({
   }
 
   return (
-    <section className="flex flex-col gap-4">
+    <section className="mx-auto flex w-full max-w-[1180px] flex-col gap-4">
       <Link href={`/admin/applications/${id}`} className="text-small text-muted hover:text-text">
         ← 의뢰로
       </Link>

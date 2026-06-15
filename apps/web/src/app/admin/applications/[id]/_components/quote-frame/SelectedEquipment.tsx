@@ -39,13 +39,13 @@ export function SelectedEquipment({
           const totalOpts = eq?.options.length ?? 0;
           return (
             <li key={i} className="flex flex-col gap-5 py-5 first:pt-1 last:pb-1 sm:flex-row">
-              {/* 이미지 — 더 크게(시안 비율 4:3, 데스크톱 320px) */}
+              {/* 이미지 — 비율 4:3, 데스크톱 256px. object-contain으로 잘림 없이 전체 표시(여백은 배경). */}
               {eq?.photos[0] ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 // photos[0]은 storage 경로 → publicImageUrl로 전체 URL 변환(공개 카탈로그와 동일)
-                <img src={publicImageUrl(eq.photos[0])} alt={it.name} className="aspect-[4/3] w-full shrink-0 rounded-md object-cover sm:w-80" />
+                <img src={publicImageUrl(eq.photos[0])} alt={it.name} className="aspect-[4/3] w-full shrink-0 rounded-md border border-border bg-surface-2 object-contain p-2 sm:w-64" />
               ) : (
-                <div className="flex aspect-[4/3] w-full shrink-0 items-center justify-center rounded-md bg-surface-2 text-small text-muted sm:w-80">
+                <div className="flex aspect-[4/3] w-full shrink-0 items-center justify-center rounded-md bg-surface-2 text-small text-muted sm:w-64">
                   이미지 없음
                 </div>
               )}

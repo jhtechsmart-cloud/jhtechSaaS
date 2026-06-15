@@ -3,7 +3,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { requireQuotesWrite } from "@/lib/auth/guard";
+import { requireQuotesWrite, requireUsersManage } from "@/lib/auth/guard";
 import {
   createManualQuotePayloadSchema,
   createQuotePayloadSchema,
@@ -131,4 +131,30 @@ export async function createManualQuoteAction(
   // layout 단위 revalidate로 좌측 목록에 새 의뢰가 즉시 나타나게 한다.
   revalidatePath("/admin/applications", "layout");
   redirect(`/admin/applications/${appId}`);
+}
+
+// 견적 삭제 — 관리자(users.manage)만. 발행본 포함 모두 삭제(테스트·오작성 정리).
+// RLS(quotes_delete=users.manage)가 최종 통제하지만, Server Action 직접 POST 대비 가드 재확인.
+export async function deleteQuoteAction(quoteId: string): Promise<QuoteActionResult> {
+  const access = await requireUsersManage();
+  if (access.status === "forbidden") return { error: "견적 삭제 권한이 없습니다." };
+
+  const supabase = await createSupabaseServerClient();
+  // 삭제 후 돌아갈 의뢰 경로를 먼저 확보.
+  const { data: q } = await supabase
+    .from("quotes")
+    .select("application_id")
+    .eq("id", quoteId)
+    .single();
+  const appId = (q as { application_id?: string } | null)?.application_id ?? null;
+
+  const { error } = await supabase.from("quotes").delete().eq("id", quoteId);
+  if (error) {
+    console.error("[quotes.delete] 삭제 실패", error);
+    return { error: "견적을 삭제하지 못했습니다." };
+  }
+  // 좌측 목록 배지·상세 모두 갱신.
+  revalidatePath("/admin/applications", "layout");
+  if (appId) redirect(`/admin/applications/${appId}`);
+  return null;
 }
