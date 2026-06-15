@@ -57,8 +57,8 @@ export function EquipmentForm(props: Props) {
             specs: [{ group: "", icon: "settings", items: [{ label: "", value: "" }] }],
             photos: [],
             options: [],
-            quote_banner_top: "",
-            quote_banner_bottom: "",
+            quote_device_name: "",
+            quote_device_image: "",
           },
   });
   const {
@@ -73,13 +73,13 @@ export function EquipmentForm(props: Props) {
     field: { value: photos, onChange: setPhotos },
   } = useController({ control, name: "photos" });
 
-  // 견적서 배너(상·하단)도 스칼라 → useController로 연결(watch() 미사용=React Compiler 경고 회피).
+  // 견적서 장비 자산(네임·이미지)도 스칼라 → useController로 연결(watch() 미사용=React Compiler 경고 회피).
   const {
-    field: { value: bannerTop, onChange: setBannerTop },
-  } = useController({ control, name: "quote_banner_top" });
+    field: { value: deviceName, onChange: setDeviceName },
+  } = useController({ control, name: "quote_device_name" });
   const {
-    field: { value: bannerBottom, onChange: setBannerBottom },
-  } = useController({ control, name: "quote_banner_bottom" });
+    field: { value: deviceImage, onChange: setDeviceImage },
+  } = useController({ control, name: "quote_device_image" });
 
   // 이월 ②: dirty 상태에서 이탈 시 경고(beforeunload).
   useEffect(() => {
@@ -217,20 +217,20 @@ export function EquipmentForm(props: Props) {
         }}
       />
 
-      {/* §3-1 견적서 배너(상·하단) — 단일 슬롯 덮어쓰기 업로드 */}
+      {/* §3-1 견적서 장비 자산 — 좌하단 네임 / 우하단 이미지 */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <BannerUploader
           equipmentId={equipmentId}
-          slot="top"
-          value={bannerTop ?? ""}
-          onChange={setBannerTop}
+          slot="name"
+          value={deviceName ?? ""}
+          onChange={setDeviceName}
           onUploadingChange={setUploading}
         />
         <BannerUploader
           equipmentId={equipmentId}
-          slot="bottom"
-          value={bannerBottom ?? ""}
-          onChange={setBannerBottom}
+          slot="image"
+          value={deviceImage ?? ""}
+          onChange={setDeviceImage}
           onUploadingChange={setUploading}
         />
       </div>

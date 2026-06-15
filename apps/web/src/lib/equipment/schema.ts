@@ -61,27 +61,27 @@ export const equipmentFormSchema = z.object({
     )
     .default([]),
   options: z.array(optionEntrySchema).default([]),
-  // 견적서 배너(상·하단) Storage 객체 경로. 빈 문자열 허용(미설정).
-  // 형식 강제(경로조작 방지·DB CHECK와 일치): equipment/{uuid}/banner-(top|bottom).{ext}.
-  quote_banner_top: z
+  // 견적서 장비 자산(좌하단 네임·우하단 이미지) Storage 객체 경로. 빈 문자열 허용(미설정).
+  // 형식 강제(경로조작 방지·DB CHECK와 일치): equipment/{uuid}/device-(name|image).{ext}.
+  quote_device_name: z
     .union([
       z.literal(""),
       z
         .string()
         .regex(
-          /^equipment\/[0-9a-f-]{36}\/banner-top\.(jpg|jpeg|png|webp)$/i,
-          "잘못된 배너 경로",
+          /^equipment\/[0-9a-f-]{36}\/device-name\.(jpg|jpeg|png|webp)$/i,
+          "잘못된 장비 네임 경로",
         ),
     ])
     .default(""),
-  quote_banner_bottom: z
+  quote_device_image: z
     .union([
       z.literal(""),
       z
         .string()
         .regex(
-          /^equipment\/[0-9a-f-]{36}\/banner-bottom\.(jpg|jpeg|png|webp)$/i,
-          "잘못된 배너 경로",
+          /^equipment\/[0-9a-f-]{36}\/device-image\.(jpg|jpeg|png|webp)$/i,
+          "잘못된 장비 이미지 경로",
         ),
     ])
     .default(""),
