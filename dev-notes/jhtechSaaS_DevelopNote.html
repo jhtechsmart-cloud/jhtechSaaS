@@ -1041,6 +1041,253 @@
   "project": "jhtechSaaS",
   "entries": [
     {
+      "tldr": "대시보드·데모예약·사이드바·견적 시각 폴리시 하루 4PR 프로덕션 배포(v0.13.2.1~0.13.2.4, #107~110). Seonje 피드백 즉시반영→/ship 루프 반복.",
+      "tags": [
+        "dashboard",
+        "demo-reservations",
+        "sidebar",
+        "quote",
+        "design-tokens",
+        "ui-polish"
+      ],
+      "features": [
+        {
+          "title": "대시보드 날짜 배지 5색 + 일요일 시작 + 주간활동 레인 + 배경·그림자 폴리시",
+          "type": "feat",
+          "scope": "dashboard",
+          "status": "completed",
+          "filesChanged": [
+            "apps/web/src/app/admin/dashboard/_components/ScheduleCard.tsx",
+            "apps/web/src/app/admin/dashboard/_components/TwoWeekCalendar.tsx",
+            "apps/web/src/app/admin/dashboard/_components/WeeklyUnitChart.tsx",
+            "apps/web/src/app/admin/dashboard/_components/DashboardRightRail.tsx",
+            "apps/web/src/app/admin/dashboard/_components/RecentActivity.tsx",
+            "apps/web/src/lib/dashboard/v2-meta.ts",
+            "apps/web/src/lib/dashboard/v2-logic.ts",
+            "apps/web/src/app/globals.css"
+          ],
+          "context": "Seonje 피드백: 날짜/시간 음영 배지 우측 여백·항목 색 구분 안 됨·요일 월요일 시작·주간활동 라벨 위치 흔들림. v0.13.2.1(#107).",
+          "implementation": "날짜 배지 = EVENT_META 5색 틴트(REQUEST_DOMAIN_EVENT 매핑 신설). 배지 고정폭 w-20/wide w-[88px]로 제목 정렬, 중앙정렬+rounded-sm. buildTwoWeekDays 주 시작 월→일요일(-jsDow). WeeklyUnitChart 고정높이 h-40로 날짜라벨 하단 고정 + divide-x 세로 레인. 본문 bg #F8FBFA→#FBFDFC, shadow-card 농도 강조. AA 대비 보정(opacity 제거·주말 라벨 muted-foreground).",
+          "codeSnippets": [
+            {
+              "file": "apps/web/src/app/admin/dashboard/_components/ScheduleCard.tsx",
+              "lang": "tsx",
+              "code": "// 배지 폭=단일시간 목록 w-20 / 시간범위 일정 레일 w-[88px](wide) 고정 — 제목 시작 정렬 유지\nclassName={`flex shrink-0 flex-col items-center rounded-sm px-2.5 py-1.5 text-center ${wide ? \"w-[88px]\" : \"w-20\"} ${tint ? \"\" : \"bg-surface-2\"}`}",
+              "caption": "배지 고정폭+중앙정렬(컨텍스트별 폭 분리)"
+            }
+          ],
+          "decisions": [
+            {
+              "title": "배지 폭은 섹션별 고정값 분리(단일시간 좁게/시간범위 넓게) — w-fit은 행마다 제목 정렬 어긋남"
+            },
+            {
+              "title": "데모 색 단일 출처 = EVENT_META(캘린더 칩·배지·범례 자동 전파)"
+            }
+          ],
+          "problems": [
+            {
+              "description": "배지 우측 여백 원인 = 고정 w-[88px]가 시간범위용이라 단일시간엔 과함 → wide prop 분기"
+            }
+          ],
+          "learnings": [
+            "접힘/펼침처럼 컨텍스트별 폭이 다르면 w-fit보다 명시 고정폭 분기가 정렬에 유리"
+          ],
+          "id": "대시보드-날짜-배지-5색-일요일-시작-주간활동-레인-배경-그림자-폴리시"
+        },
+        {
+          "title": "사이드바 접힘 시 아이콘 정렬 — 고정 40px 레일",
+          "type": "fix",
+          "scope": "sidebar",
+          "status": "completed",
+          "filesChanged": [
+            "apps/web/src/app/admin/_components/SidebarNav.tsx",
+            "apps/web/src/app/admin/_components/AdminSidebar.tsx"
+          ],
+          "context": "Seonje 버그 3종: 펼침/접힘 시 아이콘 위치 달라 토글 시 흔들림, 활성 동그라미 어긋남, 접힘 시 아이콘 좌측 쏠림. v0.13.2.2(#108).",
+          "implementation": "원인=접힘 상태에서 라벨 flex-1이 레이아웃에 남고 gap-3가 아이콘을 좌측으로 밀음. 해결=아이콘을 고정 size-10(40px) 레일에 중앙 배치 → 펼침/접힘 x좌표 불변(playwright 측정 33px=33px diff 0). 접힘 시 Link 폭 w-10 정사각 → 활성 배경 정원. 라벨은 접힘 시 w-0 flex-none으로 flex 흐름 제거. 프로필 아바타도 동일.",
+          "codeSnippets": [
+            {
+              "file": "apps/web/src/app/admin/_components/SidebarNav.tsx",
+              "lang": "tsx",
+              "code": "{/* 고정 40px 아이콘 레일 — 펼침/접힘 무관 아이콘 중앙 고정 */}\n<span className=\"flex size-10 shrink-0 items-center justify-center\">\n  <Icon name={it.icon} size={18} .../>\n<\/span>\n<span className={`min-w-0 truncate ${expanded ? \"flex-1 pr-3 opacity-100\" : \"w-0 flex-none opacity-0\"}`}>{it.label}<\/span>",
+              "caption": "고정 레일 + 접힘 시 라벨 w-0(흐름 제거)"
+            }
+          ],
+          "decisions": [
+            {
+              "title": "흔들림 제거 = 아이콘을 고정폭 레일에 두고 x좌표 불변"
+            },
+            {
+              "title": "적대적 리뷰 반영: 펼침 라벨 pr-3(긴 라벨이 활성 pill 둥근 끝 닿지 않게)"
+            }
+          ],
+          "problems": [
+            {
+              "description": "접힘 시 opacity-0만으론 라벨이 flex-1로 폭 차지 → 아이콘 밀림. w-0 flex-none으로 흐름에서 제거해야 중앙"
+            }
+          ],
+          "learnings": [
+            "접힘 사이드바 아이콘 정렬 = 시각 숨김(opacity)이 아니라 레이아웃 제거(w-0 display)가 핵심. center-x를 playwright boundingBox로 측정해 흔들림 0 검증"
+          ],
+          "id": "사이드바-접힘-시-아이콘-정렬-고정-40px-레일"
+        },
+        {
+          "title": "데모 색 틸→보라 + 2주 캘린더 높이 +20% + 데모예약 월간 예약 리스트",
+          "type": "feat",
+          "scope": "demo-reservations",
+          "status": "completed",
+          "filesChanged": [
+            "apps/web/src/lib/dashboard/v2-meta.ts",
+            "apps/web/src/app/globals.css",
+            "apps/web/src/app/admin/demo-reservations/_components/DemoMonthCalendar.tsx",
+            "apps/web/src/app/admin/demo-reservations/_components/DayTimeline.tsx",
+            "apps/web/src/app/admin/demo-reservations/_components/DaySummaryPanel.tsx",
+            "apps/web/src/app/admin/demo-reservations/_components/MonthReservationList.tsx",
+            "apps/web/src/app/admin/demo-reservations/page.tsx",
+            "apps/web/src/lib/demo-reservations/queries.ts",
+            "apps/web/src/app/admin/dashboard/_components/TwoWeekCalendar.tsx"
+          ],
+          "context": "Seonje: 날짜 배지에서 데모(틸)와 견적(파인 초록) 구분 안 됨 → 중복없이 변경. + 2주 캘린더 높이 20% 키우기. + 데모예약 페이지 캘린더 아래 이번달 예약 리스트. v0.13.2.3(#109).",
+          "implementation": "데모 틸 #34B8A5→보라 #7C5CD3(신규 토큰 --color-demo/--color-demo-soft). EVENT_META.demo + 데모예약 월간캘린더 dot/범례(bg-accent-ring→bg-demo)·타임라인·요약 블록 일괄. 틸은 포커스링·완료 상태색으로 유지(의미 다름). 2주 캘린더 셀 min-h-24→min-h-[115px]. 신규 listReservationsForMonth 쿼리 + MonthReservationList 컴포넌트(시작시각순, 보라 좌측보더, 선택일 ring, 행클릭→?date=).",
+          "codeSnippets": [
+            {
+              "file": "apps/web/src/lib/dashboard/v2-meta.ts",
+              "lang": "ts",
+              "code": "demo: { label: \"데모\", color: \"#7C5CD3\", bg: \"#ECE9FB\", fg: \"#4A3A8C\" },",
+              "caption": "데모 보라(EVENT_META 단일 출처)"
+            }
+          ],
+          "decisions": [
+            {
+              "title": "데모 색 = 보라(견적 초록·소모품 라임·A/S 코랄·납품 파랑과 색상환 분리, 5색 중 유일 보라). AskUserQuestion으로 보라/앰버/마젠타 제시→보라 선택"
+            },
+            {
+              "title": "틸은 포커스링·완료 상태색이라 안 건드림(의미 다른 축)"
+            },
+            {
+              "title": "월간 리스트 추가로 고객명이 타임라인+리스트 중복 노출 → e2e 단언 3건 first()+타임라인 전용 (90분) 단언 보강"
+            }
+          ],
+          "problems": [
+            {
+              "description": "created_at/issued_at은 서버 트리거가 now() 강제 → 캘린더 샘플 분산 불가. session_replication_role=replica로 트리거 우회 후 날짜 UPDATE(seq_no/quote_no 보존)"
+            },
+            {
+              "description": "강의용 샘플: 납품(delivery_date)·데모(time_range)는 분산되나 견적/AS/소모품(트리거 강제 컬럼)은 today로 몰림"
+            }
+          ],
+          "learnings": [
+            "created_at 백데이트가 트리거로 막히면 superuser로 session_replication_role=replica 후 UPDATE(seq_no 등 채번값은 유지됨). 시각검증용 샘플 분산에 유용"
+          ],
+          "id": "데모-색-틸-보라-2주-캘린더-높이-20-데모예약-월간-예약-리스트"
+        },
+        {
+          "title": "견적 페이지 선택 장비 대표사진 표시 — publicImageUrl 변환",
+          "type": "fix",
+          "scope": "quote",
+          "status": "completed",
+          "filesChanged": [
+            "apps/web/src/app/admin/applications/[id]/_components/quote-frame/SelectedEquipment.tsx"
+          ],
+          "context": "Seonje: 장비 등록 시 넣은 대표사진이 견적 페이지에 안 보임. v0.13.2.4(#110).",
+          "implementation": "원인=SelectedEquipment가 eq.photos[0](storage 경로)을 그대로 img src에 넣어 상대경로→404. 수정=publicImageUrl(eq.photos[0])로 공개 버킷 전체 URL 변환(공개 카탈로그·장비목록 동일 패턴). 발행본·미발행 미리보기 공용. 전수 점검=사진/배너 렌더 8곳 중 이 한 곳만 누락.",
+          "codeSnippets": [
+            {
+              "file": "apps/web/src/app/admin/applications/[id]/_components/quote-frame/SelectedEquipment.tsx",
+              "lang": "tsx",
+              "code": "// photos[0]은 storage 경로 → publicImageUrl로 전체 URL 변환(공개 카탈로그와 동일)\n<img src={publicImageUrl(eq.photos[0])} alt={it.name} ... />",
+              "caption": "storage 경로→공개 URL"
+            }
+          ],
+          "decisions": [
+            {
+              "title": "원인 확정(전수 감사)이라 /investigate 생략, 수정→전수점검→/ship 단축경로"
+            }
+          ],
+          "problems": [
+            {
+              "description": "로컬 미리보기가 빈 건 테스트 장비가 status=inactive라 카탈로그(active 필터)에서 빠진 것 — 코드 무관. 활성화 후 img src가 전체 URL로 변환·로드 확인"
+            },
+            {
+              "description": "커밋 시 경로 [id]가 zsh glob으로 해석돼 fix 파일 누락→따옴표로 감싸 재커밋"
+            }
+          ],
+          "learnings": [
+            "storage 경로는 반드시 publicImageUrl()로 감싸야 함(equipment-images 버킷은 public이라 서명URL 불필요). git add 시 동적 라우트 경로 [id]는 따옴표 필수(zsh glob)"
+          ],
+          "id": "견적-페이지-선택-장비-대표사진-표시-publicimageurl-변환"
+        }
+      ],
+      "prompts": [
+        {
+          "label": "근본원인 먼저 묻기",
+          "prompt": "장비를 등록할 때 대표사진을 넣어서 등록을 했는데, 왜 견적 페이지에가면 사진이 보이지 않는거지?",
+          "verdict": "good",
+          "lesson": "증상+맥락(어디서 넣고 어디서 안 보이는지)을 주면 데이터 흐름 추적으로 정확한 근본원인(경로→URL 미변환)에 바로 도달"
+        },
+        {
+          "label": "전수 점검 요청",
+          "prompt": "고쳐서 빠진 다른 화면도 같이 점검해줘",
+          "verdict": "good",
+          "lesson": "한 곳 고칠 때 같은 패턴 전수 감사를 명시 요청 → 8개 렌더 사이트 분류로 회귀 방지. 한 곳만 버그 확인"
+        },
+        {
+          "label": "색 변경 전체 반영·중복금지",
+          "prompt": "데모 색을 다른걸로 변경해줘. 전체적으로 다 반영되도록. 중복되지 않게",
+          "verdict": "good",
+          "lesson": "'전체 반영·중복금지'를 명시하면 단일 출처(EVENT_META)+모든 사용처 일괄 + 5색 상호 구분 검증까지 유도"
+        }
+      ],
+      "references": [],
+      "changelog": {
+        "added": [
+          "데모예약 페이지 캘린더 아래 '이번 달 예약' 리스트(시작시각순, 행클릭→날짜 이동, 선택일 보라 링)"
+        ],
+        "changed": [
+          "대시보드 날짜 배지 5색 항목별 구분(견적·A/S·소모품·데모·납품)",
+          "2주 캘린더·주간활동 일요일 시작",
+          "주간활동 날짜라벨 하단 고정 + 요일 세로 레인",
+          "본문 배경 밝힘 + 카드 그림자 강조",
+          "데모 색 틸→보라(대시보드·데모예약 전반)",
+          "2주 캘린더 셀 높이 +20%(96→115px)",
+          "사이드바 접힘 아이콘 고정 레일 정렬"
+        ],
+        "fixed": [
+          "견적 페이지 선택 장비 대표사진 미표시(publicImageUrl 변환 누락)",
+          "AA 대비(배지 시간줄·주말 라벨)",
+          "사이드바 토글 시 아이콘 흔들림·활성 동그라미 어긋남"
+        ],
+        "removed": []
+      },
+      "nextSteps": [
+        "하이웍스 API 스펙 오면 E6 메일 재개",
+        "3b 특기사항(quotes 컬럼)·3c 영업일지",
+        "장비폼 저장실패 시 세션업로드 정리(백로그)",
+        "고아 스토리지 청소 cron(백로그)"
+      ],
+      "claudeHints": "이 프로젝트의 시각 작업은 Seonje 피드백→즉시수정→dev 스크린샷(Read 도구) 확인→/ship 루프다. 이벤트/상태 색은 반드시 단일 출처(lib/dashboard/v2-meta.ts EVENT_META)에서만 바꿔 전 사용처 전파. storage 경로 이미지는 항상 publicImageUrl()로 감싼다(equipment-images 버킷 public). git add 시 동적 라우트 경로([id])는 따옴표로 감쌀 것(zsh glob).",
+      "reusablePatterns": [
+        {
+          "name": "이벤트 색 단일 출처",
+          "description": "캘린더 칩·날짜 배지·범례·dot이 모두 EVENT_META 한 곳을 참조 → 색 변경이 전 화면 자동 전파",
+          "file": "apps/web/src/lib/dashboard/v2-meta.ts"
+        },
+        {
+          "name": "storage 경로→공개 URL",
+          "description": "equipment.photos 등 storage 경로는 publicImageUrl(path)로 감싸야 img src가 동작. 8개 렌더 사이트 공용",
+          "file": "apps/web/src/lib/equipment/images.ts"
+        },
+        {
+          "name": "트리거 우회 샘플 분산",
+          "description": "created_at/issued_at을 서버 트리거가 now()로 강제할 때, superuser psql에서 set session_replication_role=replica 후 UPDATE로 백데이트(채번값 보존)",
+          "file": "scripts/seed-requests-sample.mjs"
+        }
+      ],
+      "date": "2026-06-15",
+      "mainTask": "대시보드-데모예약-사이드바-견적-시각폴리시",
+      "codeDiagram": "flowchart LR\n    N0[\"devnote_data.json\"]\n    N1[\"AdminSidebar.tsx\"]\n    N2[\"Icon.tsx\"]\n    N3[\"SidebarNav.tsx\"]\n    N4[\"SectionHeader.tsx\"]\n    N5[\"SelectedEquipment.tsx\"]\n    N6[\"DashboardRightRail.tsx\"]\n    N7[\"RecentActivity.tsx\"]\n    N8[\"ScheduleCard.tsx\"]\n    N9[\"TwoWeekCalendar.tsx\"]\n    N10[\"WeeklyUnitChart.tsx\"]\n    N11[\"DaySummaryPanel.tsx\"]\n    N12[\"DayTimeline.tsx\"]\n    N13[\"DemoMonthCalendar.tsx\"]\n    N14[\"DemoSavedToast.tsx\"]\n    N15[\"MonthReservationList.tsx\"]\n    N16[\"ReservationDetailDialog.tsx\"]\n    N17[\"page.tsx\"]\n    N18[\"globals.css\"]\n    N19[\"v2-logic.ts\"]\n    N20[\"v2-meta.ts\"]\n    N21[\"queries.ts\"]\n    N22[\"range.ts\"]\n    N6 --> N8\n    N7 --> N8\n    N20 --> N19\n    N3 --> N2\n    N1 --> N2\n    N1 --> N3\n    N12 --> N16\n    N17 --> N13\n    N17 --> N12\n    N17 --> N15\n    N17 --> N14\n    N21 --> N22\n    N5 --> N4\n    style N12 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N17 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N6 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N5 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N18 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N13 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N10 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N3 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N7 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N20 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N21 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N0 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N19 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N1 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N15 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N9 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N11 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N8 fill:#dbeafe,stroke:#2563eb,stroke-width:2px"
+    },
+    {
       "tldr": "데모센터 예약 기능을 신규로 만들고(같은 시간대 중복은 DB EXCLUDE 제약이 원천 차단), 대시보드를 '현황 + 2주 일정' 중심으로 전면 개편했다. 이어 Seonje 피드백 3차례(달력 형태·음영 배지·섹션 헤더)와 A/S·소모품 신청 목록의 고객목록 레이아웃 통일, KPI 페이지 삭제까지 하루 6 PR(#101~#106, v0.13.0.0~v0.13.2.0) 프로덕션 배포. 게이트 전부 GREEN.",
       "tags": [
         "dashboard",
@@ -5470,818 +5717,11 @@
 <!-- BEGIN_FUNCTIONS_CATALOG -->
 <script type="application/json" id="functions-catalog">
 {
-  "generated_at": "2026-06-13T00:42:18",
+  "generated_at": "2026-06-15T10:15:28",
   "project_root": "/Users/seonjecho/Projects/jhtechSaaS",
-  "total_functions": 23,
-  "categories": {
-    "production": 23
-  },
-  "functions": [
-    {
-      "name": "arg",
-      "file": "apps/worker/dist/import-customers.js",
-      "line": 16,
-      "signature": "function arg(name)",
-      "description": "arg",
-      "body_preview": "function arg(name) {\n    const i = process.argv.indexOf(name);\n    return i >= 0 ? (process.argv[i + 1] ?? null) : null;\n}\nasync function main() {\n    const file = arg(\"--file\");\n    const execute = process.argv.includes(\"--execute\");\n    if (!file) {",
-      "category": "production",
-      "is_async": false,
-      "callers": [
-        {
-          "file": "apps/worker/dist/import-customers.js",
-          "line": 21,
-          "snippet": "const file = arg(\"--file\");"
-        }
-      ],
-      "triggers": [],
-      "description_source": "heuristic"
-    },
-    {
-      "name": "main",
-      "file": "apps/worker/dist/import-customers.js",
-      "line": 20,
-      "signature": "async function main()",
-      "description": "main",
-      "body_preview": "async function main() {\n    const file = arg(\"--file\");\n    const execute = process.argv.includes(\"--execute\");\n    if (!file) {\n        console.error(\"사용법: tsx src/import-customers.ts --file <customers.json> [--execute]\");\n        process.exit(1);\n    }\n    const raws = JSON.parse(readFileSync(file, \"utf-8\"));",
-      "category": "production",
-      "is_async": true,
-      "callers": [
-        {
-          "file": "apps/worker/dist/seed-admin.js",
-          "line": 89,
-          "snippet": "main().catch((e) => {"
-        },
-        {
-          "file": "apps/worker/dist/seed-equipment-categories.js",
-          "line": 91,
-          "snippet": "main().catch((e) => {"
-        },
-        {
-          "file": "apps/worker/dist/index.js",
-          "line": 32,
-          "snippet": "main().catch((e) => {"
-        },
-        {
-          "file": "apps/worker/dist/import-customers.js",
-          "line": 113,
-          "snippet": "main().catch((e) => {"
-        },
-        {
-          "file": "apps/worker/dist/seed-equipment.js",
-          "line": 124,
-          "snippet": "main().catch((e) => {"
-        }
-      ],
-      "triggers": [],
-      "description_source": "heuristic"
-    },
-    {
-      "name": "clean",
-      "file": "apps/worker/dist/import/customers-transform.js",
-      "line": 9,
-      "signature": "function clean(v, key)",
-      "description": "clean",
-      "body_preview": "function clean(v, key) {\n    const t = (v ?? \"\").trim();\n    if (!t)\n        return null;\n    const max = LEN[key] ?? 200;\n    return t.length > max ? t.slice(0, max) : t;\n}\nexport function cleanRow(raw) {",
-      "category": "production",
-      "is_async": false,
-      "callers": [
-        {
-          "file": "apps/worker/dist/import/customers-transform.js",
-          "line": 21,
-          "snippet": "const emailRaw = clean(raw[\"이메일\"], \"email\");"
-        },
-        {
-          "file": "apps/worker/dist/import/customers-transform.js",
-          "line": 24,
-          "snippet": "ledgerName: clean(raw[\"장부명\"], \"ledgerName\") ?? \"\","
-        },
-        {
-          "file": "apps/worker/dist/import/customers-transform.js",
-          "line": 25,
-          "snippet": "name: clean(raw[\"거래처명\"], \"name\") ?? \"\","
-        },
-        {
-          "file": "apps/worker/dist/import/customers-transform.js",
-          "line": 28,
-          "snippet": "ceo: clean(raw[\"대표자\"], \"ceo\"),"
-        },
-        {
-          "file": "apps/worker/dist/import/customers-transform.js",
-          "line": 29,
-          "snippet": "address: clean(raw[\"사업주소\"], \"address\"),"
-        },
-        {
-          "file": "apps/worker/dist/import/customers-transform.js",
-          "line": 30,
-          "snippet": "bizType: clean(raw[\"업태\"], \"bizType\"),"
-        },
-        {
-          "file": "apps/worker/dist/import/customers-transform.js",
-          "line": 31,
-          "snippet": "bizItem: clean(raw[\"종목\"], \"bizItem\"),"
-        },
-        {
-          "file": "apps/worker/dist/import/customers-transform.js",
-          "line": 32,
-          "snippet": "addressActual1: clean(raw[\"실제주소1\"], \"addressActual1\"),"
-        },
-        {
-          "file": "apps/worker/dist/import/customers-transform.js",
-          "line": 33,
-          "snippet": "addressActual2: clean(raw[\"실제주소2\"], \"addressActual2\"),"
-        },
-        {
-          "file": "apps/worker/dist/import/customers-transform.js",
-          "line": 34,
-          "snippet": "phone1: clean(raw[\"전화1\"], \"phone1\"),"
-        }
-      ],
-      "triggers": [],
-      "callers_more": 4,
-      "description_source": "heuristic"
-    },
-    {
-      "name": "richness",
-      "file": "apps/worker/dist/import/customers-transform.js",
-      "line": 44,
-      "signature": "function richness(c)",
-      "description": "richness — 같은 사업번호 그룹 병합 — 정보 많은 행이 대표(동률이면 장부번호 큰 쪽=최신), | 코드 주석: 정보량 = 채워진 필드 수(병합 대표 행 선택 기준).",
-      "body_preview": "function richness(c) {\n    return Object.values(c).filter((v) => v !== null && v !== \"\").length;\n}\nconst IMPORT_TAG = (n) => `엑셀 이관(장부 ${n})`;\n// 같은 사업번호 그룹 병합 — 정보 많은 행이 대표(동률이면 장부번호 큰 쪽=최신),\n// 대표의 빈 칸은 나머지 행 값으로 보충. 구 장부는 노트에 보존.\nfunction mergeGroup(rows) {\n    const sorted = [...rows].sort((a, b) => richness(b) - richness(a) || b.ledgerNo - a.ledgerNo);",
-      "category": "production",
-      "is_async": false,
-      "callers": [
-        {
-          "file": "apps/worker/dist/import/customers-transform.js",
-          "line": 51,
-          "snippet": "const sorted = [...rows].sort((a, b) => richness(b) - richness(a) || b.ledgerNo - a.ledgerNo);"
-        },
-        {
-          "file": "apps/worker/dist/import/customers-transform.js",
-          "line": 51,
-          "snippet": "const sorted = [...rows].sort((a, b) => richness(b) - richness(a) || b.ledgerNo - a.ledgerNo);"
-        }
-      ],
-      "triggers": [],
-      "description_source": "heuristic"
-    },
-    {
-      "name": "mergeGroup",
-      "file": "apps/worker/dist/import/customers-transform.js",
-      "line": 50,
-      "signature": "function mergeGroup(rows)",
-      "description": "같은 사업번호 그룹 병합 — 정보 많은 행이 대표(동률이면 장부번호 큰 쪽=최신), 대표의 빈 칸은 나머지 행 값으로 보충. 구 장부는 노트에 보존.",
-      "body_preview": "function mergeGroup(rows) {\n    const sorted = [...rows].sort((a, b) => richness(b) - richness(a) || b.ledgerNo - a.ledgerNo);\n    const primary = { ...sorted[0] };\n    const rest = sorted.slice(1);\n    for (const r of rest) {\n        for (const key of Object.keys(primary)) {\n            if (key === \"note\" || key === \"ledgerNo\")\n                continue;",
-      "category": "production",
-      "is_async": false,
-      "callers": [
-        {
-          "file": "apps/worker/dist/import/customers-transform.js",
-          "line": 105,
-          "snippet": "companies.push(mergeGroup(g));"
-        }
-      ],
-      "triggers": [],
-      "description_source": "comment"
-    },
-    {
-      "name": "raw",
-      "file": "apps/worker/dist/import/customers-transform.test.js",
-      "line": 6,
-      "signature": "function raw(over = {})",
-      "description": "거래처 엑셀(회계 프로그램 내보내기) → companies 행 변환의 순수 로직. 실데이터 양상: 고정폭 공백 패딩, 이메일 \"-\", 13자리 불량 사업번호 1건, 같은 사업번호의 분리 장부((장비)/(NEW)) 30쌍 → 병합.",
-      "body_preview": "function raw(over = {}) {\n    return {\n        장부번호: \"102.0\",\n        장부명: \"(주)RGB COLOR\",\n        거래처명: \"(주)RGB COLOR\",\n        사업번호: \"211-86-66585\",\n        대표자: \"최용규\",\n        사업주소: \"경기도 군포시 금정동 694-6 \",",
-      "category": "production",
-      "is_async": false,
-      "callers": [
-        {
-          "file": "apps/worker/dist/import/customers-transform.test.js",
-          "line": 30,
-          "snippet": "const c = cleanRow(raw());"
-        },
-        {
-          "file": "apps/worker/dist/import/customers-transform.test.js",
-          "line": 38,
-          "snippet": "const c = cleanRow(raw({ 전화2: \"\", 실제주소1: \"   \" }));"
-        },
-        {
-          "file": "apps/worker/dist/import/customers-transform.test.js",
-          "line": 43,
-          "snippet": "expect(cleanRow(raw({ 이메일: \"-\" })).email).toBeNull();"
-        },
-        {
-          "file": "apps/worker/dist/import/customers-transform.test.js",
-          "line": 46,
-          "snippet": "const c = cleanRow(raw({ 사업번호: \"6903281464820\" }));"
-        },
-        {
-          "file": "apps/worker/dist/import/customers-transform.test.js",
-          "line": 51,
-          "snippet": "const c = cleanRow(raw({ 거래처명: \"가\".repeat(250) }));"
-        },
-        {
-          "file": "apps/worker/dist/import/customers-transform.test.js",
-          "line": 57,
-          "snippet": "const a = raw({ 장부번호: \"170.0\", 장부명: \"기획원이\", 사업주소: \"경기도 안산시\", 팩스: \"\" });"
-        },
-        {
-          "file": "apps/worker/dist/import/customers-transform.test.js",
-          "line": 58,
-          "snippet": "const b = raw({ 장부번호: \"666.0\", 장부명: \"기획원이(장비)\", 사업주소: \"\", 전화1: \"\", 담당자: \"\", 휴대폰: \"\", 이메일: \"\", 팩스: \"031-111-2222\" });"
-        },
-        {
-          "file": "apps/worker/dist/import/customers-transform.test.js",
-          "line": 71,
-          "snippet": "const a = raw({ 장부번호: \"111.0\", 장부명: \"(주)수아트\" });"
-        },
-        {
-          "file": "apps/worker/dist/import/customers-transform.test.js",
-          "line": 72,
-          "snippet": "const b = raw({ 장부번호: \"1243.0\", 장부명: \"(주)수아트(NEW)\" });"
-        },
-        {
-          "file": "apps/worker/dist/import/customers-transform.test.js",
-          "line": 78,
-          "snippet": "const { companies, skipped } = transformRows([raw({ 거래처명: \"일반고객\", 장부명: \"일반고객\", 사업번호: \"\" })]);"
-        }
-      ],
-      "triggers": [],
-      "callers_more": 3,
-      "description_source": "comment"
-    },
-    {
-      "name": "main",
-      "file": "apps/worker/dist/index.js",
-      "line": 10,
-      "signature": "async function main()",
-      "description": "main — Railway 재배포·중지 시 SIGTERM — 진행 중 잡을 마치고 크롬 정리 후 종료(잡 고아 방지).",
-      "body_preview": "async function main() {\n    const env = loadEnv();\n    const supabase = createServiceClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);\n    // Railway 재배포·중지 시 SIGTERM — 진행 중 잡을 마치고 크롬 정리 후 종료(잡 고아 방지).\n    let stopping = false;\n    const requestStop = (signal) => {\n        console.log(`[worker] ${signal} 수신 — 진행 중 잡을 마치고 종료합니다`);\n        stopping = true;",
-      "category": "production",
-      "is_async": true,
-      "callers": [
-        {
-          "file": "apps/worker/dist/seed-admin.js",
-          "line": 89,
-          "snippet": "main().catch((e) => {"
-        },
-        {
-          "file": "apps/worker/dist/seed-equipment-categories.js",
-          "line": 91,
-          "snippet": "main().catch((e) => {"
-        },
-        {
-          "file": "apps/worker/dist/index.js",
-          "line": 32,
-          "snippet": "main().catch((e) => {"
-        },
-        {
-          "file": "apps/worker/dist/import-customers.js",
-          "line": 113,
-          "snippet": "main().catch((e) => {"
-        },
-        {
-          "file": "apps/worker/dist/seed-equipment.js",
-          "line": 124,
-          "snippet": "main().catch((e) => {"
-        }
-      ],
-      "triggers": [],
-      "description_source": "heuristic"
-    },
-    {
-      "name": "requestStop",
-      "file": "apps/worker/dist/index.js",
-      "line": 15,
-      "signature": "function requestStop(signal)",
-      "description": "stop",
-      "body_preview": "    const requestStop = (signal) => {\n        console.log(`[worker] ${signal} 수신 — 진행 중 잡을 마치고 종료합니다`);\n        stopping = true;\n    };\n    process.on(\"SIGTERM\", () => requestStop(\"SIGTERM\"));\n    process.on(\"SIGINT\", () => requestStop(\"SIGINT\"));\n    console.log(\"jhtechSaaS worker: jobs 폴링 시작\");\n    await runLoop({",
-      "category": "production",
-      "is_async": false,
-      "callers": [
-        {
-          "file": "apps/worker/dist/index.js",
-          "line": 19,
-          "snippet": "process.on(\"SIGTERM\", () => requestStop(\"SIGTERM\"));"
-        },
-        {
-          "file": "apps/worker/dist/index.js",
-          "line": 20,
-          "snippet": "process.on(\"SIGINT\", () => requestStop(\"SIGINT\"));"
-        }
-      ],
-      "triggers": [],
-      "description_source": "heuristic"
-    },
-    {
-      "name": "toDataUri",
-      "file": "apps/worker/dist/jobs/assets.js",
-      "line": 6,
-      "signature": "async function toDataUri(relPath, mime)",
-      "description": "data uri",
-      "body_preview": "async function toDataUri(relPath, mime) {\n    const abs = fileURLToPath(new URL(`../../assets/${relPath}`, import.meta.url));\n    const buf = await readFile(abs);\n    return `data:${mime};base64,${buf.toString(\"base64\")}`;\n}\nexport async function getFontDataUri() {\n    if (!fontUri)\n        fontUri = await toDataUri(\"NotoSansKR-Regular.otf\", \"font/otf\");",
-      "category": "production",
-      "is_async": true,
-      "callers": [
-        {
-          "file": "apps/worker/dist/jobs/assets.js",
-          "line": 13,
-          "snippet": "fontUri = await toDataUri(\"NotoSansKR-Regular.otf\", \"font/otf\");"
-        },
-        {
-          "file": "apps/worker/dist/jobs/assets.js",
-          "line": 18,
-          "snippet": "stampUri = await toDataUri(\"stamp.png\", \"image/png\");"
-        }
-      ],
-      "triggers": [],
-      "description_source": "heuristic"
-    },
-    {
-      "name": "launch",
-      "file": "apps/worker/dist/jobs/browser.js",
-      "line": 8,
-      "signature": "async function launch()",
-      "description": "상주 워커 — 크롬을 1회 기동해 잡마다 재사용(콜드스타트 1회). 페이지는 잡마다 생성·close. 크롬 바이너리: - Linux(Railway 컨테이너) = @sparticuz/chromium(시스템 라이브러리 포함 슬림 크롬). 빌드 때 크롬 다운로드를 안 하므로 Nixpacks 추출 실패를 피한다. - macOS(로컬 개발/테스트) = 설치된 Google Chrome(channel: \"chrome\").",
-      "body_preview": "async function launch() {\n    if (process.platform === \"linux\") {\n        return puppeteer.launch({\n            args: chromium.args,\n            executablePath: await chromium.executablePath(),\n            headless: true,\n        });\n    }",
-      "category": "production",
-      "is_async": true,
-      "callers": [
-        {
-          "file": "apps/worker/dist/jobs/browser.js",
-          "line": 10,
-          "snippet": "return puppeteer.launch({"
-        },
-        {
-          "file": "apps/worker/dist/jobs/browser.js",
-          "line": 17,
-          "snippet": "return puppeteer.launch({"
-        }
-      ],
-      "triggers": [],
-      "description_source": "comment"
-    },
-    {
-      "name": "get",
-      "file": "apps/worker/dist/jobs/browser.js",
-      "line": 30,
-      "signature": "async function get()",
-      "description": "조회",
-      "body_preview": "    async function get() {\n        if (browserPromise) {\n            try {\n                const b = await browserPromise;\n                if (b.connected)\n                    return b;\n                // 크롬 프로세스 사망(OOM 등) — 잔존 프로세스·임시 프로필 best-effort 정리 후 재기동\n                await b.close().catch(() => { });",
-      "category": "production",
-      "is_async": true,
-      "callers": [
-        {
-          "file": "apps/worker/dist/jobs/browser.test.js",
-          "line": 15,
-          "snippet": "await expect(m.get()).rejects.toThrow(\"launch fail\");"
-        },
-        {
-          "file": "apps/worker/dist/jobs/browser.test.js",
-          "line": 16,
-          "snippet": "await expect(m.get()).resolves.toBe(b);"
-        },
-        {
-          "file": "apps/worker/dist/jobs/browser.test.js",
-          "line": 23,
-          "snippet": "await expect(m.get()).resolves.toBe(b);"
-        },
-        {
-          "file": "apps/worker/dist/jobs/browser.test.js",
-          "line": 24,
-          "snippet": "await expect(m.get()).resolves.toBe(b);"
-        },
-        {
-          "file": "apps/worker/dist/jobs/browser.test.js",
-          "line": 32,
-          "snippet": "await m.get(); // 첫 기동(이후 죽었다고 가정 = connected false)"
-        },
-        {
-          "file": "apps/worker/dist/jobs/browser.test.js",
-          "line": 33,
-          "snippet": "await expect(m.get()).resolves.toBe(alive);"
-        },
-        {
-          "file": "apps/worker/dist/jobs/browser.test.js",
-          "line": 43,
-          "snippet": "await m.get();"
-        },
-        {
-          "file": "apps/worker/dist/jobs/browser.test.js",
-          "line": 44,
-          "snippet": "await expect(m.get()).resolves.toBe(alive);"
-        },
-        {
-          "file": "apps/worker/dist/jobs/browser.test.js",
-          "line": 49,
-          "snippet": "await expect(m.get()).rejects.toThrow(\"launch fail\");"
-        },
-        {
-          "file": "apps/worker/dist/jobs/browser.test.js",
-          "line": 57,
-          "snippet": "await m.get();"
-        }
-      ],
-      "triggers": [],
-      "callers_more": 4,
-      "description_source": "heuristic"
-    },
-    {
-      "name": "close",
-      "file": "apps/worker/dist/jobs/browser.js",
-      "line": 53,
-      "signature": "async function close()",
-      "description": "닫기",
-      "body_preview": "    async function close() {\n        if (!browserPromise)\n            return;\n        const pending = browserPromise;\n        browserPromise = null;\n        try {\n            const b = await pending;\n            await b.close();",
-      "category": "production",
-      "is_async": true,
-      "callers": [
-        {
-          "file": "apps/worker/dist/jobs/browser.test.js",
-          "line": 50,
-          "snippet": "await expect(m.close()).resolves.toBeUndefined();"
-        },
-        {
-          "file": "apps/worker/dist/jobs/browser.test.js",
-          "line": 58,
-          "snippet": "await m.close();"
-        },
-        {
-          "file": "apps/worker/dist/jobs/render-quote-pdf.js",
-          "line": 20,
-          "snippet": "await page.close();"
-        },
-        {
-          "file": "apps/worker/dist/jobs/browser.js",
-          "line": 37,
-          "snippet": "await b.close().catch(() => { });"
-        },
-        {
-          "file": "apps/worker/dist/jobs/browser.js",
-          "line": 60,
-          "snippet": "await b.close();"
-        },
-        {
-          "file": "apps/worker/dist/jobs/browser.js",
-          "line": 73,
-          "snippet": "return manager.close();"
-        }
-      ],
-      "triggers": [],
-      "description_source": "heuristic"
-    },
-    {
-      "name": "fakeBrowser",
-      "file": "apps/worker/dist/jobs/browser.test.js",
-      "line": 4,
-      "signature": "function fakeBrowser(connected = true)",
-      "description": "실제 크롬 대신 connected/close만 흉내내는 가짜 Browser.",
-      "body_preview": "function fakeBrowser(connected = true) {\n    return { connected, close: vi.fn().mockResolvedValue(undefined) };\n}\ndescribe(\"createBrowserManager — 크롬 싱글턴 복구\", () => {\n    test(\"기동 실패가 박제되지 않는다 — 다음 호출에서 재기동\", async () => {\n        const b = fakeBrowser();\n        const launch = vi\n            .fn()",
-      "category": "production",
-      "is_async": false,
-      "callers": [
-        {
-          "file": "apps/worker/dist/jobs/browser.test.js",
-          "line": 9,
-          "snippet": "const b = fakeBrowser();"
-        },
-        {
-          "file": "apps/worker/dist/jobs/browser.test.js",
-          "line": 20,
-          "snippet": "const b = fakeBrowser();"
-        },
-        {
-          "file": "apps/worker/dist/jobs/browser.test.js",
-          "line": 28,
-          "snippet": "const dead = fakeBrowser(false);"
-        },
-        {
-          "file": "apps/worker/dist/jobs/browser.test.js",
-          "line": 29,
-          "snippet": "const alive = fakeBrowser(true);"
-        },
-        {
-          "file": "apps/worker/dist/jobs/browser.test.js",
-          "line": 40,
-          "snippet": "const alive = fakeBrowser(true);"
-        },
-        {
-          "file": "apps/worker/dist/jobs/browser.test.js",
-          "line": 53,
-          "snippet": "const first = fakeBrowser();"
-        },
-        {
-          "file": "apps/worker/dist/jobs/browser.test.js",
-          "line": 54,
-          "snippet": "const second = fakeBrowser();"
-        }
-      ],
-      "triggers": [],
-      "description_source": "comment"
-    },
-    {
-      "name": "stubSupabase",
-      "file": "apps/worker/dist/jobs/queue.test.js",
-      "line": 3,
-      "signature": "function stubSupabase(result)",
-      "description": "supabase",
-      "body_preview": "function stubSupabase(result) {\n    const filters = [];\n    const builder = {\n        eq(col, val) {\n            filters.push([col, val]);\n            return builder;\n        },\n        select: vi.fn().mockResolvedValue(result),",
-      "category": "production",
-      "is_async": false,
-      "callers": [
-        {
-          "file": "apps/worker/dist/jobs/queue.test.js",
-          "line": 22,
-          "snippet": "const { client, filters } = stubSupabase(ok);"
-        },
-        {
-          "file": "apps/worker/dist/jobs/queue.test.js",
-          "line": 28,
-          "snippet": "const { client } = stubSupabase({ data: [], error: null });"
-        },
-        {
-          "file": "apps/worker/dist/jobs/queue.test.js",
-          "line": 35,
-          "snippet": "const { client } = stubSupabase({ data: null, error: { message: \"down\" } });"
-        },
-        {
-          "file": "apps/worker/dist/jobs/queue.test.js",
-          "line": 41,
-          "snippet": "const { client } = stubSupabase({ data: null, error: { message: \"network down\" } });"
-        },
-        {
-          "file": "apps/worker/dist/jobs/queue.test.js",
-          "line": 45,
-          "snippet": "const { client, update } = stubSupabase(ok);"
-        },
-        {
-          "file": "apps/worker/dist/jobs/queue.test.js",
-          "line": 50,
-          "snippet": "const { client, update } = stubSupabase(ok);"
-        },
-        {
-          "file": "apps/worker/dist/jobs/queue.test.js",
-          "line": 55,
-          "snippet": "const { client, filters } = stubSupabase({ data: [], error: null });"
-        }
-      ],
-      "triggers": [],
-      "description_source": "heuristic"
-    },
-    {
-      "name": "makeJob",
-      "file": "apps/worker/dist/jobs/queue.test.js",
-      "line": 16,
-      "signature": "function makeJob(attempts)",
-      "description": "job",
-      "body_preview": "function makeJob(attempts) {\n    return { id: \"j1\", type: \"quote_pdf\", payload: {}, attempts, status: \"processing\" };\n}\nconst ok = { data: [{ id: \"j1\" }], error: null };\ndescribe(\"completeJob — 완료 기록\", () => {\n    test(\"processing 상태일 때만 update하는 펜스를 건다(done 역행 방지)\", async () => {\n        const { client, filters } = stubSupabase(ok);\n        await completeJob(client, \"j1\");",
-      "category": "production",
-      "is_async": false,
-      "callers": [
-        {
-          "file": "apps/worker/dist/jobs/queue.test.js",
-          "line": 42,
-          "snippet": "await expect(failJob(client, makeJob(1), \"boom\")).rejects.toThrow(/잡 실패 기록 실패/);"
-        },
-        {
-          "file": "apps/worker/dist/jobs/queue.test.js",
-          "line": 46,
-          "snippet": "await failJob(client, makeJob(1), \"boom\");"
-        },
-        {
-          "file": "apps/worker/dist/jobs/queue.test.js",
-          "line": 51,
-          "snippet": "await failJob(client, makeJob(MAX_ATTEMPTS), \"boom\");"
-        },
-        {
-          "file": "apps/worker/dist/jobs/queue.test.js",
-          "line": 57,
-          "snippet": "await expect(failJob(client, makeJob(1), \"boom\")).resolves.toBeUndefined();"
-        }
-      ],
-      "triggers": [],
-      "description_source": "heuristic"
-    },
-    {
-      "name": "parseLines",
-      "file": "apps/worker/dist/jobs/quote-pdf.js",
-      "line": 5,
-      "signature": "function parseLines(v)",
-      "description": "lines 파싱 | 코드 주석: 견적 줄(jsonb) → 타입 보정.",
-      "body_preview": "function parseLines(v) {\n    if (!Array.isArray(v))\n        return [];\n    return v\n        .filter((r) => typeof r === \"object\" && r !== null)\n        .map((r) => ({\n        name: typeof r.name === \"string\" ? r.name : \"\",\n        unitPrice: Number(r.unitPrice) || 0,",
-      "category": "production",
-      "is_async": false,
-      "callers": [
-        {
-          "file": "apps/worker/dist/jobs/quote-pdf.js",
-          "line": 47,
-          "snippet": "const items = parseLines(q.items);"
-        },
-        {
-          "file": "apps/worker/dist/jobs/quote-pdf.js",
-          "line": 48,
-          "snippet": "const allOptions = parseLines(q.options);"
-        }
-      ],
-      "triggers": [],
-      "description_source": "heuristic"
-    },
-    {
-      "name": "storageDataUri",
-      "file": "apps/worker/dist/jobs/quote-pdf.js",
-      "line": 18,
-      "signature": "async function storageDataUri(supabase, bucket, path)",
-      "description": "스토리지 객체 → base64 data-URI(없으면 null).",
-      "body_preview": "async function storageDataUri(supabase, bucket, path) {\n    if (!path)\n        return null;\n    const { data, error } = await supabase.storage.from(bucket).download(path);\n    if (error || !data)\n        return null;\n    const buf = Buffer.from(await data.arrayBuffer());\n    const ext = path.split(\".\").pop()?.toLowerCase();",
-      "category": "production",
-      "is_async": true,
-      "callers": [
-        {
-          "file": "apps/worker/dist/jobs/quote-pdf.js",
-          "line": 115,
-          "snippet": "bannerTopDataUri: await storageDataUri(supabase, \"equipment-images\", equipment?.quote_banner_top ?? null),"
-        },
-        {
-          "file": "apps/worker/dist/jobs/quote-pdf.js",
-          "line": 116,
-          "snippet": "bannerBottomDataUri: await storageDataUri(supabase, \"equipment-images\", equipment?.quote_banner_bottom ?? null),"
-        }
-      ],
-      "triggers": [],
-      "description_source": "comment"
-    },
-    {
-      "name": "cleanup",
-      "file": "apps/worker/dist/jobs/runner.integration.test.js",
-      "line": 10,
-      "signature": "async function cleanup()",
-      "description": "정리",
-      "body_preview": "async function cleanup() {\n    const { data: apps } = await supabase.from(\"applications\").select(\"id\").eq(\"company\", CO);\n    for (const a of apps ?? []) {\n        const { data: qs } = await supabase.from(\"quotes\").select(\"id\").eq(\"application_id\", a.id);\n        for (const q of qs ?? []) {\n            await supabase.storage.from(\"quote-pdfs\").remove([`${q.id}.pdf`]);\n        }\n    }",
-      "category": "production",
-      "is_async": true,
-      "callers": [],
-      "triggers": [],
-      "description_source": "heuristic"
-    },
-    {
-      "name": "main",
-      "file": "apps/worker/dist/seed-admin.js",
-      "line": 41,
-      "signature": "async function main()",
-      "description": "main — 개발 편의 계정은 프로덕션에서 건너뛴다.",
-      "body_preview": "async function main() {\n    const sb = createServiceClient(url, key);\n    for (const u of SEED_USERS) {\n        // 개발 편의 계정은 프로덕션에서 건너뛴다.\n        if (!isLocal && u.localOnly) {\n            console.log(`↷ ${u.email} 건너뜀 (개발 전용 계정)`);\n            continue;\n        }",
-      "category": "production",
-      "is_async": true,
-      "callers": [
-        {
-          "file": "apps/worker/dist/seed-admin.js",
-          "line": 89,
-          "snippet": "main().catch((e) => {"
-        },
-        {
-          "file": "apps/worker/dist/seed-equipment-categories.js",
-          "line": 91,
-          "snippet": "main().catch((e) => {"
-        },
-        {
-          "file": "apps/worker/dist/index.js",
-          "line": 32,
-          "snippet": "main().catch((e) => {"
-        },
-        {
-          "file": "apps/worker/dist/import-customers.js",
-          "line": 113,
-          "snippet": "main().catch((e) => {"
-        },
-        {
-          "file": "apps/worker/dist/seed-equipment.js",
-          "line": 124,
-          "snippet": "main().catch((e) => {"
-        }
-      ],
-      "triggers": [],
-      "description_source": "heuristic"
-    },
-    {
-      "name": "ensureCategory",
-      "file": "apps/worker/dist/seed-equipment-categories.js",
-      "line": 32,
-      "signature": "async function ensureCategory(name, parentId, sortOrder)",
-      "description": "이름(+부모)으로 존재 확인 후 없으면 생성. 생성/존재 무관하게 id 반환.",
-      "body_preview": "async function ensureCategory(name, parentId, sortOrder) {\n    let q = sb.from(\"equipment_category\").select(\"id\").eq(\"name\", name);\n    q = parentId === null ? q.is(\"parent_id\", null) : q.eq(\"parent_id\", parentId);\n    const { data: existing, error } = await q.maybeSingle();\n    if (error)\n        throw new Error(`조회 실패 [${name}]: ${error.message}`);\n    if (existing) {\n        console.log(`  = 이미 존재: ${name}`);",
-      "category": "production",
-      "is_async": true,
-      "callers": [
-        {
-          "file": "apps/worker/dist/seed-equipment-categories.js",
-          "line": 68,
-          "snippet": "const topId = await ensureCategory(top.name, null, topSort++);"
-        },
-        {
-          "file": "apps/worker/dist/seed-equipment-categories.js",
-          "line": 71,
-          "snippet": "await ensureCategory(child, topId, childSort++);"
-        }
-      ],
-      "triggers": [],
-      "description_source": "comment"
-    },
-    {
-      "name": "main",
-      "file": "apps/worker/dist/seed-equipment-categories.js",
-      "line": 52,
-      "signature": "async function main()",
-      "description": "main — 1) 입력 전 현황",
-      "body_preview": "async function main() {\n    // 1) 입력 전 현황\n    const { data: before, error: beErr } = await sb\n        .from(\"equipment_category\")\n        .select(\"id, name, parent_id, sort_order\")\n        .order(\"sort_order\");\n    if (beErr)\n        throw new Error(`현황 조회 실패: ${beErr.message}`);",
-      "category": "production",
-      "is_async": true,
-      "callers": [
-        {
-          "file": "apps/worker/dist/seed-admin.js",
-          "line": 89,
-          "snippet": "main().catch((e) => {"
-        },
-        {
-          "file": "apps/worker/dist/seed-equipment-categories.js",
-          "line": 91,
-          "snippet": "main().catch((e) => {"
-        },
-        {
-          "file": "apps/worker/dist/index.js",
-          "line": 32,
-          "snippet": "main().catch((e) => {"
-        },
-        {
-          "file": "apps/worker/dist/import-customers.js",
-          "line": 113,
-          "snippet": "main().catch((e) => {"
-        },
-        {
-          "file": "apps/worker/dist/seed-equipment.js",
-          "line": 124,
-          "snippet": "main().catch((e) => {"
-        }
-      ],
-      "triggers": [],
-      "description_source": "heuristic"
-    },
-    {
-      "name": "resolveCategoryId",
-      "file": "apps/worker/dist/seed-equipment.js",
-      "line": 75,
-      "signature": "async function resolveCategoryId(name)",
-      "description": "소분류 우선, 없으면 대분류로 이름 매칭해 category_id를 찾는다.",
-      "body_preview": "async function resolveCategoryId(name) {\n    const { data, error } = await sb\n        .from(\"equipment_category\")\n        .select(\"id, parent_id\")\n        .eq(\"name\", name);\n    if (error)\n        throw new Error(`분류 조회 실패 [${name}]: ${error.message}`);\n    if (!data || data.length === 0)",
-      "category": "production",
-      "is_async": true,
-      "callers": [
-        {
-          "file": "apps/worker/dist/seed-equipment.js",
-          "line": 102,
-          "snippet": "const categoryId = await resolveCategoryId(eq.categoryName);"
-        }
-      ],
-      "triggers": [],
-      "description_source": "comment"
-    },
-    {
-      "name": "main",
-      "file": "apps/worker/dist/seed-equipment.js",
-      "line": 88,
-      "signature": "async function main()",
-      "description": "main — 멱등: 같은 model이 이미 있으면 건너뛴다.",
-      "body_preview": "async function main() {\n    for (const eq of EQUIPMENT) {\n        // 멱등: 같은 model이 이미 있으면 건너뛴다.\n        const { data: existing, error: exErr } = await sb\n            .from(\"equipment\")\n            .select(\"id\")\n            .eq(\"model\", eq.model)\n            .maybeSingle();",
-      "category": "production",
-      "is_async": true,
-      "callers": [
-        {
-          "file": "apps/worker/dist/seed-admin.js",
-          "line": 89,
-          "snippet": "main().catch((e) => {"
-        },
-        {
-          "file": "apps/worker/dist/seed-equipment-categories.js",
-          "line": 91,
-          "snippet": "main().catch((e) => {"
-        },
-        {
-          "file": "apps/worker/dist/index.js",
-          "line": 32,
-          "snippet": "main().catch((e) => {"
-        },
-        {
-          "file": "apps/worker/dist/import-customers.js",
-          "line": 113,
-          "snippet": "main().catch((e) => {"
-        },
-        {
-          "file": "apps/worker/dist/seed-equipment.js",
-          "line": 124,
-          "snippet": "main().catch((e) => {"
-        }
-      ],
-      "triggers": [],
-      "description_source": "heuristic"
-    }
-  ]
+  "total_functions": 0,
+  "categories": {},
+  "functions": []
 }
 </script>
 <!-- END_FUNCTIONS_CATALOG -->
