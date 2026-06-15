@@ -14,8 +14,10 @@ const base: QuoteHtmlData = {
   extraOptions: [],
   specGroups: [],
   notes: ["상기금액은 부가세(V.A.T) 별도 금액입니다.", "본 견적서의 유효기간은 발행일로부터 1개월입니다."],
-  bannerTopDataUri: null,
-  bannerBottomDataUri: null,
+  quoteBgDataUri: "data:image/jpeg;base64,BG",
+  companyLogoDataUri: "data:image/png;base64,LOGO",
+  deviceImageDataUri: "data:image/png;base64,DEV",
+  deviceNameDataUri: "data:image/png;base64,NAME",
   stampDataUri: "data:image/png;base64,AAAA",
   fontDataUri: "data:font/ttf;base64,AAAA",
 };
@@ -29,6 +31,10 @@ describe("renderQuoteHtml", () => {
     expect(html).toContain("75,000,000");
     expect(html).toContain("멀티컷 에코 SG1625");
     expect(html).toContain("113-81-80804"); // 공급자
+    expect(html).toContain("data:image/jpeg;base64,BG");   // 배경
+    expect(html).toContain("data:image/png;base64,LOGO");  // 회사 로고
+    expect(html).toContain("data:image/png;base64,DEV");   // 우하단 장비 이미지
+    expect(html).toContain("data:image/png;base64,NAME");  // 좌하단 장비 네임
   });
   test("포함옵션은 '포함'으로, 추가옵션은 금액으로 렌더", () => {
     const html = renderQuoteHtml({
@@ -45,5 +51,11 @@ describe("renderQuoteHtml", () => {
     const withSpecs = renderQuoteHtml({ ...base, specGroups: [{ group: "성능", items: [{ label: "해상도", value: "1200DPI" }] }] });
     expect(withSpecs).toContain("장비사양");
     expect(withSpecs).toContain("1200DPI");
+  });
+  test("장비 이미지/네임 없으면 해당 요소 미출력(배경·로고는 항상)", () => {
+    const html = renderQuoteHtml({ ...base, deviceImageDataUri: null, deviceNameDataUri: null });
+    expect(html).toContain("data:image/jpeg;base64,BG");
+    expect(html).not.toContain("data:image/png;base64,DEV");
+    expect(html).not.toContain("data:image/png;base64,NAME");
   });
 });
