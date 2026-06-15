@@ -76,9 +76,8 @@ test.describe.serial("E5 견적 작성 폼 E2E", () => {
     await page.getByLabel("추가 옵션 단가").fill("2500000");
     await page.getByLabel("추가 옵션 수량").fill("2");
 
-    // 4) 실시간 합계: 공급가 55,000,000 · 합계 60,500,000
-    await expect(page.getByText("55,000,000원")).toBeVisible();
-    await expect(page.getByText("60,500,000원")).toBeVisible();
+    // 4) 실시간 합계 = 공급가 55,000,000 (VAT 별도 — 부가세는 화면에 표시하지 않음)
+    await expect(page.getByText("55,000,000원").first()).toBeVisible();
 
     // 5) 발행 → 의뢰 상세로 복귀
     await page.getByRole("button", { name: "발행하기" }).click();
@@ -88,7 +87,7 @@ test.describe.serial("E5 견적 작성 폼 E2E", () => {
     // 견적번호·발행 배지·합계가 히어로/버전이력/요약패널 여러 곳에 노출 → first().
     await expect(page.getByText(/^JHQ-\d{8}-\d{3,}-V1$/).first()).toBeVisible();
     await expect(page.getByText("발행", { exact: true }).first()).toBeVisible();
-    await expect(page.getByText("60,500,000원").first()).toBeVisible();
+    await expect(page.getByText("55,000,000원").first()).toBeVisible();
     await expect(page.getByTestId("app-status")).toHaveText("견적발송"); // 발행 → 의뢰 상태 자동 전이
 
     // 7) 🔧 회귀 — 좌측 2분할 목록의 해당 의뢰 행 배지도 새 상태(견적발송)로 갱신돼야 한다.
@@ -127,7 +126,7 @@ test.describe.serial("E5 수기 견적 E2E", () => {
     await page.getByLabel("장비 이름").fill("UV5000");
     await page.getByLabel("장비 단가").fill("30000000");
     await page.getByLabel("장비 수량").fill("1");
-    await expect(page.getByText("33,000,000원")).toBeVisible(); // 합계(공급 30M + 세 3M)
+    await expect(page.getByText("30,000,000원").first()).toBeVisible(); // 합계 = 공급가 30M(VAT 별도)
 
     // 3) 발행 → 새로 생긴 의뢰 상세로 이동
     await page.getByRole("button", { name: "발행하기" }).click();
@@ -138,7 +137,7 @@ test.describe.serial("E5 수기 견적 E2E", () => {
     // 견적번호·발행 배지·합계가 히어로/버전이력/요약패널 여러 곳에 노출 → first().
     await expect(page.getByText(/^JHQ-\d{8}-\d{3,}-V1$/).first()).toBeVisible();
     await expect(page.getByText("발행", { exact: true }).first()).toBeVisible();
-    await expect(page.getByText("33,000,000원").first()).toBeVisible();
+    await expect(page.getByText("30,000,000원").first()).toBeVisible(); // 합계 = 공급가 30M(VAT 별도)
     await expect(page.getByTestId("app-status")).toHaveText("견적발송"); // 수기 발행 → 견적발송
   });
 });
@@ -175,7 +174,7 @@ test.describe.serial("E5 견적 상세+재발행 E2E", () => {
 
     // V1 내역이 의뢰 상세 프레임에 인라인 노출(선택장비·합계). 별도 견적 페이지 없음(?v= 통합).
     await expect(page.getByText("UV3300S").first()).toBeVisible(); // 선택 장비
-    await expect(page.getByText("55,000,000원").first()).toBeVisible(); // 합계(공급 50M+세 5M)
+    await expect(page.getByText("50,000,000원").first()).toBeVisible(); // 합계 = 공급가 50M(VAT 별도)
 
     // 재발행 = 요약패널 [수정] 링크 → quote/new?from= 프리필
     await page.getByRole("link", { name: "수정" }).first().click();
@@ -191,6 +190,6 @@ test.describe.serial("E5 견적 상세+재발행 E2E", () => {
     // 버전 이력 표에 V2 + V1 둘 다(번호 유지·버전 증가). 채번은 여러 곳 노출 → first().
     await expect(page.getByText(/^JHQ-\d{8}-\d{3,}-V2$/).first()).toBeVisible();
     await expect(page.getByText(/^JHQ-\d{8}-\d{3,}-V1$/).first()).toBeVisible();
-    await expect(page.getByText("110,000,000원").first()).toBeVisible(); // V2 합계(공급 100M+세 10M)
+    await expect(page.getByText("100,000,000원").first()).toBeVisible(); // V2 합계 = 공급가 100M(VAT 별도)
   });
 });
