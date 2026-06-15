@@ -104,6 +104,19 @@ describe("create_quote — 금액 SQL 계산 + 채번", () => {
     });
   });
 
+  test("items의 equipmentId를 jsonb에 보존(PDF 워커 장비 조회용)", async () => {
+    await inRollbackTx(c, async () => {
+      await seed();
+      await asUser(c, UID.sales1);
+      const q = await createQuote(
+        [{ name: "UV3300S", unitPrice: 50_000_000, quantity: 1, equipmentId: "eq-uuid-123" }],
+        [],
+      );
+      // RPC는 p_items jsonb를 그대로 저장 → equipmentId 보존(발행 PDF가 이 id로 사양·로고 조회).
+      expect((q.items as { equipmentId?: string }[])[0].equipmentId).toBe("eq-uuid-123");
+    });
+  });
+
   test("음수 옵션(할인/제외) 차감", async () => {
     await inRollbackTx(c, async () => {
       await seed();

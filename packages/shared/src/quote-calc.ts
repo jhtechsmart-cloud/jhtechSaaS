@@ -10,6 +10,9 @@ export type QuoteLine = {
   // 옵션 줄 구분 — 'included'(기본 공급가 포함, 단가 0) / 'extra'(추가 과금). 장비 줄은 미지정.
   // 견적에 스냅샷 저장(발행본 불변): 포함옵션이 카탈로그 변경에 흔들리지 않도록.
   kind?: "included" | "extra";
+  // 장비 줄이 가리키는 카탈로그 장비 id(선택). PDF 워커가 이 id로 사양·로고·장비이미지를
+  // 가져온다(의뢰 신청 장비가 아니라 견적에서 고른 장비 기준). 직접입력 줄은 미지정. 계산엔 무영향.
+  equipmentId?: string;
 };
 
 export type QuoteInput = {
@@ -33,6 +36,8 @@ const QuoteLineSchema = z.object({
   quantity: z.number().int("수량은 정수만 가능합니다").min(1, "수량은 1 이상이어야 합니다"),
   // 옵션 줄 구분(선택). z.object는 미정의 키를 strip하므로 보존하려면 스키마에 명시해야 한다.
   kind: z.enum(["included", "extra"]).optional(),
+  // 장비 id(선택) — 같은 이유로 명시해야 RPC 저장 jsonb에 보존된다(strip 방지).
+  equipmentId: z.string().optional(),
 });
 
 export const QuoteInputSchema = z.object({
