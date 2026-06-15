@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useState, useTransition, type ReactNode } from "react";
 import { matchEquipmentName } from "@/lib/quotes/equipment-match";
 import {
@@ -94,6 +95,8 @@ export function QuoteForm({
       </div>
       <QuoteTotalsAside totals={totals}>
         {error && <p className="text-small text-danger">{error}</p>}
+        <Link href={`/admin/applications/${applicationId}`}
+          className="rounded-md border border-border px-4 py-2 text-center text-small font-medium text-muted hover:text-text">취소</Link>
         <button type="button" onClick={() => submit("draft")} disabled={pending}
           className="rounded-md bg-surface-2 px-4 py-2 text-small font-medium text-text disabled:opacity-50">임시저장</button>
         <button type="button" onClick={() => submit("issued")} disabled={pending}
