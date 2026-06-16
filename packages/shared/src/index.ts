@@ -15,4 +15,5 @@ export * from "./korean-amount";
 export * from "./date-kst";
 export * from "./company";
 export * from "./equipment-match";
+export * from "./mail";
 export * from "./password";

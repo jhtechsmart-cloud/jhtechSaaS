@@ -2,6 +2,18 @@
 
 이 프로젝트의 주요 변경 사항을 기록한다. [Keep a Changelog](https://keepachangelog.com/) 형식, [Semantic Versioning](https://semver.org/)(4자리 MAJOR.MINOR.PATCH.MICRO).
 
+## [0.13.3.0] - 2026-06-16
+
+### Added
+- **견적서 메일 발송 (하이웍스 Office Token, E6 · #123)** — 발행된 견적서를 영업담당자 명의로 고객에게 메일 발송하고 담당자 하이웍스 보낸편지함에 기록. 견적 상세 '메일 발송' 버튼 → 확인 모달(수신처·제목·본문 편집·프리필) → 워커가 30일 서명URL 다운로드 링크를 본문에 담아 발송. 발송 상태 배지(발송됨/발송 중/실패·재발송). `/admin/users`에 담당자별 하이웍스 계정 ID(`hiworks_user_id`) 설정 추가.
+  - **채널 독립 설계**: `MailSender` 인터페이스 + `HiworksMailSender`(REST `sendMail`, form-data, `save_sent_mail=Y`) / `FakeMailSender`. `HIWORKS_OFFICE_TOKEN` 미설정 시 실제 발송하지 않음(로컬·미설정 안전).
+  - **멱등성**: `email_log` 상태기계(pending→sending→sent/failed) + 워커 CAS 잠금 + 견적당 활성 1건 부분 유니크 인덱스로 재시도·스테일 회수 중복 발송 차단. 재시도 한도 도달 시 failed 종단 처리.
+  - **보안**: `enqueue_quote_email` SECURITY DEFINER RPC가 `email.send`·행 스코프·issued·pdf_url·발송자 `hiworks_user_id`·중복을 검증, 발송자=`auth.uid()` 서버 강제(클라 미신뢰). 이메일 형식·개행·다중주소 차단, 제목/본문 길이 서버 캡, 4xx 영구/5xx·429 재시도 분류.
+  - ⚠️ 실제 발송은 하이웍스 Office Token 발급 + 워커 고정 IP를 허용 IP에 등록 후 활성화. v1은 PDF 첨부 대신 본문 다운로드 링크(첨부는 인터페이스만 준비).
+
+### Changed
+- 워커 환경변수 `GMAIL_*` 제거 → `HIWORKS_OFFICE_TOKEN`(메일 채널을 하이웍스로 확정).
+
 ## [0.13.2.6] - 2026-06-16
 
 ### Added
