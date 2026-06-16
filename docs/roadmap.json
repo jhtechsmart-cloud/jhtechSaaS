@@ -154,11 +154,11 @@
       "id": "E6",
       "milestone": "M3",
       "name": "메일 발송 워커",
-      "status": "todo",
+      "status": "done",
       "period": "6~7월",
-      "deliverable": "하이웍스/Gmail SMTP 워커·견적서·서류 메일 발송·email_log·재전송",
+      "deliverable": "견적서 메일 발송 — 하이웍스 Office Token REST(`sendMail`, save_sent_mail=Y=담당자 보낸편지함). MailSender 경계(Hiworks/Fake)·워커 멱등 발송(email_log 상태기계·CAS)·enqueue_quote_email RPC·발송 모달·상태 배지·담당자 hiworks_user_id. v1=본문 PDF 링크(첨부는 인터페이스만). 코드 라이브(v0.13.3.0, #124). ⚠️실발송 활성화는 Office Token 발급+워커 고정IP 허용등록 후(미팅 대기).",
       "owner": "조선제",
-      "status_label": "🟡 6~7월"
+      "status_label": "✅ 완료(v0.13.3.0)"
     },
     {
       "id": "S3",
