@@ -84,10 +84,11 @@ test.describe.serial("E5 견적 작성 폼 E2E", () => {
     await page.waitForURL(new RegExp(`/admin/applications/${appId}$`), { timeout: 20_000 });
 
     // 6) 견적 목록에 노출(발행 배지 + 채번 + 금액) + 의뢰 상태 = 견적발송
-    // 견적번호·발행 배지·합계가 히어로/버전이력/요약패널 여러 곳에 노출 → first().
+    // 견적번호·발행 배지·합계가 히어로/처리바 버전칩/요약패널 여러 곳에 노출 → first().
+    // (합계는 화면에선 ₩ 표기 — 버전이력 표의 '원' 표기는 '버전정보' 모달 안에 있음.)
     await expect(page.getByText(/^JHQ-\d{8}-\d{3,}-V1$/).first()).toBeVisible();
     await expect(page.getByText("발행", { exact: true }).first()).toBeVisible();
-    await expect(page.getByText("55,000,000원").first()).toBeVisible();
+    await expect(page.getByText("₩55,000,000").first()).toBeVisible();
     await expect(page.getByTestId("app-status")).toHaveText("견적발송"); // 발행 → 의뢰 상태 자동 전이
 
     // 7) 🔧 회귀 — 좌측 2분할 목록의 해당 의뢰 행 배지도 새 상태(견적발송)로 갱신돼야 한다.
@@ -134,10 +135,10 @@ test.describe.serial("E5 수기 견적 E2E", () => {
 
     // 4) 새 의뢰 상세 = 회사명 + 견적(발행) 노출
     await expect(page.getByText(MANUAL_CO).first()).toBeVisible();
-    // 견적번호·발행 배지·합계가 히어로/버전이력/요약패널 여러 곳에 노출 → first().
+    // 견적번호·발행 배지·합계가 히어로/처리바 버전칩/요약패널 여러 곳에 노출 → first(). 화면 합계는 ₩ 표기.
     await expect(page.getByText(/^JHQ-\d{8}-\d{3,}-V1$/).first()).toBeVisible();
     await expect(page.getByText("발행", { exact: true }).first()).toBeVisible();
-    await expect(page.getByText("30,000,000원").first()).toBeVisible(); // 합계 = 공급가 30M(VAT 별도)
+    await expect(page.getByText("₩30,000,000").first()).toBeVisible(); // 합계 = 공급가 30M(VAT 별도)
     await expect(page.getByTestId("app-status")).toHaveText("견적발송"); // 수기 발행 → 견적발송
   });
 });
@@ -172,9 +173,9 @@ test.describe.serial("E5 견적 상세+재발행 E2E", () => {
     await page.getByRole("button", { name: "발행하기" }).click();
     await page.waitForURL(new RegExp(`/admin/applications/${reAppId}$`), { timeout: 20_000 });
 
-    // V1 내역이 의뢰 상세 프레임에 인라인 노출(선택장비·합계). 별도 견적 페이지 없음(?v= 통합).
+    // V1 내역이 의뢰 상세 프레임에 인라인 노출(선택장비·합계). 별도 견적 페이지 없음(?v= 통합). 화면 합계는 ₩ 표기.
     await expect(page.getByText("UV3300S").first()).toBeVisible(); // 선택 장비
-    await expect(page.getByText("50,000,000원").first()).toBeVisible(); // 합계 = 공급가 50M(VAT 별도)
+    await expect(page.getByText("₩50,000,000").first()).toBeVisible(); // 합계 = 공급가 50M(VAT 별도)
 
     // 재발행 = 요약패널 [수정] 링크 → quote/new?from= 프리필
     await page.getByRole("link", { name: "수정" }).first().click();
@@ -187,7 +188,9 @@ test.describe.serial("E5 견적 상세+재발행 E2E", () => {
     await page.getByRole("button", { name: "발행하기" }).click();
     await page.waitForURL(new RegExp(`/admin/applications/${reAppId}$`), { timeout: 20_000 });
 
-    // 버전 이력 표에 V2 + V1 둘 다(번호 유지·버전 증가). 채번은 여러 곳 노출 → first().
+    // 버전 이력은 처리바 '버전정보' 모달에서 확인(좌측 컬럼 → 모달로 이동). 칩엔 최신(V2)만 노출.
+    await page.getByRole("button", { name: "버전정보" }).click();
+    // 모달 표에 V2 + V1 둘 다(번호 유지·버전 증가). 채번은 여러 곳 노출 → first().
     await expect(page.getByText(/^JHQ-\d{8}-\d{3,}-V2$/).first()).toBeVisible();
     await expect(page.getByText(/^JHQ-\d{8}-\d{3,}-V1$/).first()).toBeVisible();
     await expect(page.getByText("100,000,000원").first()).toBeVisible(); // V2 합계 = 공급가 100M(VAT 별도)

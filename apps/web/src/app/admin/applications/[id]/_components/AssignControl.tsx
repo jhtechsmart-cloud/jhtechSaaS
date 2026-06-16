@@ -48,7 +48,7 @@ export function AssignControl({
             : "border border-border bg-transparent text-muted"
         }`}
       >
-        {pending ? "저장 중…" : "담당 저장"}
+        {pending ? "저장 중…" : "저장"}
       </button>
       {error && <p className="text-small text-danger">{error}</p>}
     </div>

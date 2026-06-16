@@ -19,10 +19,11 @@ import { matchEquipmentName } from "@/lib/quotes/equipment-match";
 import { listEquipmentForMatch } from "@/lib/quotes/equipment-match.server";
 import type { MatchableEquipmentWithOptions } from "@/lib/quotes/equipment-match.server";
 import { QuoteHero } from "./_components/quote-frame/QuoteHero";
-import { SectionHeader } from "./_components/quote-frame/SectionHeader";
 import { VersionHistory } from "./_components/quote-frame/VersionHistory";
 import { VersionDiff } from "./_components/quote-frame/VersionDiff";
+import { VersionInfoModal } from "./_components/quote-frame/VersionInfoModal";
 import { diffQuoteVersions } from "@/lib/quotes/diff";
+import { buildVersionChip } from "@/lib/quotes/version-chip";
 import { ApplicantInfo } from "./_components/quote-frame/ApplicantInfo";
 import { InstallSurvey } from "./_components/quote-frame/InstallSurvey";
 import { SitePhotos } from "./_components/quote-frame/SitePhotos";
@@ -245,43 +246,42 @@ export default async function ApplicationDetailPage({
         preview={isPreview}
       />
 
-      {/* 처리바 — 다른 카드와 동일한 박스 형태. 담당자·상태 변경 컨트롤(배지는 히어로에). */}
+      {/* 처리바 — 좌: 최신 버전 칩 + '버전정보'(버전이력·변경내역 모달) / 우끝: 담당자·상태 컨트롤. */}
       <div className="mb-6 flex flex-wrap items-center gap-x-6 gap-y-3 rounded-lg border border-border/60 bg-surface px-5 py-3 shadow-sm">
-        <div className="flex items-center gap-2">
-          <span className="text-small text-muted">담당자</span>
-          {assigneeNode}
-        </div>
-        {canStatus && (
-          <div className="flex items-center gap-2">
-            <span className="text-small text-muted">상태</span>
-            <StatusControl
-              key={`${status}-${(r.assignee_id as string | null) ?? "none"}`}
-              id={id}
-              current={status}
-              hasAssignee={r.assignee_id != null}
-            />
-          </div>
+        {quotes.length > 0 && selected ? (
+          <VersionInfoModal chip={buildVersionChip(selected)}>
+            <VersionHistory applicationId={id} quotes={quotes} currentQuoteId={selected.id} />
+            {versionDiff && prevQuote && (
+              <VersionDiff prevVersion={prevQuote.version} currVersion={selected.version} diff={versionDiff} />
+            )}
+          </VersionInfoModal>
+        ) : (
+          <span className="text-small text-muted">발행 견적 없음</span>
         )}
+        <div className="ml-auto flex flex-wrap items-center gap-x-6 gap-y-3">
+          <div className="flex items-center gap-2">
+            <span className="text-small text-muted">담당자</span>
+            {assigneeNode}
+          </div>
+          {canStatus && (
+            <div className="flex items-center gap-2">
+              <span className="text-small text-muted">상태</span>
+              <StatusControl
+                key={`${status}-${(r.assignee_id as string | null) ?? "none"}`}
+                id={id}
+                current={status}
+                hasAssignee={r.assignee_id != null}
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       {/* 통합 2분할 그리드 — 견적 유무와 무관하게 같은 박스 구성.
           미발행(isPreview)이면 요청 장비로 미리 채우고 우측은 '견적 작성' 유도. */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
-        {/* 좌측 본문 */}
+        {/* 좌측 본문 — 신청기업·신청장비가 먼저 보이게(버전이력·변경내역은 처리바 '버전정보' 모달로 이동). */}
         <div className="flex flex-col gap-6">
-          {quotes.length > 0 ? (
-            <VersionHistory applicationId={id} quotes={quotes} currentQuoteId={selected!.id} />
-          ) : (
-            <section className="rounded-lg border border-border/60 bg-surface p-5 shadow-sm">
-              <SectionHeader title="버전 이력" meta="발행 견적 없음" />
-              <div className="rounded-sm bg-surface-2 px-3 py-6 text-center text-small text-muted">
-                아직 발행된 견적이 없습니다. 견적을 작성하면 버전 이력이 쌓입니다.
-              </div>
-            </section>
-          )}
-          {versionDiff && prevQuote && selected && (
-            <VersionDiff prevVersion={prevQuote.version} currVersion={selected.version} diff={versionDiff} />
-          )}
           <ApplicantInfo
             companyId={companyId}
             basic={basicFields}
