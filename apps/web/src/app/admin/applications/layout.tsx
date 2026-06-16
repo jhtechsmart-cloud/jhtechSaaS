@@ -30,7 +30,8 @@ export default async function ApplicationsLayout({ children }: { children: React
         counts={counts}
         canQuote={can(access.permissions, "quotes.write")}
       />
-      <div className="min-w-0 flex-1 overflow-y-auto p-6">{children}</div>
+      {/* 상세는 자체 스크롤 칸 — 하단 pb-16(64px)로 저장/취소 버튼 아래 숨 쉴 여백 확보 */}
+      <div className="min-w-0 flex-1 overflow-y-auto px-6 pt-6 pb-16">{children}</div>
     </div>
   );
 }
