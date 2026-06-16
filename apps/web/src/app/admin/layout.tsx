@@ -8,6 +8,7 @@ import { countNewApplications } from "@/lib/applications/admin-queries";
 import { signOut } from "@/app/login/actions";
 import { Icon } from "./_components/Icon";
 import { AdminSidebar } from "./_components/AdminSidebar";
+import { BadgePoller } from "./_components/BadgePoller";
 import { ConsoleMain } from "./_components/ConsoleMain";
 
 // 콘솔 셸 — 네이비 사이드바(아이콘) + 상단바. requireAnyConsoleCapability가 미인증을 /login으로,
@@ -72,6 +73,8 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 
   return (
     <div className="flex min-h-dvh bg-bg">
+      {/* 배지·알림 주기 갱신(새 의뢰가 들어오면 새로고침 없이 사이드바 배지에 반영) */}
+      <BadgePoller />
       {/* 사이드바 — 의뢰관리 화면에선 아이콘만 남기고 접힘(AdminSidebar) */}
       <AdminSidebar items={items.filter((it) => it.show)} isAdmin={isAdmin} initialOverride={initialOverride} />
 
