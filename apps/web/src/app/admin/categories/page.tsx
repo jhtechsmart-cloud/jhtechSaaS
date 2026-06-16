@@ -29,6 +29,7 @@ export default async function CategoriesPage() {
       <h1 className="text-h1 font-semibold text-text">장비 분류</h1>
       <p className="text-small text-muted">
         대분류(프린터·커팅기) 아래 소분류를 둡니다. 소모품 범위·장비 등록이 이 분류를 씁니다.
+        대분류의 &lsquo;견적 로고&rsquo;를 정하면 그 종류 장비의 견적서 좌상단 로고가 자동으로 바뀝니다.
       </p>
       <CategoryTree tree={tree} />
     </section>

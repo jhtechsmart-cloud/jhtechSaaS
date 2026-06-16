@@ -1,9 +1,13 @@
 // 분류 트리 순수 로직 — 사이드이펙트 없음. 드롭다운 옵션 구성에 사용.
+export type LogoKind = "cutter" | "printer";
+
 export interface CategoryNode {
   id: string;
   parent_id: string | null;
   name: string;
   sort_order: number;
+  // 견적서 PDF 좌상단 회사로고 종류(대분류에만 의미). null/미설정 = 기본 로고.
+  quote_logo_kind?: LogoKind | null;
 }
 
 export interface CategoryTreeNode extends CategoryNode {

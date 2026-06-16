@@ -6,6 +6,7 @@ import {
   createCategory,
   renameCategory,
   deleteCategory,
+  setCategoryLogoKind,
 } from "@/lib/categories/actions";
 
 // action 결과 타입 — null이면 성공, { error } 이면 실패.
@@ -102,6 +103,23 @@ function TopNode({
         >
           삭제
         </button>
+
+        {/* 견적서 좌상단 회사로고 종류 — 대분류에만 노출. 미지정이면 기본 로고. */}
+        <label className="ml-auto flex items-center gap-1 text-micro text-muted">
+          견적 로고
+          <select
+            value={node.quote_logo_kind ?? ""}
+            disabled={pending}
+            onChange={(e) =>
+              run(() => setCategoryLogoKind(node.id, e.target.value as "cutter" | "printer" | ""))
+            }
+            className="rounded-sm border border-border bg-surface px-2 py-1 text-micro text-text"
+          >
+            <option value="">미지정</option>
+            <option value="cutter">커팅기</option>
+            <option value="printer">프린터</option>
+          </select>
+        </label>
       </div>
 
       {/* 소분류 목록 + 추가 입력행 */}

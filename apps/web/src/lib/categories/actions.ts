@@ -71,6 +71,39 @@ export async function renameCategory(
   return null;
 }
 
+// 대분류 견적 로고 종류 설정. "" = 미지정(null). 대분류에만 적용(소분류는 호출 안 함).
+export async function setCategoryLogoKind(
+  id: string,
+  kind: "cutter" | "printer" | "",
+): Promise<CategoryActionResult> {
+  const access = await requireEquipmentManage();
+  if (access.status === "forbidden") return { error: "권한이 없습니다." };
+
+  if (!z.guid().safeParse(id).success) return { error: "잘못된 요청입니다." };
+  if (kind !== "" && kind !== "cutter" && kind !== "printer") {
+    return { error: "잘못된 로고 종류입니다." };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("equipment_category")
+    .update({ quote_logo_kind: kind === "" ? null : kind })
+    .eq("id", id)
+    .select("id");
+
+  if (error) {
+    // CHECK 위반(소분류에 설정 등) 또는 기타 오류.
+    if (error.code === "23514") return { error: "로고 종류는 대분류에만 설정할 수 있습니다." };
+    console.error("[categories.setLogoKind]", error);
+    return { error: "로고 종류를 설정하지 못했습니다." };
+  }
+
+  if (!data || data.length === 0) return { error: "없는 분류입니다." };
+
+  revalidatePath("/admin/categories");
+  return null;
+}
+
 // 삭제. 참조(자식·장비·소모품 scope) 있으면 FK restrict로 거부 → 안내.
 export async function deleteCategory(id: string): Promise<CategoryActionResult> {
   const access = await requireEquipmentManage();

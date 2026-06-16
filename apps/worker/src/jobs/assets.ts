@@ -6,6 +6,8 @@ let fontUri: string | null = null;
 let stampUri: string | null = null;
 let bgUri: string | null = null;
 let logoUri: string | null = null;
+let logoCutterUri: string | null = null;
+let logoPrinterUri: string | null = null;
 let topBannerUri: string | null = null;
 let modelFontUri: string | null = null;
 
@@ -30,6 +32,15 @@ export async function getQuoteBgDataUri(): Promise<string> {
 export async function getCompanyLogoDataUri(): Promise<string> {
   if (!logoUri) logoUri = await toDataUri("company-logo.png", "image/png");
   return logoUri;
+}
+// 장비 종류별 좌상단 회사로고 — 커팅기/프린터. 대분류 quote_logo_kind에 따라 선택.
+export async function getCompanyLogoCutterDataUri(): Promise<string> {
+  if (!logoCutterUri) logoCutterUri = await toDataUri("company-logo-cutter.png", "image/png");
+  return logoCutterUri;
+}
+export async function getCompanyLogoPrinterDataUri(): Promise<string> {
+  if (!logoPrinterUri) logoPrinterUri = await toDataUri("company-logo-printer.png", "image/png");
+  return logoPrinterUri;
 }
 export async function getTopBannerDataUri(): Promise<string> {
   if (!topBannerUri) topBannerUri = await toDataUri("top-banner.png", "image/png");

@@ -28,7 +28,7 @@ export async function listCategoryTree(): Promise<CategoryNode[]> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("equipment_category")
-    .select("id,parent_id,name,sort_order")
+    .select("id,parent_id,name,sort_order,quote_logo_kind")
     .order("sort_order");
   if (error) { console.error("[equipment.categoryTree]", error); return []; }
   return (data ?? []) as CategoryNode[];
