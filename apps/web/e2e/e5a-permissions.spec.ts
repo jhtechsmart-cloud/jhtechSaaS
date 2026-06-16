@@ -149,9 +149,16 @@ test.describe.serial("E5a 권한 모델 E2E", () => {
     await page.waitForURL(/\/admin\/users$/, { timeout: 15_000 });
     await expect(page.getByText(NEW_EMAIL)).toBeVisible();
 
-    // 관리자 로그아웃 → 신규 계정으로 재로그인 → 콘솔 진입(영업 프리셋 → applications 허브).
+    // 관리자 로그아웃 → 신규 계정으로 재로그인 → 강제 변경 패널 → 변경 후 콘솔 진입.
     await logout(page);
     await login(page, NEW_EMAIL, newPassword);
+    // (비밀번호 변경 기능 추가) 임시PW 로그인 시 강제 변경 패널 → 변경해야 콘솔 진입.
+    await expect(page.getByText("비밀번호를 변경해야 합니다")).toBeVisible();
+    await page.getByLabel("현재 비밀번호").fill(newPassword);
+    await page.getByLabel("새 비밀번호 (8자 이상)").fill("e2eChanged123");
+    await page.getByLabel("새 비밀번호 확인").fill("e2eChanged123");
+    await page.getByRole("button", { name: "비밀번호 변경하고 시작하기" }).click();
+    await expect(page.getByText("비밀번호를 변경해야 합니다")).toBeHidden();
     await page.waitForURL(/\/admin\//, { timeout: 20_000 });
     await expect(page.getByText("접근 권한이 없습니다")).toHaveCount(0);
     // 병렬 테스트가 만든 신청 배지가 붙으면 접근성 이름이 "견적 N"이 됨 — exact 대신 접두 매칭
@@ -172,7 +179,8 @@ test.describe.serial("E5a 권한 모델 E2E", () => {
     expect(patch.ok).toBeTruthy();
 
     // 비활성 계정 로그인 → 가드가 forbidden 패널 렌더(콘솔 진입 차단).
-    await login(page, NEW_EMAIL, newPassword);
+    // 시나리오 2에서 임시PW → "e2eChanged123"으로 변경됐으므로 변경된 PW로 로그인.
+    await login(page, NEW_EMAIL, "e2eChanged123");
     await expect(
       page.getByText("콘솔 접근 권한이 없거나 비활성 계정입니다."),
     ).toBeVisible({ timeout: 20_000 });
