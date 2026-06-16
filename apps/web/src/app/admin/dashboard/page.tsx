@@ -15,10 +15,13 @@ import {
 import {
   buildTwoWeekDays,
   buildWeeklyUnits,
+  CALENDAR_HIDDEN_COOKIE,
   demoUtilization,
+  parseHiddenEventTypes,
   pipelineRows,
   type ActivityType,
 } from "@/lib/dashboard/v2-logic";
+import { cookies } from "next/headers";
 import { listUpcomingSchedules } from "@/lib/demo-reservations/queries";
 import { addDaysKst, kstDateOf, todayKst } from "@/lib/format/kst";
 import { KpiCards } from "./_components/KpiCards";
@@ -54,6 +57,11 @@ export default async function DashboardPage() {
   const twoWeekEndExclusive = addDaysKst(days[13].date, 1);
   const monthFirst = `${today.slice(0, 7)}-01`;
   const nowIso = new Date().toISOString();
+
+  // 캘린더 범례 토글로 숨긴 항목 — 쿠키에서 읽어 초기값 주입(서버·클라 일치로 hydration mismatch 방지).
+  const hiddenCalTypes = parseHiddenEventTypes(
+    (await cookies()).get(CALENDAR_HIDDEN_COOKIE)?.value,
+  );
 
   const [
     newApps, unreadSvc, unreadSup,
@@ -137,7 +145,7 @@ export default async function DashboardPage() {
         customers={val(customers)}
       />
 
-      <TwoWeekCalendar days={days} events={val(events) ?? []} />
+      <TwoWeekCalendar days={days} events={val(events) ?? []} initialHidden={hiddenCalTypes} />
 
       <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[1fr_330px]">
         <div className="flex min-w-0 flex-col gap-5">

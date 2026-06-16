@@ -54,4 +54,34 @@ test.describe.serial("대시보드 v2 E2E", () => {
     await page.goto("/admin/dashboard");
     await expect(page.getByText("내 담당 현황과 2주 일정을 한눈에")).toBeVisible({ timeout: 15_000 });
   });
+
+  test("캘린더 범례 토글 — 항목 숨김 + 새로고침 후 유지(쿠키)", async ({ page }) => {
+    await login(page);
+    await page.goto("/admin/dashboard");
+
+    // 범례는 클릭 가능한 버튼(role=button) — KPI 텍스트와 구분됨. 기본은 켜짐(aria-pressed=true).
+    const delivery = page.getByRole("button", { name: "납품" });
+    await expect(delivery).toBeVisible({ timeout: 15_000 });
+    await expect(delivery).toHaveAttribute("aria-pressed", "true");
+
+    // 클릭 → 꺼짐 + 쿠키에 기록.
+    await delivery.click();
+    await expect(delivery).toHaveAttribute("aria-pressed", "false");
+    const cookie = (await page.context().cookies()).find((c) => c.name === "jh.dashCalHidden");
+    expect(cookie?.value).toContain("delivery");
+
+    // 새로고침해도 꺼짐 유지(서버가 쿠키 읽어 초기값 주입).
+    await page.reload();
+    await expect(page.getByRole("button", { name: "납품" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+
+    // 복구 — 다시 켜서 다른 테스트 오염 방지.
+    await page.getByRole("button", { name: "납품" }).click();
+    await expect(page.getByRole("button", { name: "납품" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
 });

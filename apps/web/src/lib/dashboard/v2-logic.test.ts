@@ -3,10 +3,45 @@ import {
   buildTwoWeekDays,
   buildWeeklyUnits,
   demoUtilization,
+  parseHiddenEventTypes,
   pipelineRows,
+  serializeHiddenEventTypes,
   sortDayEvents,
   type CalendarEvent,
 } from "./v2-logic";
+
+describe("parseHiddenEventTypes — 캘린더 숨김 항목 쿠키 파싱", () => {
+  test("빈 값·미설정이면 빈 배열(전부 표시)", () => {
+    expect(parseHiddenEventTypes(undefined)).toEqual([]);
+    expect(parseHiddenEventTypes("")).toEqual([]);
+  });
+
+  test("쉼표 구분 유효 키만 추출", () => {
+    expect(parseHiddenEventTypes("delivery,supply")).toEqual(["delivery", "supply"]);
+  });
+
+  test("알 수 없는 키·공백·중복은 버린다", () => {
+    expect(parseHiddenEventTypes("quote, bogus ,quote, ,demo")).toEqual(["quote", "demo"]);
+  });
+
+  test("serialize ↔ parse 왕복(순서는 EVENT 타입 순)", () => {
+    expect(serializeHiddenEventTypes(new Set(["supply", "quote"]))).toBe("quote,supply");
+    expect(parseHiddenEventTypes(serializeHiddenEventTypes(new Set(["demo"])))).toEqual(["demo"]);
+  });
+
+  test("전부 숨김도 표현 가능", () => {
+    const all = serializeHiddenEventTypes(
+      new Set(["quote", "service", "supply", "demo", "delivery"]),
+    );
+    expect(parseHiddenEventTypes(all)).toEqual([
+      "quote",
+      "service",
+      "supply",
+      "demo",
+      "delivery",
+    ]);
+  });
+});
 
 describe("buildTwoWeekDays — 이번 주 일요일부터 14일", () => {
   test("금요일(2026-06-12) 기준: 6/7(일)~6/20(토), 오늘·지난날 표식", () => {
