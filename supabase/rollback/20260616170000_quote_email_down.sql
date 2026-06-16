@@ -6,7 +6,9 @@ drop function if exists public.enqueue_quote_email(uuid, text, text, text, text,
 
 drop index if exists public.email_log_active_quote;
 
--- 상태기계 원복(sending 제거). 'sending'/'sent' 잔여 행이 있으면 먼저 정리 필요.
+-- 상태기계 원복(sending 제거). 'sending'(전이 중) 잔여 행을 pending으로 회수해야
+-- 새 CHECK('sending' 미포함) 추가가 위반으로 실패하지 않는다. ('sent'는 원복 CHECK에도 포함 → 정리 불필요.)
+update public.email_log set status = 'pending' where status = 'sending';
 alter table public.email_log drop constraint if exists email_log_status_check;
 alter table public.email_log
   add constraint email_log_status_check

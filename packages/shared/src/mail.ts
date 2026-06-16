@@ -61,6 +61,8 @@ const HiworksResponseSchema = z.object({
 // 5xx·네트워크=재시도, 4xx·비SUC·부분실패=영구(재시도해도 같은 결과 + 한도 소모).
 export function parseHiworksResponse(httpStatus: number, json: unknown, to: string): MailSendResult {
   if (httpStatus >= 500) return { ok: false, raw: json, error: `hiworks ${httpStatus}`, permanent: false };
+  // 429(rate limit)·408(timeout)은 일시적 → 재시도(영구 아님). 한도는 잠시 후 회복.
+  if (httpStatus === 429 || httpStatus === 408) return { ok: false, raw: json, error: `hiworks ${httpStatus}`, permanent: false };
   if (httpStatus >= 400) return { ok: false, raw: json, error: `hiworks ${httpStatus}`, permanent: true };
   const parsed = HiworksResponseSchema.safeParse(json);
   if (!parsed.success) return { ok: false, raw: json, error: "하이웍스 응답 파싱 실패", permanent: true };
@@ -121,7 +123,12 @@ export function defaultQuoteEmail(p: { quoteNo: string; companyName?: string | n
 }
 
 function escapeHtml(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 // 워커가 발송 시점에 서명URL을 본문에 주입해 최종 HTML 생성. 사용자 본문은 이스케이프(주입 방지).

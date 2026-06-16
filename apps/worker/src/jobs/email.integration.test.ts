@@ -145,4 +145,18 @@ describe("email 워커 파이프라인(통합)", () => {
       .eq("status", "queued");
     expect(queued ?? []).toHaveLength(0);
   });
+
+  test("일시 실패 3회 소진 → email_log failed(pending 고착 아님, 재발송 가능 상태)", async () => {
+    const { qid, appId } = await seedIssuedQuoteWithPdf();
+    const logId = await enqueueEmail(qid, appId);
+    // 항상 재시도 가능 실패를 반환하는 발송기 → 3회 모두 실패.
+    const alwaysRetryable = {
+      async send() {
+        return { ok: false, raw: null, error: "always-retryable", permanent: false };
+      },
+    };
+    for (let i = 0; i < 3; i++) await runOnce(supabase, { mailSender: alwaysRetryable });
+    // 마지막 시도(3회차)에서 종단 처리 → pending 고착이 아니라 failed.
+    expect(await logStatus(logId)).toBe("failed");
+  });
 });

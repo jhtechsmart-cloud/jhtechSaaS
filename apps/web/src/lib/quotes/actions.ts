@@ -103,8 +103,10 @@ export async function enqueueQuoteEmailAction(
   });
   if (error) {
     console.error("[quotes.enqueueEmail] RPC 실패", error);
-    // RPC raise 메시지는 안내성(담당자 하이웍스 ID 미설정/이미 발송 등) → 그대로 노출(길이 제한).
-    return { error: (error.message || "메일 발송 요청에 실패했습니다.").slice(0, 200) };
+    // RPC가 raise한 안내 메시지(P0001)·권한 거부(42501)만 노출 — 그 외(유니크 인덱스 위반 등
+    // 내부 스키마명이 섞인 Postgres 원문)는 일반 문구로 마스킹(레이스 시 인덱스가 먼저 터질 수 있음).
+    const raised = error.code === "P0001" || error.code === "42501";
+    return { error: raised ? (error.message || "메일 발송 요청에 실패했습니다.").slice(0, 200) : "메일 발송 요청에 실패했습니다." };
   }
   if (appId) revalidatePath(`/admin/applications/${appId}`);
   return null;

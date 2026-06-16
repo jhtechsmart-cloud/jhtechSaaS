@@ -112,6 +112,27 @@ describe("enqueue_quote_email — 입력 검증", () => {
       await expect(enqueue(qid, "a@b.com,c@d.com")).rejects.toThrow();
     });
   });
+
+  // 실패 쿼리는 txn을 abort시키므로 본문·제목 캡은 각각 별도 rollback txn에서 단언.
+  test("본문 길이 서버 캡(웹 검증 우회 방지)", async () => {
+    await inRollbackTx(c, async () => {
+      const qid = await seedIssuedQuote(UID.sales1);
+      await asUser(c, UID.sales1);
+      await expect(
+        c.query("select public.enqueue_quote_email($1,$2,null,null,'제목',$3)", [qid, "cust@x.com", "x".repeat(5001)]),
+      ).rejects.toThrow(/본문/);
+    });
+  });
+
+  test("제목 길이 서버 캡", async () => {
+    await inRollbackTx(c, async () => {
+      const qid = await seedIssuedQuote(UID.sales1);
+      await asUser(c, UID.sales1);
+      await expect(
+        c.query("select public.enqueue_quote_email($1,$2,null,null,$3,'본문')", [qid, "cust@x.com", "y".repeat(201)]),
+      ).rejects.toThrow(/제목/);
+    });
+  });
 });
 
 describe("enqueue_quote_email — 정상 + 멱등", () => {

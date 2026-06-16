@@ -13,7 +13,7 @@ alter table public.email_log
   add column if not exists from_user_id uuid references public.profiles (id),
   add column if not exists subject text;
 
-alter table public.email_log drop constraint email_log_status_check;
+alter table public.email_log drop constraint if exists email_log_status_check;
 alter table public.email_log
   add constraint email_log_status_check
     check (status in ('pending', 'sending', 'sent', 'failed'));
@@ -92,6 +92,14 @@ begin
   end if;
   if v_bcc is not null and v_bcc !~ v_email_re then
     raise exception '숨은참조(bcc) 이메일 형식이 올바르지 않습니다';
+  end if;
+
+  -- 길이 캡(서버 강제 — 클라 검증 신뢰 안 함). 저장소·발송 본문 비대 방지.
+  if char_length(coalesce(v_subject, '')) > 200 then
+    raise exception '제목이 너무 깁니다(최대 200자)';
+  end if;
+  if char_length(coalesce(p_body, '')) > 5000 then
+    raise exception '본문이 너무 깁니다(최대 5000자)';
   end if;
 
   -- 중복 발송 거부(부분 유니크 인덱스가 최종 강제; 여기서 친절한 메시지로 선차단)

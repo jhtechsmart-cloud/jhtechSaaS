@@ -19,7 +19,7 @@ export async function runOnce(supabase: SupabaseClient, deps: RunDeps = {}): Pro
         break;
       case "email":
         if (!deps.mailSender) throw new Error("MailSender 미주입 — 워커 메일 설정 누락");
-        await processEmailJob(supabase, job.payload, deps.mailSender);
+        await processEmailJob(supabase, job.payload, deps.mailSender, job.attempts);
         break;
       default:
         throw new Error(`알 수 없는 잡 타입: ${job.type}`);

@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { composeQuoteEmailHtml, type MailSender } from "@jhtechsaas/shared";
+import { MAX_ATTEMPTS } from "./queue";
 
 // 견적 메일 발송 잡. 핵심은 멱등성: 메일은 PDF와 달리 재시도=중복 발송이므로
 // email_log 상태기계(pending→sending→sent/failed)를 CAS로 잠가 "한 번만" 발송한다.
@@ -18,6 +19,7 @@ export async function processEmailJob(
   supabase: SupabaseClient,
   payload: Record<string, unknown>,
   mailSender: MailSender,
+  attempts = 1, // 현재 잡 시도 횟수(claim 시 증가). 마지막 시도면 실패를 email_log에 종단 기록.
 ): Promise<void> {
   const logId = str(payload.email_log_id);
   const quoteId = str(payload.quote_id);
@@ -47,7 +49,7 @@ export async function processEmailJob(
     // 견적 메타 + PDF 경로
     const { data: quote, error } = await supabase
       .from("quotes")
-      .select("quote_no, pdf_url, application:application_id(company)")
+      .select("quote_no, pdf_url")
       .eq("id", quoteId)
       .single();
     if (error || !quote) throw new Error(`견적 조회 실패: ${error?.message ?? "없음"}`);
@@ -84,12 +86,18 @@ export async function processEmailJob(
       return;
     }
 
-    // 재시도 가능(5xx·네트워크) → throw → 아래 catch가 락 해제 후 재전파 → 잡 재큐.
+    // 재시도 가능(5xx·429·네트워크) → throw → 아래 catch가 처리 후 재전파.
     throw new Error(result.error ?? "메일 발송 일시 실패");
   } catch (e) {
-    // sending에 영구 고착 방지: 다음 시도가 다시 락하도록 pending으로 되돌린다.
-    // ⚠️ v1 한계: 재시도 3회 소진 시 잡은 failed지만 email_log는 pending 잔존(드묾). 라이브 검증 후 보강.
-    await supabase.from("email_log").update({ status: "pending" }).eq("id", logId).eq("status", "sending");
+    // 마지막 시도(재시도 한도 도달)면 email_log를 failed로 종단 기록 → UI '발송 중' 고착·재발송 영구
+    // 차단(유니크 인덱스가 pending 포함) 해소. 아직 시도 남았으면 pending으로 되돌려 다음 시도가 재락.
+    const msg = e instanceof Error ? e.message : String(e);
+    const terminal = attempts >= MAX_ATTEMPTS;
+    await supabase
+      .from("email_log")
+      .update(terminal ? { status: "failed", error_msg: msg.slice(0, 500) } : { status: "pending" })
+      .eq("id", logId)
+      .eq("status", "sending");
     throw e;
   }
 }
