@@ -21,6 +21,11 @@ export function VersionInfoModal({ chip, children }: { chip: VersionChip; childr
   return (
     <>
       <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1.5 text-small">
+        {/* 줄 제목 — 파인 막대 + 라벨(다른 박스의 SectionHeader와 같은 결). */}
+        <span className="mr-1 flex shrink-0 items-center gap-1.5 font-semibold text-text">
+          <span className="h-3.5 w-[3px] rounded-full bg-accent" aria-hidden />
+          현재 버전
+        </span>
         <span className="whitespace-nowrap font-mono font-bold tabular-nums text-accent">{chip.versionLabel}</span>
         <span className="text-faint">·</span>
         <span className="whitespace-nowrap font-mono tabular-nums text-text">{chip.quoteNo}</span>
@@ -72,6 +77,16 @@ export function VersionInfoModal({ chip, children }: { chip: VersionChip; childr
               </button>
             </div>
             <div className="flex flex-col gap-5 p-5">{children}</div>
+            {/* 하단 닫기 버튼 — 상단 ✕ 외 명시적 닫기 동선. */}
+            <div className="flex justify-end border-t border-border px-5 py-3">
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="rounded-full border border-border px-5 py-1.5 text-small font-medium text-text hover:bg-surface-2"
+              >
+                닫기
+              </button>
+            </div>
           </div>
         </div>
       )}
