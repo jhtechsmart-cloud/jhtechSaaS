@@ -3,7 +3,9 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { UserListRow } from "@/lib/users/queries";
 import { updateUserPermissions, setUserActive, setUserHiworksId } from "@/lib/users/actions";
+import { resetUserPasswordAction } from "@/lib/users/password-actions";
 import { PermissionPicker } from "../_components/PermissionPicker";
+import { TempPasswordModal } from "../_components/TempPasswordModal";
 
 export function EditUserClient({
   user,
@@ -17,8 +19,23 @@ export function EditUserClient({
   const [message, setMessage] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
   const [savePending, startSave] = useTransition();
   const [activePending, startActive] = useTransition();
+  const [resetPending, startReset] = useTransition();
+  const [resetResult, setResetResult] = useState<{ email: string; password: string } | null>(null);
   const [hiworks, setHiworks] = useState<string>(user.hiworks_user_id ?? "");
   const [hiworksPending, startHiworks] = useTransition();
+
+  function resetPassword() {
+    if (!window.confirm("이 사용자의 비밀번호를 새 임시 비밀번호로 재설정할까요?")) return;
+    setMessage(null);
+    startReset(async () => {
+      const res = await resetUserPasswordAction(user.id);
+      if ("error" in res) {
+        setMessage({ kind: "error", text: res.error });
+        return;
+      }
+      setResetResult({ email: user.email ?? "-", password: res.tempPassword });
+    });
+  }
 
   function saveHiworks() {
     setMessage(null);
@@ -82,6 +99,16 @@ export function EditUserClient({
             </button>
           </span>
         </div>
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-small text-muted">비밀번호</span>
+          <button
+            onClick={resetPassword}
+            disabled={resetPending}
+            className="text-small text-accent underline disabled:opacity-40 disabled:no-underline"
+          >
+            {resetPending ? "재설정 중…" : "임시 비밀번호로 재설정"}
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-col gap-2">
@@ -138,6 +165,19 @@ export function EditUserClient({
           목록으로
         </button>
       </div>
+
+      {resetResult && (
+        <TempPasswordModal
+          email={resetResult.email}
+          password={resetResult.password}
+          title="비밀번호가 재설정되었습니다"
+          description="아래 임시 비밀번호를 담당자에게 전달하세요. 다음 로그인 시 비밀번호 변경이 필요합니다."
+          onClose={() => {
+            setResetResult(null);
+            router.refresh();
+          }}
+        />
+      )}
     </div>
   );
 }

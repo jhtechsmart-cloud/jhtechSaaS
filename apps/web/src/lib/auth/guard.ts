@@ -6,13 +6,13 @@ import { resolveAccess } from "@/lib/auth/access";
 import { hasAnyConsoleCapability, landingPathFor } from "@/lib/auth/console";
 
 export type GuardResult =
-  | { status: "ok"; userId: string; permissions: string[] }
+  | { status: "ok"; userId: string; permissions: string[]; mustChangePassword?: boolean }
   | { status: "forbidden" };
 
 // 세션 + profile(permissions·is_active) 적재. 미인증이면 /login으로 리다이렉트(throw).
 // profile 없음·조회 실패는 null(fail-closed) — 호출부가 forbidden 처리.
 async function loadAccessContext(): Promise<
-  { userId: string; permissions: string[]; isActive: boolean } | null
+  { userId: string; permissions: string[]; isActive: boolean; mustChangePassword: boolean } | null
 > {
   const supabase = await createSupabaseServerClient();
   const {
@@ -24,7 +24,7 @@ async function loadAccessContext(): Promise<
 
   const { data: profile, error } = await supabase
     .from("profiles")
-    .select("permissions,is_active")
+    .select("permissions,is_active,must_change_password")
     .eq("id", user.id)
     .single();
 
@@ -39,6 +39,7 @@ async function loadAccessContext(): Promise<
     userId: user.id,
     permissions: profile.permissions ?? [],
     isActive: profile.is_active ?? false,
+    mustChangePassword: profile.must_change_password ?? false,
   };
 }
 
@@ -73,7 +74,12 @@ export async function requireAnyConsoleCapability(): Promise<GuardResult> {
   if (!ctx.isActive || !hasAnyConsoleCapability(ctx.permissions)) {
     return { status: "forbidden" };
   }
-  return { status: "ok", userId: ctx.userId, permissions: ctx.permissions };
+  return {
+    status: "ok",
+    userId: ctx.userId,
+    permissions: ctx.permissions,
+    mustChangePassword: ctx.mustChangePassword,
+  };
 }
 
 // 로그인 후 첫 화면 경로 — 권한 기반. 미인증이면 loadAccessContext가 /login으로 보냄.
