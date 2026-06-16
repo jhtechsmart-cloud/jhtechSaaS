@@ -6,9 +6,12 @@ import {
   getStampDataUri,
   getQuoteBgDataUri,
   getCompanyLogoDataUri,
+  getCompanyLogoCutterDataUri,
+  getCompanyLogoPrinterDataUri,
   getTopBannerDataUri,
   getModelFontDataUri,
 } from "./assets";
+import { resolveLogoKind, type CategoryLite } from "./logo-kind";
 import type { QuoteHtmlData, QuoteHtmlItem, QuoteHtmlIncluded } from "./quote-html";
 
 type QuoteLine = {
@@ -53,6 +56,7 @@ type EquipmentRow = {
   quote_device_image: string | null;
   quote_device_name: string | null;
   specs: unknown;
+  category_id: string | null;
 };
 
 export async function processQuotePdfJob(
@@ -109,7 +113,7 @@ export async function processQuotePdfJob(
     if (equipment || !eqId) continue;
     const { data } = await supabase
       .from("equipment")
-      .select("quote_device_name, quote_device_image, specs")
+      .select("quote_device_name, quote_device_image, specs, category_id")
       .eq("id", eqId)
       .single();
     equipment = data ?? null;
@@ -117,7 +121,7 @@ export async function processQuotePdfJob(
   if (!equipment && items[0]) {
     const { data: all } = await supabase
       .from("equipment")
-      .select("id, name, model, quote_device_name, quote_device_image, specs")
+      .select("id, name, model, quote_device_name, quote_device_image, specs, category_id")
       .eq("status", "active");
     const list = (all ?? []) as (EquipmentRow & { name: string; model: string | null })[];
     const m = matchEquipmentName(items[0].name, list);
@@ -138,6 +142,19 @@ export async function processQuotePdfJob(
   // issued_at은 UTC ISO — KST 변환 없이 slice하면 KST 자정~09시 발행분이 전날 날짜로 인쇄된다.
   const issued = typeof q.issued_at === "string" ? q.issued_at : null;
   const issuedDateLabel = (issued && formatKstKoreanDate(issued)) || "";
+
+  // 좌상단 회사로고 = 장비 대분류의 quote_logo_kind에 따라 분기.
+  //   cutter → 커팅기 로고 / printer → 프린터 로고 / 미설정 → 기본 로고(기존 동작 보존).
+  const { data: cats } = await supabase
+    .from("equipment_category")
+    .select("id, parent_id, quote_logo_kind");
+  const logoKind = resolveLogoKind(equipment?.category_id ?? null, (cats ?? []) as CategoryLite[]);
+  const companyLogoDataUri =
+    logoKind === "cutter"
+      ? await getCompanyLogoCutterDataUri()
+      : logoKind === "printer"
+        ? await getCompanyLogoPrinterDataUri()
+        : await getCompanyLogoDataUri();
 
   const data: QuoteHtmlData = {
     quoteNo: q.quote_no as string,
@@ -160,7 +177,7 @@ export async function processQuotePdfJob(
     modelFontDataUri: await getModelFontDataUri(),
     quoteBgDataUri: await getQuoteBgDataUri(),
     topBannerDataUri: await getTopBannerDataUri(),
-    companyLogoDataUri: await getCompanyLogoDataUri(),
+    companyLogoDataUri,
     deviceImageDataUri: await storageDataUri(
       supabase,
       "equipment-images",

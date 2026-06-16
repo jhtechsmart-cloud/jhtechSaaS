@@ -80,3 +80,40 @@ describe("equipment_category — 2단계 taxonomy RLS", () => {
     });
   });
 });
+
+describe("equipment_category — quote_logo_kind(견적 로고 종류)", () => {
+  test("대분류에 cutter/printer 설정 성공(권한자)", async () => {
+    await inRollbackTx(c, async () => {
+      await seed(); await asUser(c, UID.admin);
+      const p = await c.query("insert into public.equipment_category (name) values ('프린터') returning id", []);
+      const upd = await c.query("update public.equipment_category set quote_logo_kind='printer' where id=$1 returning quote_logo_kind", [p.rows[0].id]);
+      expect(upd.rows[0].quote_logo_kind).toBe("printer");
+      const cut = await c.query("insert into public.equipment_category (name, quote_logo_kind) values ('커팅기','cutter') returning quote_logo_kind", []);
+      expect(cut.rows[0].quote_logo_kind).toBe("cutter");
+    });
+  });
+  test("잘못된 값 → CHECK 거부", async () => {
+    await inRollbackTx(c, async () => {
+      await seed(); await asUser(c, UID.admin);
+      await expect(c.query("insert into public.equipment_category (name, quote_logo_kind) values ('잘못','foo')", [])).rejects.toThrow();
+    });
+  });
+  test("소분류에 로고 종류 설정 → CHECK 거부(대분류 전용)", async () => {
+    await inRollbackTx(c, async () => {
+      await seed(); await asUser(c, UID.admin);
+      const p = await c.query("insert into public.equipment_category (name) values ('프린터') returning id", []);
+      await expect(c.query("insert into public.equipment_category (parent_id,name,quote_logo_kind) values ($1,'UV','printer')", [p.rows[0].id])).rejects.toThrow();
+    });
+  });
+  test("무권한 sales UPDATE 거부", async () => {
+    await inRollbackTx(c, async () => {
+      await seed();
+      await asPostgres(c);
+      const p = await c.query("insert into public.equipment_category (name) values ('프린터') returning id", []);
+      await asUser(c, UID.sales1);
+      const upd = await c.query("update public.equipment_category set quote_logo_kind='printer' where id=$1 returning id", [p.rows[0].id]);
+      // RLS UPDATE 정책(equipment.manage)에 막혀 0행 갱신.
+      expect(upd.rowCount).toBe(0);
+    });
+  });
+});
