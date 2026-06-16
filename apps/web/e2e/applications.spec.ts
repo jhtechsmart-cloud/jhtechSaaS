@@ -108,7 +108,7 @@ test.describe.serial("E4 견적 트리아지 콘솔 E2E", () => {
     // 3) 담당 배정 → status new→assigned 자동 전이. 배지(testid)로 정밀 단언.
     const assign = page.getByRole("combobox").first();
     await assign.selectOption({ index: 1 });
-    await page.getByRole("button", { name: "담당 저장" }).click();
+    await page.getByRole("button", { name: "저장" }).click();
     await expect(page.getByTestId("app-status")).toHaveText("배정", { timeout: 15_000 });
 
     // 4) 상태 변경: 견적중.
@@ -117,7 +117,7 @@ test.describe.serial("E4 견적 트리아지 콘솔 E2E", () => {
     // 서버값('assigned')으로 동기화됐는지(서버값 key remount). Found by /qa 2026-06-04.
     await expect(statusSelect).toHaveValue("assigned");
     await statusSelect.selectOption({ label: "견적중" });
-    await page.getByRole("button", { name: "상태 변경" }).click();
+    await page.getByRole("button", { name: "변경" }).click();
     await expect(page.getByTestId("app-status")).toHaveText("견적중", { timeout: 15_000 });
 
     // 4b) DB에서 실제 status 전이 확인(배지 텍스트만으론 거짓통과 가능).

@@ -54,7 +54,7 @@ export function StatusControl({
             : "border border-border bg-transparent text-muted"
         }`}
       >
-        {pending ? "변경 중…" : "상태 변경"}
+        {pending ? "변경 중…" : "변경"}
       </button>
       {error && <p className="text-small text-danger">{error}</p>}
     </div>

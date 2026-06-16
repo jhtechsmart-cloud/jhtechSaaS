@@ -126,7 +126,7 @@ test.describe.serial("E5a 권한 모델 E2E", () => {
     const statusSelect = page.locator("select");
     await expect(statusSelect).toHaveCount(1);
     await statusSelect.selectOption({ label: "견적중" });
-    await page.getByRole("button", { name: "상태 변경" }).click();
+    await page.getByRole("button", { name: "변경" }).click();
     await expect(page.locator("select")).toHaveValue("quoted", { timeout: 15_000 });
   });
 
