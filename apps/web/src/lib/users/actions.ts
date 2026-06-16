@@ -54,7 +54,8 @@ export async function createUserAction(input: {
   }
 
   // 2) 권한·이름·활성 반영(insert 아닌 UPDATE). 부분 실패 시 멱등 재시도 1회.
-  const patch = { permissions, name, is_active: isActive };
+  // 신규 계정은 임시 비밀번호 상태 → 첫 로그인 시 강제 변경.
+  const patch = { permissions, name, is_active: isActive, must_change_password: true };
   let upErr = (await admin.from("profiles").update(patch).eq("id", userId)).error;
   if (upErr) {
     upErr = (await admin.from("profiles").update(patch).eq("id", userId)).error;
