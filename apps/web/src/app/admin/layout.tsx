@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { cookies } from "next/headers";
 import { can, type PermissionKey } from "@jhtechsaas/shared";
 import { requireAnyConsoleCapability } from "@/lib/auth/guard";
@@ -95,9 +96,13 @@ export default async function AdminLayout({ children }: { children: ReactNode })
                 </span>
               )}
             </span>
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-small font-semibold text-white">
+            <Link
+              href="/admin/account"
+              title="계정 설정"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-small font-semibold text-white"
+            >
               {isAdmin ? "관" : "영"}
-            </span>
+            </Link>
           </div>
         </header>
 
