@@ -9,6 +9,7 @@ import { countNewApplications } from "@/lib/applications/admin-queries";
 import { signOut } from "@/app/login/actions";
 import { Icon } from "./_components/Icon";
 import { AdminSidebar } from "./_components/AdminSidebar";
+import { ForcedPasswordChange } from "./_components/ForcedPasswordChange";
 import { BadgePoller } from "./_components/BadgePoller";
 import { ConsoleMain } from "./_components/ConsoleMain";
 
@@ -27,6 +28,11 @@ export default async function AdminLayout({ children }: { children: ReactNode })
         </form>
       </main>
     );
+  }
+
+  // 임시 비밀번호 상태 → 변경 전엔 콘솔 차단(사이드바·본문 대신 전체화면 변경 패널).
+  if (access.mustChangePassword) {
+    return <ForcedPasswordChange />;
   }
 
   const [unread, supplyUnread, newApps] = await Promise.all([
