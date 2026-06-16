@@ -116,3 +116,28 @@ export async function setUserActive(
   revalidatePath(`/admin/users/${userId}`);
   return { ok: true };
 }
+
+// 하이웍스 발송자 계정 ID 설정 — users.manage 필요. 견적 메일을 이 담당자 명의로 발송할 때 사용.
+// 빈 문자열이면 null로 저장(미설정 = 메일 발송 차단).
+export async function setUserHiworksId(userId: string, value: string): Promise<UserActionResult> {
+  const access = await requirePermission("users.manage");
+  if (access.status === "forbidden") return { error: "권한이 없습니다" };
+  const parsed = z
+    .string()
+    .trim()
+    .max(100)
+    .regex(/^[A-Za-z0-9._-]*$/, "영문·숫자·._- 만 사용할 수 있습니다")
+    .safeParse(value);
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "형식을 확인하세요" };
+  const hiworks = parsed.data.length > 0 ? parsed.data : null;
+
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("profiles")
+    .update({ hiworks_user_id: hiworks })
+    .eq("id", userId)
+    .select("id");
+  if (error || !data || data.length === 0) return { error: "하이웍스 ID 저장에 실패했습니다" };
+  revalidatePath(`/admin/users/${userId}`);
+  return { ok: true };
+}

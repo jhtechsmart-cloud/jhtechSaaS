@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit",
     "seed:admin": "tsx src/seed-admin.ts",
     "test": "vitest run",
-    "test:ci": "vitest run --exclude '**/node_modules/**' --exclude '**/runner.integration.test.ts' --exclude '**/render-quote-pdf.test.ts'"
+    "test:ci": "vitest run --exclude '**/node_modules/**' --exclude '**/runner.integration.test.ts' --exclude '**/email.integration.test.ts' --exclude '**/render-quote-pdf.test.ts'"
   },
   "dependencies": {
     "@jhtechsaas/shared": "workspace:*",

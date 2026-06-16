@@ -5,9 +5,9 @@ import { z } from "zod";
 const envSchema = z.object({
   SUPABASE_URL: z.string().min(1),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
-  // 메일(E6) 전용 — PDF 워커엔 불필요하므로 optional. E6에서 필수화.
-  GMAIL_USER: z.string().min(1).optional(),
-  GMAIL_APP_PASSWORD: z.string().min(1).optional(),
+  // 하이웍스 메일 발송(E6) 오피스 토큰. optional — 미설정 시 FakeMailSender(로컬/미발송).
+  // 프로덕션은 Railway env에 주입 + 하이웍스 허용 IP에 워커 고정 IP 등록 필요.
+  HIWORKS_OFFICE_TOKEN: z.string().min(1).optional(),
 });
 
 export type WorkerEnv = z.infer<typeof envSchema>;

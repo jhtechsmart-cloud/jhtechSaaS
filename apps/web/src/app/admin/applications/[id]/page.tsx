@@ -83,6 +83,7 @@ export default async function ApplicationDetailPage({
   const canManageCustomers = can(access.permissions, "customers.edit");
   const canQuote = can(access.permissions, "quotes.write");
   const canDeleteQuote = can(access.permissions, "users.manage");
+  const canEmail = can(access.permissions, "email.send");
 
   // 견적 목록 조회
   const quotes = await listQuotesForApplication(id);
@@ -159,6 +160,19 @@ export default async function ApplicationDetailPage({
   // ⚠️ anon이 RPC 우회 직접 INSERT로 photos 경로를 주입할 수 있어,
   // RPC와 동일한 경로 정규식(버킷-상대 `<uuid>/<slot>.ext`)을 admin 렌더 전에도 강제.
   const supabase = await createSupabaseServerClient();
+
+  // 현재 견적의 최신 메일 발송 상태(배지·중복 방지용). 발행본만 의미 있음.
+  let emailStatus: string | null = null;
+  if (selected) {
+    const { data: el } = await supabase
+      .from("email_log")
+      .select("status")
+      .eq("quote_id", selected.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    emailStatus = (el as { status?: string } | null)?.status ?? null;
+  }
 
   const photos = fields.photos ?? {};
   const signed = await Promise.all(
@@ -327,6 +341,9 @@ export default async function ApplicationDetailPage({
             isIssued={quote?.status === "issued"}
             deliveryDate={quote?.delivery_date ?? null}
             deliveryTime={quote?.delivery_time ?? null}
+            canEmail={canEmail}
+            emailStatus={emailStatus}
+            companyName={str(r.company)}
           />
           <SalesLogPlaceholder />
         </div>
