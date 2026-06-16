@@ -2,7 +2,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { UserListRow } from "@/lib/users/queries";
-import { updateUserPermissions, setUserActive } from "@/lib/users/actions";
+import { updateUserPermissions, setUserActive, setUserHiworksId } from "@/lib/users/actions";
 import { PermissionPicker } from "../_components/PermissionPicker";
 
 export function EditUserClient({
@@ -17,6 +17,20 @@ export function EditUserClient({
   const [message, setMessage] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
   const [savePending, startSave] = useTransition();
   const [activePending, startActive] = useTransition();
+  const [hiworks, setHiworks] = useState<string>(user.hiworks_user_id ?? "");
+  const [hiworksPending, startHiworks] = useTransition();
+
+  function saveHiworks() {
+    setMessage(null);
+    startHiworks(async () => {
+      const res = await setUserHiworksId(user.id, hiworks);
+      if ("error" in res) setMessage({ kind: "error", text: res.error });
+      else {
+        setMessage({ kind: "ok", text: "하이웍스 ID를 저장했습니다" });
+        router.refresh();
+      }
+    });
+  }
 
   function save() {
     setMessage(null);
@@ -73,6 +87,28 @@ export function EditUserClient({
       <div className="flex flex-col gap-2">
         <span className="text-small font-medium text-text">권한</span>
         <PermissionPicker value={permissions} onChange={setPermissions} />
+      </div>
+
+      <div className="flex flex-col gap-2 rounded-md border border-border bg-surface p-4">
+        <span className="text-small font-medium text-text">하이웍스 발송자 ID</span>
+        <span className="text-micro text-muted">
+          견적 메일을 이 담당자 명의로 발송할 때 쓰는 하이웍스 계정 ID. 미설정 시 발송 차단됩니다.
+        </span>
+        <div className="flex items-center gap-2">
+          <input
+            value={hiworks}
+            onChange={(e) => setHiworks(e.target.value)}
+            placeholder="예: hong"
+            className="flex-1 rounded-md border border-border px-3 py-2 font-mono text-small"
+          />
+          <button
+            onClick={saveHiworks}
+            disabled={hiworksPending || hiworks === (user.hiworks_user_id ?? "")}
+            className="rounded-md bg-accent px-4 py-2 text-small font-medium text-white disabled:opacity-50"
+          >
+            {hiworksPending ? "저장 중…" : "저장"}
+          </button>
+        </div>
       </div>
 
       {message && (

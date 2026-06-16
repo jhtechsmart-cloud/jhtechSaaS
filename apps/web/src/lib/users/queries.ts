@@ -7,6 +7,7 @@ export interface UserListRow {
   email: string | null;
   permissions: string[];
   is_active: boolean;
+  hiworks_user_id: string | null; // 하이웍스 발송자 계정 ID(견적 메일 발송용)
   created_at: string;
 }
 
@@ -17,7 +18,7 @@ export async function listUsers(): Promise<UserListRow[]> {
   const [profilesRes, authRes] = await Promise.all([
     admin
       .from("profiles")
-      .select("id,name,permissions,is_active,created_at")
+      .select("id,name,permissions,is_active,hiworks_user_id,created_at")
       .order("created_at", { ascending: true }),
     admin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
   ]);
@@ -32,6 +33,7 @@ export async function listUsers(): Promise<UserListRow[]> {
     email: emailById.get(p.id) ?? null,
     permissions: p.permissions ?? [],
     is_active: p.is_active,
+    hiworks_user_id: p.hiworks_user_id ?? null,
     created_at: p.created_at,
   }));
 }
@@ -41,7 +43,7 @@ export async function getUser(id: string): Promise<UserListRow | null> {
   const admin = createSupabaseAdminClient();
   const { data: p, error } = await admin
     .from("profiles")
-    .select("id,name,permissions,is_active,created_at")
+    .select("id,name,permissions,is_active,hiworks_user_id,created_at")
     .eq("id", id)
     .maybeSingle();
   if (error) throw new Error(`사용자 조회 실패: ${error.message}`);
@@ -53,6 +55,7 @@ export async function getUser(id: string): Promise<UserListRow | null> {
     email: authUser?.user?.email ?? null,
     permissions: p.permissions ?? [],
     is_active: p.is_active,
+    hiworks_user_id: p.hiworks_user_id ?? null,
     created_at: p.created_at,
   };
 }

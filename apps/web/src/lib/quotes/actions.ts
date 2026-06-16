@@ -3,7 +3,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { requireQuotesWrite, requireUsersManage } from "@/lib/auth/guard";
+import { requirePermission, requireQuotesWrite, requireUsersManage } from "@/lib/auth/guard";
 import {
   createManualQuotePayloadSchema,
   createQuotePayloadSchema,
@@ -66,6 +66,47 @@ export async function setQuoteDeliveryAction(
     return { error: "납품 일정 저장에 실패했습니다." };
   }
   revalidatePath(`/admin/applications/${quote.application_id}`);
+  return null;
+}
+
+// 견적 메일 발송 요청 — email.send 필요. enqueue_quote_email RPC가 발송자(auth.uid())·
+// issued·pdf_url·hiworks_user_id·중복을 모두 검증하고 email_log+jobs를 원자 생성(워커가 실제 발송).
+// ⚠️ Server Action 직접 POST 대비 가드 재호출. 금액·발송자 등 권위값은 전부 서버 RPC가 통제.
+export async function enqueueQuoteEmailAction(
+  quoteId: string,
+  values: { to: string; subject: string; body: string },
+): Promise<QuoteActionResult> {
+  const access = await requirePermission("email.send");
+  if (access.status === "forbidden") return { error: "메일 발송 권한이 없습니다." };
+  if (!z.guid().safeParse(quoteId).success) return { error: "잘못된 요청입니다." };
+  const schema = z.object({
+    // 단일 주소(개행·콤마 차단) — RPC 정규식과 동일 의도. 서버 RPC가 최종 강제.
+    to: z.string().regex(/^[^@\s,]+@[^@\s,]+\.[^@\s,]+$/, "받는 사람 이메일을 확인하세요.").max(200),
+    subject: z.string().trim().min(1, "제목을 입력하세요.").max(200),
+    body: z.string().max(5000),
+  });
+  const parsed = schema.safeParse(values);
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "입력값을 확인하세요." };
+  const v = parsed.data;
+
+  const supabase = await createSupabaseServerClient();
+  const { data: q } = await supabase.from("quotes").select("application_id").eq("id", quoteId).single();
+  const appId = (q as { application_id?: string } | null)?.application_id ?? null;
+
+  const { error } = await supabase.rpc("enqueue_quote_email", {
+    p_quote_id: quoteId,
+    p_to: v.to,
+    p_cc: null,
+    p_bcc: null,
+    p_subject: v.subject,
+    p_body: v.body,
+  });
+  if (error) {
+    console.error("[quotes.enqueueEmail] RPC 실패", error);
+    // RPC raise 메시지는 안내성(담당자 하이웍스 ID 미설정/이미 발송 등) → 그대로 노출(길이 제한).
+    return { error: (error.message || "메일 발송 요청에 실패했습니다.").slice(0, 200) };
+  }
+  if (appId) revalidatePath(`/admin/applications/${appId}`);
   return null;
 }
 
