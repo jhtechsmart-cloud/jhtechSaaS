@@ -1,6 +1,13 @@
+"use client";
+import { useState } from "react";
 import Link from "next/link";
-import type { CalendarEvent, TwoWeekDay } from "@/lib/dashboard/v2-logic";
-import { groupEventsByDay } from "@/lib/dashboard/v2-logic";
+import type { CalendarEvent, CalendarEventType, TwoWeekDay } from "@/lib/dashboard/v2-logic";
+import {
+  CALENDAR_EVENT_TYPES,
+  CALENDAR_HIDDEN_COOKIE,
+  groupEventsByDay,
+  serializeHiddenEventTypes,
+} from "@/lib/dashboard/v2-logic";
 import { EVENT_META } from "@/lib/dashboard/v2-meta";
 
 // 2주 캘린더(전체 폭) — 일반 달력처럼 연속 셀 그리드(hairline 구분)로 2주를 표시.
@@ -76,11 +83,26 @@ function DayCell({
 export function TwoWeekCalendar({
   days,
   events,
+  initialHidden = [],
 }: {
   days: TwoWeekDay[];
   events: CalendarEvent[];
+  initialHidden?: CalendarEventType[];
 }) {
-  const byDay = groupEventsByDay(events);
+  // 범례 클릭으로 종류별 표시/숨김. 선택은 쿠키에 영속(서버가 다음 렌더에서 initialHidden으로 주입).
+  const [hidden, setHidden] = useState<Set<CalendarEventType>>(() => new Set(initialHidden));
+
+  function toggle(type: CalendarEventType) {
+    setHidden((prev) => {
+      const next = new Set(prev);
+      if (next.has(type)) next.delete(type);
+      else next.add(type);
+      document.cookie = `${CALENDAR_HIDDEN_COOKIE}=${serializeHiddenEventTypes(next)};path=/;max-age=31536000;samesite=lax`;
+      return next;
+    });
+  }
+
+  const byDay = groupEventsByDay(events.filter((e) => !hidden.has(e.type)));
   return (
     <section className="flex flex-col gap-4 rounded-2xl border border-border bg-surface p-6 shadow-card">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -88,13 +110,26 @@ export function TwoWeekCalendar({
           <p className="text-h2 font-semibold text-text">2주 일정</p>
           <p className="text-body font-medium text-muted tabular-nums">{monthLabel(days)}</p>
         </div>
-        <div className="flex flex-wrap gap-3 text-micro text-muted">
-          {(Object.keys(EVENT_META) as Array<keyof typeof EVENT_META>).map((k) => (
-            <span key={k} className="flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: EVENT_META[k].color }} />
-              {EVENT_META[k].label}
-            </span>
-          ))}
+        {/* 범례 = 표시/숨김 토글 버튼. 꺼진 항목은 흐리게+취소선, 캘린더에서 해당 종류 칩이 사라짐. */}
+        <div className="flex flex-wrap gap-1 text-micro text-muted">
+          {CALENDAR_EVENT_TYPES.map((k) => {
+            const off = hidden.has(k);
+            return (
+              <button
+                key={k}
+                type="button"
+                onClick={() => toggle(k)}
+                aria-pressed={!off}
+                title={off ? `${EVENT_META[k].label} 표시` : `${EVENT_META[k].label} 숨기기`}
+                className={`flex items-center gap-1.5 rounded-full px-2 py-0.5 transition hover:bg-surface-2 ${
+                  off ? "opacity-40 line-through" : ""
+                }`}
+              >
+                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: EVENT_META[k].color }} />
+                {EVENT_META[k].label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
