@@ -9,6 +9,45 @@ import { CLOSE_HOUR, OPEN_HOUR } from "@/lib/demo-reservations/constants";
 /** 캘린더 이벤트 5종 — 견적(파인)·A/S(코랄)·소모품(라임)·데모(보라)·납품(파랑). */
 export type CalendarEventType = "quote" | "service" | "supply" | "demo" | "delivery";
 
+/** 대시보드 캘린더 숨김 항목 영속 쿠키 이름(서버 읽기·클라 쓰기 단일 출처). */
+export const CALENDAR_HIDDEN_COOKIE = "jh.dashCalHidden";
+
+/** 캘린더 이벤트 5종의 정규 순서 — 범례 표시·숨김 쿠키 직렬화에 공용. */
+export const CALENDAR_EVENT_TYPES: readonly CalendarEventType[] = [
+  "quote",
+  "service",
+  "supply",
+  "demo",
+  "delivery",
+];
+
+function isCalendarEventType(s: string): s is CalendarEventType {
+  return (CALENDAR_EVENT_TYPES as readonly string[]).includes(s);
+}
+
+/**
+ * 캘린더 숨김 항목 쿠키 값(쉼표 구분) → 유효 타입 배열.
+ * 알 수 없는 키·빈 칸·중복은 버리고 입력 순서를 보존한다. 빈 값·미설정이면 빈 배열(= 전부 표시).
+ */
+export function parseHiddenEventTypes(cookieValue: string | undefined): CalendarEventType[] {
+  if (!cookieValue) return [];
+  const out: CalendarEventType[] = [];
+  const seen = new Set<string>();
+  for (const raw of cookieValue.split(",")) {
+    const t = raw.trim();
+    if (isCalendarEventType(t) && !seen.has(t)) {
+      seen.add(t);
+      out.push(t);
+    }
+  }
+  return out;
+}
+
+/** 숨김 타입 Set → 쿠키 값(정규 순서 쉼표 구분). */
+export function serializeHiddenEventTypes(hidden: Set<CalendarEventType>): string {
+  return CALENDAR_EVENT_TYPES.filter((t) => hidden.has(t)).join(",");
+}
+
 export interface CalendarEvent {
   type: CalendarEventType;
   id: string;
