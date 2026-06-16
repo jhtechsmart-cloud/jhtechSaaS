@@ -2,15 +2,20 @@
 import { useState } from "react";
 
 // 🔴 임시 PW 1회 노출 모달 — 생성 직후 mono 표시 + 복사 + "다시 볼 수 없습니다" 경고.
-// 닫으면 소실(서버에 저장 안 됨). 닫기 = onClose(목록으로 이동).
+// 닫으면 소실(서버에 저장 안 됨). 닫기 = onClose.
+// title·description은 호출처별 문구(계정 생성 vs 비밀번호 재설정) 주입용 — 기본값은 생성 흐름.
 export function TempPasswordModal({
   email,
   password,
   onClose,
+  title = "계정이 생성되었습니다",
+  description = "아래 임시 비밀번호를 담당자에게 전달하세요. 첫 로그인 후 변경을 권장합니다.",
 }: {
   email: string;
   password: string;
   onClose: () => void;
+  title?: string;
+  description?: string;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -33,11 +38,9 @@ export function TempPasswordModal({
       <div className="flex w-full max-w-md flex-col gap-4 rounded-lg border border-border bg-bg p-6 shadow-lg">
         <div className="flex flex-col gap-1">
           <h2 id="temp-pw-title" className="text-h2 font-semibold text-text">
-            계정이 생성되었습니다
+            {title}
           </h2>
-          <p className="text-small text-muted">
-            아래 임시 비밀번호를 담당자에게 전달하세요. 첫 로그인 후 변경을 권장합니다.
-          </p>
+          <p className="text-small text-muted">{description}</p>
         </div>
 
         <div className="flex flex-col gap-2 rounded-md border border-border bg-surface p-3">

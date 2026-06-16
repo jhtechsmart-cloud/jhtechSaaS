@@ -134,6 +134,8 @@ export function EditUserClient({
         <TempPasswordModal
           email={resetResult.email}
           password={resetResult.password}
+          title="비밀번호가 재설정되었습니다"
+          description="아래 임시 비밀번호를 담당자에게 전달하세요. 다음 로그인 시 비밀번호 변경이 필요합니다."
           onClose={() => {
             setResetResult(null);
             router.refresh();
