@@ -43,7 +43,7 @@ export function AdminSidebar({
     <aside
       onMouseEnter={() => pinnedCollapsed && setHovering(true)}
       onMouseLeave={() => setHovering(false)}
-      className={`flex shrink-0 flex-col overflow-hidden border-r border-border bg-sidebar text-sidebar-text transition-[width] duration-200 ${
+      className={`hidden shrink-0 flex-col overflow-hidden border-r border-border bg-sidebar text-sidebar-text transition-[width] duration-200 lg:flex ${
         expanded ? "w-56" : "w-16"
       }`}
     >
