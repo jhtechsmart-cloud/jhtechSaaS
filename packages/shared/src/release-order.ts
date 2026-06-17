@@ -2,6 +2,19 @@
 // 작업 문서라 모든 필드 default → 부분 저장(draft) 허용. device_kind에 따라 printer/cutter 중 하나만 채운다.
 import { z } from "zod";
 
+// 종이 양식 고정 체크박스 항목(목업 그대로). 화면 폼·PDF가 공용으로 쓴다(같은 순서·라벨).
+export const RELEASE_OPTIONS = {
+  printerRip: ["토파즈", "포토프린트", "오닉스"],
+  printerColors: ["CMYK", "화이트(W)", "바니쉬"],
+  cutterTools: ["기본툴", "RCT(로터리)", "POT(공압진동)", "라우터툴", "라우터매트"],
+  cutterCamera: ["내장형", "외부 OCC"],
+  cutterExtras: ["링블로워", "에어컴프레서", "컨베이어벨트"],
+  transport: ["1톤 리프트 화물차", "윙바디", "카고"],
+  electrical: ["케이블", "예비 멀티탭 10m", "컴퓨터용 3구+", "차단기"],
+  inboundItems: ["도비바퀴", "자키", "침목", "나무", "랩핑테이프", "리프트", "밧줄"],
+  otherPrep: ["회사명판·로고·안전표시", "에어라인(8mm)"],
+} as const;
+
 const PrinterDetail = z.object({
   rip: z.string().default(""), // 제공 RIP(토파즈/포토프린트/오닉스)
   headType: z.string().default(""), // 헤드 종류

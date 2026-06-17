@@ -33,30 +33,39 @@ describe("renderReleaseHtml", () => {
     expect(html).toContain("2026-07-01 13:30");
   });
 
-  it("프린터 선택 시 프린터 블록·선택값 렌더, 커팅기 미렌더", () => {
+  it("두 패널 모두 렌더 — 프린터 선택 시 프린터 active·커팅기 inactive", () => {
     const html = renderReleaseHtml(make({ deviceKind: "printer" }));
     expect(html).toContain("프린터");
+    expect(html).toContain("커팅기"); // 미선택 패널도 종이 양식대로 표시
+    // 선택 장비 패널이 active(선택됨), 고정 체크박스 항목·선택 체크 렌더
+    expect(html).toMatch(/panel active[\s\S]*프린터[\s\S]*선택됨/);
     expect(html).toContain("토파즈");
-    expect(html).toContain("CMYK, 화이트(W)");
-    expect(html).not.toContain("card-h\">커팅기");
+    expect(html).toContain("CMYK");
+    expect(html).toContain("화이트(W)");
+    // 고정 옵션은 미선택도 칩으로 노출(체크박스 양식)
+    expect(html).toContain("바니쉬");
   });
 
-  it("커팅기 선택 시 커팅기 블록 렌더", () => {
+  it("커팅기 선택 시 커팅기 패널 active + 선택 툴 체크", () => {
     const html = renderReleaseHtml(
       make({
         deviceKind: "cutter",
         details: ReleaseOrderDetailsSchema.parse({ cutter: { tools: ["기본툴", "RCT(로터리)"], camera: ["내장형"] } }),
       }),
     );
-    expect(html).toContain("기본툴, RCT(로터리)");
+    expect(html).toMatch(/panel active[\s\S]*커팅기[\s\S]*선택됨/);
+    expect(html).toContain("기본툴");
+    expect(html).toContain("RCT(로터리)");
     expect(html).toContain("내장형");
   });
 
-  it("준비사항·현장정보 선택값과 설치 토글 렌더", () => {
+  it("준비사항·현장정보 체크박스·설치 토글 렌더", () => {
     const html = renderReleaseHtml(make());
     expect(html).toContain("윙바디");
     expect(html).toContain("단상 220V");
-    expect(html).toContain("설치 · 기본장착"); // 링블로워 install + note
+    expect(html).toContain("기본장착"); // 링블로워 note
+    // 선택 항목은 chk on(✓)으로 렌더
+    expect(html).toMatch(/chk on[\s\S]*윙바디/);
   });
 
   it("폰트 data-URI를 @font-face에 임베드", () => {
