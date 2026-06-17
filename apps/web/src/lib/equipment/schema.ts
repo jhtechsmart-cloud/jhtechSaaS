@@ -85,6 +85,16 @@ export const equipmentFormSchema = z.object({
         ),
     ])
     .default(""),
+  // 제품 카탈로그 PDF Storage 경로(공개 버킷 equipment-catalogs). 빈 문자열=미설정.
+  // 형식 강제(경로조작 방지·DB CHECK·버킷 정책과 일치): equipment/{uuid}/catalog.pdf.
+  catalog_pdf: z
+    .union([
+      z.literal(""),
+      z
+        .string()
+        .regex(/^equipment\/[0-9a-f-]{36}\/catalog\.pdf$/i, "잘못된 카탈로그 경로"),
+    ])
+    .default(""),
 });
 
 export type EquipmentFormValues = z.infer<typeof equipmentFormSchema>;
