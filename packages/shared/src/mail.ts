@@ -132,16 +132,21 @@ function escapeHtml(s: string): string {
 }
 
 // 워커가 발송 시점에 서명URL을 본문에 주입해 최종 HTML 생성. 사용자 본문은 이스케이프(주입 방지).
+// 서명URL은 보안 토큰이 붙어 매우 길다 → 본문 텍스트로 노출하지 않고 깔끔한 버튼(href에만)으로 보낸다.
+// 버튼은 인라인 스타일(메일 클라이언트는 CSS 제한적). 스타일이 제거되는 클라용 텍스트 폴백 링크도 둔다.
 export function composeQuoteEmailHtml(p: { body: string; downloadUrl: string; quoteNo: string }): string {
   const bodyHtml = escapeHtml(p.body).replace(/\r?\n/g, "<br>");
   const url = escapeHtml(p.downloadUrl);
+  const quoteNo = escapeHtml(p.quoteNo);
   return [
     `<div style="font-family:sans-serif;line-height:1.6;color:#1a1a1a">`,
     `<p>${bodyHtml}</p>`,
     `<hr style="border:none;border-top:1px solid #ddd;margin:16px 0">`,
-    `<p><strong>견적서 다운로드</strong> (${escapeHtml(p.quoteNo)})<br>`,
-    `<a href="${url}">${url}</a></p>`,
-    `<p style="color:#888;font-size:12px">본 링크는 보안을 위해 일정 기간 후 만료됩니다.</p>`,
+    `<p style="margin:0 0 12px"><strong>견적서</strong> (${quoteNo})</p>`,
+    `<p style="margin:0 0 16px">`,
+    `<a href="${url}" style="display:inline-block;background:#176455;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;font-size:15px">견적서 PDF 다운로드</a>`,
+    `</p>`,
+    `<p style="color:#888;font-size:12px">버튼이 보이지 않으면 <a href="${url}" style="color:#176455">이 링크</a>를 눌러 주세요. 보안을 위해 링크는 일정 기간 후 만료됩니다.</p>`,
     `</div>`,
   ].join("");
 }
