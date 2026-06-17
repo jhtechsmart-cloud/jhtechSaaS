@@ -285,6 +285,9 @@ export function ReleaseOrderForm({
       {/* 액션 */}
       {!locked && (
         <div className="flex flex-col items-end gap-2">
+          {/* 피드백을 버튼 옆에도 표시 — 긴 폼 하단에서 저장해도 보이게(상단 배너만이면 화면 밖). */}
+          {error && <p className="text-small font-semibold text-coral-text" data-testid="release-feedback">{error}</p>}
+          {notice && <p className="text-small font-semibold text-accent-2" data-testid="release-feedback">{notice}</p>}
           {!canIssue && (
             <p className="text-micro text-muted">
               {!hasIssuedQuote ? "발행하려면 먼저 견적을 발행해야 합니다." : "발행하려면 견적에 납품일정(설치일)을 입력해야 합니다."}

@@ -103,9 +103,9 @@ test.describe.serial("출고의뢰서 작성 E2E", () => {
     // 3) 프린터 칼라 체크박스 토글
     await page.getByRole("button", { name: "CMYK" }).click();
 
-    // 4) 임시저장 → 안내
+    // 4) 임시저장 → 안내(버튼 옆 피드백)
     await page.getByTestId("release-save").click();
-    await expect(page.getByText("임시저장되었습니다.")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("release-feedback")).toContainText("임시저장", { timeout: 15_000 });
 
     // 5) 발행 + PDF 생성 → 의뢰 상세로 복귀
     await page.getByTestId("release-issue").click();
