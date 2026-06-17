@@ -30,8 +30,6 @@ async function cleanup() {
   await rest(`applications?biz_no=eq.${APP_BIZ}`, { method: "DELETE", headers: { Prefer: "return=minimal" } }).catch(() => {});
 }
 
-let appId: string;
-
 async function login(page: Page) {
   await page.goto("/login");
   await page.getByLabel("이메일").fill(ADMIN_EMAIL);
@@ -51,7 +49,6 @@ test.describe.serial("모바일 의뢰관리 목록↔상세", () => {
       body: JSON.stringify([{ company: APP_CO, biz_no: APP_BIZ, status: "new", fields: {} }]),
     });
     if (!res.ok) throw new Error(`application 시드 실패: ${res.status} ${await res.text()}`);
-    appId = ((await res.json()) as Array<{ id: string }>)[0].id;
   });
 
   test.afterAll(async () => {
@@ -63,7 +60,7 @@ test.describe.serial("모바일 의뢰관리 목록↔상세", () => {
     await page.goto("/admin/applications");
 
     // 시드한 의뢰를 회사명으로 확정적으로 찾는다.
-    const item = page.locator('a[href^="/admin/applications/"]', { hasText: APP_CO });
+    const item = page.locator('a[href^="/admin/applications/"]', { hasText: APP_CO }).first();
     await expect(item).toBeVisible({ timeout: 15_000 });
 
     // 탭 → 상세 라우트.
