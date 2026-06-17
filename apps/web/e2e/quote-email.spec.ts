@@ -139,4 +139,19 @@ test.describe.serial("E6 견적 메일 발송 E2E", () => {
     await expect(page.getByText("이미 발송된 견적입니다", { exact: false })).toBeVisible();
     await expect(page.getByText(/직전 발송: wrong@addr\.com/)).toBeVisible();
   });
+
+  test("견적 삭제가 요약 패널에서 빠지고 '버전정보' 모달로 이동", async ({ page }) => {
+    await login(page);
+    await page.goto(`/admin/applications/${appId}`);
+    await expect(page.getByText("QUOTE SUMMARY")).toBeVisible();
+
+    // 요약 패널엔 삭제 버튼이 더 이상 없다(클러터 제거).
+    await expect(page.getByRole("button", { name: "견적 삭제" })).toHaveCount(0);
+    await page.screenshot({ path: "test-results/summary-panel-declutter.png", fullPage: true });
+
+    // 처리바 '버전정보' 모달을 열면 하단 위험 구역에 삭제가 있다.
+    await page.getByRole("button", { name: "버전정보" }).click();
+    await expect(page.getByRole("heading", { name: "버전 정보" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "견적 삭제" })).toBeVisible();
+  });
 });

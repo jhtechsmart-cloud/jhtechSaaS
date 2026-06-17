@@ -23,6 +23,7 @@ import { QuoteHero } from "./_components/quote-frame/QuoteHero";
 import { VersionHistory } from "./_components/quote-frame/VersionHistory";
 import { VersionDiff } from "./_components/quote-frame/VersionDiff";
 import { VersionInfoModal } from "./_components/quote-frame/VersionInfoModal";
+import { DeleteQuoteButton } from "./_components/quote-frame/DeleteQuoteButton";
 import { diffQuoteVersions } from "@/lib/quotes/diff";
 import { buildVersionChip } from "@/lib/quotes/version-chip";
 import { ApplicantInfo } from "./_components/quote-frame/ApplicantInfo";
@@ -270,7 +271,14 @@ export default async function ApplicationDetailPage({
       {/* 처리바 — 좌: 최신 버전 칩 + '버전정보'(버전이력·변경내역 모달) / 우끝: 담당자·상태 컨트롤. */}
       <div className="mb-6 flex flex-wrap items-center gap-x-6 gap-y-3 rounded-lg border border-border/60 bg-surface px-5 py-3 shadow-sm">
         {quotes.length > 0 && selected ? (
-          <VersionInfoModal chip={buildVersionChip(selected)}>
+          <VersionInfoModal
+            chip={buildVersionChip(selected)}
+            dangerZone={
+              canDeleteQuote ? (
+                <DeleteQuoteButton quoteId={selected.id} applicationId={id} multiVersion={quotes.length > 1} />
+              ) : null
+            }
+          >
             <VersionHistory applicationId={id} quotes={quotes} currentQuoteId={selected.id} />
             {versionDiff && prevQuote && (
               <VersionDiff prevVersion={prevQuote.version} currVersion={selected.version} diff={versionDiff} />
@@ -343,8 +351,6 @@ export default async function ApplicationDetailPage({
             pdfReady={pdfReady}
             canReissue={canQuote}
             canWrite={canQuote}
-            canDelete={canDeleteQuote}
-            quoteCount={quotes.length}
             isIssued={quote?.status === "issued"}
             deliveryDate={quote?.delivery_date ?? null}
             deliveryTime={quote?.delivery_time ?? null}

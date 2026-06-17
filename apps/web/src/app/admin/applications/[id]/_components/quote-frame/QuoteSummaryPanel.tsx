@@ -3,7 +3,6 @@ import { VALID_DAYS } from "@/lib/quotes/banner";
 import type { LastSend } from "@/lib/quotes/last-send";
 import { QuotePdfButton } from "./QuotePdfButton";
 import { DeliverySchedule } from "./DeliverySchedule";
-import { DeleteQuoteButton } from "./DeleteQuoteButton";
 import { SendQuoteEmailModal } from "./SendQuoteEmailModal";
 
 const won = (s: string | number) => `₩${Number(s).toLocaleString("ko-KR")}`;
@@ -12,8 +11,8 @@ type LineRow = { name: string; unitPrice: number; quantity: number };
 // 우측 sticky 요약 패널 — 소계(+서브 라인)·합계·발급정보·발송정보. 메일발송은 비활성(후속).
 export function QuoteSummaryPanel({
   applicationId, quoteId, quoteNo, statusLabel, equipmentSubtotal, optionSubtotal, items, options, total,
-  issuedAtLabel, validUntilLabel, assigneeName, email, phone, pdfReady, canReissue, preview, canWrite, canDelete,
-  quoteCount, isIssued, deliveryDate, deliveryTime, canEmail, emailStatus, lastSend, companyName,
+  issuedAtLabel, validUntilLabel, assigneeName, email, phone, pdfReady, canReissue, preview, canWrite,
+  isIssued, deliveryDate, deliveryTime, canEmail, emailStatus, lastSend, companyName,
 }: {
   applicationId: string; quoteId: string | null; quoteNo: string | null; statusLabel: string;
   equipmentSubtotal: number; optionSubtotal: number; items: LineRow[]; options: LineRow[]; total: string;
@@ -21,8 +20,6 @@ export function QuoteSummaryPanel({
   email: string | null; phone: string | null; pdfReady: boolean; canReissue: boolean;
   preview?: boolean; // 미발행 — 예상치 + '견적 작성' 유도
   canWrite?: boolean; // quotes.write — 견적 작성 버튼 노출
-  canDelete?: boolean; // users.manage — 견적 삭제 버튼 노출
-  quoteCount?: number; // 버전 수 — 2개 이상이면 '이 버전'+'전체' 삭제 버튼 분리
   isIssued?: boolean; // 납품 일정 입력 활성 조건(발행 견적만)
   deliveryDate?: string | null; deliveryTime?: string | null;
   canEmail?: boolean; // email.send — 메일 발송 버튼 노출
@@ -85,10 +82,6 @@ export function QuoteSummaryPanel({
               <span className="cursor-not-allowed rounded-md border border-dashed border-border py-2 text-center text-small font-medium text-muted">
                 {!pdfReady ? "메일 발송 · 발행 후 가능" : "메일 발송 · 권한 없음"}
               </span>
-            )}
-            {/* 견적 삭제 — 관리자 전용(발행본 포함). 버전 2개+면 '이 버전'+'전체' 분리. */}
-            {quoteId && canDelete && (
-              <DeleteQuoteButton quoteId={quoteId} applicationId={applicationId} multiVersion={(quoteCount ?? 1) > 1} />
             )}
           </div>
         )}
