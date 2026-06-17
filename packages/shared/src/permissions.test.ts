@@ -8,8 +8,8 @@ import {
 } from "./permissions";
 
 describe("permission registry", () => {
-  // E5a: capability registry — 19키. *.manage 3키는 step6에서 분해·삭제됨. 새 기능마다 키 추가, 스키마 변경 0.
-  test("registry는 19개 capability 키를 정의한다", () => {
+  // E5a: capability registry. *.manage 3키는 step6에서 분해·삭제됨. 새 기능마다 키 추가, 스키마 변경 0.
+  test("registry는 20개 capability 키를 정의한다", () => {
     expect([...PERMISSIONS].sort()).toEqual(
       [
         "demo_reservations.write",
@@ -19,6 +19,7 @@ describe("permission registry", () => {
         "applications.claim",
         "quotes.write",
         "email.send",
+        "release_orders.write",
         "customers.edit",
         "customers.delete",
         "customers.view_all",
@@ -152,7 +153,7 @@ describe("신규 9키 — can() 동작 + users.manage 우회", () => {
 });
 
 describe("SALES_PRESET (영업담당 프리셋)", () => {
-  test("정확히 10키로 구성된다", () => {
+  test("정확히 11키로 구성된다", () => {
     expect([...SALES_PRESET].sort()).toEqual(
       [
         "applications.status",
@@ -160,6 +161,7 @@ describe("SALES_PRESET (영업담당 프리셋)", () => {
         "quotes.write",
         "customers.edit",
         "email.send",
+        "release_orders.write",
         "service_requests.status",
         "service_requests.claim",
         "supply_requests.status",

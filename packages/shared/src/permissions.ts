@@ -66,6 +66,12 @@ const PERMISSION_REGISTRY_RAW = [
     description: "견적 메일 발송",
     group: "견적",
   },
+  {
+    key: "release_orders.write",
+    label: "출고의뢰서 작성",
+    description: "장비출고의뢰서 작성·발행",
+    group: "견적",
+  },
   // ── 고객 (customers) ──
   {
     key: "customers.edit",
@@ -177,6 +183,7 @@ export const SALES_PRESET: PermissionKey[] = [
   "quotes.write",
   "customers.edit",
   "email.send",
+  "release_orders.write",
   "service_requests.status",
   "service_requests.claim",
   "supply_requests.status",
