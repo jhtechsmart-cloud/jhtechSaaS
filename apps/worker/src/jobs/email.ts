@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { composeQuoteEmailHtml, type MailSender } from "@jhtechsaas/shared";
 import { MAX_ATTEMPTS } from "./queue";
+import { pickQuoteEquipmentId } from "./quote-equipment";
 
 // 견적 메일 발송 잡. 핵심은 멱등성: 메일은 PDF와 달리 재시도=중복 발송이므로
 // email_log 상태기계(pending→sending→sent/failed)를 CAS로 잠가 "한 번만" 발송한다.
@@ -49,7 +50,7 @@ export async function processEmailJob(
     // 견적 메타 + PDF 경로
     const { data: quote, error } = await supabase
       .from("quotes")
-      .select("quote_no, pdf_url")
+      .select("quote_no, pdf_url, items, application_id")
       .eq("id", quoteId)
       .single();
     if (error || !quote) throw new Error(`견적 조회 실패: ${error?.message ?? "없음"}`);
@@ -64,7 +65,16 @@ export async function processEmailJob(
       throw new Error(`서명URL 생성 실패: ${signed.error?.message ?? "없음"}`);
     }
 
-    const html = composeQuoteEmailHtml({ body, downloadUrl: signed.data.signedUrl, quoteNo });
+    // 카탈로그 공개URL(선택) — 견적의 주 장비에 catalog_pdf가 있으면 메일에 함께 링크.
+    // best-effort: 조회 실패·미존재면 카탈로그 생략하고 견적서만 발송(메일 자체는 진행).
+    const catalogDownloadUrl = (await resolveCatalogUrl(supabase, q)) ?? undefined;
+
+    const html = composeQuoteEmailHtml({
+      body,
+      downloadUrl: signed.data.signedUrl,
+      quoteNo,
+      catalogDownloadUrl,
+    });
     const result = await mailSender.send({ fromUserId: hiworksUserId, to, cc, bcc, subject, html });
 
     // 하이웍스 실제 응답을 그대로 남긴다(응답 스키마는 추정값 → 첫 실발송 검증·향후 디버깅용).
@@ -105,5 +115,42 @@ export async function processEmailJob(
       .eq("id", logId)
       .eq("status", "sending");
     throw e;
+  }
+}
+
+// 견적의 주 장비 카탈로그(PDF) 공개URL. 없거나 조회 실패면 null(메일은 카탈로그 없이 발송).
+// equipment-catalogs는 공개 버킷 → getPublicUrl(만료 없음). 장비 해석은 quote-pdf.ts와 동일 우선순위.
+async function resolveCatalogUrl(
+  supabase: SupabaseClient,
+  q: Record<string, unknown>,
+): Promise<string | null> {
+  try {
+    const applicationId = typeof q.application_id === "string" ? q.application_id : null;
+    let appEquipmentId: string | null = null;
+    if (applicationId) {
+      const { data: app } = await supabase
+        .from("applications")
+        .select("equipment_id")
+        .eq("id", applicationId)
+        .single();
+      const e = app as { equipment_id?: unknown } | null;
+      appEquipmentId = typeof e?.equipment_id === "string" ? e.equipment_id : null;
+    }
+    const equipmentId = pickQuoteEquipmentId(q.items, appEquipmentId);
+    if (!equipmentId) return null;
+
+    const { data: eq } = await supabase
+      .from("equipment")
+      .select("catalog_pdf")
+      .eq("id", equipmentId)
+      .single();
+    const catalogPath = (eq as { catalog_pdf?: unknown } | null)?.catalog_pdf;
+    if (typeof catalogPath !== "string" || !catalogPath) return null;
+
+    const pub = supabase.storage.from("equipment-catalogs").getPublicUrl(catalogPath);
+    return pub.data?.publicUrl ?? null;
+  } catch (e) {
+    console.warn(`[worker] 카탈로그 URL 해석 실패(메일은 계속): ${e instanceof Error ? e.message : String(e)}`);
+    return null;
   }
 }

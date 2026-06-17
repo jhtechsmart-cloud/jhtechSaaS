@@ -21,6 +21,7 @@ import { YoutubeUrlsEditor } from "./YoutubeUrlsEditor";
 import { OptionEditor } from "./OptionEditor";
 import { ImageUploader } from "./ImageUploader";
 import { BannerUploader } from "./BannerUploader";
+import { CatalogUploader } from "./CatalogUploader";
 
 type EquipmentFormInput = z.input<typeof equipmentFormSchema>;
 
@@ -59,6 +60,7 @@ export function EquipmentForm(props: Props) {
             options: [],
             quote_device_name: "",
             quote_device_image: "",
+            catalog_pdf: "",
           },
   });
   const {
@@ -80,6 +82,9 @@ export function EquipmentForm(props: Props) {
   const {
     field: { value: deviceImage, onChange: setDeviceImage },
   } = useController({ control, name: "quote_device_image" });
+  const {
+    field: { value: catalogPdf, onChange: setCatalogPdf },
+  } = useController({ control, name: "catalog_pdf" });
 
   // 이월 ②: dirty 상태에서 이탈 시 경고(beforeunload).
   useEffect(() => {
@@ -234,6 +239,14 @@ export function EquipmentForm(props: Props) {
           onUploadingChange={setUploading}
         />
       </div>
+
+      {/* §3-2 제품 카탈로그 PDF — 견적 메일에 다운로드 링크로 함께 발송 */}
+      <CatalogUploader
+        equipmentId={equipmentId}
+        value={catalogPdf ?? ""}
+        onChange={setCatalogPdf}
+        onUploadingChange={setUploading}
+      />
 
       {/* §4 옵션 */}
       <OptionEditor control={control} register={register} />

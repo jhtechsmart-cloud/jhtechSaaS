@@ -135,3 +135,27 @@ test("specs icon이 enum 밖이면 실패", () => {
   });
   expect(bad.success).toBe(false);
 });
+
+describe("catalog_pdf", () => {
+  it("올바른 경로 통과", () => {
+    expect(
+      equipmentFormSchema.safeParse({
+        ...base,
+        catalog_pdf: "equipment/11111111-1111-1111-1111-111111111111/catalog.pdf",
+      }).success,
+    ).toBe(true);
+  });
+  it("빈 문자열 허용(기본)", () => {
+    expect(equipmentFormSchema.safeParse({ ...base, catalog_pdf: "" }).success).toBe(true);
+  });
+  it("미지정 시 기본값 빈 문자열", () => {
+    const r = equipmentFormSchema.safeParse(base);
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.catalog_pdf).toBe("");
+  });
+  it("잘못된 경로 거부", () => {
+    expect(
+      equipmentFormSchema.safeParse({ ...base, catalog_pdf: "equipment/x/bad.pdf" }).success,
+    ).toBe(false);
+  });
+});

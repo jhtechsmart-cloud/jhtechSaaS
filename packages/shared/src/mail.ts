@@ -138,9 +138,15 @@ function escapeHtml(s: string): string {
 // flex/grid·외부CSS·웹폰트 금지. 서명URL은 길어서 텍스트로 노출하지 않고 큰 버튼(href에만)으로.
 const PINE = "#176455";
 const PINE_SOFT = "#f0f7f4";
-export function composeQuoteEmailHtml(p: { body: string; downloadUrl: string; quoteNo: string }): string {
+export function composeQuoteEmailHtml(p: {
+  body: string;
+  downloadUrl: string;
+  quoteNo: string;
+  catalogDownloadUrl?: string;
+}): string {
   const bodyHtml = escapeHtml(p.body).replace(/\r?\n/g, "<br>");
   const url = escapeHtml(p.downloadUrl);
+  const catalogUrl = p.catalogDownloadUrl ? escapeHtml(p.catalogDownloadUrl) : null;
   const quoteNo = escapeHtml(p.quoteNo);
   const font =
     "font-family:'Apple SD Gothic Neo','Malgun Gothic',Helvetica,Arial,sans-serif";
@@ -170,6 +176,17 @@ export function composeQuoteEmailHtml(p: { body: string; downloadUrl: string; qu
     `<td align="center" style="border-radius:8px;background:${PINE}">`,
     `<a href="${url}" style="display:inline-block;padding:15px 38px;color:#ffffff;font-size:16px;font-weight:700;text-decoration:none;letter-spacing:.3px">📄&nbsp;&nbsp;견적서(PDF) 다운로드</a>`,
     `</td></tr></table>`,
+
+    // 카탈로그 버튼(선택) — 장비에 카탈로그가 등록돼 있으면 견적서 아래 아웃라인 버튼으로.
+    ...(catalogUrl
+      ? [
+          `<table role="presentation" cellpadding="0" cellspacing="0" align="center" style="margin:0 auto 14px"><tr>`,
+          `<td align="center" style="border-radius:8px;border:1.5px solid ${PINE}">`,
+          `<a href="${catalogUrl}" style="display:inline-block;padding:13px 30px;color:${PINE};font-size:15px;font-weight:700;text-decoration:none">📘&nbsp;&nbsp;제품 카탈로그(PDF) 다운로드</a>`,
+          `</td></tr></table>`,
+        ]
+      : []),
+
     `<div style="text-align:center;color:#8a9b95;font-size:12px;line-height:1.6">버튼이 보이지 않으면 <a href="${url}" style="color:${PINE}">여기</a>를 눌러 주세요.<br>보안을 위해 다운로드 링크는 일정 기간 후 만료됩니다.</div>`,
     `</td></tr>`,
 
