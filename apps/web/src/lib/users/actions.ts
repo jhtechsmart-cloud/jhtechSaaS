@@ -17,6 +17,8 @@ const createSchema = z.object({
   name: z.string().trim().min(1, "이름을 입력하세요").max(60),
   email: z.string().trim().toLowerCase().email("올바른 이메일이 아닙니다").max(200),
   permissions: z.array(z.string()).default([]),
+  position: z.string().trim().max(50, "직책은 50자 이내로 입력하세요").optional(),
+  phone: z.string().trim().max(30, "연락처는 30자 이내로 입력하세요").optional(),
 });
 
 // 계정 생성 — users.manage 필요. createUser(임시 PW) → 트리거가 profile 자동생성 → 권한 UPDATE.
@@ -25,6 +27,8 @@ export async function createUserAction(input: {
   name: string;
   email: string;
   permissions: string[];
+  position?: string;
+  phone?: string;
 }): Promise<CreateUserResult> {
   const access = await requirePermission("users.manage");
   if (access.status === "forbidden") return { error: "권한이 없습니다" };
@@ -33,6 +37,8 @@ export async function createUserAction(input: {
     return { error: parsed.error.issues[0]?.message ?? "입력값이 올바르지 않습니다" };
   }
   const { name, email } = parsed.data;
+  const position = parsed.data.position?.trim() || null;
+  const phone = parsed.data.phone?.trim() || null;
   const permissions = sanitizePermissions(parsed.data.permissions);
   const isActive = permissions.length > 0;
 
@@ -55,7 +61,7 @@ export async function createUserAction(input: {
 
   // 2) 권한·이름·활성 반영(insert 아닌 UPDATE). 부분 실패 시 멱등 재시도 1회.
   // 신규 계정은 임시 비밀번호 상태 → 첫 로그인 시 강제 변경.
-  const patch = { permissions, name, is_active: isActive, must_change_password: true };
+  const patch = { permissions, name, position, phone, is_active: isActive, must_change_password: true };
   let upErr = (await admin.from("profiles").update(patch).eq("id", userId)).error;
   if (upErr) {
     upErr = (await admin.from("profiles").update(patch).eq("id", userId)).error;
@@ -113,6 +119,46 @@ export async function setUserActive(
     .eq("id", userId)
     .select("id");
   if (error || !data || data.length === 0) return { error: "상태 변경에 실패했습니다" };
+  revalidatePath("/admin/users");
+  revalidatePath(`/admin/users/${userId}`);
+  return { ok: true };
+}
+
+// 기본정보(이름·직책·연락처) 수정 — users.manage 필요. 이름은 profiles + auth user_metadata 동기.
+// 빈 직책·연락처는 null로 저장. 이메일(로그인ID)은 여기서 못 바꿈.
+const basicsSchema = z.object({
+  name: z.string().trim().min(1, "이름을 입력하세요").max(60),
+  position: z.string().trim().max(50, "직책은 50자 이내로 입력하세요"),
+  phone: z.string().trim().max(30, "연락처는 30자 이내로 입력하세요"),
+});
+
+export async function updateUserBasics(
+  userId: string,
+  input: { name: string; position: string; phone: string },
+): Promise<UserActionResult> {
+  const access = await requirePermission("users.manage");
+  if (access.status === "forbidden") return { error: "권한이 없습니다" };
+  const parsed = basicsSchema.safeParse(input);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "입력값이 올바르지 않습니다" };
+  }
+  const { name } = parsed.data;
+  const position = parsed.data.position.trim() || null;
+  const phone = parsed.data.phone.trim() || null;
+
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("profiles")
+    .update({ name, position, phone })
+    .eq("id", userId)
+    .select("id");
+  if (error || !data || data.length === 0) return { error: "정보 저장에 실패했습니다" };
+
+  // 이름은 auth user_metadata에도 동기(가입 메타·표시 일관). 실패해도 치명적 아님(로그만).
+  const admin = createSupabaseAdminClient();
+  const metaErr = (await admin.auth.admin.updateUserById(userId, { user_metadata: { name } })).error;
+  if (metaErr) console.error("[updateUserBasics] user_metadata 동기 실패", metaErr);
+
   revalidatePath("/admin/users");
   revalidatePath(`/admin/users/${userId}`);
   return { ok: true };
