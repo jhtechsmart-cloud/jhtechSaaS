@@ -5,7 +5,16 @@ import type { VersionChip } from "@/lib/quotes/version-chip";
 // 처리바 좌측: 최신/선택 버전 요약 칩 + '버전정보' 버튼.
 // 버튼을 누르면 버전 이력·변경 내역(children)을 모달로 띄운다.
 // 칩은 항목별 nowrap + flex-wrap이라 좁아져도 글자가 짤리지 않고 자동으로 줄을 맞춘다.
-export function VersionInfoModal({ chip, children }: { chip: VersionChip; children: ReactNode }) {
+// dangerZone — 모달 하단에 구분해서 두는 위험 동작(견적 삭제). 요약 패널 대신 여기로 모았다.
+export function VersionInfoModal({
+  chip,
+  children,
+  dangerZone,
+}: {
+  chip: VersionChip;
+  children: ReactNode;
+  dangerZone?: ReactNode;
+}) {
   const [open, setOpen] = useState(false);
 
   // ESC로 닫기. 열렸을 때만 리스너 등록.
@@ -77,6 +86,13 @@ export function VersionInfoModal({ chip, children }: { chip: VersionChip; childr
               </button>
             </div>
             <div className="flex flex-col gap-5 p-5">{children}</div>
+            {/* 위험 구역 — 견적 삭제. 본문과 구분(상단 보더 + 라벨)해 실수 클릭 방지. */}
+            {dangerZone && (
+              <div className="border-t border-border px-5 py-4">
+                <p className="mb-2 text-small font-semibold text-muted">견적 삭제</p>
+                {dangerZone}
+              </div>
+            )}
             {/* 하단 닫기 버튼 — 상단 ✕ 외 명시적 닫기 동선. */}
             <div className="flex justify-end border-t border-border px-5 py-3">
               <button
