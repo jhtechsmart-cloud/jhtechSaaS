@@ -16,6 +16,7 @@ import { pickRepresentativeQuote, computeQuoteValidity } from "@/lib/quotes/bann
 import { parseQuoteLines } from "@/lib/quotes/form";
 import { formatBizNo, formatKstDateTime, formatPhone } from "@jhtechsaas/shared";
 import { matchEquipmentName } from "@/lib/quotes/equipment-match";
+import type { LastSend } from "@/lib/quotes/last-send";
 import { listEquipmentForMatch } from "@/lib/quotes/equipment-match.server";
 import type { MatchableEquipmentWithOptions } from "@/lib/quotes/equipment-match.server";
 import { QuoteHero } from "./_components/quote-frame/QuoteHero";
@@ -161,17 +162,23 @@ export default async function ApplicationDetailPage({
   // RPC와 동일한 경로 정규식(버킷-상대 `<uuid>/<slot>.ext`)을 admin 렌더 전에도 강제.
   const supabase = await createSupabaseServerClient();
 
-  // 현재 견적의 최신 메일 발송 상태(배지·중복 방지용). 발행본만 의미 있음.
+  // 현재 견적의 최신 메일 발송 상태/대상(배지·재발송 모달용). 발행본만 의미 있음.
   let emailStatus: string | null = null;
+  let lastSend: LastSend | null = null;
   if (selected) {
     const { data: el } = await supabase
       .from("email_log")
-      .select("status")
+      .select("status, to_email, created_at")
       .eq("quote_id", selected.id)
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    emailStatus = (el as { status?: string } | null)?.status ?? null;
+    const row = el as { status?: string; to_email?: string; created_at?: string } | null;
+    emailStatus = row?.status ?? null;
+    lastSend =
+      row?.to_email && row?.created_at
+        ? { to: row.to_email, status: row.status ?? "", at: row.created_at }
+        : null;
   }
 
   const photos = fields.photos ?? {};
@@ -343,6 +350,7 @@ export default async function ApplicationDetailPage({
             deliveryTime={quote?.delivery_time ?? null}
             canEmail={canEmail}
             emailStatus={emailStatus}
+            lastSend={lastSend}
             companyName={str(r.company)}
           />
           <SalesLogPlaceholder />

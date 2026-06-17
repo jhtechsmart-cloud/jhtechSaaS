@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { VALID_DAYS } from "@/lib/quotes/banner";
+import type { LastSend } from "@/lib/quotes/last-send";
 import { QuotePdfButton } from "./QuotePdfButton";
 import { DeliverySchedule } from "./DeliverySchedule";
 import { DeleteQuoteButton } from "./DeleteQuoteButton";
@@ -12,7 +13,7 @@ type LineRow = { name: string; unitPrice: number; quantity: number };
 export function QuoteSummaryPanel({
   applicationId, quoteId, quoteNo, statusLabel, equipmentSubtotal, optionSubtotal, items, options, total,
   issuedAtLabel, validUntilLabel, assigneeName, email, phone, pdfReady, canReissue, preview, canWrite, canDelete,
-  quoteCount, isIssued, deliveryDate, deliveryTime, canEmail, emailStatus, companyName,
+  quoteCount, isIssued, deliveryDate, deliveryTime, canEmail, emailStatus, lastSend, companyName,
 }: {
   applicationId: string; quoteId: string | null; quoteNo: string | null; statusLabel: string;
   equipmentSubtotal: number; optionSubtotal: number; items: LineRow[]; options: LineRow[]; total: string;
@@ -26,6 +27,7 @@ export function QuoteSummaryPanel({
   deliveryDate?: string | null; deliveryTime?: string | null;
   canEmail?: boolean; // email.send — 메일 발송 버튼 노출
   emailStatus?: string | null; // 현재 견적의 최신 발송 상태(sent/sending/pending/failed/null)
+  lastSend?: LastSend | null; // 직전 발송 정보(재발송 모달 안내용)
   companyName?: string | null; // 메일 프리필용 신청기업명
 }) {
   return (
@@ -77,6 +79,7 @@ export function QuoteSummaryPanel({
                 quoteNo={quoteNo ?? ""}
                 companyName={companyName ?? null}
                 emailStatus={emailStatus ?? null}
+                lastSend={lastSend ?? null}
               />
             ) : (
               <span className="cursor-not-allowed rounded-md border border-dashed border-border py-2 text-center text-small font-medium text-muted">
