@@ -184,17 +184,39 @@ describe("enqueue_quote_email — 정상 + 멱등", () => {
     });
   });
 
-  test("부분 유니크 인덱스: 같은 견적 활성 발송 2건 동시 불가(중복 INSERT 차단)", async () => {
+  test("부분 유니크 인덱스: 진행 중(pending) 2건 동시 불가 — 단, sent는 차단 안 함", async () => {
     await inRollbackTx(c, async () => {
       const qid = await seedIssuedQuote(UID.sales1);
       await asService(c);
-      await c.query(
-        "insert into public.email_log (quote_id, to_email, status) values ($1,'a@b.com','sent')",
-        [qid],
-      );
+      // 진행 중 1건 → 두 번째 진행 중 INSERT는 차단
+      await c.query("insert into public.email_log (quote_id, to_email, status) values ($1,'a@b.com','pending')", [qid]);
       await expect(
-        c.query("insert into public.email_log (quote_id, to_email, status) values ($1,'a@b.com','pending')", [qid]),
+        c.query("insert into public.email_log (quote_id, to_email, status) values ($1,'a@b.com','sending')", [qid]),
       ).rejects.toThrow();
+    });
+  });
+
+  test("재발송 허용: sent 행이 있어도 새 발송 enqueue 가능", async () => {
+    await inRollbackTx(c, async () => {
+      const qid = await seedIssuedQuote(UID.sales1);
+      await asService(c);
+      await c.query("insert into public.email_log (quote_id, to_email, status) values ($1,'old@x.com','sent')", [qid]);
+      await asUser(c, UID.sales1);
+      const out = (await enqueue(qid, "new@x.com")) as { email_log_id: string };
+      expect(out.email_log_id).toBeTruthy();
+      await asPostgres(c);
+      // 같은 견적에 sent + pending 공존
+      const rows = await c.query("select status from public.email_log where quote_id=$1 order by created_at", [qid]);
+      expect(rows.rows.map((r) => r.status).sort()).toEqual(["pending", "sent"]);
+    });
+  });
+
+  test("재발송 차단: 진행 중(pending)이면 새 enqueue 거부", async () => {
+    await inRollbackTx(c, async () => {
+      const qid = await seedIssuedQuote(UID.sales1);
+      await asUser(c, UID.sales1);
+      await enqueue(qid); // pending 1건
+      await expect(enqueue(qid, "x@y.com")).rejects.toThrow(/발송 진행 중/);
     });
   });
 });
