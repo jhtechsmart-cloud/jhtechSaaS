@@ -18,6 +18,7 @@ const PATHS: Record<string, string> = {
   logout: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9",
   chevronLeft: "M15 18l-6-6 6-6",
   chevronRight: "M9 18l6-6-6-6",
+  menu: "M3 6h18M3 12h18M3 18h18",
 };
 
 export function Icon({
