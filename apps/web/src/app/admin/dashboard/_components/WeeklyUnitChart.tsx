@@ -21,8 +21,10 @@ export function WeeklyUnitChart({ days }: { days: WeeklyUnitDay[] }) {
           </span>
         }
       />
-      {/* 하루 = 한 레인 — hairline 세로 구분선으로 요일 경계를 또렷하게 */}
-      <div className="grid grid-cols-7 divide-x divide-row-line">
+      {/* 하루 = 한 레인 — hairline 세로 구분선으로 요일 경계를 또렷하게.
+          lg 미만(모바일)에선 7열이 좁아지므로 가로 스크롤 + min-width(데스크톱은 그대로 채움). */}
+      <div data-testid="weekly-chart-scroll" className="overflow-x-auto">
+      <div className="grid min-w-[480px] grid-cols-7 divide-x divide-row-line">
         {days.map((d, di) => {
           // "6/7 (일)" → 날짜 위·요일 아래 두 줄(라벨이 열 단위로 묶여 하루 구분이 명확)
           const [md, dow] = (formatMonthDayWeekday(d.date) ?? d.date).split(" ");
@@ -52,6 +54,7 @@ export function WeeklyUnitChart({ days }: { days: WeeklyUnitDay[] }) {
             </div>
           );
         })}
+      </div>
       </div>
     </section>
   );

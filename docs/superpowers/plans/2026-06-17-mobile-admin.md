@@ -789,3 +789,16 @@ git commit -m "test: 모바일 견적 하단 고정 바 e2e(노출·합계반영
 ```
 
 **Phase 3 완료 게이트:** `web test`·`web typecheck`·`lint`·`build`·`web test:e2e` 통과.
+
+---
+
+# Phase 4 — 대시보드 캘린더·차트 가로 넘침 (JIT 확정 · 구현 완료)
+
+**결정:** 가로 스크롤 래퍼 + min-width (agenda 리스트 대안은 보류 — 가로 스크롤이 디자인 유지·구현 단순). `lg`+ 데스크톱은 그리드가 컨테이너를 채워 스크롤 없음(무손상).
+
+**변경:**
+- `TwoWeekCalendar.tsx`: 그리드 래퍼 `overflow-hidden` → `overflow-x-auto` + `data-testid="calendar-scroll"`, 내부 그리드 `min-w-[680px]`(7칸 가독성 유지).
+- `WeeklyUnitChart.tsx`: 7열 그리드를 `overflow-x-auto`(`data-testid="weekly-chart-scroll"`) 래퍼로 감싸고 그리드 `min-w-[480px]`.
+- E2E `mobile-dashboard.spec.ts`(390px): 캘린더·차트가 뷰포트 안 스크롤 컨테이너에 담김(scrollWidth > clientWidth, clientWidth ≤ viewport).
+
+KPI 카드·우측 레일은 이미 반응형이라 무변경.

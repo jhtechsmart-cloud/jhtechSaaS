@@ -133,9 +133,10 @@ export function TwoWeekCalendar({
         </div>
       </div>
 
-      {/* 일반 달력 그리드 — gap-px + 배경색이 hairline 셀 구분선 역할 */}
-      <div className="overflow-hidden rounded-xl border border-row-line">
-        <div className="grid grid-cols-7 gap-px bg-row-line">
+      {/* 일반 달력 그리드 — gap-px + 배경색이 hairline 셀 구분선 역할.
+          lg 미만(모바일)에선 7열이 뭉개지므로 가로 스크롤 + min-width로 칸 가독성 유지(데스크톱은 그대로 채움). */}
+      <div data-testid="calendar-scroll" className="overflow-x-auto rounded-xl border border-row-line">
+        <div className="grid min-w-[680px] grid-cols-7 gap-px bg-row-line">
           {DOW_LABELS.map((w, i) => (
             <div
               key={w}
