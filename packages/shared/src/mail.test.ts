@@ -126,6 +126,20 @@ describe("이메일 템플릿", () => {
     expect(html).toContain(`href="${url}"`);
     expect(html).not.toContain(`>${url}<`);
   });
+  test("composeQuoteEmailHtml: 카탈로그 URL 있으면 두 번째 버튼", () => {
+    const html = composeQuoteEmailHtml({
+      body: "본문",
+      downloadUrl: "https://x/q.pdf",
+      quoteNo: "Q1",
+      catalogDownloadUrl: "https://x/c.pdf",
+    });
+    expect(html).toContain("제품 카탈로그(PDF) 다운로드");
+    expect(html).toContain('href="https://x/c.pdf"');
+  });
+  test("composeQuoteEmailHtml: 카탈로그 URL 없으면 카탈로그 버튼 없음", () => {
+    const html = composeQuoteEmailHtml({ body: "본문", downloadUrl: "https://x/q.pdf", quoteNo: "Q1" });
+    expect(html).not.toContain("제품 카탈로그");
+  });
   test("composeQuoteEmailHtml: 재현테크 브랜드 헤더 + 견적번호 + 테이블 레이아웃", () => {
     const html = composeQuoteEmailHtml({ body: "본문", downloadUrl: "https://x", quoteNo: "JHQ-20260617-009-V1" });
     // 발신자가 재현테크임을 본문에서 알 수 있다(헤더·푸터).
