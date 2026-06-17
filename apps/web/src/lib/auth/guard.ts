@@ -98,6 +98,7 @@ export const requireCustomersViewAll = () => requirePermission("customers.view_a
 export const requireConsumablesManage = () => requirePermission("consumables.manage");
 export const requireUsersManage = () => requirePermission("users.manage");
 export const requireQuotesWrite = () => requirePermission("quotes.write");
+export const requireReleaseOrdersWrite = () => requirePermission("release_orders.write");
 export const requireDemoReservationsWrite = () =>
   requirePermission("demo_reservations.write");
 
