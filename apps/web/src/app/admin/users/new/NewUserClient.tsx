@@ -10,6 +10,8 @@ export function NewUserClient() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [position, setPosition] = useState("");
+  const [phone, setPhone] = useState("");
   // 프리셋 우선 — 기본은 영업담당(가장 흔한 신규 계정).
   const [permissions, setPermissions] = useState<string[]>([...SALES_PRESET]);
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +22,7 @@ export function NewUserClient() {
     e.preventDefault();
     setError(null);
     startTransition(async () => {
-      const res = await createUserAction({ name, email, permissions });
+      const res = await createUserAction({ name, email, permissions, position, phone });
       if ("error" in res) {
         setError(res.error);
         return;
@@ -54,6 +56,27 @@ export function NewUserClient() {
               maxLength={200}
               placeholder="sales@jhtech.co.kr"
               className="rounded-md border border-border bg-surface px-3 py-2 font-mono text-body text-text"
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-small font-medium text-text">직책</span>
+            <input
+              value={position}
+              onChange={(e) => setPosition(e.target.value)}
+              maxLength={50}
+              placeholder="영업팀 대리"
+              className="rounded-md border border-border bg-surface px-3 py-2 text-body text-text"
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-small font-medium text-text">연락처</span>
+            <input
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              inputMode="tel"
+              maxLength={30}
+              placeholder="010-1234-5678"
+              className="rounded-md border border-border bg-surface px-3 py-2 text-body text-text"
             />
           </label>
         </div>

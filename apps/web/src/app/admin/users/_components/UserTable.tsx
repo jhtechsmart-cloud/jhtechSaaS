@@ -1,6 +1,7 @@
 "use client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { formatPhone } from "@jhtechsaas/shared";
 import type { UserListRow } from "@/lib/users/queries";
 
 function permissionSummary(row: UserListRow): string {
@@ -32,7 +33,9 @@ export function UserTable({ users }: { users: UserListRow[] }) {
         <thead>
           <tr className="border-b border-border text-left text-small text-muted">
             <th className="py-2 pr-4 font-medium">이름</th>
+            <th className="py-2 pr-4 font-medium">직책</th>
             <th className="py-2 pr-4 font-medium">이메일</th>
+            <th className="py-2 pr-4 font-medium">연락처</th>
             <th className="py-2 pr-4 font-medium">권한</th>
             <th className="py-2 font-medium">상태</th>
           </tr>
@@ -52,12 +55,16 @@ export function UserTable({ users }: { users: UserListRow[] }) {
                   {u.name}
                 </Link>
               </td>
+              <td className="py-2 pr-4 text-text">{u.position ?? <span className="text-muted">-</span>}</td>
               <td className="py-2 pr-4">
                 {u.email ? (
                   <span className="font-mono text-small text-text">{u.email}</span>
                 ) : (
                   <span className="text-muted">-</span>
                 )}
+              </td>
+              <td className="py-2 pr-4 text-text">
+                {u.phone ? formatPhone(u.phone) || u.phone : <span className="text-muted">-</span>}
               </td>
               <td className="py-2 pr-4 text-text">{permissionSummary(u)}</td>
               <td className="py-2">
