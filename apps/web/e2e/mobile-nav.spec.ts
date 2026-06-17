@@ -43,10 +43,10 @@ test.describe.serial("모바일 햄버거 드로어", () => {
     await page.getByRole("button", { name: "메뉴 열기" }).click();
     const drawerNav = page.getByRole("complementary", { name: "모바일 메뉴" });
     await expect(drawerNav).toBeVisible();
-    // 배경 버튼은 드로어(w-64=256px) 오른쪽 영역에 위치 — 드로어 밖 좌표 클릭으로 닫힘.
-    // absolute inset-0 배경 전체가 버튼이지만 드로어 aside(z-10)가 왼쪽을 덮으므로
-    // 뷰포트 오른쪽(x=340, y=400)을 직접 탭해 배경 닫기를 트리거한다.
-    await page.mouse.click(340, 400);
+    const backdrop = page.getByRole("button", { name: "메뉴 닫기" });
+    // 배경 버튼(inset-0, 390px 너비)의 노출 영역(드로어 256px 바깥) 클릭.
+    // force: 버튼 중심이 드로어에 가려 actionability 실패하므로 지정 좌표로 강제.
+    await backdrop.click({ position: { x: 340, y: 400 }, force: true });
     await expect(drawerNav).toBeHidden();
   });
 });
