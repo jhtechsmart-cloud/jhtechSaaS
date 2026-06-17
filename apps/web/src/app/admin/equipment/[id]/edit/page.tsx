@@ -18,7 +18,7 @@ export default async function EditEquipmentPage({
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("equipment")
-    .select("name, model, category_id, base_price, status, highlights, youtube_urls, specs, photos, quote_device_name, quote_device_image")
+    .select("name, model, category_id, base_price, status, highlights, youtube_urls, specs, photos, quote_device_name, quote_device_image, catalog_pdf")
     .eq("id", id)
     .single();
   if (error || !data) notFound();
@@ -48,6 +48,7 @@ export default async function EditEquipmentPage({
     })),
     quote_device_name: data.quote_device_name ?? "",
     quote_device_image: data.quote_device_image ?? "",
+    catalog_pdf: data.catalog_pdf ?? "",
   };
 
   return (

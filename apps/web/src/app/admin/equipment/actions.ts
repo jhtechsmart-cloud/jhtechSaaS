@@ -89,6 +89,7 @@ export async function createEquipment(
     // 빈 문자열은 null로(nullable 컬럼 + CHECK 제약 만족).
     quote_device_name: v.quote_device_name || null,
     quote_device_image: v.quote_device_image || null,
+    catalog_pdf: v.catalog_pdf || null,
   });
   // 원시 DB 메시지는 스키마 fingerprinting 노출이라 서버 로그로만 남기고 일반 메시지 반환.
   if (error) {
@@ -149,6 +150,7 @@ export async function updateEquipment(
       // 빈 문자열은 null로(nullable 컬럼 + CHECK 제약 만족).
       quote_device_name: v.quote_device_name || null,
       quote_device_image: v.quote_device_image || null,
+      catalog_pdf: v.catalog_pdf || null,
     })
     .eq("id", id)
     .select("id");
