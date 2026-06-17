@@ -86,9 +86,12 @@ export default async function ApplicationDetailPage({
   const canQuote = can(access.permissions, "quotes.write");
   const canDeleteQuote = can(access.permissions, "users.manage");
   const canEmail = can(access.permissions, "email.send");
+  const canReleaseOrder = can(access.permissions, "release_orders.write");
 
   // 견적 목록 조회
   const quotes = await listQuotesForApplication(id);
+  // 출고의뢰서는 발행 견적이 전제(I1) — 발행 견적이 있을 때만 진입 노출.
+  const hasIssuedQuote = quotes.some((q) => q.status === "issued");
 
   // 표시 견적 선택: ?v=<quoteId>가 유효하면 그 id, 아니면 대표 견적(최신 발행본)
   const vParam = typeof sp.v === "string" ? sp.v : null;
@@ -286,6 +289,15 @@ export default async function ApplicationDetailPage({
           </VersionInfoModal>
         ) : (
           <span className="text-small text-muted">발행 견적 없음</span>
+        )}
+        {canReleaseOrder && hasIssuedQuote && (
+          <Link
+            href={`/admin/applications/${id}/release-order`}
+            className="inline-flex items-center gap-1.5 rounded-full border border-accent px-3 py-1.5 text-small font-semibold text-accent hover:bg-mint"
+            data-testid="release-order-link"
+          >
+            출고의뢰서
+          </Link>
         )}
         <div className="ml-auto flex flex-wrap items-center gap-x-6 gap-y-3">
           <div className="flex items-center gap-2">
