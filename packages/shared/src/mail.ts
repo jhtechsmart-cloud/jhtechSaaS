@@ -2,6 +2,7 @@
 // 첨부 확장형: MailMessage.attachments는 v1 미사용이지만 인터페이스에 포함(첨부 확정 시 교체 지점).
 // 멱등성은 워커 CAS + DB가 책임지고, 여기선 "한 번 보내는 행위"와 실패 분류만 담당.
 import { z } from "zod";
+import { SUPPLIER } from "./company";
 
 export interface MailAttachment {
   filename: string;
@@ -108,7 +109,7 @@ export class HiworksMailSender implements MailSender {
   }
 }
 
-const SUPPLIER_NAME = "(주)재현테크";
+const SUPPLIER_NAME = SUPPLIER.name;
 
 // 모달 프리필용 기본 제목·본문(영업이 편집 가능).
 export function defaultQuoteEmail(p: { quoteNo: string; companyName?: string | null }): {
@@ -132,21 +133,53 @@ function escapeHtml(s: string): string {
 }
 
 // 워커가 발송 시점에 서명URL을 본문에 주입해 최종 HTML 생성. 사용자 본문은 이스케이프(주입 방지).
-// 서명URL은 보안 토큰이 붙어 매우 길다 → 본문 텍스트로 노출하지 않고 깔끔한 버튼(href에만)으로 보낸다.
-// 버튼은 인라인 스타일(메일 클라이언트는 CSS 제한적). 스타일이 제거되는 클라용 텍스트 폴백 링크도 둔다.
+// 디자인: (주)재현테크 브랜드 견적서 안내 메일. 발신자가 재현테크임을 헤더·푸터로 명확히.
+// 이메일 클라이언트(Gmail·네이버·하이웍스·Outlook)는 CSS가 제한적 → 테이블 기반 + 인라인 스타일,
+// flex/grid·외부CSS·웹폰트 금지. 서명URL은 길어서 텍스트로 노출하지 않고 큰 버튼(href에만)으로.
+const PINE = "#176455";
+const PINE_SOFT = "#f0f7f4";
 export function composeQuoteEmailHtml(p: { body: string; downloadUrl: string; quoteNo: string }): string {
   const bodyHtml = escapeHtml(p.body).replace(/\r?\n/g, "<br>");
   const url = escapeHtml(p.downloadUrl);
   const quoteNo = escapeHtml(p.quoteNo);
+  const font =
+    "font-family:'Apple SD Gothic Neo','Malgun Gothic',Helvetica,Arial,sans-serif";
   return [
-    `<div style="font-family:sans-serif;line-height:1.6;color:#1a1a1a">`,
-    `<p>${bodyHtml}</p>`,
-    `<hr style="border:none;border-top:1px solid #ddd;margin:16px 0">`,
-    `<p style="margin:0 0 12px"><strong>견적서</strong> (${quoteNo})</p>`,
-    `<p style="margin:0 0 16px">`,
-    `<a href="${url}" style="display:inline-block;background:#176455;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;font-size:15px">견적서 PDF 다운로드</a>`,
-    `</p>`,
-    `<p style="color:#888;font-size:12px">버튼이 보이지 않으면 <a href="${url}" style="color:#176455">이 링크</a>를 눌러 주세요. 보안을 위해 링크는 일정 기간 후 만료됩니다.</p>`,
-    `</div>`,
+    `<div style="margin:0;padding:24px 12px;background:#f4f6f5;${font}">`,
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f5"><tr><td align="center">`,
+    `<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;background:#ffffff;border:1px solid #e3e8e6;border-radius:12px;overflow:hidden">`,
+
+    // 헤더 밴드 — 파인 그린 + 회사명 + 안내 부제
+    `<tr><td style="background:${PINE};padding:22px 28px">`,
+    `<div style="color:#ffffff;font-size:19px;font-weight:700;letter-spacing:.3px">${escapeHtml(SUPPLIER.name)}</div>`,
+    `<div style="color:#cde7dd;font-size:13px;margin-top:5px">견적서를 보내드립니다</div>`,
+    `</td></tr>`,
+
+    // 본문 — 사용자 편집 본문 + 견적 정보 카드 + 다운로드 버튼
+    `<tr><td style="padding:26px 28px">`,
+    `<div style="color:#1a1a1a;font-size:15px;line-height:1.7">${bodyHtml}</div>`,
+
+    // 견적 정보 카드(좌측 파인 보더)
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:22px 0;background:${PINE_SOFT};border-left:4px solid ${PINE};border-radius:6px"><tr><td style="padding:14px 16px">`,
+    `<div style="color:#5b6f69;font-size:12px;margin-bottom:3px">견적서 번호</div>`,
+    `<div style="color:${PINE};font-size:16px;font-weight:700;font-family:'Courier New',monospace">${quoteNo}</div>`,
+    `</td></tr></table>`,
+
+    // 다운로드 버튼(테이블 기반 — Outlook 호환). 크고 가운데, 눈에 잘 띄게.
+    `<table role="presentation" cellpadding="0" cellspacing="0" align="center" style="margin:6px auto 14px"><tr>`,
+    `<td align="center" style="border-radius:8px;background:${PINE}">`,
+    `<a href="${url}" style="display:inline-block;padding:15px 38px;color:#ffffff;font-size:16px;font-weight:700;text-decoration:none;letter-spacing:.3px">📄&nbsp;&nbsp;견적서(PDF) 다운로드</a>`,
+    `</td></tr></table>`,
+    `<div style="text-align:center;color:#8a9b95;font-size:12px;line-height:1.6">버튼이 보이지 않으면 <a href="${url}" style="color:${PINE}">여기</a>를 눌러 주세요.<br>보안을 위해 다운로드 링크는 일정 기간 후 만료됩니다.</div>`,
+    `</td></tr>`,
+
+    // 푸터 — 회사 정보
+    `<tr><td style="background:#f4f6f5;border-top:1px solid #e3e8e6;padding:18px 28px">`,
+    `<div style="color:#3a4a45;font-size:13px;font-weight:700;margin-bottom:4px">${escapeHtml(SUPPLIER.name)}</div>`,
+    `<div style="color:#5b6f69;font-size:12px;line-height:1.7">${escapeHtml(SUPPLIER.address)}<br>본사 ${escapeHtml(SUPPLIER.phoneHQ)} · 대구 ${escapeHtml(SUPPLIER.phoneDaegu)}</div>`,
+    `<div style="color:#a8b5b0;font-size:11px;margin-top:10px">본 메일은 견적 담당자가 발송했습니다.</div>`,
+    `</td></tr>`,
+
+    `</table></td></tr></table></div>`,
   ].join("");
 }
