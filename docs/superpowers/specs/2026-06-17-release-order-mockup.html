@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<style>
+  :root{ --pine:#176455; --mint:#d9f3e9; --mint-soft:#f0f7f4; --border:#dbe5e1; --muted:#5b6f69; --text:#1a2a25; --coral:#c0492f; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:#eef2f0; font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif; color:var(--text); padding:24px; }
+  .page{ max-width:1000px; margin:0 auto; background:#fff; border:1px solid var(--border); border-radius:14px; overflow:hidden; box-shadow:0 2px 14px rgba(0,0,0,.05); }
+  .topbar{ background:var(--pine); color:#fff; padding:18px 24px; display:flex; align-items:center; justify-content:space-between; }
+  .topbar h1{ margin:0; font-size:20px; letter-spacing:.5px; }
+  .topbar .meta{ font-size:12px; color:#cde7dd; }
+  .body{ padding:20px 24px 28px; }
+  /* 섹션 */
+  .section{ margin-top:22px; }
+  .section:first-child{ margin-top:6px; }
+  .sec-head{ display:flex; align-items:center; gap:8px; margin-bottom:12px; }
+  .sec-head .bar{ width:4px; height:16px; background:var(--pine); border-radius:2px; }
+  .sec-head h2{ margin:0; font-size:14px; font-weight:700; }
+  .sec-head .en{ font-size:11px; color:var(--muted); font-weight:600; letter-spacing:.04em; }
+  /* 필드 그리드 */
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px 16px; }
+  .grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px 16px; }
+  .field label{ display:block; font-size:11px; color:var(--muted); margin-bottom:4px; }
+  .field input, .field .box{ width:100%; border:1px solid var(--border); border-radius:7px; padding:8px 10px; font-size:13px; background:#fff; }
+  .auto input, .auto .box{ background:var(--mint-soft); border-color:#bfe3d4; }
+  .tag{ display:inline-block; font-size:9px; font-weight:700; color:var(--pine); background:var(--mint); border-radius:4px; padding:1px 5px; margin-left:5px; vertical-align:middle; }
+  .full{ grid-column:1 / -1; }
+  /* 장비상세 2분할 */
+  .split{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .panel{ border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+  .panel.active{ border-color:var(--pine); box-shadow:0 0 0 1px var(--pine); }
+  .panel-head{ display:flex; align-items:center; justify-content:space-between; padding:10px 12px; background:var(--mint-soft); font-weight:700; font-size:13px; }
+  .panel.inactive .panel-head{ background:#f3f5f4; color:#9aa8a3; }
+  .panel.inactive{ opacity:.6; }
+  .panel-body{ padding:12px; display:flex; flex-direction:column; gap:10px; }
+  .row{ display:grid; grid-template-columns:88px 1fr; gap:8px; align-items:start; }
+  .row .lbl{ font-size:11px; color:var(--muted); padding-top:6px; }
+  /* 체크박스 */
+  .checks{ display:flex; flex-wrap:wrap; gap:6px 12px; }
+  .chk{ display:inline-flex; align-items:center; gap:5px; font-size:12px; }
+  .chk .box{ width:15px; height:15px; border:1.5px solid #b6c4be; border-radius:4px; display:inline-flex; align-items:center; justify-content:center; font-size:10px; color:#fff; }
+  .chk.on .box{ background:var(--pine); border-color:var(--pine); }
+  .chk.on{ font-weight:600; }
+  .toggle{ display:inline-flex; border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+  .toggle span{ padding:6px 16px; font-size:12px; font-weight:600; }
+  .toggle .sel{ background:var(--pine); color:#fff; }
+  .toggle .un{ color:var(--muted); }
+  .mini{ font-size:11px; color:var(--muted); }
+  .card{ border:1px solid var(--border); border-radius:10px; padding:12px; }
+  .footnote{ font-size:11px; color:var(--muted); margin-top:6px; }
+  .legend{ display:flex; gap:14px; align-items:center; font-size:11px; color:var(--muted); margin-top:4px; }
+  .legend .sw{ width:12px; height:12px; border-radius:3px; background:var(--mint-soft); border:1px solid #bfe3d4; display:inline-block; vertical-align:middle; margin-right:4px; }
+  .actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:24px; }
+  .btn{ border-radius:8px; padding:9px 18px; font-size:13px; font-weight:600; cursor:pointer; border:1px solid var(--border); background:#fff; }
+  .btn.primary{ background:var(--pine); color:#fff; border-color:var(--pine); }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="topbar">
+    <h1>장비출고의뢰서</h1>
+    <div class="meta">의뢰 REQ-20260617-00042 · 애드넷 · 작성중(임시저장)</div>
+  </div>
+  <div class="body">
+
+    <!-- 고객정보 -->
+    <div class="section">
+      <div class="sec-head"><span class="bar"></span><h2>고객정보</h2><span class="en">CUSTOMER INFORMATION</span></div>
+      <div class="legend"><span><span class="sw"></span>연한 민트 = 견적·신청에서 자동으로 채워진 항목</span></div>
+      <div class="grid3" style="margin-top:8px">
+        <div class="field auto"><label>회사/고객명 <span class="tag">자동</span></label><input value="애드넷"></div>
+        <div class="field auto"><label>장비명 <span class="tag">자동</span></label><input value="JU-9060 (G5i 장착)"></div>
+        <div class="field auto"><label>전화번호 <span class="tag">자동</span></label><input value="010-3218-8850"></div>
+        <div class="field auto"><label>설치 일시 <span class="tag">자동·견적 납품일정</span></label><input value="2024-11-18(월) 10:30"></div>
+        <div class="field auto full"><label>설치 주소 <span class="tag">자동</span></label><input value="서울 금천구 가산디지털1로 19 (대륭테크노타운 18차) 1403호"></div>
+      </div>
+    </div>
+
+    <!-- 장비상세정보 (프린터/커팅기 택1) -->
+    <div class="section">
+      <div class="sec-head"><span class="bar"></span><h2>장비상세정보</h2>
+        <span style="margin-left:auto"></span>
+        <span class="toggle"><span class="sel">● 프린터</span><span class="un">○ 커팅기</span></span>
+        <span class="tag">구분 자동판별</span>
+      </div>
+      <div class="split">
+        <!-- 프린터 (활성) -->
+        <div class="panel active">
+          <div class="panel-head"><span>프린터</span><span class="chk on"><span class="box">✓</span>선택됨</span></div>
+          <div class="panel-body">
+            <div class="row"><span class="lbl">제공 RIP</span>
+              <div class="checks"><span class="chk on"><span class="box">✓</span>토파즈</span><span class="chk"><span class="box"></span>포토프린트</span><span class="chk"><span class="box"></span>오닉스</span></div></div>
+            <div class="row"><span class="lbl">헤드종류·수량</span><div><input class="box" value="리코 G5i 헤드 / 3개" style="font-size:12px"></div></div>
+            <div class="row"><span class="lbl">칼라 구성</span>
+              <div class="checks"><span class="chk on"><span class="box">✓</span>CMYK</span><span class="chk on"><span class="box">✓</span>화이트(W)</span><span class="chk"><span class="box"></span>바니쉬</span></div></div>
+            <div class="row"><span class="lbl">잉크 종류</span><div><input class="box" value="G5i용 잉크" style="font-size:12px"></div></div>
+            <div class="row"><span class="lbl">잉크 제공수량</span><div><input class="box" value="색상별 1리터 + 솔루션 / 린트프리 1봉" style="font-size:12px"></div></div>
+          </div>
+        </div>
+        <!-- 커팅기 (비활성) -->
+        <div class="panel inactive">
+          <div class="panel-head"><span>커팅기</span><span class="chk"><span class="box"></span>미선택</span></div>
+          <div class="panel-body">
+            <div class="row"><span class="lbl">제공 툴</span>
+              <div class="checks"><span class="chk"><span class="box"></span>기본툴</span><span class="chk"><span class="box"></span>RCT(로터리)</span><span class="chk"><span class="box"></span>POT(공압진동)</span><span class="chk"><span class="box"></span>라우터툴</span><span class="chk"><span class="box"></span>라우터매트</span></div></div>
+            <div class="row"><span class="lbl">카메라</span>
+              <div class="checks"><span class="chk"><span class="box"></span>내장형</span><span class="chk"><span class="box"></span>외부 OCC</span></div></div>
+            <div class="row"><span class="lbl">기타</span>
+              <div class="checks"><span class="chk"><span class="box"></span>링블로워</span><span class="chk"><span class="box"></span>에어컴프레서</span><span class="chk"><span class="box"></span>컨베이어벨트</span></div></div>
+          </div>
+        </div>
+      </div>
+      <!-- 공통 보조항목 -->
+      <div class="grid3" style="margin-top:12px">
+        <div class="field"><label>테스트용 소재</label><input value="정렬용 H&M용지 10장"></div>
+        <div class="field"><label>기타 제공물품</label><input placeholder="입력"></div>
+        <div class="field"><label>컴퓨터 관련</label><div class="box"><span class="chk on"><span class="box">✓</span>업체 사전준비 요청</span></div></div>
+      </div>
+      <div class="checks" style="margin-top:10px">
+        <span class="mini" style="margin-right:6px">도비 사용</span><span class="chk on"><span class="box">✕</span>아니오</span>
+        <span class="mini" style="margin:0 6px 0 18px">장비 분해</span><span class="chk on"><span class="box">✕</span>아니오</span>
+      </div>
+    </div>
+
+    <!-- 기본준비사항 체크 -->
+    <div class="section">
+      <div class="sec-head"><span class="bar"></span><h2>기본 준비사항 체크</h2></div>
+      <div class="grid2">
+        <div class="card"><div class="mini" style="font-weight:700;color:var(--text);margin-bottom:8px">운송차량</div>
+          <div class="checks"><span class="chk on"><span class="box">✓</span>1톤 리프트 화물차</span><span class="chk on"><span class="box">✓</span>윙바디</span><span class="chk"><span class="box"></span>카고</span></div></div>
+        <div class="card auto"><div class="mini" style="font-weight:700;color:var(--text);margin-bottom:8px">전기 관련 사전준비 <span class="tag">설문 연동</span></div>
+          <div class="checks"><span class="chk on"><span class="box">✓</span>케이블</span><span class="chk on"><span class="box">✓</span>예비 멀티탭 10m</span><span class="chk on"><span class="box">✓</span>컴퓨터용 3구+</span><span class="chk"><span class="box"></span>차단기</span></div></div>
+        <div class="card"><div class="mini" style="font-weight:700;color:var(--text);margin-bottom:8px">입고 관련 준비물</div>
+          <div class="checks"><span class="chk"><span class="box"></span>도비바퀴</span><span class="chk"><span class="box"></span>자키</span><span class="chk"><span class="box"></span>침목</span><span class="chk"><span class="box"></span>나무</span><span class="chk"><span class="box"></span>랩핑테이프</span><span class="chk"><span class="box"></span>리프트</span><span class="chk"><span class="box"></span>밧줄</span></div></div>
+        <div class="card"><div class="mini" style="font-weight:700;color:var(--text);margin-bottom:8px">기타 준비물</div>
+          <div class="checks"><span class="chk on"><span class="box">✓</span>회사명판·로고·안전표시</span><span class="chk"><span class="box"></span>에어라인(8mm)</span></div></div>
+      </div>
+    </div>
+
+    <!-- 설치 현장정보 -->
+    <div class="section">
+      <div class="sec-head"><span class="bar"></span><h2>설치 현장정보</h2><span class="tag">설치설문 자동 초안</span></div>
+      <div class="grid2">
+        <div class="field auto full"><label>장비 입고계획 <span class="tag">설문</span></label><input value="1층 하차 → 14층 설치(화물승강기), 유리칸막이 임시철거 예정"></div>
+        <div class="field"><label>출입문</label><div class="box"><span class="chk on"><span class="box">✓</span>도어</span> &nbsp; 크기 <b>충분함</b></div></div>
+        <div class="field auto"><label>전원 연결 <span class="tag">설문</span></label><input value="벽면콘센트 (단상 220V)"></div>
+        <div class="field auto"><label>주차 <span class="tag">설문</span></label><input value="아파트형공장 — 지하주차장"></div>
+        <div class="field"><label>링블로워 설치</label><div class="box"><span class="chk on"><span class="box">✓</span>설치</span> &nbsp; <span class="mini">장비 기본장착형</span></div></div>
+        <div class="field"><label>컴프레서 설치</label><div class="box"><span class="chk on"><span class="box">✕</span>미설치</span></div></div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn">임시저장</button>
+      <button class="btn primary">발행 + PDF 생성</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>
