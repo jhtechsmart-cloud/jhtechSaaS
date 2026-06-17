@@ -110,6 +110,7 @@ export function QuoteForm({
         pending={pending}
         onSave={() => submit("draft")}
         onIssue={() => submit("issued")}
+        error={error}
       />
     </div>
   );

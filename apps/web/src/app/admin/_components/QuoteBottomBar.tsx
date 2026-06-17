@@ -7,17 +7,22 @@ export function QuoteBottomBar({
   pending,
   onSave,
   onIssue,
+  error,
 }: {
   supplyPrice: number;
   pending: boolean;
   onSave: () => void;
   onIssue: () => void;
+  // 데스크톱은 우측 요약에 에러를 표시하지만 모바일은 그 요약이 숨겨지므로 바에서 표시한다.
+  error?: string | null;
 }) {
   return (
     <div
       data-testid="quote-bottom-bar"
-      className="fixed inset-x-0 bottom-0 z-30 flex items-center justify-between gap-3 border-t border-border bg-surface px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,.08)] lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-30 flex flex-col gap-1 border-t border-border bg-surface px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,.08)] lg:hidden"
     >
+      {error && <p className="text-small text-danger">{error}</p>}
+      <div className="flex items-center justify-between gap-3">
       <span className="min-w-0 truncate text-body font-semibold text-text">
         공급가 <span className="tabular-nums">{supplyPrice.toLocaleString("ko-KR")}</span>원
         <span className="ml-1 text-micro font-normal text-muted">VAT 별도</span>
@@ -39,6 +44,7 @@ export function QuoteBottomBar({
         >
           발행하기
         </button>
+      </div>
       </div>
     </div>
   );

@@ -103,6 +103,7 @@ export function ManualQuoteForm({ catalog }: { catalog: QuoteCatalogItem[] }) {
         pending={pending}
         onSave={() => submit("draft")}
         onIssue={() => submit("issued")}
+        error={error}
       />
     </div>
   );
