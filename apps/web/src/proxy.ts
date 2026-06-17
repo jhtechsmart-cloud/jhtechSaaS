@@ -1,10 +1,20 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { getPublicEnv } from "@/env";
+import { resolveHostRedirect } from "@/lib/routing/host-routing";
 
 // Next 16: 구 middleware. 매 요청 세션 쿠키를 갱신하고, 미인증 /admin/* 접근을 /login으로.
 // 권한(equipment.manage) 검증은 여기서 하지 않는다(layout·action이 DB로 강제).
 export async function proxy(request: NextRequest) {
+  // 서브도메인 분기 — admin.jhtech.co.kr 루트(/) 진입 시 관리자 콘솔(/admin)로.
+  // 이후 /admin이 미인증=로그인·인증=대시보드로 분기한다. sales(공개 포털)는 통과.
+  const hostRedirect = resolveHostRedirect(request.headers.get("host"), request.nextUrl.pathname);
+  if (hostRedirect) {
+    const url = request.nextUrl.clone();
+    url.pathname = hostRedirect;
+    return NextResponse.redirect(url);
+  }
+
   let response = NextResponse.next({ request });
   const { NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY } = getPublicEnv();
 
