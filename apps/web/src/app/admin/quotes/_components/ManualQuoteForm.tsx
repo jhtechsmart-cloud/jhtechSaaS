@@ -15,6 +15,7 @@ import { createManualQuoteAction } from "@/lib/quotes/actions";
 import { QuoteLinesEditor } from "@/app/admin/_components/QuoteLinesEditor";
 import { QuoteTotalsAside } from "@/app/admin/_components/QuoteTotalsAside";
 import { QuoteEditModeBanner } from "@/app/admin/_components/QuoteEditModeBanner";
+import { QuoteBottomBar } from "@/app/admin/_components/QuoteBottomBar";
 
 // 수기 견적 폼 — 회사 필드 + 카탈로그 라인 에디터. 저장 시 create_manual_quote(app+quote 원자).
 export function ManualQuoteForm({ catalog }: { catalog: QuoteCatalogItem[] }) {
@@ -64,7 +65,7 @@ export function ManualQuoteForm({ catalog }: { catalog: QuoteCatalogItem[] }) {
   return (
     <div className="flex flex-col gap-4">
       <QuoteEditModeBanner />
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
+      <div className="grid grid-cols-1 gap-6 pb-24 lg:grid-cols-[1fr_320px] lg:pb-0">
       <div className="flex flex-col gap-6">
         <section className="rounded-md border border-border border-l-4 border-l-accent bg-surface p-4">
           <h2 className="mb-2 text-h2 font-medium text-text">고객</h2>
@@ -96,6 +97,13 @@ export function ManualQuoteForm({ catalog }: { catalog: QuoteCatalogItem[] }) {
           className="rounded-md bg-accent px-4 py-2 text-small font-medium text-white disabled:opacity-50">발행하기</button>
       </QuoteTotalsAside>
       </div>
+      {/* lg 미만: 하단 고정 합계 바(데스크톱은 우측 sticky 요약) — 같은 totals·submit 재사용 */}
+      <QuoteBottomBar
+        supplyPrice={totals.supplyPrice}
+        pending={pending}
+        onSave={() => submit("draft")}
+        onIssue={() => submit("issued")}
+      />
     </div>
   );
 }

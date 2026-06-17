@@ -17,6 +17,7 @@ import { createQuoteAction } from "@/lib/quotes/actions";
 import { QuoteLinesEditor } from "@/app/admin/_components/QuoteLinesEditor";
 import { QuoteTotalsAside } from "@/app/admin/_components/QuoteTotalsAside";
 import { QuoteEditModeBanner } from "@/app/admin/_components/QuoteEditModeBanner";
+import { QuoteBottomBar } from "@/app/admin/_components/QuoteBottomBar";
 
 // 저장된 견적 장비줄 → 폼 장비행. 저장된 equipmentId가 있으면 그대로 쓰고(카탈로그에 존재할 때),
 // 없으면 이름매칭으로 복원(구 견적 하위호환), 그래도 없으면 직접입력.
@@ -79,7 +80,7 @@ export function QuoteForm({
   return (
     <div className="flex flex-col gap-4">
       <QuoteEditModeBanner />
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
+      <div className="grid grid-cols-1 gap-6 pb-24 lg:grid-cols-[1fr_320px] lg:pb-0">
       <div className="flex flex-col gap-6">
         {contextSlot}
         <QuoteLinesEditor
@@ -103,6 +104,13 @@ export function QuoteForm({
           className="rounded-md bg-accent px-4 py-2 text-small font-medium text-white disabled:opacity-50">발행하기</button>
       </QuoteTotalsAside>
       </div>
+      {/* lg 미만: 하단 고정 합계 바(데스크톱은 우측 sticky 요약) — 같은 totals·submit 재사용 */}
+      <QuoteBottomBar
+        supplyPrice={totals.supplyPrice}
+        pending={pending}
+        onSave={() => submit("draft")}
+        onIssue={() => submit("issued")}
+      />
     </div>
   );
 }
