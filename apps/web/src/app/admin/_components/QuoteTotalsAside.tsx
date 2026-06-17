@@ -15,7 +15,7 @@ export function QuoteTotalsAside({
   children?: ReactNode;
 }) {
   return (
-    <div className="self-start lg:sticky lg:top-0">
+    <div className="hidden self-start lg:block lg:sticky lg:top-0">
       <div className="rounded-lg border border-border/60 bg-surface p-5 shadow-sm">
         <h2 className="mb-3 text-h2 font-medium text-text">실시간 합계</h2>
         <TotalRow label="합계 (VAT 별도)" value={totals.supplyPrice} strong />

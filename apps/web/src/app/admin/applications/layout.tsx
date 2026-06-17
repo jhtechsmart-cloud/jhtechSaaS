@@ -3,6 +3,7 @@ import { can } from "@jhtechsaas/shared";
 import { requireApplicationsConsole } from "@/lib/auth/guard";
 import { listApplicationsPage, countApplicationsByGroup } from "@/lib/applications/admin-queries";
 import { ApplicationListPane } from "./_components/ApplicationListPane";
+import { ApplicationDetailPane } from "./_components/ApplicationDetailPane";
 
 const PAGE = 30;
 
@@ -30,8 +31,7 @@ export default async function ApplicationsLayout({ children }: { children: React
         counts={counts}
         canQuote={can(access.permissions, "quotes.write")}
       />
-      {/* 상세는 자체 스크롤 칸 — 하단 pb-16(64px)로 저장/취소 버튼 아래 숨 쉴 여백 확보 */}
-      <div className="min-w-0 flex-1 overflow-y-auto px-6 pt-6 pb-16">{children}</div>
+      <ApplicationDetailPane>{children}</ApplicationDetailPane>
     </div>
   );
 }

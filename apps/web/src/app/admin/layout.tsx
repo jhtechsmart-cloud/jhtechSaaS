@@ -9,6 +9,7 @@ import { countNewApplications } from "@/lib/applications/admin-queries";
 import { signOut } from "@/app/login/actions";
 import { Icon } from "./_components/Icon";
 import { AdminSidebar } from "./_components/AdminSidebar";
+import { MobileNav } from "./_components/MobileNav";
 import { ForcedPasswordChange } from "./_components/ForcedPasswordChange";
 import { BadgePoller } from "./_components/BadgePoller";
 import { ConsoleMain } from "./_components/ConsoleMain";
@@ -89,6 +90,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       <div className="flex min-w-0 flex-1 flex-col">
         {/* 상단바 */}
         <header className="flex items-center gap-4 border-b border-border bg-surface px-6 py-3">
+          <MobileNav items={items.filter((it) => it.show)} isAdmin={isAdmin} />
           <div className="flex max-w-md flex-1 items-center gap-2 rounded-lg border border-border bg-bg px-3 py-2 text-muted">
             <Icon name="search" size={16} />
             <span className="text-small">검색 (준비중)</span>

@@ -103,7 +103,7 @@ export function ApplicationListPane({
   const total = counts.active + counts.closed;
 
   return (
-    <aside className="flex w-[300px] shrink-0 flex-col border-r border-border bg-surface">
+    <aside className={`${activeId ? "hidden lg:flex" : "flex"} w-full shrink-0 flex-col border-r border-border bg-surface lg:w-[300px]`}>
       <div className="border-b border-border p-3">
         <div className="mb-2 flex items-center justify-between">
           <h2 className="text-body font-bold text-text">신청 목록</h2>
