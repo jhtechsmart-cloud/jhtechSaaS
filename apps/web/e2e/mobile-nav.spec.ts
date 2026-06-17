@@ -20,7 +20,7 @@ test.describe.serial("모바일 햄버거 드로어", () => {
     await page.goto("/admin/dashboard");
 
     // 모바일: 드로어 메뉴는 처음엔 안 보임, ☰ 버튼은 보임.
-    const drawerNav = page.getByRole("complementary", { name: "모바일 메뉴" });
+    const drawerNav = page.getByRole("dialog", { name: "모바일 메뉴" });
     await expect(drawerNav).toBeHidden();
     const hamburger = page.getByRole("button", { name: "메뉴 열기" });
     await expect(hamburger).toBeVisible({ timeout: 15_000 });
@@ -41,12 +41,22 @@ test.describe.serial("모바일 햄버거 드로어", () => {
     await login(page);
     await page.goto("/admin/dashboard");
     await page.getByRole("button", { name: "메뉴 열기" }).click();
-    const drawerNav = page.getByRole("complementary", { name: "모바일 메뉴" });
+    const drawerNav = page.getByRole("dialog", { name: "모바일 메뉴" });
     await expect(drawerNav).toBeVisible();
     const backdrop = page.getByRole("button", { name: "메뉴 닫기" });
     // 배경 버튼(inset-0, 390px 너비)의 노출 영역(드로어 256px 바깥) 클릭.
     // force: 버튼 중심이 드로어에 가려 actionability 실패하므로 지정 좌표로 강제.
     await backdrop.click({ position: { x: 340, y: 400 }, force: true });
+    await expect(drawerNav).toBeHidden();
+  });
+
+  test("Esc 키로 닫힘", async ({ page }) => {
+    await login(page);
+    await page.goto("/admin/dashboard");
+    await page.getByRole("button", { name: "메뉴 열기" }).click();
+    const drawerNav = page.getByRole("dialog", { name: "모바일 메뉴" });
+    await expect(drawerNav).toBeVisible();
+    await page.keyboard.press("Escape");
     await expect(drawerNav).toBeHidden();
   });
 });

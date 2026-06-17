@@ -28,6 +28,16 @@ export function MobileNav({ items, isAdmin }: { items: NavItem[]; isAdmin: boole
     return () => document.removeEventListener("keydown", onKey);
   }, [open]);
 
+  // 드로어 열린 동안 뒤 배경 스크롤 잠금(닫히면 복원).
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open]);
+
   return (
     <>
       {/* ☰ — 모바일에서만 보임 */}
@@ -35,6 +45,8 @@ export function MobileNav({ items, isAdmin }: { items: NavItem[]; isAdmin: boole
         type="button"
         onClick={() => setOpen(true)}
         aria-label="메뉴 열기"
+        aria-expanded={open}
+        aria-controls="mobile-nav-drawer"
         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-bg text-muted lg:hidden"
       >
         <Icon name="menu" size={18} />
@@ -52,6 +64,9 @@ export function MobileNav({ items, isAdmin }: { items: NavItem[]; isAdmin: boole
           />
           {/* 패널 */}
           <aside
+            role="dialog"
+            aria-modal="true"
+            id="mobile-nav-drawer"
             aria-label="모바일 메뉴"
             className="absolute inset-y-0 left-0 z-10 flex w-64 flex-col border-r border-border bg-sidebar text-sidebar-text shadow-xl"
           >
