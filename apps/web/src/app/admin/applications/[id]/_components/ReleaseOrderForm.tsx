@@ -3,6 +3,7 @@ import { useState, useTransition } from "react";
 import type { ReleaseOrderDetails } from "@jhtechsaas/shared";
 import { RELEASE_OPTIONS, normalizeDetailsForKind, toggleArrayValue } from "@/lib/release-orders/form";
 import { issueReleaseOrderAction, saveReleaseOrderAction } from "@/lib/release-orders/actions";
+import { ReleaseOrderPdfButton } from "./ReleaseOrderPdfButton";
 
 type DeviceKind = "printer" | "cutter";
 
@@ -111,6 +112,7 @@ export function ReleaseOrderForm({
   initialDeviceKind,
   initialDetails,
   releaseOrder,
+  pdfReady,
 }: {
   applicationId: string;
   autofill: Autofill;
@@ -118,6 +120,7 @@ export function ReleaseOrderForm({
   initialDeviceKind: DeviceKind;
   initialDetails: ReleaseOrderDetails;
   releaseOrder: { id: string; status: "draft" | "issued" } | null;
+  pdfReady: boolean;
 }) {
   const locked = releaseOrder?.status === "issued";
   const [deviceKind, setDeviceKind] = useState<DeviceKind>(initialDeviceKind);
@@ -181,8 +184,9 @@ export function ReleaseOrderForm({
   return (
     <div className="flex flex-col gap-6">
       {locked && (
-        <div className="rounded-xl border border-accent-ring/40 bg-mint px-4 py-3 text-small text-accent-2">
-          발행된 출고의뢰서입니다. 내용은 잠겨 있습니다.
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-accent-ring/40 bg-mint px-4 py-3 text-small text-accent-2">
+          <span>발행된 출고의뢰서입니다. 내용은 잠겨 있습니다.</span>
+          <ReleaseOrderPdfButton applicationId={applicationId} initialReady={pdfReady} />
         </div>
       )}
       {error && <div className="rounded-xl border border-coral/40 bg-coral-soft px-4 py-3 text-small text-coral-text">{error}</div>}

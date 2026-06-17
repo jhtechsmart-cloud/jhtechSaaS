@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { MailSender } from "@jhtechsaas/shared";
 import { claimNextJob, completeJob, failJob } from "./queue";
 import { processQuotePdfJob } from "./quote-pdf";
+import { processReleasePdfJob } from "./release-pdf";
 import { processEmailJob } from "./email";
 
 // 워커 의존 주입(잡 타입별 외부 자원). 메일 발송기는 index.ts가 env 기반으로 주입.
@@ -16,6 +17,9 @@ export async function runOnce(supabase: SupabaseClient, deps: RunDeps = {}): Pro
     switch (job.type) {
       case "quote_pdf":
         await processQuotePdfJob(supabase, job.payload);
+        break;
+      case "release_pdf":
+        await processReleasePdfJob(supabase, job.payload);
         break;
       case "email":
         if (!deps.mailSender) throw new Error("MailSender 미주입 — 워커 메일 설정 누락");

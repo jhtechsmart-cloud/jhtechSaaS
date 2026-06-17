@@ -9,6 +9,22 @@ import { requireReleaseOrdersWrite } from "@/lib/auth/guard";
 export type ReleaseOrderSaveResult = { error: string } | { id: string };
 export type ReleaseOrderActionResult = { error: string } | null;
 
+// 출고의뢰서 PDF 준비 여부(폴링용) — 발행 직후 워커가 비동기로 PDF를 만들므로
+// pdf_url이 생길 때까지 폼이 폴링해 다운로드 버튼을 활성화한다. 의뢰 1:1이라 application id로 조회.
+export async function isReleaseOrderPdfReady(applicationId: string): Promise<boolean> {
+  const access = await requireReleaseOrdersWrite();
+  if (access.status === "forbidden") return false;
+  if (!z.guid().safeParse(applicationId).success) return false;
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase
+    .from("release_orders")
+    .select("pdf_url, status")
+    .eq("application_id", applicationId)
+    .maybeSingle();
+  const ro = data as { pdf_url?: string | null; status?: string } | null;
+  return !!ro && ro.status === "issued" && !!ro.pdf_url;
+}
+
 // RPC가 raise한 안내(P0001)·권한거부(42501)만 사용자에게 노출, 그 외 Postgres 원문은 일반 문구로 마스킹.
 function raisedMessage(error: { code?: string; message?: string }, fallback: string): string {
   const raised = error.code === "P0001" || error.code === "42501";

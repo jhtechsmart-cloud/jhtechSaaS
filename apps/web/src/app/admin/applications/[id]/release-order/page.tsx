@@ -56,6 +56,7 @@ export default async function ReleaseOrderPage({ params }: { params: Promise<{ i
         initialDeviceKind={data.deviceKind}
         initialDetails={data.details}
         releaseOrder={data.releaseOrder}
+        pdfReady={data.pdfReady}
       />
     </section>
   );

@@ -15,6 +15,8 @@ export type ReleaseOrderFormData = {
   hasIssuedQuote: boolean;
   // 기존 출고의뢰서(편집). 없으면 신규(프리필).
   releaseOrder: { id: string; status: "draft" | "issued" } | null;
+  pdfReady: boolean; // 발행 + PDF 생성 완료(다운로드 버튼 활성화)
+
   deviceKind: "printer" | "cutter";
   details: ReleaseOrderDetails;
 };
@@ -72,10 +74,16 @@ export async function loadReleaseOrderForForm(applicationId: string): Promise<Re
 
   const { data: existing } = await supabase
     .from("release_orders")
-    .select("id, status, device_kind, details")
+    .select("id, status, device_kind, details, pdf_url")
     .eq("application_id", applicationId)
     .maybeSingle();
-  const ro = existing as { id: string; status: "draft" | "issued"; device_kind: string; details: unknown } | null;
+  const ro = existing as {
+    id: string;
+    status: "draft" | "issued";
+    device_kind: string;
+    details: unknown;
+    pdf_url: string | null;
+  } | null;
 
   // device_kind: 기존 출고서 우선 → 견적 장비 대분류 → printer 폴백.
   let deviceKind: "printer" | "cutter" = "printer";
@@ -108,6 +116,7 @@ export async function loadReleaseOrderForForm(applicationId: string): Promise<Re
     installAt: prefill.install_at,
     hasIssuedQuote: !!quote,
     releaseOrder: ro ? { id: ro.id, status: ro.status } : null,
+    pdfReady: !!ro && ro.status === "issued" && !!ro.pdf_url,
     deviceKind,
     details,
   };
