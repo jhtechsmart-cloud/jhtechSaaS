@@ -53,7 +53,7 @@ export function MobileNav({ items, isAdmin }: { items: NavItem[]; isAdmin: boole
           {/* 패널 */}
           <aside
             aria-label="모바일 메뉴"
-            className="absolute inset-y-0 left-0 flex w-64 flex-col border-r border-border bg-sidebar text-sidebar-text shadow-xl"
+            className="absolute inset-y-0 left-0 z-10 flex w-64 flex-col border-r border-border bg-sidebar text-sidebar-text shadow-xl"
           >
             <div className="flex items-center gap-2.5 px-3.5 py-5">
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent text-white shadow-sm">
@@ -76,7 +76,7 @@ export function MobileNav({ items, isAdmin }: { items: NavItem[]; isAdmin: boole
                 <span className="truncate text-micro text-sidebar-text">재현테크</span>
               </span>
               <form action={signOut} className="shrink-0">
-                <button className="text-sidebar-text transition-colors hover:text-danger" aria-label="로그아웃" title="로그아웃">
+                <button type="submit" className="text-sidebar-text transition-colors hover:text-danger" aria-label="로그아웃" title="로그아웃">
                   <Icon name="logout" size={18} />
                 </button>
               </form>
