@@ -578,3 +578,214 @@ git commit -m "test: 모바일 의뢰관리 목록↔상세 전환 e2e"
 - **플레이스홀더**: Phase 1·2는 실제 코드/경로/명령 포함, "TODO/TBD" 없음. Phase 3~5는 "나중에"가 아니라 **JIT 상세화 + 목표·파일·접근·테스트 확정**으로 명시(의도된 분할, 근거 기재).
 - **타입/이름 일관성**: `isApplicationDetailPath`(2.1 정의 → 2.2 소비), `MobileNav({items,isAdmin})`(1.2 정의 → 1.3 소비), `ApplicationDetailPane({children})`(2.2 정의 → layout 소비) 일치. `NavItem`은 기존 `SidebarNav` export 재사용.
 - **E2E 셀렉터 리스크**: 1.4의 드로어 식별은 `complementary`(aside aria-label) 권장(SidebarNav `<nav>`엔 이름 없음) — Step 2 참고 박스에 명시.
+
+---
+
+# Phase 3 — 견적 하단 고정 합계 바 (JIT 확정)
+
+**Phase Goal:** `lg` 미만에서 견적 작성(`QuoteForm`)·수기견적(`ManualQuoteForm`) 화면 하단에 `공급가 ₩××× [임시저장][발행하기]` 고정 바를 띄운다. 데스크톱(`lg`+)은 우측 sticky 요약(`QuoteTotalsAside`) 그대로, 하단 바 없음.
+
+**근거(코드 매핑):** 두 폼 모두 `'use client'`이며 `totals.supplyPrice`(인라인 계산, state 기반)·`submit("draft"|"issued")`·`pending`을 같은 컴포넌트 클로저에 보유 → 하단 바를 공용 컴포넌트로 빼고 prop만 넘기면 중복 로직 0. 줄 편집기(`QuoteLinesEditor`)는 `flex-wrap`이라 가로 스크롤 없음(좁으면 줄 내림) → 별도 처리 불필요.
+
+**File Structure (Phase 3):**
+- Create: `apps/web/src/app/admin/_components/QuoteBottomBar.tsx` — 공용 하단 바(프레젠테이션, prop으로 합계·핸들러 수신).
+- Modify: `apps/web/src/app/admin/applications/[id]/_components/QuoteForm.tsx` — 하단 바 렌더 + 그리드에 모바일 하단 여백.
+- Modify: `apps/web/src/app/admin/quotes/_components/ManualQuoteForm.tsx` — 동일.
+- Modify: `apps/web/src/app/admin/_components/QuoteTotalsAside.tsx` — `lg` 미만에서 숨김(하단 바와 중복 제거).
+- Test: `apps/web/e2e/mobile-quote-bar.spec.ts`.
+
+**Interfaces:**
+- Produces: `QuoteBottomBar({ supplyPrice: number; pending: boolean; onSave: () => void; onIssue: () => void })`.
+
+---
+
+### Task 3.1: QuoteBottomBar 공용 컴포넌트
+
+**Files:**
+- Create: `apps/web/src/app/admin/_components/QuoteBottomBar.tsx`
+
+- [ ] **Step 1: 컴포넌트 작성**
+
+```tsx
+"use client";
+
+// 견적 작성 화면 하단 고정 바(lg 미만 전용). 데스크톱 우측 sticky 요약(QuoteTotalsAside)은 그대로.
+// 합계·핸들러·pending은 상위 폼('use client')에서 prop으로 받아 재사용 → 중복 로직 없음.
+export function QuoteBottomBar({
+  supplyPrice,
+  pending,
+  onSave,
+  onIssue,
+}: {
+  supplyPrice: number;
+  pending: boolean;
+  onSave: () => void;
+  onIssue: () => void;
+}) {
+  return (
+    <div
+      data-testid="quote-bottom-bar"
+      className="fixed inset-x-0 bottom-0 z-30 flex items-center justify-between gap-3 border-t border-border bg-surface px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,.08)] lg:hidden"
+    >
+      <span className="min-w-0 truncate text-body font-semibold text-text">
+        공급가 <span className="tabular-nums">{supplyPrice.toLocaleString("ko-KR")}</span>원
+        <span className="ml-1 text-micro font-normal text-muted">VAT 별도</span>
+      </span>
+      <div className="flex shrink-0 gap-2">
+        <button
+          type="button"
+          onClick={onSave}
+          disabled={pending}
+          className="rounded-md bg-surface-2 px-3 py-2 text-small font-semibold text-text disabled:opacity-50"
+        >
+          임시저장
+        </button>
+        <button
+          type="button"
+          onClick={onIssue}
+          disabled={pending}
+          className="rounded-md bg-accent px-3 py-2 text-small font-semibold text-white disabled:opacity-50"
+        >
+          발행하기
+        </button>
+      </div>
+    </div>
+  );
+}
+```
+
+- [ ] **Step 2: 타입체크**
+
+Run: `pnpm --filter web typecheck`
+Expected: PASS
+
+- [ ] **Step 3: 커밋**
+
+```bash
+git add apps/web/src/app/admin/_components/QuoteBottomBar.tsx
+git commit -m "feat: 견적 작성 모바일 하단 고정 합계 바(QuoteBottomBar)"
+```
+
+---
+
+### Task 3.2: 두 폼에 하단 바 연결 + 모바일 여백 + 우측 요약 숨김
+
+**Files:**
+- Modify: `apps/web/src/app/admin/applications/[id]/_components/QuoteForm.tsx`
+- Modify: `apps/web/src/app/admin/quotes/_components/ManualQuoteForm.tsx`
+- Modify: `apps/web/src/app/admin/_components/QuoteTotalsAside.tsx`
+
+- [ ] **Step 1: QuoteForm.tsx — import + 하단 바 + 그리드 여백**
+
+상단 import 블록에 추가:
+```tsx
+import { QuoteBottomBar } from "@/app/admin/_components/QuoteBottomBar";
+```
+그리드 div(82번 줄 부근 `<div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">`)의 className에 모바일 하단 여백 추가(고정 바에 가려지지 않게):
+```tsx
+<div className="grid grid-cols-1 gap-6 pb-24 lg:grid-cols-[1fr_320px] lg:pb-0">
+```
+그리드 div가 닫힌 직후(같은 return 안, 그리드의 형제로) 하단 바 추가:
+```tsx
+      <QuoteBottomBar
+        supplyPrice={totals.supplyPrice}
+        pending={pending}
+        onSave={() => submit("draft")}
+        onIssue={() => submit("issued")}
+      />
+```
+(`totals`·`pending`·`submit`은 이미 이 컴포넌트 스코프에 존재 — 매핑 59/61번 줄. return 루트가 단일 요소면 fragment `<>...</>`로 감싸 그리드와 바를 형제로 둔다.)
+
+- [ ] **Step 2: ManualQuoteForm.tsx — 동일 적용**
+
+import 추가(동일). 그리드 div(67번 줄 부근) className에 `pb-24 ... lg:pb-0` 동일 추가. 그리드 닫힌 직후 동일한 `<QuoteBottomBar .../>` 추가(`totals`·`pending`·`submit`은 32/34번 줄에 존재).
+
+- [ ] **Step 3: QuoteTotalsAside.tsx — lg 미만 숨김**
+
+18번 줄 `<div className="self-start lg:sticky lg:top-0">`을 모바일 숨김으로:
+```tsx
+<div className="hidden self-start lg:block lg:sticky lg:top-0">
+```
+(모바일에선 하단 바가 합계·액션을 제공하므로 우측 요약 숨김 → 중복 제거.)
+
+- [ ] **Step 4: 타입체크 + 빌드**
+
+Run: `pnpm --filter web typecheck && pnpm --filter web build`
+Expected: PASS
+
+- [ ] **Step 5: 커밋**
+
+```bash
+git add apps/web/src/app/admin/applications/\[id\]/_components/QuoteForm.tsx apps/web/src/app/admin/quotes/_components/ManualQuoteForm.tsx apps/web/src/app/admin/_components/QuoteTotalsAside.tsx
+git commit -m "feat: 견적 작성 두 폼에 모바일 하단 바 연결 + 우측 요약 모바일 숨김"
+```
+
+---
+
+### Task 3.3: E2E — 모바일 하단 바 (수기견적 화면)
+
+**Files:**
+- Create: `apps/web/e2e/mobile-quote-bar.spec.ts`
+
+수기견적(`/admin/quotes/new`)은 의뢰 시드 없이 단독 접근 가능 → 가장 단순한 검증 화면. 데이터 생성(발행) 없이 레이아웃·합계 반영만 검증(발행 흐름은 quotes.spec.ts가 데스크톱서 이미 커버).
+
+- [ ] **Step 1: 실패 E2E 작성**
+
+```ts
+import { test, expect, type Page } from "@playwright/test";
+
+const ADMIN_EMAIL = process.env.E2E_ADMIN_EMAIL ?? "admin@jhtech.local";
+const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD ?? "jhtech-admin-dev";
+
+async function login(page: Page) {
+  await page.goto("/login");
+  await page.getByLabel("이메일").fill(ADMIN_EMAIL);
+  await page.getByLabel("비밀번호").fill(ADMIN_PASSWORD);
+  await page.getByRole("button", { name: "로그인" }).click();
+  await page.waitForURL(/\/admin\//, { timeout: 20_000 });
+}
+
+test.describe.serial("모바일 견적 하단 고정 바", () => {
+  test("모바일: 하단 바 노출 + 공급가 반영, 데스크톱: 숨김", async ({ page }) => {
+    await login(page);
+
+    // 모바일 뷰포트
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/admin/quotes/new");
+
+    const bar = page.getByTestId("quote-bottom-bar");
+    await expect(bar).toBeVisible({ timeout: 15_000 });
+    await expect(bar.getByText("공급가")).toBeVisible();
+    // 바 안의 발행하기 버튼 존재
+    await expect(bar.getByRole("button", { name: "발행하기" })).toBeVisible();
+
+    // 장비 단가 입력 → 바의 공급가 숫자에 반영
+    await page.getByLabel("장비 단가").fill("1000000");
+    await page.getByLabel("장비 수량").fill("1");
+    await expect(bar).toContainText("1,000,000");
+
+    // 데스크톱 뷰포트로 넓히면 하단 바 숨김
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await expect(bar).toBeHidden();
+  });
+});
+```
+
+- [ ] **Step 2: 시드 후 실행 — 통과 확인**
+
+Run(from apps/web): `bash ../../supabase/seed/seed-local.sh && pnpm --filter web test:e2e mobile-quote-bar`
+Expected: 1 passed. (`supabase db reset` 금지 — 공유 인스턴스.)
+
+- [ ] **Step 3: 데스크톱 회귀 — 견적 작성 스펙 통과**
+
+Run: `pnpm --filter web test:e2e quotes`
+Expected: 기존 `quotes.spec.ts` 통과(데스크톱 뷰포트, 우측 요약·발행 정상).
+
+- [ ] **Step 4: 커밋**
+
+```bash
+git add apps/web/e2e/mobile-quote-bar.spec.ts
+git commit -m "test: 모바일 견적 하단 고정 바 e2e(노출·합계반영·데스크톱 숨김)"
+```
+
+**Phase 3 완료 게이트:** `web test`·`web typecheck`·`lint`·`build`·`web test:e2e` 통과.
