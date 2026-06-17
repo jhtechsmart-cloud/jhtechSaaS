@@ -121,9 +121,20 @@ describe("이메일 템플릿", () => {
     const url = "https://x/y.pdf?token=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
     const html = composeQuoteEmailHtml({ body: "본문", downloadUrl: url, quoteNo: "JHQ-1" });
     // 친절한 버튼 텍스트가 보인다
-    expect(html).toContain("견적서 PDF 다운로드");
+    expect(html).toContain("견적서(PDF) 다운로드");
     // URL은 클릭 대상(href)으로만 — 긴 주소가 본문 텍스트로 노출되지 않는다
     expect(html).toContain(`href="${url}"`);
     expect(html).not.toContain(`>${url}<`);
+  });
+  test("composeQuoteEmailHtml: 재현테크 브랜드 헤더 + 견적번호 + 테이블 레이아웃", () => {
+    const html = composeQuoteEmailHtml({ body: "본문", downloadUrl: "https://x", quoteNo: "JHQ-20260617-009-V1" });
+    // 발신자가 재현테크임을 본문에서 알 수 있다(헤더·푸터).
+    expect(html).toContain("(주)재현테크");
+    // 견적번호가 정보 카드에 노출된다.
+    expect(html).toContain("JHQ-20260617-009-V1");
+    // 이메일 클라이언트 호환을 위한 테이블 기반 레이아웃.
+    expect(html).toContain("<table");
+    // 푸터에 회사 연락처(본사 전화).
+    expect(html).toContain("02-839-7723");
   });
 });
