@@ -117,4 +117,13 @@ describe("이메일 템플릿", () => {
     const html = composeQuoteEmailHtml({ body: "<script>alert(1)</script>", downloadUrl: "https://x", quoteNo: "Q" });
     expect(html).not.toContain("<script>");
   });
+  test("composeQuoteEmailHtml: 긴 URL은 href에만, 보이는 건 깔끔한 다운로드 버튼", () => {
+    const url = "https://x/y.pdf?token=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    const html = composeQuoteEmailHtml({ body: "본문", downloadUrl: url, quoteNo: "JHQ-1" });
+    // 친절한 버튼 텍스트가 보인다
+    expect(html).toContain("견적서 PDF 다운로드");
+    // URL은 클릭 대상(href)으로만 — 긴 주소가 본문 텍스트로 노출되지 않는다
+    expect(html).toContain(`href="${url}"`);
+    expect(html).not.toContain(`>${url}<`);
+  });
 });
