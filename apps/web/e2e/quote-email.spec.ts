@@ -41,6 +41,7 @@ async function cleanup() {
 }
 
 let appId: string;
+let quoteId: string;
 
 async function login(page: Page) {
   await page.goto("/login");
@@ -67,7 +68,7 @@ test.describe.serial("E6 견적 메일 발송 E2E", () => {
       body: JSON.stringify([{ application_id: appId, status: "issued" }]),
     });
     if (!q.ok) throw new Error(`quote 시드 실패: ${q.status} ${await q.text()}`);
-    const quoteId = ((await q.json()) as { id: string }[])[0].id;
+    quoteId = ((await q.json()) as { id: string }[])[0].id;
 
     // PDF 업로드 + pdf_url(워커가 했을 일을 시드).
     await fetch(`${SB}/storage/v1/object/quote-pdfs/${quoteId}.pdf`, {
@@ -115,5 +116,27 @@ test.describe.serial("E6 견적 메일 발송 E2E", () => {
 
     // 워커 없음 → email_log pending → '메일 발송 중…' 배지(enqueue 성공).
     await expect(page.getByText("메일 발송 중…")).toBeVisible({ timeout: 20_000 });
+  });
+
+  test("발송 완료(sent) → '재발송' 버튼 + 모달에 직전 발송 안내", async ({ page }) => {
+    // 워커 대역 — 앞 테스트가 만든 email_log(pending)를 sent로 전이 + 수신처를 오타 주소로.
+    await rest(`email_log?quote_id=eq.${quoteId}`, {
+      method: "PATCH",
+      headers: { Prefer: "return=minimal" },
+      body: JSON.stringify({ status: "sent", to_email: "wrong@addr.com" }),
+    });
+
+    await login(page);
+    await page.goto(`/admin/applications/${appId}`);
+
+    // 죽은 배지가 아니라 '발송됨' 확인 + '재발송' 버튼이 떠야 한다.
+    await expect(page.getByText("✓ 메일 발송됨")).toBeVisible();
+    const resend = page.getByRole("button", { name: "다른 주소로 재발송" });
+    await expect(resend).toBeVisible();
+    await resend.click();
+
+    // 모달 — 재발송 안내 + 직전 발송(오타 주소) 정보.
+    await expect(page.getByText("이미 발송된 견적입니다", { exact: false })).toBeVisible();
+    await expect(page.getByText(/직전 발송: wrong@addr\.com/)).toBeVisible();
   });
 });

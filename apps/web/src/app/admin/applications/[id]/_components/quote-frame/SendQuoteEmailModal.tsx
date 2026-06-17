@@ -3,21 +3,25 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { defaultQuoteEmail } from "@jhtechsaas/shared";
 import { enqueueQuoteEmailAction } from "@/lib/quotes/actions";
+import { formatLastSendLine, type LastSend } from "@/lib/quotes/last-send";
 
 // 견적 메일 발송 — 버튼 + 확인 모달(수신처·제목·본문 프리필/편집). 발송 상태 배지도 겸함.
 // 실제 발송은 워커(고정 IP). 여기선 enqueue만. 담당자 명의·보낸편지함 적재는 서버가 처리.
+// 재발송: 멱등 잠금이 '발송 진행 중'만 막으므로 sent/failed면 다시 보낼 수 있다(오타·반송·다른 주소).
 export function SendQuoteEmailModal({
   quoteId,
   defaultTo,
   quoteNo,
   companyName,
   emailStatus,
+  lastSend,
 }: {
   quoteId: string;
   defaultTo: string;
   quoteNo: string;
   companyName: string | null;
   emailStatus: string | null;
+  lastSend?: LastSend | null;
 }) {
   const router = useRouter();
   const prefill = defaultQuoteEmail({ quoteNo, companyName });
@@ -40,6 +44,7 @@ export function SendQuoteEmailModal({
   const sent = emailStatus === "sent";
   const inFlight = emailStatus === "pending" || emailStatus === "sending";
   const failed = emailStatus === "failed";
+  const lastLine = formatLastSendLine(lastSend ?? null);
 
   function submit() {
     setError(null);
@@ -54,12 +59,8 @@ export function SendQuoteEmailModal({
     });
   }
 
-  // 이미 발송됨/발송중이면 버튼 대신 상태 배지(중복 발송은 서버가 막지만 UI에서도 선차단).
-  if (sent) {
-    return (
-      <span className="rounded-md bg-mint py-2 text-center text-small font-medium text-accent-2">✓ 메일 발송됨</span>
-    );
-  }
+  // 발송 진행 중이면 버튼 대신 상태 배지(중복 발송은 서버가 막지만 UI에서도 선차단).
+  // sent/failed는 재발송 허용 → 버튼을 보여준다(아래).
   if (inFlight) {
     return (
       <span className="rounded-md bg-surface-2 py-2 text-center text-small font-medium text-muted">메일 발송 중…</span>
@@ -68,12 +69,15 @@ export function SendQuoteEmailModal({
 
   return (
     <>
+      {sent && (
+        <span className="rounded-md bg-mint py-1.5 text-center text-micro font-medium text-accent-2">✓ 메일 발송됨</span>
+      )}
       <button
         type="button"
         onClick={() => setOpen(true)}
         className="rounded-md bg-accent py-2 text-center text-small font-medium text-white hover:opacity-90"
       >
-        {failed ? "메일 재발송" : "메일 발송"}
+        {sent ? "다른 주소로 재발송" : failed ? "메일 재발송" : "메일 발송"}
       </button>
       {failed && <span className="text-micro text-danger">직전 발송이 실패했습니다 — 다시 시도하세요.</span>}
 
@@ -87,6 +91,12 @@ export function SendQuoteEmailModal({
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className="mb-3 text-body font-semibold text-text">견적서 메일 발송</h3>
+            {(sent || failed) && (
+              <div className="mb-3 rounded-md bg-surface-2 px-3 py-2 text-micro text-muted">
+                {sent && <p>이미 발송된 견적입니다 — 다른 주소로 다시 보낼 수 있습니다.</p>}
+                {lastLine && <p className="mt-0.5">{lastLine}</p>}
+              </div>
+            )}
             <div className="flex flex-col gap-3">
               <label className="flex flex-col gap-1 text-small">
                 <span className="text-muted">받는 사람</span>
