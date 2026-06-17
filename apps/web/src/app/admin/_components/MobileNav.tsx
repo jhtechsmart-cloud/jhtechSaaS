@@ -14,9 +14,12 @@ export function MobileNav({ items, isAdmin }: { items: NavItem[]; isAdmin: boole
   const pathname = usePathname();
 
   // 경로 변경(메뉴 항목 선택 등) → 드로어 닫기.
-  useEffect(() => {
+  // React 권장: effect가 아니라 렌더 중 경로 변화 감지로 조정(ApplicationListPane 전례).
+  const [drawerPath, setDrawerPath] = useState(pathname);
+  if (drawerPath !== pathname) {
+    setDrawerPath(pathname);
     setOpen(false);
-  }, [pathname]);
+  }
 
   // Esc로 닫기.
   useEffect(() => {
