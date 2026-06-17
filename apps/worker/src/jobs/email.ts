@@ -67,6 +67,12 @@ export async function processEmailJob(
     const html = composeQuoteEmailHtml({ body, downloadUrl: signed.data.signedUrl, quoteNo });
     const result = await mailSender.send({ fromUserId: hiworksUserId, to, cc, bcc, subject, html });
 
+    // 하이웍스 실제 응답을 그대로 남긴다(응답 스키마는 추정값 → 첫 실발송 검증·향후 디버깅용).
+    // 메일 발송은 저빈도라 로그량 부담 없음. raw엔 고객 PII 없음(상태 코드뿐).
+    console.log(
+      `[worker] hiworks 응답 log=${logId} ok=${result.ok} permanent=${result.permanent ?? "-"} raw=${JSON.stringify(result.raw)}`,
+    );
+
     if (result.ok) {
       await supabase
         .from("email_log")
