@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { formatKstKoreanDate, matchEquipmentName, numberToKoreanAmount, selectPdfSpecItems } from "@jhtechsaas/shared";
+import { formatKstKoreanDate, matchEquipmentName, numberToKoreanAmount, parseSpecs, selectPdfSpecItems } from "@jhtechsaas/shared";
 import { buildQuotePdf } from "./render-quote-pdf";
 import {
   getFontDataUri,
@@ -128,21 +128,8 @@ export async function processQuotePdfJob(
     if (m) equipment = m;
   }
 
-  // specs(jsonb SpecGroup[]) → id·pdf 보존하여 정규화(형식 방어).
-  const rawGroups = Array.isArray(equipment?.specs)
-    ? (equipment.specs as { group?: string; items?: { id?: string; label?: string; value?: string; pdf?: boolean }[] }[])
-        .map((g) => ({
-          group: typeof g.group === "string" ? g.group : "",
-          icon: "settings" as const, // 워커 렌더는 icon 미사용(SpecGroup 형식 충족용)
-          items: (g.items ?? []).map((i) => ({
-            id: typeof i.id === "string" ? i.id : "",
-            label: i.label ?? "",
-            value: i.value ?? "",
-            ...(typeof i.pdf === "boolean" ? { pdf: i.pdf } : {}),
-          })),
-        }))
-        .filter((g) => g.items.length > 0)
-    : [];
+  // specs(jsonb) → SpecGroup[](id·pdf 보존, 평면 레거시 하위호환). shared parseSpecs 재사용.
+  const rawGroups = parseSpecs(equipment?.specs);
 
   // 견적 spec_selection(배열) 또는 null(폴백)으로 렌더 항목 선별.
   //   배열 → 그 id만(빈배열=0개) / null → pdf:true만(없으면 전체=현 동작).
