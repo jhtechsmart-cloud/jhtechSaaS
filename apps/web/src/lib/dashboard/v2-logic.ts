@@ -154,7 +154,7 @@ export interface PipelineRow {
 
 /** 견적 파이프라인 세로 행 — 단계명 + 비율 바 + 건수. */
 export function pipelineRows(
-  counts: Record<ApplicationStatus, number>,
+  counts: Partial<Record<ApplicationStatus, number>>,
 ): PipelineRow[] {
   const max = Math.max(...APPLICATION_STATUSES.map((s) => counts[s] ?? 0));
   return APPLICATION_STATUSES.map((status) => {

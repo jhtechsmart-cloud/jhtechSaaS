@@ -1,6 +1,7 @@
 import "server-only";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { ApplicationStatus } from "@/lib/customers/history";
+import { ACTIVE_APPLICATION_STATUSES, DONE_APPLICATION_STATUSES } from "@/lib/application-status";
 import { buildSearchOr, splitOverflow, normalizeBizNo } from "./admin-search";
 import { applicationStatusSchema } from "./status-schema";
 
@@ -78,8 +79,9 @@ export async function countNewApplications(): Promise<number> {
   return count ?? 0;
 }
 
-// 진행중 스코프 = closed 제외 전부(단일 출처와 일치).
-const ACTIVE_STATUSES = ["new", "assigned", "quoted", "quote_sent"] as const;
+// 진행중 스코프 = 수금완료·종료 제외 전부 / 완료 스코프 = 완료군(수금완료+종료). 단일 출처 재사용.
+const ACTIVE_STATUSES = ACTIVE_APPLICATION_STATUSES;
+const DONE_STATUSES = DONE_APPLICATION_STATUSES;
 
 export type ListScope = "active" | "closed" | "all";
 
@@ -105,7 +107,7 @@ export async function listApplicationsPage(opts: {
   } else if (opts.scope === "active") {
     query = query.in("status", ACTIVE_STATUSES as unknown as string[]);
   } else if (opts.scope === "closed") {
-    query = query.eq("status", "closed");
+    query = query.in("status", DONE_STATUSES as unknown as string[]);
   }
 
   const { data, error } = await query;
@@ -142,7 +144,7 @@ export async function countApplicationsByGroup(): Promise<{ active: number; clos
     supabase.from("applications").select("id", { count: "exact", head: true })
       .in("status", ACTIVE_STATUSES as unknown as string[]),
     supabase.from("applications").select("id", { count: "exact", head: true })
-      .eq("status", "closed"),
+      .in("status", DONE_STATUSES as unknown as string[]),
   ]);
   if (activeRes.error) console.error("[applications.countActive]", activeRes.error);
   if (closedRes.error) console.error("[applications.countClosed]", closedRes.error);

@@ -2,7 +2,15 @@ import type { RequestStatus } from "@/lib/request-status";
 
 // P-F 통합 고객이력 — RPC get_company_request_history 반환 셰이프 + 섹션 요약 파생(순수 로직).
 // 견적 status는 AS·소모품(RequestStatus)과 다른 enum.
-export type ApplicationStatus = "new" | "assigned" | "quoted" | "quote_sent" | "closed";
+export type ApplicationStatus =
+  | "new"
+  | "assigned"
+  | "quoted"
+  | "quote_sent"
+  | "delivered"
+  | "collecting"
+  | "collected"
+  | "closed";
 
 export interface HistoryApplication {
   id: string;
@@ -46,11 +54,11 @@ export interface SectionSummary {
   completed: number;
 }
 
-// 견적 완료 = closed(종결). new/assigned/quoted는 진행.
+// 견적 완료 = 완료군(수금완료 collected + 종료 closed). 그 외(접수~수금중)는 진행.
 export function summarizeApplications(apps: ReadonlyArray<{ status: ApplicationStatus }>): SectionSummary {
   return {
     total: apps.length,
-    completed: apps.filter((a) => a.status === "closed").length,
+    completed: apps.filter((a) => a.status === "collected" || a.status === "closed").length,
   };
 }
 

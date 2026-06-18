@@ -1,8 +1,13 @@
 import "server-only";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { APPLICATION_STATUSES } from "@/lib/application-status";
+import {
+  APPLICATION_STATUSES,
+  ACTIVE_APPLICATION_STATUSES,
+  UNPAID_APPLICATION_STATUSES,
+} from "@/lib/application-status";
 import { SERVICE_REQUEST_STATUSES } from "@/lib/service-requests/status";
 import { SUPPLY_REQUEST_STATUSES } from "@/lib/supply-requests/status";
+import { buildUnpaidSummary, type UnpaidAppRow, type UnpaidSummary } from "./unpaid";
 
 // 단일 (table,status) 건수. RLS가 가시 범위 제한(영업=본인+미배정 풀, view_all=전체). 에러는 throw —
 // 대시보드는 allSettled로 블록 단위 흡수하므로 여기서 0 폴백 금지(0이 "정상 0"인지 "장애"인지 구분 위해).
@@ -38,6 +43,30 @@ async function countTable(table: string, filter?: { col: string; val: unknown })
   return count ?? 0;
 }
 
+// 미수금 = 납품완료·수금중 의뢰(물건 나갔는데 수금 미완). 대표 발행견적 공급가로 건수·총액·목록.
+// RLS가 가시 범위 제한(영업=본인+미배정). 에러는 throw(대시보드 블록 흡수).
+export async function unpaidDeliveries(): Promise<UnpaidSummary> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("applications")
+    .select("id,seq_no,company,status,profiles:assignee_id(name),quotes(version,status,supply_price,delivery_date)")
+    .in("status", UNPAID_APPLICATION_STATUSES as unknown as string[]);
+  if (error) throw new Error(`[dashboard.unpaidDeliveries] ${error.message}`);
+  const rows: UnpaidAppRow[] = (data ?? []).map((r) => {
+    const rec = r as Record<string, unknown>;
+    const profiles = rec.profiles as { name?: string } | null;
+    return {
+      id: rec.id as string,
+      seq_no: rec.seq_no as string,
+      company: rec.company as string,
+      status: rec.status as UnpaidAppRow["status"],
+      assigneeName: profiles?.name ?? null,
+      quotes: ((rec.quotes as UnpaidAppRow["quotes"]) ?? []),
+    };
+  });
+  return buildUnpaidSummary(rows);
+}
+
 export const countCustomers = () => countTable("companies");
 export const countCompanyEquipment = () => countTable("company_equipment");
 export const countActiveEquipment = () => countTable("equipment", { col: "status", val: "active" });
@@ -49,7 +78,7 @@ export async function assigneeLoad(): Promise<{ id: string; name: string; applic
   const supabase = await createSupabaseServerClient();
   const { data: staff } = await supabase.from("profiles").select("id,name").eq("is_active", true).order("name");
   const rows = staff ?? [];
-  const APP_OPEN = ["new", "assigned", "quoted", "quote_sent"]; // 미완료(closed 제외 — 견적발송도 진행중)
+  const APP_OPEN = ACTIVE_APPLICATION_STATUSES as unknown as string[]; // 진행중(수금완료·종료 제외)
   const REQ_OPEN = ["received", "in_progress", "on_hold"]; // 미완료(done/canceled 제외)
   return Promise.all(
     rows.map(async (s) => {

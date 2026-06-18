@@ -3,7 +3,7 @@ import { requireAnyConsoleCapability } from "@/lib/auth/guard";
 import { countNewApplications } from "@/lib/applications/admin-queries";
 import { countUnreadServiceRequests } from "@/lib/service-requests/queries";
 import { countUnreadSupplyRequests } from "@/lib/supply-requests/queries";
-import { countApplicationsByStatus } from "@/lib/dashboard/aggregates";
+import { countApplicationsByStatus, unpaidDeliveries } from "@/lib/dashboard/aggregates";
 import { listRecentRequests } from "@/lib/dashboard/recent";
 import {
   customersWithNewThisMonth,
@@ -30,6 +30,7 @@ import { PipelineRows } from "./_components/PipelineRows";
 import { WeeklyUnitChart } from "./_components/WeeklyUnitChart";
 import { DashboardRightRail } from "./_components/DashboardRightRail";
 import { RecentActivity } from "./_components/RecentActivity";
+import { UnpaidDeliveries } from "./_components/UnpaidDeliveries";
 
 // 대시보드 v2 — "현황 + 2주 일정" 중심: KPI 4장 / 2주 캘린더(전체 폭) / 파이프라인 세로 행 /
 // 주간 단위블록 / 우측 일정 레일 / 최근 활동. 역할 분기는 RLS 행 스코프가 자동 적용
@@ -66,7 +67,7 @@ export default async function DashboardPage() {
   const [
     newApps, unreadSvc, unreadSup,
     appByStatus, inProgress, weekSched, customers, stale,
-    events, upcoming, recent,
+    events, upcoming, recent, unpaid,
   ] = await Promise.allSettled([
     countNewApplications(),
     countUnreadServiceRequests(),
@@ -79,6 +80,7 @@ export default async function DashboardPage() {
     listCalendarEvents(weekStart, twoWeekEndExclusive),
     listUpcomingSchedules(today, 5),
     listRecentRequests(40),
+    unpaidDeliveries(),
   ]);
 
   // KPI ① 처리 대기 — 셋 다 성공해야 합산 표시(부분 실패를 작은 수로 위장 금지)
@@ -158,6 +160,7 @@ export default async function DashboardPage() {
             />
             <WeeklyUnitChart days={weeklyUnits} />
           </div>
+          <UnpaidDeliveries summary={val(unpaid) ?? { count: 0, totalAmount: 0, items: [] }} />
           <RecentActivity requests={recentRows.slice(0, 8)} />
         </div>
         <DashboardRightRail upcoming={val(upcoming) ?? []} monthRequests={monthRequests} />

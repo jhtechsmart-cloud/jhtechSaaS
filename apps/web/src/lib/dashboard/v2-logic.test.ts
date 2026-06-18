@@ -110,12 +110,15 @@ describe("buildWeeklyUnits — 블록 1개=1건, 12건 초과 +N", () => {
 });
 
 describe("pipelineRows — 단계별 비율(최대값 기준 바 길이)", () => {
-  test("비율·건수", () => {
-    const rows = pipelineRows({ new: 4, assigned: 2, quoted: 8, quote_sent: 0, closed: 2 });
-    expect(rows).toHaveLength(5);
+  test("비율·건수 (8단계, 부분 카운트는 0 폴백)", () => {
+    const rows = pipelineRows({ new: 4, assigned: 2, quoted: 8, quote_sent: 0, delivered: 3, collected: 2 });
+    expect(rows).toHaveLength(8);
     expect(rows[0]).toMatchObject({ status: "new", count: 4, pct: 50 });
-    expect(rows[2]).toMatchObject({ status: "quoted", count: 8, pct: 100 });
+    expect(rows[2]).toMatchObject({ status: "quoted", count: 8, pct: 100 }); // 최대값
     expect(rows[3]).toMatchObject({ status: "quote_sent", count: 0, pct: 0 });
+    expect(rows[4]).toMatchObject({ status: "delivered", count: 3 });
+    expect(rows[5]).toMatchObject({ status: "collecting", count: 0 }); // 미지정 → 0
+    expect(rows[7]).toMatchObject({ status: "closed", count: 0 });
   });
   test("전부 0이면 pct 0", () => {
     const rows = pipelineRows({ new: 0, assigned: 0, quoted: 0, quote_sent: 0, closed: 0 });
