@@ -87,7 +87,8 @@ export function SendQuoteEmailModal({
           onClick={() => setOpen(false)}
         >
           <div
-            className="w-full max-w-lg rounded-lg bg-surface p-5 shadow-card"
+            data-testid="mail-modal-panel"
+            className="max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-lg bg-surface p-5 shadow-card"
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className="mb-3 text-body font-semibold text-text">견적서 메일 발송</h3>

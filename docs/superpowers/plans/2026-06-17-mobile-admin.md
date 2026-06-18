@@ -802,3 +802,15 @@ git commit -m "test: 모바일 견적 하단 고정 바 e2e(노출·합계반영
 - E2E `mobile-dashboard.spec.ts`(390px): 캘린더·차트가 뷰포트 안 스크롤 컨테이너에 담김(scrollWidth > clientWidth, clientWidth ≤ viewport).
 
 KPI 카드·우측 레일은 이미 반응형이라 무변경.
+
+---
+
+# Phase 5 — 메일 모달 폴리시 (JIT 확정 · 구현 완료)
+
+**범위 축소(실측):** 고객 상세(`CustomerInfoSidebar`·`CustomerHeader`)는 **이미 반응형**으로 잘 처리됨(긴 값 `wrap` 여러 줄·짧은 값 `truncate`+`title` 툴팁·헤더 `flex-wrap`·페이지 `grid-cols-1` 스택) → YAGNI로 무변경. Phase 5는 메일 모달 1건으로 좁힘.
+
+**변경:**
+- `SendQuoteEmailModal.tsx`: 모달 패널에 `max-h-[90dvh] overflow-y-auto`(+ `data-testid="mail-modal-panel"`) 추가 — 키보드가 올라오거나 짧은 화면에서 모달이 뷰포트를 넘겨 '발송' 버튼이 가려지던 것을, 패널이 뷰포트 안에 갇히고 내부 스크롤로 도달 가능하게.
+- E2E `mobile-mail-modal.spec.ts`(390×480, 키보드 상황 모사): 발행 견적 시드 → 모달 열기 → 패널 clientHeight ≤ viewport(갇힘) + scrollHeight > clientHeight(스크롤) + '발송' 클릭 도달 → '메일 발송 중…' 배지.
+
+**모바일 대응 완료:** Phase 1~5 전부 머지(1·2·3=#143, 4=#144) 또는 본 PR(5).
