@@ -52,6 +52,7 @@ export default async function NewQuotePage({
   const catalog: QuoteCatalogItem[] = (await listEquipmentForMatch()).map((e) => ({
     id: e.id, name: e.name, model: e.model, basePrice: e.basePrice, category: e.category,
     options: e.options.map((o) => ({ kind: o.kind, name: o.name })),
+    specs: e.specs,
   }));
 
   let initialItems: QuoteRow[] | undefined;

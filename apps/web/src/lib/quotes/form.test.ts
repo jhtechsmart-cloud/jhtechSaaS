@@ -74,9 +74,9 @@ describe("parseQuoteLines — 저장된 jsonb → 폼 행(재발행 프리필)",
 
 describe("availableIncludedNames / itemRowsToLines — 카탈로그 장비 선택", () => {
   const catalog: QuoteCatalogItem[] = [
-    { id: "jp", name: "JP1113", model: "JP1113", basePrice: 48_000_000, category: "평판커팅기",
+    { id: "jp", name: "JP1113", model: "JP1113", basePrice: 48_000_000, category: "평판커팅기", specs: [],
       options: [{ kind: "included", name: "자동 급지" }, { kind: "included", name: "안전 센서" }, { kind: "extra", name: "연장 보증" }] },
-    { id: "uv", name: "UV3300S", model: "UV-3300S", basePrice: 50_000_000, category: "평판커팅기",
+    { id: "uv", name: "UV3300S", model: "UV-3300S", basePrice: 50_000_000, category: "평판커팅기", specs: [],
       options: [{ kind: "included", name: "자동 급지" }, { kind: "included", name: "집진 장치" }] },
   ];
   const item = (equipmentId: string, name: string, unitPrice: number): ItemRow => ({ equipmentId, name, unitPrice, quantity: 1 });
@@ -167,6 +167,7 @@ describe("formPreviewTotals", () => {
       model: "M1",
       basePrice: 50_000_000,
       category: "프린터",
+      specs: [],
       options: [
         { kind: "included", name: "기본설치" },
         { kind: "included", name: "원격지원" },

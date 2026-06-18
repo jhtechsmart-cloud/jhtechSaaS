@@ -1,6 +1,6 @@
 // 견적 작성 폼 순수 로직 — 행 정리·RPC 입력 변환·실시간 합계·검증.
 // 합계는 슬라이스1 calculateQuote를 그대로 쓴다(화면 미리보기). 저장 권위는 서버 RPC.
-import { calculateQuote, type QuoteInput, type QuoteResult } from "@jhtechsaas/shared";
+import { calculateQuote, type QuoteInput, type QuoteResult, type SpecGroup } from "@jhtechsaas/shared";
 
 // 폼 한 줄. 입력 중에는 단가·수량이 비거나 NaN일 수 있다.
 // kind: 옵션 줄 구분('included'=포함옵션 스냅샷·단가 0 / 'extra'=추가 과금). 장비 줄은 미지정.
@@ -14,6 +14,7 @@ export type QuoteCatalogItem = {
   basePrice: number;
   category: string | null;
   options: { kind: "included" | "extra"; name: string }[];
+  specs: SpecGroup[]; // 견적서 사양 선택 UI용(id·pdf 포함)
 };
 
 // 장비 행 — 카탈로그에서 고른 equipmentId(빈 문자열="직접 입력") + 표시명·단가·수량.
