@@ -134,11 +134,11 @@
       "id": "S2",
       "milestone": "M3",
       "name": "도메인 연결",
-      "status": "todo",
+      "status": "done",
       "period": "6월",
-      "deliverable": "sales.jhtech.co.kr(고객)·admin 서브도메인 CNAME·Vercel 도메인 연결. ※ 도메인 관리자 CNAME 생성 요청 대기",
+      "deliverable": "sales.jhtech.co.kr(고객)·admin 서브도메인 CNAME·Vercel 도메인 연결 완료.",
       "owner": "조선제",
-      "status_label": "🔴 6월 · 자료 대기"
+      "status_label": "✅ 완료 · 서브도메인 CNAME·Vercel 연결"
     },
     {
       "id": "P-G",
@@ -291,7 +291,7 @@
       "name": "도메인 연결(sales·admin 서브도메인)",
       "scope": "공통",
       "priority": "P0",
-      "status": "Spec Needed",
+      "status": "Launched",
       "phase": "S2"
     },
     {
