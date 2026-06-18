@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { formatKstKoreanDate, matchEquipmentName, numberToKoreanAmount } from "@jhtechsaas/shared";
+import { formatKstKoreanDate, matchEquipmentName, numberToKoreanAmount, selectPdfSpecItems } from "@jhtechsaas/shared";
 import { buildQuotePdf } from "./render-quote-pdf";
 import {
   getFontDataUri,
@@ -70,7 +70,7 @@ export async function processQuotePdfJob(
   const { data: quote, error } = await supabase
     .from("quotes")
     .select(
-      "id, quote_no, items, options, supply_price, issued_at, application_id, " +
+      "id, quote_no, items, options, supply_price, issued_at, application_id, spec_selection, " +
         "assignee:assignee_id(name, phone), application:application_id(company, equipment_id)",
     )
     .eq("id", quoteId)
@@ -128,15 +128,31 @@ export async function processQuotePdfJob(
     if (m) equipment = m;
   }
 
-  // specs(jsonb SpecGroup[]) → 평면 그룹(label/value). 형식 방어.
-  const specGroups = Array.isArray(equipment?.specs)
-    ? (equipment.specs as { group?: string; items?: { label?: string; value?: string }[] }[])
+  // specs(jsonb SpecGroup[]) → id·pdf 보존하여 정규화(형식 방어).
+  const rawGroups = Array.isArray(equipment?.specs)
+    ? (equipment.specs as { group?: string; items?: { id?: string; label?: string; value?: string; pdf?: boolean }[] }[])
         .map((g) => ({
           group: typeof g.group === "string" ? g.group : "",
-          items: (g.items ?? []).map((i) => ({ label: i.label ?? "", value: i.value ?? "" })),
+          icon: "settings" as const, // 워커 렌더는 icon 미사용(SpecGroup 형식 충족용)
+          items: (g.items ?? []).map((i) => ({
+            id: typeof i.id === "string" ? i.id : "",
+            label: i.label ?? "",
+            value: i.value ?? "",
+            ...(typeof i.pdf === "boolean" ? { pdf: i.pdf } : {}),
+          })),
         }))
         .filter((g) => g.items.length > 0)
     : [];
+
+  // 견적 spec_selection(배열) 또는 null(폴백)으로 렌더 항목 선별.
+  //   배열 → 그 id만(빈배열=0개) / null → pdf:true만(없으면 전체=현 동작).
+  const specSelection = Array.isArray(q.spec_selection)
+    ? (q.spec_selection as unknown[]).filter((x): x is string => typeof x === "string")
+    : null;
+  const specGroups = selectPdfSpecItems(rawGroups, specSelection).map((g) => ({
+    group: g.group,
+    items: g.items.map((i) => ({ label: i.label, value: i.value })),
+  }));
 
   const supplyPrice = Number(q.supply_price) || 0;
   // issued_at은 UTC ISO — KST 변환 없이 slice하면 KST 자정~09시 발행분이 전날 날짜로 인쇄된다.

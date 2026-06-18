@@ -71,9 +71,16 @@ export function genSpecItemId(): string {
   return crypto.randomUUID();
 }
 
-// SpecGroup[] → DB 저장용. 빈 아이템 제거·트림, 아이템 0개 그룹 제거, 순서 보존.
+// serializeSpecs 입력 — id는 옵셔널(이 함수가 채우는 게 목적). 신규 사양 작성 시 id 생략 가능.
+export interface SpecGroupInput {
+  group: string;
+  icon: SpecIcon;
+  items: Array<{ id?: string; label: string; value: string; pdf?: boolean }>;
+}
+
+// SpecGroupInput[] → DB 저장용 SpecGroup[]. 빈 아이템 제거·트림, 아이템 0개 그룹 제거, 순서 보존.
 // id 없는 항목엔 id 부여(연결 안정성), pdf 플래그 보존.
-export function serializeSpecs(groups: SpecGroup[]): SpecGroup[] {
+export function serializeSpecs(groups: SpecGroupInput[]): SpecGroup[] {
   return groups
     .map((g) => ({
       group: g.group.trim(),
