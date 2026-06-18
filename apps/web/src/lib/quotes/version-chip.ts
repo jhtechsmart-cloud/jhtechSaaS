@@ -1,11 +1,11 @@
 import { formatKstDateTime } from "@jhtechsaas/shared";
 
-// 처리바 버전 칩 — 최신/선택 버전 요약(버전·견적번호·발급일시·합계·상태). 순수 로직.
+// 처리바 버전 칩 — 최신/선택 버전 요약(버전·견적번호·발급일시·상태). 순수 로직.
+// 합계(금액)는 히어로·우측 요약패널에 이미 표시되므로 칩에서는 중복 제외.
 export type VersionChip = {
   versionLabel: string; // "v3"
   quoteNo: string; // "JHQ-…-V3"
   dateLabel: string; // "2026.06.16 · 14:20" (KST). 잘못된 입력이면 빈 문자열.
-  totalLabel: string; // "₩30,000,000" (공급가, VAT 별도)
   statusLabel: string; // "발행" | "임시"
   issued: boolean;
 };
@@ -14,7 +14,6 @@ export function buildVersionChip(q: {
   quote_no: string;
   version: number;
   status: string;
-  supply_price: string;
   issued_at: string | null;
   created_at: string;
 }): VersionChip {
@@ -25,7 +24,6 @@ export function buildVersionChip(q: {
     versionLabel: `v${q.version}`,
     quoteNo: q.quote_no,
     dateLabel,
-    totalLabel: `₩${Number(q.supply_price).toLocaleString("ko-KR")}`,
     statusLabel: issued ? "발행" : "임시",
     issued,
   };

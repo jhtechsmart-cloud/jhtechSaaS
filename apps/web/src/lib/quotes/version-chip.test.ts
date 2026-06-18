@@ -12,11 +12,10 @@ describe("buildVersionChip", () => {
     created_at: "2026-06-14T01:00:00+00:00",
   };
 
-  test("발행 견적 — 버전·번호·합계·상태·KST 발급일시", () => {
+  test("발행 견적 — 버전·번호·상태·KST 발급일시", () => {
     const c = buildVersionChip(base);
     expect(c.versionLabel).toBe("v3");
     expect(c.quoteNo).toBe("JHQ-20260616-003-V3");
-    expect(c.totalLabel).toBe("₩30,000,000");
     expect(c.statusLabel).toBe("발행");
     expect(c.issued).toBe(true);
     expect(c.dateLabel).toBe("2026.06.16 · 14:20"); // issued_at 기준 KST
