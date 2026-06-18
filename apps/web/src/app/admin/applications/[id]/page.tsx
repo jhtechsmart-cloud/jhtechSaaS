@@ -271,35 +271,30 @@ export default async function ApplicationDetailPage({
         preview={isPreview}
       />
 
-      {/* 처리바 — 좌: 최신 버전 칩 + '버전정보'(버전이력·변경내역 모달) / 우끝: 담당자·상태 컨트롤. */}
-      <div className="mb-6 flex flex-wrap items-center gap-x-6 gap-y-3 rounded-lg border border-border/60 bg-surface px-5 py-3 shadow-sm">
-        {quotes.length > 0 && selected ? (
-          <VersionInfoModal
-            chip={buildVersionChip(selected)}
-            dangerZone={
-              canDeleteQuote ? (
-                <DeleteQuoteButton quoteId={selected.id} applicationId={id} multiVersion={quotes.length > 1} />
-              ) : null
-            }
-          >
-            <VersionHistory applicationId={id} quotes={quotes} currentQuoteId={selected.id} />
-            {versionDiff && prevQuote && (
-              <VersionDiff prevVersion={prevQuote.version} currVersion={selected.version} diff={versionDiff} />
-            )}
-          </VersionInfoModal>
-        ) : (
-          <span className="text-small text-muted">발행 견적 없음</span>
-        )}
-        {canReleaseOrder && hasIssuedQuote && (
-          <Link
-            href={`/admin/applications/${id}/release-order`}
-            className="inline-flex items-center gap-1.5 rounded-full border border-accent px-3 py-1.5 text-small font-semibold text-accent hover:bg-mint"
-            data-testid="release-order-link"
-          >
-            출고의뢰서
-          </Link>
-        )}
-        <div className="ml-auto flex flex-wrap items-center gap-x-6 gap-y-3">
+      {/* 처리바 — 좌: 버전 칩 + '버전정보' 모달 / 우: 담당자·상태 컨트롤.
+          좌·우를 명시 2영역으로 분리(과거 flex-wrap+ml-auto가 정보 길어질 때 컨트롤을 떠밀어 우연히 줄바꿈됨).
+          lg 미만에선 의도적으로 세로 stack. 출고의뢰서는 우측 요약 패널 '문서' 영역으로 이동. */}
+      <div className="mb-6 flex flex-col gap-3 rounded-lg border border-border/60 bg-surface px-5 py-3 shadow-sm lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0">
+          {quotes.length > 0 && selected ? (
+            <VersionInfoModal
+              chip={buildVersionChip(selected)}
+              dangerZone={
+                canDeleteQuote ? (
+                  <DeleteQuoteButton quoteId={selected.id} applicationId={id} multiVersion={quotes.length > 1} />
+                ) : null
+              }
+            >
+              <VersionHistory applicationId={id} quotes={quotes} currentQuoteId={selected.id} />
+              {versionDiff && prevQuote && (
+                <VersionDiff prevVersion={prevQuote.version} currVersion={selected.version} diff={versionDiff} />
+              )}
+            </VersionInfoModal>
+          ) : (
+            <span className="text-small text-muted">발행 견적 없음</span>
+          )}
+        </div>
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-3 lg:shrink-0">
           <div className="flex items-center gap-2">
             <span className="text-small text-muted">담당자</span>
             {assigneeNode}
@@ -370,6 +365,8 @@ export default async function ApplicationDetailPage({
             emailStatus={emailStatus}
             lastSend={lastSend}
             companyName={str(r.company)}
+            canReleaseOrder={canReleaseOrder}
+            hasIssuedQuote={hasIssuedQuote}
           />
           <SalesLogPlaceholder />
         </div>

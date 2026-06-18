@@ -13,6 +13,7 @@ export function QuoteSummaryPanel({
   applicationId, quoteId, quoteNo, statusLabel, equipmentSubtotal, optionSubtotal, items, options, total,
   issuedAtLabel, validUntilLabel, assigneeName, email, phone, pdfReady, canReissue, preview, canWrite,
   isIssued, deliveryDate, deliveryTime, canEmail, emailStatus, lastSend, companyName,
+  canReleaseOrder, hasIssuedQuote,
 }: {
   applicationId: string; quoteId: string | null; quoteNo: string | null; statusLabel: string;
   equipmentSubtotal: number; optionSubtotal: number; items: LineRow[]; options: LineRow[]; total: string;
@@ -26,6 +27,8 @@ export function QuoteSummaryPanel({
   emailStatus?: string | null; // 현재 견적의 최신 발송 상태(sent/sending/pending/failed/null)
   lastSend?: LastSend | null; // 직전 발송 정보(재발송 모달 안내용)
   companyName?: string | null; // 메일 프리필용 신청기업명
+  canReleaseOrder?: boolean; // release_orders.write — 출고의뢰서 버튼 노출
+  hasIssuedQuote?: boolean; // 발행 견적 존재 — 출고의뢰서 진입 전제
 }) {
   return (
     // sticky는 부모 컬럼이 담당(영업일지와 함께 한 덩어리로 고정 → 겹침 방지).
@@ -83,6 +86,18 @@ export function QuoteSummaryPanel({
                 {!pdfReady ? "메일 발송 · 발행 후 가능" : "메일 발송 · 권한 없음"}
               </span>
             )}
+          </div>
+        )}
+        {/* 출고의뢰서 — 발행 견적이 있으면(보던 버전 무관) 노출. 견적 문서(수정·PDF·메일)와 결이 달라 구분선 아래 별도 산출물로. */}
+        {canReleaseOrder && hasIssuedQuote && (
+          <div className="mt-2 border-t border-border pt-2">
+            <Link
+              href={`/admin/applications/${applicationId}/release-order`}
+              className="block rounded-md border border-accent py-2 text-center text-small font-semibold text-accent hover:bg-mint"
+              data-testid="release-order-link"
+            >
+              출고의뢰서
+            </Link>
           </div>
         )}
         <div className="mt-3 flex flex-col gap-1 border-t border-border pt-3 text-small">

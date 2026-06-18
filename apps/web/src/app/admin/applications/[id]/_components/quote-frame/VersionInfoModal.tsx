@@ -44,8 +44,6 @@ export function VersionInfoModal({
             <span className="whitespace-nowrap font-mono tabular-nums text-muted">{chip.dateLabel}</span>
           </>
         )}
-        <span className="text-faint">·</span>
-        <span className="whitespace-nowrap font-mono font-semibold tabular-nums text-text">{chip.totalLabel}</span>
         <span
           className={`whitespace-nowrap rounded-full px-2 py-0.5 text-micro font-semibold ${
             chip.issued ? "bg-mint text-accent-2" : "bg-surface-2 text-muted"
