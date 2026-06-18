@@ -13,4 +13,6 @@ set specs = (
   )
   from jsonb_array_elements(e.specs) grp
 )
-where jsonb_typeof(e.specs) = 'array' and jsonb_array_length(e.specs) > 0;
+where jsonb_typeof(e.specs) = 'array'
+  and jsonb_array_length(e.specs) > 0
+  and (e.specs -> 0) ? 'items'; -- 그룹형만(up과 동일 가드)
