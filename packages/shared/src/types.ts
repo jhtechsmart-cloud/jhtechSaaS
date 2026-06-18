@@ -4,7 +4,16 @@
 import type { PermissionKey } from "./permissions";
 import type { SpecGroup } from "./specs";
 
-export type ApplicationStatus = "new" | "assigned" | "quoted" | "closed";
+// 라이프사이클 8상태(2026-06-18). 접수→배정→견적중→견적발송→납품완료→수금중→수금완료, +종료.
+export type ApplicationStatus =
+  | "new"
+  | "assigned"
+  | "quoted"
+  | "quote_sent"
+  | "delivered"
+  | "collecting"
+  | "collected"
+  | "closed";
 export type QuoteStatus = "draft" | "issued";
 export type EmailStatus = "pending" | "sent" | "failed";
 export type EquipmentStatus = "active" | "inactive";

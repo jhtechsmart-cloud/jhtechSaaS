@@ -41,8 +41,8 @@ test.describe.serial("대시보드 v2 E2E", () => {
     await expect(page.getByText("주간 활동")).toBeVisible();
     await expect(page.getByText("데모 및 납품 일정")).toBeVisible();
     await expect(page.getByRole("link", { name: "예약 관리 →" })).toBeVisible();
-    // 파이프라인 5단계 행(견적 목록 필터 링크)
-    for (const label of ["접수", "배정", "견적중", "견적발송", "완료"]) {
+    // 파이프라인 8단계 행(견적 목록 필터 링크) — 라이프사이클 확장(납품완료·수금중·수금완료·종료)
+    for (const label of ["접수", "배정", "견적중", "견적발송", "납품완료", "수금중", "수금완료", "종료"]) {
       await expect(
         page.getByRole("link", { name: new RegExp(`^${label}`) }).first(),
       ).toBeVisible();
