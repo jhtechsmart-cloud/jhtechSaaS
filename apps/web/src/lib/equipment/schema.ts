@@ -1,10 +1,13 @@
 import { z } from "zod";
 import { SPEC_ICONS } from "@jhtechsaas/shared";
 
-// 사양 항목 — 빈 값 허용(편집 중 빈 행). 직렬화 시 제거(serializeSpecs).
+// 사양 항목 — 빈 값 허용(편집 중 빈 행). 직렬화 시 제거·id 부여(serializeSpecs).
+// id: 안정 고유표식(신규 항목은 빈 문자열, 저장 시 채움). pdf: 견적서 기본 포함.
 export const specItemSchema = z.object({
+  id: z.string().default(""),
   label: z.string(),
   value: z.string(),
+  pdf: z.boolean().default(true),
 });
 
 // 사양 그룹 — 그룹명 + 아이콘(고정 enum) + 항목 배열.

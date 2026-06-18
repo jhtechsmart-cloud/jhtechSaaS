@@ -14,9 +14,9 @@ const base: EquipmentPublic = {
       group: "기본",
       icon: "settings",
       items: [
-        { label: "전압", value: "220V" },
-        { label: "출력", value: "3kW" },
-        { label: "무게", value: "120kg" },
+        { id: "s1", label: "전압", value: "220V" },
+        { id: "s2", label: "출력", value: "3kW" },
+        { id: "s3", label: "무게", value: "120kg" },
       ],
     },
   ],

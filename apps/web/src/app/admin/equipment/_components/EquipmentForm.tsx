@@ -55,7 +55,7 @@ export function EquipmentForm(props: Props) {
             highlights: [],
             youtube_urls: [],
             // UI-SPEC: 생성 시 1 빈 그룹(아이템 1 빈 행)
-            specs: [{ group: "", icon: "settings", items: [{ label: "", value: "" }] }],
+            specs: [{ group: "", icon: "settings", items: [{ id: "", label: "", value: "", pdf: true }] }],
             photos: [],
             options: [],
             quote_device_name: "",
