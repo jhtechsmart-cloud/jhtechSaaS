@@ -31,6 +31,8 @@ import { WeeklyUnitChart } from "./_components/WeeklyUnitChart";
 import { DashboardRightRail } from "./_components/DashboardRightRail";
 import { RecentActivity } from "./_components/RecentActivity";
 import { UnpaidDeliveries } from "./_components/UnpaidDeliveries";
+import Link from "next/link";
+import { Icon } from "@/app/admin/_components/Icon";
 
 // 대시보드 v2 — "현황 + 2주 일정" 중심: KPI 4장 / 2주 캘린더(전체 폭) / 파이프라인 세로 행 /
 // 주간 단위블록 / 우측 일정 레일 / 최근 활동. 역할 분기는 RLS 행 스코프가 자동 적용
@@ -135,9 +137,19 @@ export default async function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <div>
-        <h1 className="text-h1 font-semibold text-text">대시보드</h1>
-        <p className="text-small text-muted">{scopeLabel} 현황과 2주 일정을 한눈에</p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-h1 font-semibold text-text">대시보드</h1>
+          <p className="text-small text-muted">{scopeLabel} 현황과 2주 일정을 한눈에</p>
+        </div>
+        {/* 영업자가 현재 장비 재고를 바로 볼 수 있는 읽기 전용 진입(콘솔 전원) */}
+        <Link
+          href="/admin/inventory/view"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-2 text-small font-medium text-text hover:bg-surface-2"
+        >
+          <Icon name="inventory" size={16} />
+          재고현황 보기
+        </Link>
       </div>
 
       <KpiCards
