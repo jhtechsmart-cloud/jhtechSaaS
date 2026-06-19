@@ -20,4 +20,17 @@ describe("createManualQuotePayloadSchema — 수기 견적 입력", () => {
       ok({ company: "수기업체", ceo: "홍길동", phone: "010-1-2", email: "a@b.c", items, options: [], status: "issued" }),
     ).toBe(true);
   });
+  test("companyId(guid) 보존 + 미지정 허용", () => {
+    expect(
+      ok({ company: "수기업체", companyId: "00000000-0000-0000-0000-0000000000c1", items, options: [], status: "draft" }),
+    ).toBe(true);
+    expect(ok({ company: "수기업체", items, options: [], status: "draft" })).toBe(true); // 미지정 OK
+    const parsed = createManualQuotePayloadSchema.safeParse({
+      company: "수기업체", companyId: "00000000-0000-0000-0000-0000000000c1", items, options: [], status: "draft",
+    });
+    expect(parsed.success && parsed.data.companyId).toBe("00000000-0000-0000-0000-0000000000c1");
+  });
+  test("companyId 형식 오류(비-guid) 거부", () => {
+    expect(ok({ company: "수기업체", companyId: "not-a-uuid", items, options: [], status: "draft" })).toBe(false);
+  });
 });

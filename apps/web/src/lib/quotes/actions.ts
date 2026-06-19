@@ -164,6 +164,8 @@ export async function createManualQuoteAction(
     p_options: v.options,
     p_status: v.status,
     p_spec_selection: v.specSelection,
+    // 기존 고객 연결 — 지정 시 application.company_id 저장 → 고객 이력에 견적 노출.
+    p_company_id: v.companyId ?? null,
   });
   if (error) {
     console.error("[quotes.manual] RPC 실패", error);

@@ -19,6 +19,8 @@ export const createManualQuotePayloadSchema = createQuotePayloadSchema.extend({
   ceo: z.string().trim().optional(),
   phone: z.string().trim().optional(),
   email: z.string().trim().optional(),
+  // 기존 고객 연결 시 그 회사 id(견적이 고객 이력에 노출되도록). 미지정=신규 수기 견적.
+  companyId: z.guid().optional(),
 });
 
 export type CreateManualQuotePayload = z.infer<typeof createManualQuotePayloadSchema>;
