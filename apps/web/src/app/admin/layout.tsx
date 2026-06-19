@@ -1,14 +1,16 @@
 import type { ReactNode } from "react";
-import Link from "next/link";
 import { cookies } from "next/headers";
 import { can, type PermissionKey } from "@jhtechsaas/shared";
 import { requireAnyConsoleCapability } from "@/lib/auth/guard";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { avatarPublicUrl } from "@/lib/avatar/avatar";
 import { countUnreadServiceRequests } from "@/lib/service-requests/queries";
 import { countUnreadSupplyRequests } from "@/lib/supply-requests/queries";
 import { countNewApplications } from "@/lib/applications/admin-queries";
 import { signOut } from "@/app/login/actions";
 import { Icon } from "./_components/Icon";
 import { AdminSidebar } from "./_components/AdminSidebar";
+import { AccountMenu } from "./_components/AccountMenu";
 import { MobileNav } from "./_components/MobileNav";
 import { ForcedPasswordChange } from "./_components/ForcedPasswordChange";
 import { BadgePoller } from "./_components/BadgePoller";
@@ -46,6 +48,16 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   const perms = access.permissions;
   const anyOf = (keys: PermissionKey[]) => keys.some((k) => can(perms, k));
   const isAdmin = can(perms, "users.manage");
+
+  // 현재 사용자 표시 정보(이름·사진·이메일) — 우상단 계정 메뉴·사이드바 하단 공용.
+  const supabase = await createSupabaseServerClient();
+  const [{ data: authUser }, { data: meProfile }] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase.from("profiles").select("name, avatar_url").eq("id", access.userId).single(),
+  ]);
+  const userName = (meProfile as { name?: string | null } | null)?.name ?? null;
+  const userEmail = authUser?.user?.email ?? null;
+  const avatarUrl = avatarPublicUrl((meProfile as { avatar_url?: string | null } | null)?.avatar_url);
 
   // 사이드바 접기 선택을 쿠키로 읽어 초기값 전달(서버·클라 일치 → hydration mismatch 방지).
   const sc = (await cookies()).get("jh.sidebarCollapsed")?.value;
@@ -85,7 +97,13 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       {/* 배지·알림 주기 갱신(새 의뢰가 들어오면 새로고침 없이 사이드바 배지에 반영) */}
       <BadgePoller />
       {/* 사이드바 — 의뢰관리 화면에선 아이콘만 남기고 접힘(AdminSidebar) */}
-      <AdminSidebar items={items.filter((it) => it.show)} isAdmin={isAdmin} initialOverride={initialOverride} />
+      <AdminSidebar
+        items={items.filter((it) => it.show)}
+        isAdmin={isAdmin}
+        initialOverride={initialOverride}
+        userName={userName}
+        avatarUrl={avatarUrl}
+      />
 
       {/* 본문 영역 */}
       <div className="flex min-w-0 flex-1 flex-col">
@@ -105,13 +123,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
                 </span>
               )}
             </span>
-            <Link
-              href="/admin/account"
-              title="계정 설정"
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-small font-semibold text-white"
-            >
-              {isAdmin ? "관" : "영"}
-            </Link>
+            <AccountMenu imageUrl={avatarUrl} name={userName} email={userEmail} isAdmin={isAdmin} />
           </div>
         </header>
 
