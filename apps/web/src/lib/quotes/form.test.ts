@@ -232,23 +232,27 @@ describe("specSelectionBudget — 사양 선택 예산", () => {
   });
 });
 
-describe("mainEquipmentSpecs — 값 없는 항목 제외", () => {
+describe("mainEquipmentSpecs — 항목 이름·값 둘 다 있어야 포함", () => {
   const CAT_EMPTY: QuoteCatalogItem[] = [{
     id: "eqE", name: "장비E", model: null, basePrice: 1000, category: null, options: [],
     specs: [{ group: "성능", icon: "gauge", items: [
-      { id: "v1", label: "속도", value: "30", pdf: true },
-      { id: "v2", label: "빈값", value: "  ", pdf: true },
-      { id: "v3", label: "무게", value: "", pdf: false },
+      { id: "v1", label: "속도", value: "30", pdf: true },       // 라벨+값 → 포함
+      { id: "v2", label: "", value: "1,600mm", pdf: true },     // 라벨 없음 → 제외
+      { id: "v3", label: "  ", value: "이더넷", pdf: true },     // 공백 라벨 → 제외
+      { id: "v4", label: "무게", value: "", pdf: false },        // 값 없음 → 제외
     ] }],
   }];
-  test("값이 빈(공백 포함) 항목은 제외하고 반환", () => {
+  test("라벨 없거나 값 없는 항목은 제외(둘 다 있는 것만)", () => {
     const items: ItemRow[] = [{ equipmentId: "eqE", name: "장비E", unitPrice: 1000, quantity: 1 }];
     expect(mainEquipmentSpecs(items, CAT_EMPTY)[0]!.items.map((i) => i.id)).toEqual(["v1"]);
   });
-  test("그룹의 모든 항목 값이 비면 그룹 자체 제거", () => {
+  test("포함 항목이 하나도 없으면 그룹 자체 제거", () => {
     const cat: QuoteCatalogItem[] = [{
       id: "eqZ", name: "Z", model: null, basePrice: 0, category: null, options: [],
-      specs: [{ group: "G", icon: "settings", items: [{ id: "z", label: "x", value: "", pdf: true }] }],
+      specs: [{ group: "G", icon: "settings", items: [
+        { id: "z1", label: "x", value: "", pdf: true },   // 값 없음
+        { id: "z2", label: "", value: "1,600mm", pdf: true }, // 라벨 없음
+      ] }],
     }];
     const items: ItemRow[] = [{ equipmentId: "eqZ", name: "Z", unitPrice: 0, quantity: 1 }];
     expect(mainEquipmentSpecs(items, cat)).toEqual([]);

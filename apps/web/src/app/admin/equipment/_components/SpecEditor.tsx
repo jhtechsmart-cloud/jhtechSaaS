@@ -76,19 +76,23 @@ function SpecItemRow({
   iIndex: number;
   onRemove: () => void;
 }) {
+  // 항목 이름(라벨)·값이 모두 있어야 PDF 포함 가능 — 둘 중 하나라도 비면 체크박스 비활성.
+  const label = useWatch({ control, name: `specs.${gIndex}.items.${iIndex}.label` });
   const value = useWatch({ control, name: `specs.${gIndex}.items.${iIndex}.value` });
+  const hasLabel = (label ?? "").trim() !== "";
   const hasValue = (value ?? "").trim() !== "";
+  const canInclude = hasLabel && hasValue;
   return (
     <div className="flex flex-col gap-0.5">
       <div className="flex items-center gap-2">
         <label
           className="flex shrink-0 items-center gap-1 text-small text-muted"
-          title={hasValue ? "견적서 PDF에 기본 포함" : "값을 입력하면 PDF에 포함할 수 있습니다"}
+          title={canInclude ? "견적서 PDF에 기본 포함" : "항목 이름과 값을 모두 입력하면 PDF에 포함할 수 있습니다"}
         >
           <input
             type="checkbox"
             {...register(`specs.${gIndex}.items.${iIndex}.pdf`)}
-            disabled={!hasValue}
+            disabled={!canInclude}
             className="h-4 w-4 disabled:cursor-not-allowed disabled:opacity-40"
           />
           <span className="hidden sm:inline">PDF</span>
@@ -97,8 +101,8 @@ function SpecItemRow({
         <input {...register(`specs.${gIndex}.items.${iIndex}.value`)} placeholder="값 (예: 1200매/h)" className="flex-1 rounded-sm border border-border bg-surface px-2 py-1 font-mono text-body text-text" />
         <button type="button" onClick={onRemove} className="text-small text-danger hover:underline">삭제</button>
       </div>
-      {!hasValue && (
-        <p className="pl-1 text-small text-muted">값이 없으면 견적서 PDF에 포함되지 않습니다.</p>
+      {!canInclude && (
+        <p className="pl-1 text-small text-muted">항목 이름과 값을 모두 입력해야 견적서 PDF에 포함됩니다.</p>
       )}
     </div>
   );

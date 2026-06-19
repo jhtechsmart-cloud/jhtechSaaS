@@ -62,22 +62,27 @@ describe("renderQuoteHtml", () => {
     expect(html).toContain("1200DPI");
     expect(html).not.toContain('class="spec-title"'); // 그룹 제목 미렌더
   });
-  test("값 없는 항목은 PDF 미포함(렌더 제외)", () => {
+  test("항목 이름(라벨) 없거나 값 없는 항목은 PDF 미포함 — 둘 다 있어야 포함", () => {
     const html = renderQuoteHtml({
       ...base,
       specGroups: [{ group: "성능", items: [
-        { label: "해상도", value: "1200DPI" },
-        { label: "빈항목", value: "  " }, // 공백만 = 값 없음
-        { label: "무게", value: "" },
+        { label: "해상도", value: "1200DPI" }, // 라벨+값 → 포함
+        { label: "", value: "1,600mm × 1,200mm" }, // 라벨 없음(크기 목록류) → 제외
+        { label: "  ", value: "이더넷" }, // 공백 라벨 → 제외
+        { label: "무게", value: "" }, // 값 없음 → 제외
       ] }],
     });
     expect(html).toContain("해상도");
     expect(html).toContain("1200DPI");
-    expect(html).not.toContain("빈항목");
+    expect(html).not.toContain("1,600mm"); // 라벨 없는 값 제외
+    expect(html).not.toContain("이더넷");
     expect(html).not.toContain("무게");
   });
-  test("모든 항목 값이 비면 장비사양 섹션 자체 미출력", () => {
-    const html = renderQuoteHtml({ ...base, specGroups: [{ group: "성능", items: [{ label: "해상도", value: "" }] }] });
+  test("포함 항목(라벨+값) 하나도 없으면 장비사양 섹션 자체 미출력", () => {
+    const html = renderQuoteHtml({ ...base, specGroups: [{ group: "성능", items: [
+      { label: "해상도", value: "" }, // 값 없음
+      { label: "", value: "1,600mm" }, // 라벨 없음
+    ] }] });
     expect(html).not.toContain("장비사양");
   });
   test("장비 이미지/네임 없으면 해당 요소 미출력(배경·로고는 항상)", () => {
