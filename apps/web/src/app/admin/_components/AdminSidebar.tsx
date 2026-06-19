@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { signOut } from "@/app/login/actions";
+import { roleLabel } from "@/lib/avatar/avatar";
 import { Icon } from "./Icon";
+import { UserAvatar } from "./UserAvatar";
 import { SidebarNav, type NavItem } from "./SidebarNav";
 
 const COOKIE = "jh.sidebarCollapsed";
@@ -17,10 +19,14 @@ export function AdminSidebar({
   items,
   isAdmin,
   initialOverride,
+  userName,
+  avatarUrl,
 }: {
   items: NavItem[];
   isAdmin: boolean;
   initialOverride: boolean | null;
+  userName: string | null;
+  avatarUrl: string | null;
 }) {
   const pathname = usePathname();
   const [override, setOverride] = useState<boolean | null>(initialOverride);
@@ -43,7 +49,7 @@ export function AdminSidebar({
     <aside
       onMouseEnter={() => pinnedCollapsed && setHovering(true)}
       onMouseLeave={() => setHovering(false)}
-      className={`hidden shrink-0 flex-col overflow-hidden border-r border-border bg-sidebar text-sidebar-text transition-[width] duration-200 lg:flex ${
+      className={`sticky top-0 hidden h-dvh shrink-0 flex-col self-start overflow-hidden border-r border-border bg-sidebar text-sidebar-text transition-[width] duration-200 lg:flex ${
         expanded ? "w-56" : "w-16"
       }`}
     >
@@ -66,16 +72,17 @@ export function AdminSidebar({
         </button>
       </div>
 
-      <SidebarNav items={items} expanded={expanded} />
+      {/* 메뉴 — 길면 스크롤(min-h-0 flex-1). 아래 프로필 박스는 이 영역이 공간을 먹어 항상 하단에 고정됨. */}
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <SidebarNav items={items} expanded={expanded} />
+      </div>
 
       {/* 프로필 — 접힘 시 라벨·로그아웃을 폭 0으로 접어 아바타가 중앙(아이콘 레일과 동일 정렬) */}
-      <div className={`mb-4 mt-2 flex items-center rounded-[12px] border border-border bg-surface py-3 shadow-card ${expanded ? "mx-3 gap-3 px-3" : "mx-2 justify-center px-0"}`}>
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-soft text-small font-bold text-accent">
-          {isAdmin ? "관" : "영"}
-        </span>
+      <div data-testid="sidebar-profile" className={`mb-4 mt-2 flex items-center rounded-[12px] border border-border bg-surface py-3 shadow-card ${expanded ? "mx-3 gap-3 px-3" : "mx-2 justify-center px-0"}`}>
+        <UserAvatar imageUrl={avatarUrl} name={userName} fallback={isAdmin ? "관" : "영"} variant="soft" size={36} />
         <span className={`flex min-w-0 flex-col overflow-hidden leading-tight ${expanded ? "flex-1" : "w-0"} ${fade(expanded)}`}>
-          <span className="truncate text-small font-semibold text-text">{isAdmin ? "관리자" : "영업담당"}</span>
-          <span className="truncate text-micro text-sidebar-text">재현테크</span>
+          <span className="truncate text-small font-semibold text-text">{userName ?? "사용자"}</span>
+          <span className="truncate text-micro text-sidebar-text">{roleLabel(isAdmin)}</span>
         </span>
         <form action={signOut} className={`overflow-hidden ${expanded ? "shrink-0" : "w-0"} ${fade(expanded)}`}>
           <button className="text-sidebar-text transition-colors hover:text-danger" aria-label="로그아웃" title="로그아웃">
