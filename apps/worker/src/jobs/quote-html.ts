@@ -43,22 +43,26 @@ export function renderQuoteHtml(d: QuoteHtmlData): string {
   const extraRows = d.extraOptions
     .map((o) => `<tr class="sub"><td class="name"> - ${esc(o.name)}</td><td>${esc(o.qtyLabel)}</td><td class="num">${won(o.unitPrice)}</td><td class="num">${won(o.amount)}</td><td></td></tr>`)
     .join("");
+  // 사양 = 라벨 컬럼 + 값 컬럼으로 분리(항목/값이 섞여 보이지 않게). 2열 신문식(위→아래)로
+  // 한 페이지 유지. 라벨은 고정폭 max-content로 세로 정렬, 값은 제 칸에서만 줄바꿈.
+  const specCell = (i: { label: string; value: string }) => {
+    const label = esc(i.label);
+    const value = esc(i.value);
+    // 항목 앞에 하이픈(-) + 항목/값 사이 세로 구분선(.spec-v border-left).
+    // 라벨 없는 항목(예: 제품 크기 목록)은 값이 두 칸 폭을 차지(하이픈만, 구분선 없음).
+    return label
+      ? `<div class="spec-k">- ${label}</div><div class="spec-v">${value}</div>`
+      : `<div class="spec-v wide">- ${value}</div>`;
+  };
+  const specGroupHtml = (g: { group: string; items: { label: string; value: string }[] }) => {
+    const half = Math.ceil(g.items.length / 2);
+    const left = g.items.slice(0, half).map(specCell).join("");
+    const right = g.items.slice(half).map(specCell).join("");
+    const title = g.group ? `<div class="spec-title">${esc(g.group)}</div>` : "";
+    return `<div class="spec-group">${title}<div class="spec-cols"><div class="spec-col">${left}</div><div class="spec-col">${right}</div></div></div>`;
+  };
   const specs = d.specGroups.length
-    ? `<div class="band">장비사양 (Specification)</div><div class="specs">${d.specGroups
-        .map(
-          (g) =>
-            `<div class="spec-group"><div class="spec-title">${esc(g.group)}</div><div class="spec-items">${g.items
-              .map((i) => {
-                // 라벨 없는 항목(예: 제품 크기 목록)은 "· 값"만 — "· : 값" 빈 라벨 방지.
-                const label = esc(i.label);
-                const value = esc(i.value);
-                return label
-                  ? `<div class="spec-item">· ${label} : ${value}</div>`
-                  : `<div class="spec-item">· ${value}</div>`;
-              })
-              .join("")}</div></div>`,
-        )
-        .join("")}</div>`
+    ? `<div class="band">장비사양 (Specification)</div><div class="specs">${d.specGroups.map(specGroupHtml).join("")}</div>`
     : "";
   const notes = d.notes.map((n, i) => `<div class="note">${i + 1}. ${esc(n)}</div>`).join("");
 
@@ -105,12 +109,19 @@ table.items td.name{text-align:left;}
 table.items td.num{text-align:right;font-variant-numeric:tabular-nums;}
 table.items tr.total td{font-weight:700;}
 .band{background:#3a4a5a;color:#fff;text-align:center;letter-spacing:6px;padding:5px;margin-top:8px;}
-/* 사양 — 그룹 제목 아래 항목을 2컬럼으로(항목 많아도 1페이지 유지). 폰트·줄간격 압축. */
-.specs{padding:6px 2px;font-size:11.5px;}
-.spec-group{margin-bottom:3px;}
-.spec-title{font-weight:700;margin:2px 0 1px;}
-.spec-items{display:grid;grid-template-columns:1fr 1fr;gap:0 18px;}
-.spec-item{line-height:1.4;}
+/* 사양 — 라벨 컬럼 + 값 컬럼 분리(섞여 보이지 않게). 2열 신문식, 항목 많아도 1페이지 유지.
+   행 간격은 압축(1페이지 하드 캡 — 장비 사진이 2페이지로 안 넘어가게). */
+.specs{padding:5px 2px;font-size:11.5px;}
+.spec-group{margin-bottom:2px;}
+.spec-title{font-weight:700;margin:1px 0 1px;color:#2b3a47;}
+.spec-cols{display:grid;grid-template-columns:1fr 1fr;gap:0 24px;}
+/* 각 열 = 라벨(고정폭 max-content)|값(나머지). 라벨이 세로로 정렬되고 값은 제 칸에서만 줄바꿈.
+   col-gap은 0 — 항목/값 간격과 세로 구분선은 .spec-k 우측 패딩 + .spec-v 좌측 보더가 담당. */
+.spec-col{display:grid;grid-template-columns:max-content 1fr;gap:1px 0;align-content:start;}
+.spec-k{color:#5b6b78;white-space:nowrap;line-height:1.32;padding-right:8px;}
+.spec-v{color:#1a1a1a;line-height:1.32;padding-left:9px;border-left:1px solid #c4d0d6;}
+/* 라벨 없는 값(크기 목록 등)은 두 칸 폭 차지 — 구분선 없이 정렬 유지. */
+.spec-v.wide{grid-column:1 / -1;color:#39444e;border-left:none;padding-left:0;}
 .note{margin:2px 0;color:#333;}
 /* 하단 좌우 장비 영역 — 배경 조명 위. 좌=네임, 우=이미지. flex:1 .pad가 하단으로 밀어 1페이지 바닥 고정. */
 .device{display:flex;justify-content:space-between;align-items:flex-end;padding:0 14mm 10mm;gap:10mm;}
