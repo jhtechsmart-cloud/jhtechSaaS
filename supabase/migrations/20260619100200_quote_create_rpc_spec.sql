@@ -54,6 +54,16 @@ begin
   )
   returning * into v_row;
 
+  -- 의뢰 상태 자동 전진(앞으로만). 발행=견적발송, draft=견적중. quote_sent/closed는 보존(다운그레이드·재오픈 안 함).
+  -- ⚠️ 20260608120000에서 추가된 전이 로직 — 이 마이그가 _quote_insert를 재정의하므로 반드시 보존.
+  if p_status = 'issued' then
+    update public.applications set status = 'quote_sent'
+    where id = p_application_id and status in ('new', 'assigned', 'quoted');
+  else
+    update public.applications set status = 'quoted'
+    where id = p_application_id and status in ('new', 'assigned');
+  end if;
+
   return v_row;
 end;
 $$;
