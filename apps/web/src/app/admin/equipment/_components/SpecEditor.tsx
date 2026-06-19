@@ -55,17 +55,51 @@ function SpecItems({ gIndex }: { gIndex: number }) {
   return (
     <div className="flex flex-col gap-2">
       {fields.map((f, iIndex) => (
-        <div key={f.id} className="flex items-center gap-2">
-          <label className="flex shrink-0 items-center gap-1 text-small text-muted" title="견적서 PDF에 기본 포함">
-            <input type="checkbox" {...register(`specs.${gIndex}.items.${iIndex}.pdf`)} className="h-4 w-4" />
-            <span className="hidden sm:inline">PDF</span>
-          </label>
-          <input {...register(`specs.${gIndex}.items.${iIndex}.label`)} placeholder="항목 (예: 속도)" className="w-40 rounded-sm border border-border bg-surface px-2 py-1 text-body text-text" />
-          <input {...register(`specs.${gIndex}.items.${iIndex}.value`)} placeholder="값 (예: 1200매/h)" className="flex-1 rounded-sm border border-border bg-surface px-2 py-1 font-mono text-body text-text" />
-          <button type="button" onClick={() => remove(iIndex)} className="text-small text-danger hover:underline">삭제</button>
-        </div>
+        <SpecItemRow key={f.id} control={control} register={register} gIndex={gIndex} iIndex={iIndex} onRemove={() => remove(iIndex)} />
       ))}
       <button type="button" onClick={() => append({ id: "", label: "", value: "", pdf: true })} className="self-start text-small font-medium text-accent hover:underline">+ 항목</button>
+    </div>
+  );
+}
+
+// 사양 항목 한 줄 — 값이 비면 PDF 포함 체크박스를 비활성(값 없는 항목은 견적서 PDF 미포함).
+function SpecItemRow({
+  control,
+  register,
+  gIndex,
+  iIndex,
+  onRemove,
+}: {
+  control: Control<FormInput>;
+  register: UseFormRegister<FormInput>;
+  gIndex: number;
+  iIndex: number;
+  onRemove: () => void;
+}) {
+  const value = useWatch({ control, name: `specs.${gIndex}.items.${iIndex}.value` });
+  const hasValue = (value ?? "").trim() !== "";
+  return (
+    <div className="flex flex-col gap-0.5">
+      <div className="flex items-center gap-2">
+        <label
+          className="flex shrink-0 items-center gap-1 text-small text-muted"
+          title={hasValue ? "견적서 PDF에 기본 포함" : "값을 입력하면 PDF에 포함할 수 있습니다"}
+        >
+          <input
+            type="checkbox"
+            {...register(`specs.${gIndex}.items.${iIndex}.pdf`)}
+            disabled={!hasValue}
+            className="h-4 w-4 disabled:cursor-not-allowed disabled:opacity-40"
+          />
+          <span className="hidden sm:inline">PDF</span>
+        </label>
+        <input {...register(`specs.${gIndex}.items.${iIndex}.label`)} placeholder="항목 (예: 속도)" className="w-40 rounded-sm border border-border bg-surface px-2 py-1 text-body text-text" />
+        <input {...register(`specs.${gIndex}.items.${iIndex}.value`)} placeholder="값 (예: 1200매/h)" className="flex-1 rounded-sm border border-border bg-surface px-2 py-1 font-mono text-body text-text" />
+        <button type="button" onClick={onRemove} className="text-small text-danger hover:underline">삭제</button>
+      </div>
+      {!hasValue && (
+        <p className="pl-1 text-small text-muted">값이 없으면 견적서 PDF에 포함되지 않습니다.</p>
+      )}
     </div>
   );
 }

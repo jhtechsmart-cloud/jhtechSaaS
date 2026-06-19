@@ -231,3 +231,26 @@ describe("specSelectionBudget — 사양 선택 예산", () => {
     expect(typeof r.over).toBe("boolean");
   });
 });
+
+describe("mainEquipmentSpecs — 값 없는 항목 제외", () => {
+  const CAT_EMPTY: QuoteCatalogItem[] = [{
+    id: "eqE", name: "장비E", model: null, basePrice: 1000, category: null, options: [],
+    specs: [{ group: "성능", icon: "gauge", items: [
+      { id: "v1", label: "속도", value: "30", pdf: true },
+      { id: "v2", label: "빈값", value: "  ", pdf: true },
+      { id: "v3", label: "무게", value: "", pdf: false },
+    ] }],
+  }];
+  test("값이 빈(공백 포함) 항목은 제외하고 반환", () => {
+    const items: ItemRow[] = [{ equipmentId: "eqE", name: "장비E", unitPrice: 1000, quantity: 1 }];
+    expect(mainEquipmentSpecs(items, CAT_EMPTY)[0]!.items.map((i) => i.id)).toEqual(["v1"]);
+  });
+  test("그룹의 모든 항목 값이 비면 그룹 자체 제거", () => {
+    const cat: QuoteCatalogItem[] = [{
+      id: "eqZ", name: "Z", model: null, basePrice: 0, category: null, options: [],
+      specs: [{ group: "G", icon: "settings", items: [{ id: "z", label: "x", value: "", pdf: true }] }],
+    }];
+    const items: ItemRow[] = [{ equipmentId: "eqZ", name: "Z", unitPrice: 0, quantity: 1 }];
+    expect(mainEquipmentSpecs(items, cat)).toEqual([]);
+  });
+});
