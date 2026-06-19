@@ -90,9 +90,10 @@ export function CustomerTable({ hasAnyCustomer }: { hasAnyCustomer: boolean }) {
 
   return (
     <div className={`flex flex-col gap-2 ${isFetching && !isPending ? "opacity-80" : ""}`}>
-      <div className="max-h-[62vh] overflow-auto rounded-lg border border-border bg-surface shadow-card">
+      {/* 게시판형 평면 목록 — 떠 보이는 카드(shadow/border/box) 대신 헤더 밑줄+행 구분선만(Seonje님 요청). */}
+      <div className="overflow-x-auto border-t border-border">
         <Table>
-          <TableHeader className="sticky top-0 z-10 bg-surface">
+          <TableHeader className="sticky top-0 z-10 bg-bg">
             <TableRow>
               <SortHeader label="업체명" col="name" className="min-w-56" />
               <TableHead className="min-w-28">대표/담당자</TableHead>
