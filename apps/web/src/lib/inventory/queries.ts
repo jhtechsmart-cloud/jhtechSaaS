@@ -31,11 +31,11 @@ export async function listInventory(): Promise<InventoryRow[]> {
   // 런타임 형태는 알고 있으므로 Record로 좁힌다.
   const rows = ((data ?? []) as unknown as Record<string, unknown>[]).map((row) => {
     const cat = row.equipment_category as { name?: string } | null;
-    // equipment_inventory는 1:1이지만 PostgREST 역참조라 배열 → 첫 행.
-    const invArr = row.equipment_inventory as
-      | { stock_qty: number; restock_date: string | null; note: string | null; updated_at: string | null; profiles: { name?: string } | null }[]
-      | null;
-    const inv = Array.isArray(invArr) ? invArr[0] : null;
+    // equipment_inventory는 equipment_id가 PK이자 FK → PostgREST가 1:1로 감지해 객체로 반환할 수도,
+    // 역참조로 배열로 반환할 수도 있다. 둘 다 안전 처리.
+    type Inv = { stock_qty: number; restock_date: string | null; note: string | null; updated_at: string | null; profiles: { name?: string } | null };
+    const invRaw = row.equipment_inventory as Inv | Inv[] | null;
+    const inv: Inv | null = Array.isArray(invRaw) ? (invRaw[0] ?? null) : invRaw;
     return {
       equipmentId: row.id as string,
       name: row.name as string,

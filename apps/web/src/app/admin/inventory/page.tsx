@@ -1,3 +1,4 @@
+import { Toaster } from "@/components/ui/sonner";
 import { requireEquipmentManage } from "@/lib/auth/guard";
 import { signOut } from "@/app/login/actions";
 import { listInventory, type InventoryRow } from "@/lib/inventory/queries";
@@ -43,6 +44,7 @@ export default async function InventoryPage() {
       ) : (
         <InventoryTable groups={groups} />
       )}
+      <Toaster position="bottom-center" />
     </section>
   );
 }
