@@ -38,26 +38,39 @@ export function SpecSelectionEditor({
       {used > max && (
         <p className="mb-2 text-small text-danger">사양이 한 페이지를 넘칩니다. 일부 항목을 해제하세요.</p>
       )}
-      <div className="flex flex-col gap-3">
+      {/* 항목/값을 고정폭 라벨 컬럼 + 값 컬럼으로 분리 — "이게 항목·이게 값"이 한눈에. */}
+      <div className="flex flex-col gap-4">
         {specs.map((g) => (
-          <div key={g.group} className="flex flex-col gap-1">
-            {g.group && <div className="text-small font-semibold text-text">{g.group}</div>}
-            <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
+          <div key={g.group} className="flex flex-col gap-1.5">
+            {g.group && (
+              <div className="border-b border-border pb-1 text-small font-semibold text-text">{g.group}</div>
+            )}
+            <div className="flex flex-col gap-y-1.5">
               {g.items.map((i) => {
                 const checked = selected.includes(i.id);
                 // 하드캡: 미선택 항목은 예산이 다 차면 비활성(이미 선택된 것은 항상 해제 가능).
                 const blocked = !checked && full;
                 return (
-                  <label key={i.id} className={`flex items-center gap-2 text-body ${blocked ? "opacity-40" : ""}`}>
+                  <label
+                    key={i.id}
+                    className={`grid grid-cols-[1.1rem_8.5rem_1fr] items-start gap-x-3 text-body ${blocked ? "opacity-40" : ""}`}
+                  >
                     <input
                       type="checkbox"
                       checked={checked}
                       disabled={disabled || blocked}
                       onChange={(e) => toggle(i.id, e.target.checked)}
-                      className="h-4 w-4"
+                      className="mt-0.5 h-4 w-4 accent-accent"
                     />
-                    <span className="text-muted">{i.label}</span>
-                    <span className="font-mono text-text">{i.value}</span>
+                    {i.label ? (
+                      <>
+                        <span className="break-keep leading-snug text-muted">{i.label}</span>
+                        <span className="leading-snug tabular-nums text-text">{i.value}</span>
+                      </>
+                    ) : (
+                      // 라벨 없는 값(크기 목록 등) — 라벨+값 두 칸을 차지해 값 컬럼 정렬 유지.
+                      <span className="col-span-2 leading-snug tabular-nums text-text">{i.value}</span>
+                    )}
                   </label>
                 );
               })}
