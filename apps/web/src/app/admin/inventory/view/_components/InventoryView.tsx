@@ -36,8 +36,8 @@ export function InventoryView({ groups }: { groups: { category: string; rows: In
         <section key={g.category} className="flex flex-col gap-2">
           <h2 className="text-h2 font-medium text-text">{g.category}</h2>
 
-          {/* PC: 평면 게시판 표 */}
-          <div className="hidden overflow-x-auto border-t border-border lg:block">
+          {/* PC: 평면 게시판 표. 헤더 밑줄(thead border-b)이 구분선 역할 → 전체폭 border-t 제거(표보다 길어짐 방지). */}
+          <div className="hidden overflow-x-auto lg:block">
             {/* table-fixed + colgroup으로 열 너비 고정 — 전체폭으로 늘리지 않음(w-full X) → 데이터가 이름 옆에 붙음.
                 장비 열은 가장 긴 장비명에 맞춘 고정폭. 분류 그룹마다 동일 정렬. */}
             <table className="table-fixed text-small">
