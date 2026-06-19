@@ -67,14 +67,16 @@ export function QuoteForm({
   const [pending, startTransition] = useTransition();
 
   // 메인 장비가 바뀌면 그 장비의 기본 사양으로 재설정(사양이 따라오게).
+  // mainEqId(첫 카탈로그 장비 id)로 catalog를 직접 조회 → 의존성에 items 불필요(수량만 바꿔도 안 도는다).
   const mainEqId = items.find((i) => i.equipmentId)?.equipmentId ?? "";
   const prevEqRef = useRef(mainEqId);
   useEffect(() => {
     if (prevEqRef.current !== mainEqId) {
       prevEqRef.current = mainEqId;
-      setSpecSelection(defaultSpecSelection(mainEquipmentSpecs(items, catalog)));
+      const specs = mainEqId ? (catalog.find((c) => c.id === mainEqId)?.specs ?? []) : [];
+      setSpecSelection(defaultSpecSelection(specs));
     }
-  }, [mainEqId, items, catalog]);
+  }, [mainEqId, catalog]);
 
   // 실시간 합계 미리보기(폼 상태 기반, 표시 전용 — 저장 권위는 서버 RPC).
   const totals = formPreviewTotals(items, options, includedDeselected, catalog);

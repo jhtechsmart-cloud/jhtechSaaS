@@ -30,19 +30,22 @@ export function ManualQuoteForm({ catalog }: { catalog: QuoteCatalogItem[] }) {
   const [items, setItems] = useState<ItemRow[]>([{ equipmentId: "", name: "", unitPrice: 0, quantity: 1 }]);
   const [includedDeselected, setIncludedDeselected] = useState<string[]>([]);
   const [options, setOptions] = useState<QuoteRow[]>([]);
+  // 수기 견적은 초기 장비 없음 → []로 시작. 첫 장비 선택 시 아래 effect가 기본 사양을 채운다.
   const [specSelection, setSpecSelection] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   // 메인 장비가 바뀌면 그 장비의 기본 사양(pdf:true, 없으면 전체)으로 재설정.
+  // mainEqId로 catalog를 직접 조회 → 의존성에 items 불필요(수량만 바꿔도 안 도는다).
   const mainEqId = items.find((i) => i.equipmentId)?.equipmentId ?? "";
   const prevEqRef = useRef(mainEqId);
   useEffect(() => {
     if (prevEqRef.current !== mainEqId) {
       prevEqRef.current = mainEqId;
-      setSpecSelection(defaultSpecSelection(mainEquipmentSpecs(items, catalog)));
+      const specs = mainEqId ? (catalog.find((c) => c.id === mainEqId)?.specs ?? []) : [];
+      setSpecSelection(defaultSpecSelection(specs));
     }
-  }, [mainEqId, items, catalog]);
+  }, [mainEqId, catalog]);
 
   // 실시간 합계 미리보기(폼 상태 기반, 표시 전용 — 저장 권위는 서버 RPC).
   const totals = formPreviewTotals(items, options, includedDeselected, catalog);
