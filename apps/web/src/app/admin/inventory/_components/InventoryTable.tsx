@@ -34,7 +34,8 @@ function fmtUpdated(at: string | null, by: string | null): string {
 export function InventoryTable({ groups }: { groups: { category: string; rows: InventoryRow[] }[] }) {
   const allRows = groups.flatMap((g) => g.rows);
   const [state, setState] = useState<Record<string, RowState>>(() => initialState(allRows));
-  const [savingId, setSavingId] = useState<string | null>(null);
+  // 행별 저장 상태 — 전역 단일 값이면 동시 저장 시 서로의 진행 표시를 덮어쓴다(행 단위 UI와 모순).
+  const [savingIds, setSavingIds] = useState<Set<string>>(() => new Set());
   const [, startTransition] = useTransition();
 
   function set(id: string, patch: Partial<RowState>) {
@@ -43,19 +44,28 @@ export function InventoryTable({ groups }: { groups: { category: string; rows: I
 
   function save(row: InventoryRow) {
     const st = state[row.equipmentId];
+    // 빈 수량은 거부 — Number("")=0이라 그대로 두면 "수량 안 건드림" 의도가 조용히 0(품절)으로 저장된다.
+    if (st.stockQty.trim() === "") {
+      toast.error(`${row.name}: 재고 수량을 입력하세요.`);
+      return;
+    }
     const qty = Number(st.stockQty);
     if (!Number.isInteger(qty) || qty < 0) {
       toast.error("재고 수량은 0 이상 정수여야 합니다.");
       return;
     }
-    setSavingId(row.equipmentId);
+    setSavingIds((s) => new Set(s).add(row.equipmentId));
     startTransition(async () => {
       const res = await upsertInventoryAction(row.equipmentId, {
         stockQty: qty,
         restockDate: st.restockDate.trim() === "" ? null : st.restockDate.trim(),
         note: st.note.trim() === "" ? null : st.note.trim(),
       });
-      setSavingId(null);
+      setSavingIds((s) => {
+        const n = new Set(s);
+        n.delete(row.equipmentId);
+        return n;
+      });
       if (res?.error) toast.error(res.error);
       else toast.success(`${row.name} 재고 저장됨`);
     });
@@ -84,7 +94,7 @@ export function InventoryTable({ groups }: { groups: { category: string; rows: I
                   const st = state[row.equipmentId];
                   const qtyNum = Number(st.stockQty) || 0;
                   const status = stockStatus(qtyNum);
-                  const saving = savingId === row.equipmentId;
+                  const saving = savingIds.has(row.equipmentId);
                   return (
                     <tr key={row.equipmentId} className="border-b border-border last:border-b-0">
                       <td className="px-4 py-2">

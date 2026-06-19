@@ -32,10 +32,16 @@ begin
   if v_company is null then
     raise exception '회사명은 필수입니다';
   end if;
-  -- 연결 대상 고객이 주어지면 존재 검증(위조·삭제된 id 거부).
+  -- 연결 대상 고객이 주어지면 존재 + 담당 스코프 검증.
+  -- ⚠️ DEFINER라 RLS 우회 → 존재만 보면 IDOR(남의 담당 고객 이력에 견적 주입). 본인 담당 OR view_all만 허용
+  --    (get_company_request_history 권한 게이트·companies_select RLS와 동일 스코프).
   if p_company_id is not null
-     and not exists (select 1 from public.companies where id = p_company_id) then
-    raise exception '존재하지 않는 고객입니다';
+     and not exists (
+       select 1 from public.companies c
+       where c.id = p_company_id
+         and (c.assignee_id = auth.uid() or public.has_permission(auth.uid(), 'customers.view_all'))
+     ) then
+    raise exception '존재하지 않거나 접근 권한이 없는 고객입니다' using errcode = 'insufficient_privilege';
   end if;
 
   insert into public.applications (company, ceo, phone, email, source, status, assignee_id, company_id)

@@ -92,6 +92,42 @@ describe("create_manual_quote — company_id 연결", () => {
   });
 });
 
+describe("create_manual_quote — company_id 담당 스코프(IDOR 방지)", () => {
+  test("quotes.write만 있고 담당 아닌 고객 연결은 거부", async () => {
+    await inRollbackTx(c, async () => {
+      await asPostgres(c);
+      await seedAuthUser(c, UID.sales1, "s1@jhtech.test");
+      await seedAuthUser(c, UID.sales2, "s2@jhtech.test");
+      await c.query("update public.profiles set permissions='{quotes.write}' where id=$1", [UID.sales2]);
+      // sales1 담당 고객을 sales2(quotes.write·view_all 없음)가 연결 시도 → 거부.
+      await c.query("insert into public.companies (id, name, assignee_id) values ($1,'남의고객',$2)", [COMPANY, UID.sales1]);
+      await asUser(c, UID.sales2);
+      await expect(createManualQuote("남의고객", COMPANY)).rejects.toThrow();
+    });
+  });
+
+  test("본인 담당 고객은 연결 허용(view_all 없어도)", async () => {
+    await inRollbackTx(c, async () => {
+      await asPostgres(c);
+      await seedAuthUser(c, UID.sales2, "s2@jhtech.test");
+      await c.query("update public.profiles set permissions='{quotes.write}' where id=$1", [UID.sales2]);
+      await c.query("insert into public.companies (id, name, assignee_id) values ($1,'내고객',$2)", [COMPANY, UID.sales2]);
+      await asUser(c, UID.sales2);
+      const res = await createManualQuote("내고객", COMPANY);
+      expect(res.application_id).toBeTruthy();
+    });
+  });
+
+  test("view_all 보유자는 담당 아니어도 연결 허용", async () => {
+    await inRollbackTx(c, async () => {
+      await seed(); // sales1 = quotes.write + customers.view_all, COMPANY 무담당
+      await asUser(c, UID.sales1);
+      const res = await createManualQuote("연결고객", COMPANY);
+      expect(res.application_id).toBeTruthy();
+    });
+  });
+});
+
 describe("get_company_request_history — company_id 매칭", () => {
   test("biz_no 없는 고객도 company_id로 연결된 수기견적이 이력에 표시", async () => {
     await inRollbackTx(c, async () => {
