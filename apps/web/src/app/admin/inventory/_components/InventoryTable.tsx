@@ -77,7 +77,17 @@ export function InventoryTable({ groups }: { groups: { category: string; rows: I
         <section key={g.category} className="rounded-md border border-border bg-surface">
           <h2 className="border-b border-border px-4 py-2 text-h2 font-medium text-text">{g.category}</h2>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] text-small">
+            {/* table-fixed + colgroup으로 열 너비 고정 — 분류 그룹마다 동일 정렬(통일성) */}
+            <table className="w-full min-w-[1040px] table-fixed text-small">
+              <colgroup>
+                <col />{/* 장비 — 나머지 폭 */}
+                <col className="w-24" />{/* 상태 */}
+                <col className="w-28" />{/* 재고 수량 */}
+                <col className="w-40" />{/* 입고예정일 */}
+                <col className="w-56" />{/* 메모 */}
+                <col className="w-40" />{/* 최종수정 */}
+                <col className="w-20" />{/* 저장 */}
+              </colgroup>
               <thead>
                 <tr className="border-b border-border text-left text-muted">
                   <th className="px-4 py-2 font-medium">장비</th>
@@ -121,7 +131,7 @@ export function InventoryTable({ groups }: { groups: { category: string; rows: I
                           value={st.stockQty}
                           onChange={(e) => set(row.equipmentId, { stockQty: e.target.value })}
                           disabled={saving}
-                          className="w-24 rounded-md border border-border bg-surface px-2 py-1 text-right font-mono tabular-nums text-text"
+                          className="w-full rounded-md border border-border bg-surface px-2 py-1 text-right font-mono tabular-nums text-text"
                         />
                       </td>
                       <td className="px-4 py-2">
@@ -131,7 +141,7 @@ export function InventoryTable({ groups }: { groups: { category: string; rows: I
                           value={st.restockDate}
                           onChange={(e) => set(row.equipmentId, { restockDate: e.target.value })}
                           disabled={saving}
-                          className={`rounded-md border bg-surface px-2 py-1 font-mono text-text ${status === "out_of_stock" ? "border-accent" : "border-border"}`}
+                          className={`w-full rounded-md border bg-surface px-2 py-1 font-mono text-text ${status === "out_of_stock" ? "border-accent" : "border-border"}`}
                         />
                       </td>
                       <td className="px-4 py-2">
@@ -141,7 +151,7 @@ export function InventoryTable({ groups }: { groups: { category: string; rows: I
                           onChange={(e) => set(row.equipmentId, { note: e.target.value })}
                           disabled={saving}
                           maxLength={500}
-                          className="w-full min-w-[140px] rounded-md border border-border bg-surface px-2 py-1 text-text"
+                          className="w-full rounded-md border border-border bg-surface px-2 py-1 text-text"
                         />
                       </td>
                       <td className="px-4 py-2 whitespace-nowrap text-muted">{fmtUpdated(row.updatedAt, row.updatedByName)}</td>

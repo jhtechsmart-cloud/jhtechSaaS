@@ -38,7 +38,15 @@ export function InventoryView({ groups }: { groups: { category: string; rows: In
 
           {/* PC: 평면 게시판 표 */}
           <div className="hidden overflow-x-auto border-t border-border lg:block">
-            <table className="w-full min-w-[640px] text-small">
+            {/* table-fixed + colgroup으로 열 너비 고정 — 분류 그룹마다 동일 정렬(통일성) */}
+            <table className="w-full min-w-[720px] table-fixed text-small">
+              <colgroup>
+                <col />{/* 장비 — 나머지 폭 */}
+                <col className="w-24" />{/* 상태 */}
+                <col className="w-24" />{/* 재고 수량 */}
+                <col className="w-32" />{/* 입고예정일 */}
+                <col className="w-44" />{/* 최종수정 */}
+              </colgroup>
               <thead>
                 <tr className="border-b border-border text-left text-muted">
                   <th className="py-2 pr-4 font-medium">장비</th>
