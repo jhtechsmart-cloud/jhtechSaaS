@@ -12,6 +12,8 @@ import {
   previewTotals,
   rowsToQuoteInput,
   validateQuoteForm,
+  mainEquipmentSpecs,
+  specSelectionBudget,
   type ItemRow,
   type QuoteCatalogItem,
   type QuoteRow,
@@ -198,5 +200,34 @@ describe("formPreviewTotals", () => {
     const r = formPreviewTotals(items, [], [], catalog);
     expect(r.supplyPrice).toBe(0);
     expect(r.total).toBe(0);
+  });
+});
+
+const SPEC_CAT: QuoteCatalogItem[] = [{
+  id: "eq1", name: "프린터A", model: null, basePrice: 1000, category: null, options: [],
+  specs: [{ group: "성능", icon: "gauge", items: [
+    { id: "s1", label: "속도", value: "30", pdf: true },
+    { id: "s2", label: "해상도", value: "1200", pdf: true },
+  ] }],
+}];
+
+describe("mainEquipmentSpecs — 메인 장비 사양", () => {
+  test("첫 카탈로그 장비행의 사양을 반환", () => {
+    const items: ItemRow[] = [{ equipmentId: "eq1", name: "프린터A", unitPrice: 1000, quantity: 1 }];
+    expect(mainEquipmentSpecs(items, SPEC_CAT)[0]!.items.map((i) => i.id)).toEqual(["s1", "s2"]);
+  });
+  test("카탈로그 장비행 없으면(직접입력만) 빈 배열", () => {
+    const items: ItemRow[] = [{ equipmentId: "", name: "직접", unitPrice: 1000, quantity: 1 }];
+    expect(mainEquipmentSpecs(items, SPEC_CAT)).toEqual([]);
+  });
+});
+
+describe("specSelectionBudget — 사양 선택 예산", () => {
+  test("max·used·over를 계산", () => {
+    const items: ItemRow[] = [{ equipmentId: "eq1", name: "프린터A", unitPrice: 1000, quantity: 1 }];
+    const r = specSelectionBudget(items, [], [], SPEC_CAT, ["s1", "s2"]);
+    expect(r.max).toBeGreaterThan(0);
+    expect(r.used).toBe(2); // 그룹1(제목1) + 항목2(2열 1줄) = 2
+    expect(typeof r.over).toBe("boolean");
   });
 });

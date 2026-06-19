@@ -1,6 +1,14 @@
 // 견적 작성 폼 순수 로직 — 행 정리·RPC 입력 변환·실시간 합계·검증.
 // 합계는 슬라이스1 calculateQuote를 그대로 쓴다(화면 미리보기). 저장 권위는 서버 RPC.
-import { calculateQuote, type QuoteInput, type QuoteResult, type SpecGroup } from "@jhtechsaas/shared";
+import {
+  calculateQuote,
+  countSpecLines,
+  selectPdfSpecItems,
+  specBudget,
+  type QuoteInput,
+  type QuoteResult,
+  type SpecGroup,
+} from "@jhtechsaas/shared";
 
 // 폼 한 줄. 입력 중에는 단가·수량이 비거나 NaN일 수 있다.
 // kind: 옵션 줄 구분('included'=포함옵션 스냅샷·단가 0 / 'extra'=추가 과금). 장비 줄은 미지정.
@@ -135,4 +143,31 @@ export function validateQuoteForm(items: QuoteRow[], options: QuoteRow[]): strin
     }
   }
   return null;
+}
+
+// 견적 메인 장비(첫 카탈로그 장비행)의 사양 — 워커의 items[0] 기준과 일치. 직접입력만이면 [].
+export function mainEquipmentSpecs(items: ItemRow[], catalog: QuoteCatalogItem[]): SpecGroup[] {
+  for (const it of items) {
+    if (!it.equipmentId) continue;
+    const eq = catalog.find((c) => c.id === it.equipmentId);
+    if (eq) return eq.specs;
+  }
+  return [];
+}
+
+// 사양 선택 예산 — 현재 품목·옵션 기준 max 줄, 선택(specSelection)이 차지하는 used 줄, 초과 여부.
+export function specSelectionBudget(
+  items: ItemRow[],
+  options: QuoteRow[],
+  includedDeselected: string[],
+  catalog: QuoteCatalogItem[],
+  specSelection: string[],
+): { max: number; used: number; over: boolean } {
+  const includedCount = availableIncludedNames(items, catalog).filter((n) => !includedDeselected.includes(n)).length;
+  const extraCount = cleanRows(options).length;
+  const itemCount = items.filter((i) => i.name.trim() !== "" || i.equipmentId).length;
+  const max = specBudget({ itemCount, includedCount, extraCount });
+  const selectedGroups = selectPdfSpecItems(mainEquipmentSpecs(items, catalog), specSelection);
+  const used = countSpecLines(selectedGroups);
+  return { max, used, over: used > max };
 }
