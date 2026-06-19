@@ -69,7 +69,7 @@
 <div class="wrap">
   <h1>프로젝트 지도</h1>
   <div class="sub">지금까지 만들어진 파일이 <b>어디에</b> 있고, <b>각 단계가 어떤 파일을 만드는지</b>, 문제 시 <b>어디를 봐야 하는지</b>.</div>
-  <div class="upd">갱신: 2026-06-15 (세션11 · <b>견적서 PDF 양식 재구성(새 자산·상단헤더·Arimo 폰트 임베드) + 발행결함 연쇄수정(한글제목·페이지넘침·장비바인딩) + 견적관리 보강(삭제·취소·버전 diff·PDF버튼·부가세 제거)</b> · 하루 7배포 #111~#117) · 직전: 세션9 데모예약+대시보드 v2, 세션10 대시보드·사이드바 시각폴리시(#107~110) · 명령어 <code>/map</code> 으로 재생성</div>
+  <div class="upd">갱신: 2026-06-19 (세션16 · <b>프로덕션 코드감사 + 7 PR 배포(#156~#162): 견적 '계약완료' 라벨·수기견적 고객연결·장비 재고 편집/조회·고객목록 게시판화·프로필 사진+계정 메뉴+사이드바 고정</b>) · 직전: 세션15 견적상세·상태 라이프사이클(#146~148), 세션14 메일 실발송·출고의뢰서·모바일대응 · 명령어 <code>/map</code> 으로 재생성</div>
 
   <div class="lead">
     <b>핵심:</b> 이 프로젝트의 산출물은 <b>4곳에 흩어져</b> 있습니다. 코드·설정만 프로젝트 폴더 안에 있고,
@@ -105,7 +105,7 @@
     <tr><td class="path">apps/worker/package.json · tsconfig.json</td><td>워커 설정</td><td>tsx + typescript + @types/node, shared 의존</td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">packages/shared/package.json</td><td>공유 패키지</td><td>permissions registry·Supabase 팩토리·도메인 타입·seed 가드</td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">VERSION · CHANGELOG.md</td><td>버전·변경이력</td><td>4자리 버전(현재 <b>0.13.2.0</b> — 견적서 PDF v0.12.13~15 · 전체코드감사 4PR·거래처 1,270곳 이관·CRM 상세·고객목록/수정폼 개편 v0.12.15.1~v0.12.19 · 라이트 민트·파인 테마 v0.12.20 · <b>데모예약+납품일 v0.13.0.0 · 대시보드 v2 v0.13.1.0 · 시각 다듬기(달력·음영 배지·섹션헤더) v0.13.1.1~2 · A/S·소모품 목록 통일+KPI 삭제 v0.13.2.0</b>) + Keep a Changelog</td><td><span class="tag t-commit">커밋</span></td></tr>
-    <tr><td class="path">supabase/migrations/*.sql</td><td>DB 마이그레이션</td><td><b>49개</b>. E1~P-F + E5 견적 + 견적 PDF 컬럼 + 워커 안정화 + companies 거래처장부/이관 컬럼 + 고객목록 검색(pg_trgm·companies_list 뷰) + <b><code>20260612150000</code> demo_reservations(tstzrange·EXCLUDE 겹침차단·15분 CHECK·btree_gist) + <code>20260612150001</code> quotes.delivery_date/time</b>. 전부 원격 적용·동기(<code>db push</code>)</td><td><span class="tag t-commit">커밋</span></td></tr>
+    <tr><td class="path">supabase/migrations/*.sql</td><td>DB 마이그레이션</td><td><b>66개</b>. E1~P-F + E5 견적/PDF + 워커 + companies 이관 + 데모예약 + 의뢰 상태 8단계(<code>20260618</code>) + 견적 PDF 사양선택 + <b>세션16: <code>applications.company_id</code>(수기견적 고객연결·<code>140000</code>)·<code>create_manual_quote(p_company_id)</code>+이력 RPC(<code>140100</code>)·<code>equipment_inventory</code>(재고·<code>150000</code>)·<code>profiles.avatar_url</code>+공개 avatars 버킷(<code>160000</code>)</b>. 전부 원격 적용·동기(<code>db push</code>)</td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">supabase/rollback/*.sql · seed/seed-local.sh</td><td>롤백·시드</td><td>마이그레이션 역스크립트(단수 디렉토리) + 로컬 시드 헬퍼. ⚠️ e2e·db-tests는 <b>db reset + seed-local 후</b> 실행(데모/잔여 데이터가 카탈로그매칭·전역카운트 단언 오염)</td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">packages/db-tests/ · apps/worker (vitest)</td><td>RLS·큐·워커 테스트</td><td>pg set role+jwt 하니스, <b>339 RLS 단언</b>(+<b>데모예약 동시성(독립 커넥션 2개·전용 fixture id로 EXCLUDE 병렬 INSERT→1성공·1×23P01)·15분 CHECK·납품일 동결예외</b>). <b>워커 통합테스트</b>: 발행→잡→runOnce→PDF→pdf_url 증명. ⚠️ db-tests·워커 테스트는 로컬 Supabase 필요(클린 reset+seed-local)</td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">apps/web/src/{lib,app,proxy.ts}</td><td>web 구현(E2~E5·M2·운영)</td><td>인증·장비 admin(E2) + 공개 카탈로그/상세/견적요청(E3·P-A) + 고객 마스터(P-B) + 소모품/분류 admin(P-C) + A/S(P-D) + 소모품(P-E) + 고객 통합이력(P-F) + <b>E4 트리아지 콘솔·E5a 권한모델·E5 견적 작성/PDF</b> + <b>고객 CRM 상세·목록 데이터테이블(pg_trgm 통합검색)·수정폼 그룹카드</b> + <b>라이트 민트·파인 테마(globals.css)</b> + <b>데모예약(/admin/demo-reservations: lib/demo-reservations/{slots,actions,queries}·월캘린더·타임라인·15분 슬롯폼)</b> + <b>대시보드 v2(/admin/dashboard: lib/dashboard/{v2-logic,v2-queries,v2-meta}·2주캘린더·파이프라인·주간블록·일정레일)</b> + <b>A/S·소모품 목록 = 고객목록 레이아웃(공용 _components/request-list/{QuickFilterCards,RequestToolbar})</b>. <i>코드 — 상세는 코드 직접</i></td><td><span class="tag t-commit">커밋</span></td></tr>
@@ -117,7 +117,7 @@
     <tr><td class="path">dev-notes/</td><td>개발 일지</td><td>일별 노트 22일치(.md) + 대시보드(HTML, /devnote) — …견적 PDF + <b>데모예약·대시보드 v2·신청목록 통일(2026-06-13)</b></td><td><span class="tag t-commit">커밋</span></td></tr>
     <tr><td class="path">supabase/.temp/linked-project.json</td><td>원격 링크 기록</td><td>supabase link 산출(원격 프로젝트 ref)</td><td><span class="tag t-ignore">로컬</span></td></tr>
     <tr><td class="path">apps/web/.env.local</td><td>web 실제 환경변수</td><td><b>시크릿</b> — Supabase URL/anon key</td><td><span class="tag t-ignore">gitignore</span></td></tr>
-    <tr><td class="path">apps/worker/.env</td><td>워커 실제 환경변수</td><td><b>시크릿</b> — service_role, Gmail 앱비밀번호</td><td><span class="tag t-ignore">gitignore</span></td></tr>
+    <tr><td class="path">apps/worker/.env</td><td>워커 실제 환경변수</td><td><b>시크릿</b> — <b>프로덕션</b> SUPABASE_URL·service_role + Hiworks Office Token(메일). ⚠️ 로컬 진단·운영 스크립트가 이 prod 키를 씀</td><td><span class="tag t-ignore">gitignore</span></td></tr>
     <tr><td class="path">.claude/settings.local.json</td><td>Claude Code 로컬 설정</td><td>권한 허용 목록 등(이 머신 전용)</td><td><span class="tag t-ignore">로컬</span></td></tr>
     <tr><td class="path">.devnote-scratch/*.jsonl</td><td>dev-note 스크래치</td><td>작업 이벤트·프롬프트 적립(개발노트용)</td><td><span class="tag t-ignore">gitignore</span></td></tr>
   </table>
@@ -160,7 +160,7 @@
     <tr><td class="path">#48·#49·#50</td><td>담당자 고객전파(+IDOR) v0.12.0.1 · 콘솔 리디자인+장비상세404수정 v0.12.1.0 · DESIGN.md v3 v0.12.1.1 <span style="color:var(--sent);font-weight:600">✅ 머지·배포</span></td><td>E5b</td></tr>
     <tr><td class="path">#6·#59</td><td>E5 견적 작성+통합 PDF(워커) <span style="color:var(--sent);font-weight:600">✅ 백엔드~UI~PDF 실양식 라이브 v0.12.3~15(Puppeteer HTML→PDF·@sparticuz 크롬·Railway 워커)</span></td><td>#2,#3,#5</td></tr>
     <tr><td class="path">UI·운영</td><td>딥네이비 테마→<b>라이트 민트·파인 테마 v0.12.20</b> · 거래처 1,270곳 이관·CRM 상세·고객목록/수정폼 개편(세션8) · <b>데모예약+대시보드 v2+신청목록 통일 v0.13.0~2(세션9~10, PR#101~110)</b> · <b>견적서 PDF 양식 재구성+발행결함 수정+견적관리 보강(세션11, #111~117)</b> <span style="color:var(--sent);font-weight:600">✅ 라이브</span></td><td>—</td></tr>
-    <tr><td class="path">#7</td><td>E6 메일 발송(워커) <span style="color:var(--new);font-weight:600">● 다음 — 하이웍스 API 스펙 대기</span></td><td>#2,#6</td></tr>
+    <tr><td class="path">#7</td><td>E6 메일 발송(워커·하이웍스 Office Token) <span style="color:var(--sent);font-weight:600">✅ 실발송 라이브(세션14, 보낸편지함 적재 확인)</span></td><td>#2,#6</td></tr>
     <tr><td class="path">#8</td><td>E7 업체 이력</td><td>#4~#7</td></tr>
     <tr><td colspan="3" style="background:var(--surface);font-weight:600">▼ M2 — 고객 포털 & 운영 백본 (신규 마일스톤, 2026-06-01)</td></tr>
     <tr><td class="path">#18</td><td>[EPIC] M2 고객 포털 (견적v2·고객마스터·AS·소모품·이력·알림)</td><td>—</td></tr>
@@ -180,8 +180,8 @@
   <p class="note">각 단계를 진행하면 → 어디에 어떤 파일이 생기고 무슨 내용이 담기는지.</p>
 
   <div class="lead" style="border-left-color:var(--sent)">
-    <b>진행 현황 (2026-06-15 세션11):</b> <b>M1~M2 + E4·E5(견적 풀스택)·E5a·E5b·고객포털·데모예약·대시보드 v2 완료</b>. <b>이번 세션 = 하루 프로덕션 7배포(#111~117)</b>: ①<b>견적서 PDF 양식 재구성</b>(#111) — 고정 자산(A4배경·로고·상단 회색띠·Arimo 폰트)=워커 번들, 장비별 자산(좌하단 모델명 로고·우하단 장비사진)=<code>quote_device_name/quote_device_image</code>(banner 컬럼 rename, 마이그 <code>20260615120000</code>), 상단 헤더=회색띠+로고+모델명 텍스트. ②<b>발행 결함 수정</b>(#112·#113) — 한글 제목 폰트 폴백(<code>'KR'</code>), 사양 多 장비 2열 grid로 1페이지 유지, 견적 <code>items.equipmentId</code> 보존→PDF 사양/로고/이미지를 견적 선택장비 기준 조회. ③<b>견적관리 보강</b>(#114~117) — 견적 삭제(버전별+전체, PDF 동반삭제, 관리자), 의뢰/견적 페이지 고정폭(max-w-1180), 선택장비 이미지 축소, 폼 취소 버튼, 버전이력 행클릭+버전별 PDF버튼+직전 버전 diff, 화면 부가세 제거(합계=공급가 VAT별도). 게이트 GREEN(shared94·web307·worker36·db-tests340·e2e51·tsc·lint·build·as any 0). ⚠️ <b>PDF 폰트는 번들 임베드 필수</b>(Railway엔 시스템폰트 0: 한글 NotoSansKR·영문 Arimo)·<b>견적 items.equipmentId가 PDF 장비정보 조회 기준</b>(Zod z.object strip 방지로 스키마 명시)·<b>견적 삭제 시 storage PDF 동반삭제</b>. <b>다음</b>: 하이웍스 API스펙 오면 E6 메일발송·3b 특기사항·3c 영업일지. <b>⚠️ Seonje 견적 실테스트 대기</b> — rename으로 기존 장비 자산값 null됨 → 각 장비에 모델명 로고·장비사진 재업로드 + 기존 견적 재발행해야 equipmentId 저장.
-    <b>다음 = start 시 → 2단계 슬라이스 2(상단바 담당자·상태 + 배너 합계·유효기간)</b>. 방식 = <b>슬라이스 단위(목업 합의→빌드→로컬 확인→조정)</b>. 이후 슬라이스3(우측 sticky 견적 패널 읽기) · 4(인라인 견적 편집) → <b>3단계(특기사항·영업일지 컬럼)</b>. 그담 후보: 실 견적양식 레이아웃(<code>render-quote-pdf.ts</code> 교체+한글폰트) · 전화 placeholder · KPI 실집계 · S1 고객 엑셀 이관 · P-G 카톡알림(#25). ⚠️ db reset 후 e2e면 <code>bash supabase/seed/seed-local.sh</code> 복구 필수. dev 시각검증=로컬 supabase env 인라인 주입 + 샘플의뢰 REST service_role insert. 색은 추후 재검토(<code>--color-accent</code> 한 값).
+    <b>진행 현황 (2026-06-19 세션16):</b> <b>M1~M2 + 견적 풀스택·메일 실발송·출고의뢰서·관리자 모바일대응·의뢰 상태 8단계 완료·라이브</b>. <b>이번 세션 = 프로덕션 코드감사 + 7 PR 배포(#156~162)</b>: ①<b>견적 상태 '납품완료'→'계약완료'</b>(라벨만, 키 <code>delivered</code> 불변·DB무변경). ②<b>수기견적 고객연결</b> — <code>applications.company_id</code> FK + <code>create_manual_quote(p_company_id)</code> + 이력 RPC company_id 매칭 + 폼 고객검색/프리필/딥링크 → 수기견적이 고객 이력에 노출. ③<b>장비 재고</b> — <code>equipment_inventory</code> 테이블, 관리자 편집(<code>/admin/inventory</code>) + 영업자 읽기전용(<code>/admin/inventory/view</code>, 대시보드 진입). ④<b>고객목록 게시판화</b>(부유 카드 제거→평면). ⑤<b>프로필 사진</b>(<code>profiles.avatar_url</code>+공개 avatars 버킷) + <b>계정 메뉴 팝오버</b>(<code>AccountMenu</code>) + 사이드바 사용자표시 + <b>사이드바 고정</b>(sticky). 운영: <b>sjcho 로그인 = 코드버그 아님</b>(변경 성공·계정 정상, 입력≠저장 비번=브라우저 자동제안 추정 → 임시비번 재설정). 게이트 GREEN(shared137·web389·db-tests404·e2e·tsc·lint·build·as any 0). ⚠️ <b>UI 변경은 로컬 렌더→스크린샷 시각검증 후 보고</b>(게시판 열정렬 3번 빗나감)·게시판 표=<code>table-fixed</code>+<code>colgroup</code>+비-<code>w-full</code>·PostgREST 1:1 임베드(PK=FK)는 객체/배열 양쪽 처리·<b>SECURITY DEFINER RPC 외부 id는 담당 스코프까지 검증(IDOR)</b>·profiles 본인 행 갱신도 admin 클라.
+    <b>다음 = start 시 →</b> ①<b>감사 후속(High 우선)</b>: 공개 <code>lookup_company_by_biz_no</code>가 사업자번호→상호·대표·전화 PII를 레이트리밋 없이 anon 노출 → 레이트리밋/PII 재검토 · <code>.env.example</code> Gmail→Hiworks 정정 · <code>supabase gen types</code> 도입 · RLS db-tests CI 편입 · DB 백업/PITR 확인. ②프로필 사진 실사용 확인. ③<b>수금 원장</b>(미수금=VAT포함 total−Σ수금, payments 테이블). ④이월: 출고의뢰서 모바일대응·운영후속(장비 카탈로그·직책연락처·견적로고). 감사 리포트=<code>docs/audit-2026-06-19.md</code>(Critical 0). ⚠️ db reset 후 e2e면 <code>bash supabase/seed/seed-local.sh</code> 복구 필수. db-tests <code>demo_reservations</code> 동시성 1건은 로컬 flaky(무관·재실행 통과).
   </div>
   <p class="note">아래 단계 바 = 한 phase의 생애주기. M1 E1·E2·E3 + M2 P-A~P-F + E4 + E5a + E5b + 리디자인 모두 완주·배포. 다음 작업은 ①기획(/office-hours)부터(또는 빠른 수정은 /investigate→/review→/ship).</p>
   <div class="flow">
@@ -225,10 +225,15 @@
     <tr><td>"데모예약 겹침 차단·15분 슬롯 로직"</td><td class="path">supabase/migrations/…_demo_reservations.sql (EXCLUDE) · apps/web/src/lib/demo-reservations/slots.ts (순수 로직) · packages/db-tests/…_demo_reservations.test.ts (동시성)</td></tr>
     <tr><td>"대시보드 집계·이벤트 색"</td><td class="path">apps/web/src/lib/dashboard/{v2-queries,v2-logic,v2-meta}.ts (EVENT_META=색 단일출처)</td></tr>
     <tr><td>"레이아웃 확인용 샘플 데이터(로컬)"</td><td class="path">scripts/seed-requests-sample.mjs (A/S 7·소모품 8, 로컬 service_role)</td></tr>
+    <tr><td>"장비 재고(편집/조회)"</td><td class="path">apps/web/src/app/admin/inventory/{page.tsx(편집),view/}(읽기) · lib/inventory/{queries,status,actions} · supabase/migrations/…_equipment_inventory.sql (RLS equipment.manage)</td></tr>
+    <tr><td>"수기견적이 고객 이력에 안 뜸"</td><td class="path">applications.company_id(마이그 …_applications_company_link) · create_manual_quote(p_company_id)·get_company_request_history (마이그 …_manual_quote_company_link)</td></tr>
+    <tr><td>"프로필 사진·계정 메뉴·사이드바"</td><td class="path">lib/avatar/avatar.ts · _components/{UserAvatar,AccountMenu,AdminSidebar}.tsx · lib/account/avatar-actions.ts · 마이그 …_profile_avatar.sql (공개 avatars 버킷·본인폴더 RLS)</td></tr>
+    <tr><td>"프로덕션 보안 점검 결과"</td><td class="path">docs/audit-2026-06-19.md (2026-06-19 감사: Critical 0, High=공개 biz_no→PII 레이트리밋 부재)</td></tr>
+    <tr><td>"비밀번호 변경/로그인 문제"</td><td class="path">lib/users/password-actions.ts · account/ChangePasswordForm.tsx · _components/ForcedPasswordChange.tsx (profiles.must_change_password). 진단=apps/worker/.env에 prod service_role로 계정상태 조회</td></tr>
   </table>
 
   <footer>
-    <b>jhtechSaaS</b> · 이 문서는 <code>/map</code> 명령어로 언제든 재생성됩니다(4곳 재스캔). 프로젝트가 진행되며 단계·파일이 늘면 자동 반영됩니다.<br>
+    <b>jhtechSaaS</b> · 이 문서는 <code>/map</code> 명령어로 언제든 재생성됩니다(4곳 재스캔). 프로젝트가 진행되며 단계·파일이 늘면 자동 반영됩니다. 최종 갱신 2026-06-19(세션16).<br>
     디자인: DESIGN.md 기준(2026-06-12 라이트 민트·파인 그린 테마 — Pretendard 단일 · 파인 #176455 주색 · 일정 이벤트 5색 · 명료함 · 상태 3톤).
   </footer>
 </div>
