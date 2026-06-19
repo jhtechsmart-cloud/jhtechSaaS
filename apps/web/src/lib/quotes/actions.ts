@@ -10,8 +10,36 @@ import {
   type CreateManualQuotePayload,
   type CreateQuotePayload,
 } from "@/lib/quotes/schema";
+import {
+  buildCompanySearchOr,
+  rowToQuoteCustomer,
+  type QuoteCustomer,
+} from "@/lib/quotes/customer-search";
 
 export type QuoteActionResult = { error: string } | null;
+
+// 수기 견적용 기존 고객 검색 — quotes.write 가드. 업체명·대표자·사업자번호·연락처로 companies 조회(RLS 스코프).
+// 선택 시 폼에 회사 정보를 프리필 + companyId 연결(견적이 고객 이력에 노출되도록).
+export async function searchCustomersForQuoteAction(
+  query: string,
+): Promise<{ error: string } | QuoteCustomer[]> {
+  const access = await requireQuotesWrite();
+  if (access.status === "forbidden") return { error: "권한이 없습니다." };
+  const or = buildCompanySearchOr(query ?? "");
+  if (!or) return [];
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("companies")
+    .select("id,name,ceo,phone,mobile,email,biz_no")
+    .or(or)
+    .order("name")
+    .limit(20);
+  if (error) {
+    console.error("[quotes.searchCustomers]", error);
+    return { error: "고객 검색에 실패했습니다." };
+  }
+  return (data ?? []).map(rowToQuoteCustomer);
+}
 
 // 견적서 PDF 서명URL 조회 — 발행 직후 워커가 PDF를 비동기로 만들므로, 상세 화면이
 // pdf_url이 생길 때까지 폴링해 새로고침 없이 '견적서 확인' 버튼을 활성화한다.
