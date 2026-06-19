@@ -35,6 +35,7 @@ export type QuoteDetail = {
   pdf_url: string | null;
   delivery_date: string | null; // 납품 예정일(발행 후 입력)
   delivery_time: string | null; // "HH:mm:ss" — 표시 시 HH:mm로 자름
+  spec_selection: unknown; // 견적서 PDF에 넣을 사양 항목 id 배열(null=구 견적). 재발행 프리필용.
 };
 
 export async function getQuote(id: string): Promise<QuoteDetail | null> {
@@ -42,7 +43,7 @@ export async function getQuote(id: string): Promise<QuoteDetail | null> {
   const { data, error } = await supabase
     .from("quotes")
     .select(
-      "id, application_id, quote_no, version, status, items, options, supply_price, tax_price, total, created_at, issued_at, pdf_url, delivery_date, delivery_time",
+      "id, application_id, quote_no, version, status, items, options, supply_price, tax_price, total, created_at, issued_at, pdf_url, delivery_date, delivery_time, spec_selection",
     )
     .eq("id", id)
     .single();

@@ -1,13 +1,16 @@
 "use client";
 import Link from "next/link";
-import { useState, useTransition, type ReactNode } from "react";
+import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
+import { defaultSpecSelection } from "@jhtechsaas/shared";
 import { matchEquipmentName } from "@/lib/quotes/equipment-match";
 import {
   availableIncludedNames,
   buildQuoteOptions,
   formPreviewTotals,
   itemRowsToLines,
+  mainEquipmentSpecs,
   rowsToQuoteInput,
+  specSelectionBudget,
   validateQuoteForm,
   type ItemRow,
   type QuoteCatalogItem,
@@ -15,6 +18,7 @@ import {
 } from "@/lib/quotes/form";
 import { createQuoteAction } from "@/lib/quotes/actions";
 import { QuoteLinesEditor } from "@/app/admin/_components/QuoteLinesEditor";
+import { SpecSelectionEditor } from "@/app/admin/_components/SpecSelectionEditor";
 import { QuoteTotalsAside } from "@/app/admin/_components/QuoteTotalsAside";
 import { QuoteEditModeBanner } from "@/app/admin/_components/QuoteEditModeBanner";
 import { QuoteBottomBar } from "@/app/admin/_components/QuoteBottomBar";
@@ -37,12 +41,14 @@ export function QuoteForm({
   catalog,
   initialItems,
   initialOptions,
+  initialSpecSelection,
   contextSlot,
 }: {
   applicationId: string;
   catalog: QuoteCatalogItem[];
   initialItems?: QuoteRow[];
   initialOptions?: QuoteRow[];
+  initialSpecSelection?: string[];
   contextSlot?: ReactNode;
 }) {
   const [items, setItems] = useState<ItemRow[]>(() => toItemRows(initialItems, catalog));
@@ -53,8 +59,22 @@ export function QuoteForm({
     if (!initialOptions || !initialOptions.some((o) => o.kind === "included")) return [];
     return availableIncludedNames(toItemRows(initialItems, catalog), catalog).filter((n) => !saved.includes(n));
   });
+  // 견적서 사양 선택 — 재발행이면 저장값, 새 견적이면 메인 장비의 기본(pdf:true, 없으면 전체).
+  const [specSelection, setSpecSelection] = useState<string[]>(
+    () => initialSpecSelection ?? defaultSpecSelection(mainEquipmentSpecs(toItemRows(initialItems, catalog), catalog)),
+  );
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  // 메인 장비가 바뀌면 그 장비의 기본 사양으로 재설정(사양이 따라오게).
+  const mainEqId = items.find((i) => i.equipmentId)?.equipmentId ?? "";
+  const prevEqRef = useRef(mainEqId);
+  useEffect(() => {
+    if (prevEqRef.current !== mainEqId) {
+      prevEqRef.current = mainEqId;
+      setSpecSelection(defaultSpecSelection(mainEquipmentSpecs(items, catalog)));
+    }
+  }, [mainEqId, items, catalog]);
 
   // 실시간 합계 미리보기(폼 상태 기반, 표시 전용 — 저장 권위는 서버 RPC).
   const totals = formPreviewTotals(items, options, includedDeselected, catalog);
@@ -72,7 +92,7 @@ export function QuoteForm({
     }
     setError(null);
     startTransition(async () => {
-      const res = await createQuoteAction(applicationId, { items: cItems, options: cOptions, status });
+      const res = await createQuoteAction(applicationId, { items: cItems, options: cOptions, status, specSelection });
       if (res?.error) setError(res.error);
     });
   }
@@ -91,6 +111,13 @@ export function QuoteForm({
           setIncludedDeselected={setIncludedDeselected}
           options={options}
           setOptions={setOptions}
+          disabled={pending}
+        />
+        <SpecSelectionEditor
+          specs={mainEquipmentSpecs(items, catalog)}
+          selected={specSelection}
+          setSelected={setSpecSelection}
+          max={specSelectionBudget(items, options, includedDeselected, catalog, specSelection).max}
           disabled={pending}
         />
       </div>

@@ -131,6 +131,7 @@ export async function createQuoteAction(
     p_items: v.items,
     p_options: v.options,
     p_status: v.status,
+    p_spec_selection: v.specSelection,
   });
   if (error) {
     console.error("[quotes.create] RPC 실패", error);
@@ -162,6 +163,7 @@ export async function createManualQuoteAction(
     p_items: v.items,
     p_options: v.options,
     p_status: v.status,
+    p_spec_selection: v.specSelection,
   });
   if (error) {
     console.error("[quotes.manual] RPC 실패", error);

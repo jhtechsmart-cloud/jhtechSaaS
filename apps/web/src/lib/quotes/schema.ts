@@ -7,6 +7,8 @@ export const createQuotePayloadSchema = z.object({
   items: QuoteInputSchema.shape.items.min(1, "장비를 최소 한 줄 입력하세요"),
   options: QuoteInputSchema.shape.options,
   status: z.enum(["draft", "issued"]),
+  // 견적서 PDF에 넣을 사양 항목 id 목록(빈배열=0개). 미지정 시 빈배열로 저장.
+  specSelection: z.array(z.string()).default([]),
 });
 
 export type CreateQuotePayload = z.infer<typeof createQuotePayloadSchema>;

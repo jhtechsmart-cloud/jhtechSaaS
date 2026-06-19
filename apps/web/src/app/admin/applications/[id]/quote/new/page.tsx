@@ -57,12 +57,17 @@ export default async function NewQuotePage({
 
   let initialItems: QuoteRow[] | undefined;
   let initialOptions: QuoteRow[] | undefined;
+  let initialSpecSelection: string[] | undefined;
   if (from) {
     // 재발행 프리필 — 같은 의뢰의 견적 줄만 초기값으로(타 의뢰 견적 주입 방지).
     const src = await getQuote(from);
     if (src && src.application_id === id) {
       initialItems = parseQuoteLines(src.items);
       initialOptions = parseQuoteLines(src.options);
+      // 사양 선택도 복원(배열이면 그대로, null=구 견적이면 undefined → 폼이 장비 기본으로).
+      initialSpecSelection = Array.isArray(src.spec_selection)
+        ? src.spec_selection.filter((x): x is string => typeof x === "string")
+        : undefined;
     }
   } else {
     // 새 견적 — 고객이 신청 시 고른 장비를 기본 셋팅(담당자 재입력·오선택 방지).
@@ -88,6 +93,7 @@ export default async function NewQuotePage({
         catalog={catalog}
         initialItems={initialItems}
         initialOptions={initialOptions}
+        initialSpecSelection={initialSpecSelection}
         contextSlot={<ApplicationContext id={id} />}
       />
     </section>
