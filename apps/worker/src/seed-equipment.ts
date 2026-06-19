@@ -5,7 +5,7 @@
 // 실행: cd apps/worker && set -a && . ./.env && set +a && pnpm exec tsx src/seed-equipment.ts
 
 import { createServiceClient } from "@jhtechsaas/shared/supabase";
-import { serializeSpecs, type SpecGroup } from "@jhtechsaas/shared";
+import { serializeSpecs, type SpecGroupInput } from "@jhtechsaas/shared";
 
 const url = process.env.SUPABASE_URL;
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -21,7 +21,7 @@ interface EquipmentSeed {
   status: "active" | "inactive";
   base_price?: number;
   highlights: string[];
-  specs: SpecGroup[];
+  specs: SpecGroupInput[];
   youtube_urls: string[];
   photos?: string[];
 }

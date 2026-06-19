@@ -39,7 +39,11 @@ export default async function EditEquipmentPage({
     status: data.status,
     highlights: (data.highlights ?? []) as string[],
     youtube_urls: (data.youtube_urls ?? []) as string[],
-    specs: parseSpecs(data.specs),
+    // pdf 미설정 항목은 편집 폼에서 기본 체크(true)로 표시 — 관리자가 빼고 싶은 것만 해제.
+    specs: parseSpecs(data.specs).map((g) => ({
+      ...g,
+      items: g.items.map((i) => ({ id: i.id, label: i.label, value: i.value, pdf: i.pdf ?? true })),
+    })),
     photos: (data.photos ?? []) as string[],
     options: (optionRows ?? []).map((o) => ({
       kind: o.kind as "included" | "extra",

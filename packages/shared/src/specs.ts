@@ -7,8 +7,10 @@ export const SPEC_ICONS = [
 export type SpecIcon = (typeof SPEC_ICONS)[number];
 
 export interface SpecItem {
+  id: string; // 안정 고유표식 — 견적 spec_selection이 이 id로 항목을 가리킨다(레거시는 빈 문자열, serialize 시 채움)
   label: string;
   value: string;
+  pdf?: boolean; // 견적서 PDF 기본 포함 여부(장비 기본값). 견적별 가감은 quotes.spec_selection.
 }
 export interface SpecGroup {
   group: string;
@@ -23,7 +25,7 @@ function coerceIcon(raw: unknown): SpecIcon {
     : "settings";
 }
 
-// 배열 원소를 SpecItem[] 로 변환. {label, value} 형태만 허용
+// 배열 원소를 SpecItem[] 로 변환. {label, value} 형태만 허용. id·pdf는 있으면 보존.
 function parseItems(raw: unknown): SpecItem[] {
   if (!Array.isArray(raw)) return [];
   return raw
@@ -31,7 +33,12 @@ function parseItems(raw: unknown): SpecItem[] {
       (r): r is Record<string, unknown> =>
         typeof r === "object" && r !== null && "label" in r && "value" in r,
     )
-    .map((r) => ({ label: String(r.label), value: String(r.value) }));
+    .map((r) => ({
+      id: typeof r.id === "string" ? r.id : "",
+      label: String(r.label),
+      value: String(r.value),
+      ...(typeof r.pdf === "boolean" ? { pdf: r.pdf } : {}),
+    }));
 }
 
 // DB jsonb(any) → SpecGroup[]. 그룹형/평면 레거시/비정형 3입력을 방어적으로 정규화.
@@ -59,15 +66,58 @@ export function parseSpecs(raw: unknown): SpecGroup[] {
     }));
 }
 
-// SpecGroup[] → DB 저장용. 빈 아이템 제거·트림, 아이템 0개 그룹 제거, 순서 보존.
-export function serializeSpecs(groups: SpecGroup[]): SpecGroup[] {
+// 결정적이지 않은 id 생성. crypto.randomUUID 사용(노드·브라우저·워커 공통).
+export function genSpecItemId(): string {
+  return crypto.randomUUID();
+}
+
+// serializeSpecs 입력 — id는 옵셔널(이 함수가 채우는 게 목적). 신규 사양 작성 시 id 생략 가능.
+export interface SpecGroupInput {
+  group: string;
+  icon: SpecIcon;
+  items: Array<{ id?: string; label: string; value: string; pdf?: boolean }>;
+}
+
+// SpecGroupInput[] → DB 저장용 SpecGroup[]. 빈 아이템 제거·트림, 아이템 0개 그룹 제거, 순서 보존.
+// id 없는 항목엔 id 부여(연결 안정성), pdf 플래그 보존.
+export function serializeSpecs(groups: SpecGroupInput[]): SpecGroup[] {
   return groups
     .map((g) => ({
       group: g.group.trim(),
       icon: g.icon,
       items: g.items
-        .map((i) => ({ label: i.label.trim(), value: i.value.trim() }))
+        .map((i) => ({
+          id: i.id && i.id.length > 0 ? i.id : genSpecItemId(),
+          label: i.label.trim(),
+          value: i.value.trim(),
+          ...(typeof i.pdf === "boolean" ? { pdf: i.pdf } : {}),
+        }))
         .filter((i) => i.label !== "" || i.value !== ""),
     }))
     .filter((g) => g.items.length > 0);
+}
+
+// 견적 PDF에 렌더할 사양 항목만 거른다. 빈 그룹은 제거.
+// 폴백: 배열이면 그 id만 / null이면 pdf:true만(없으면 전체=현 동작).
+export function selectPdfSpecItems(
+  groups: SpecGroup[],
+  specSelection: string[] | null | undefined,
+): SpecGroup[] {
+  if (Array.isArray(specSelection)) {
+    return groups
+      .map((g) => ({ ...g, items: g.items.filter((i) => specSelection.includes(i.id)) }))
+      .filter((g) => g.items.length > 0);
+  }
+  // null/undefined = 구 견적: pdf:true 항목만, 하나도 없으면 전체.
+  const anyFlagged = groups.some((g) => g.items.some((i) => i.pdf === true));
+  return groups
+    .map((g) => ({ ...g, items: anyFlagged ? g.items.filter((i) => i.pdf === true) : g.items }))
+    .filter((g) => g.items.length > 0);
+}
+
+// 폼 새 견적 기본 선택 = pdf:true 항목 id들. flagged 없으면 전체 id(미설정 장비 = 현 동작 유지).
+export function defaultSpecSelection(groups: SpecGroup[]): string[] {
+  const flagged = groups.flatMap((g) => g.items.filter((i) => i.pdf === true).map((i) => i.id));
+  if (flagged.length > 0) return flagged;
+  return groups.flatMap((g) => g.items.map((i) => i.id));
 }
