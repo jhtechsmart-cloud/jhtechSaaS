@@ -28,7 +28,7 @@ export function SpecSelectionEditor({
   }
 
   return (
-    <section className="rounded-md border border-border bg-surface p-4">
+    <section data-testid="spec-selection" className="rounded-md border border-border bg-surface p-4">
       <div className="mb-2 flex items-center justify-between">
         <h2 className="text-h2 font-medium text-text">견적서 사양 선택</h2>
         <span className={`text-small ${used > max ? "text-danger" : "text-muted"}`}>
