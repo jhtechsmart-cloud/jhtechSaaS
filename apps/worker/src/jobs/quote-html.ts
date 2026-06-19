@@ -44,7 +44,8 @@ export function renderQuoteHtml(d: QuoteHtmlData): string {
     .map((o) => `<tr class="sub"><td class="name"> - ${esc(o.name)}</td><td>${esc(o.qtyLabel)}</td><td class="num">${won(o.unitPrice)}</td><td class="num">${won(o.amount)}</td><td></td></tr>`)
     .join("");
   // 사양 = 라벨 컬럼 + 값 컬럼으로 분리(항목/값이 섞여 보이지 않게). 2열 신문식(위→아래)로
-  // 한 페이지 유지. 라벨은 고정폭 max-content로 세로 정렬, 값은 제 칸에서만 줄바꿈.
+  // 한 페이지 유지. 라벨 컬럼 폭은 좌·우 두 열 통틀어 "가장 넓은 라벨" 하나로 통일 →
+  // 모든 행·양쪽 열의 구분선이 같은 x에 정렬(각 열이 제각각 max-content로 잡히던 어긋남 해소).
   const specCell = (i: { label: string; value: string }) => {
     const label = esc(i.label);
     const value = esc(i.value);
@@ -54,15 +55,32 @@ export function renderQuoteHtml(d: QuoteHtmlData): string {
       ? `<div class="spec-k">- ${label}</div><div class="spec-v">${value}</div>`
       : `<div class="spec-v wide">- ${value}</div>`;
   };
+  // 값 없는 항목은 PDF 미포함. 그룹 제목('사양' 등)은 표시 안 함 — 항목/값만.
   const specGroupHtml = (g: { group: string; items: { label: string; value: string }[] }) => {
-    const half = Math.ceil(g.items.length / 2);
-    const left = g.items.slice(0, half).map(specCell).join("");
-    const right = g.items.slice(half).map(specCell).join("");
-    const title = g.group ? `<div class="spec-title">${esc(g.group)}</div>` : "";
-    return `<div class="spec-group">${title}<div class="spec-cols"><div class="spec-col">${left}</div><div class="spec-col">${right}</div></div></div>`;
+    const items = g.items.filter((i) => i.value.trim() !== "");
+    if (items.length === 0) return "";
+    const half = Math.ceil(items.length / 2);
+    const left = items.slice(0, half).map(specCell).join("");
+    const right = items.slice(half).map(specCell).join("");
+    return `<div class="spec-group"><div class="spec-cols"><div class="spec-col">${left}</div><div class="spec-col">${right}</div></div></div>`;
   };
-  const specs = d.specGroups.length
-    ? `<div class="band">장비사양 (Specification)</div><div class="specs">${d.specGroups.map(specGroupHtml).join("")}</div>`
+  // 라벨 em폭 근사(한글/CJK=1, 공백=0.33, 그 외=0.6) — 가장 넓은 라벨로 컬럼 폭 통일(값 있는 항목만).
+  const labelEmWidth = (s: string): number => {
+    let w = 0;
+    for (const ch of s) {
+      const c = ch.codePointAt(0) ?? 0;
+      const cjk = (c >= 0x1100 && c <= 0x11ff) || (c >= 0x3000 && c <= 0x9fff) || (c >= 0xac00 && c <= 0xd7ff) || (c >= 0xff00 && c <= 0xffef);
+      w += cjk ? 1 : ch === " " ? 0.33 : 0.6;
+    }
+    return w;
+  };
+  const labelEm = d.specGroups
+    .flatMap((g) => g.items.filter((i) => i.label && i.value.trim() !== "").map((i) => labelEmWidth(`- ${i.label}`)))
+    .reduce((a, b) => Math.max(a, b), 0);
+  const labelW = (labelEm + 0.15).toFixed(2); // +0.15em 버퍼(과대평가 보정 최소화 — 값 컬럼 폭 확보)
+  const groupsHtml = d.specGroups.map(specGroupHtml).join("");
+  const specs = groupsHtml
+    ? `<div class="band">장비사양 (Specification)</div><div class="specs" style="--label-w:${labelW}em">${groupsHtml}</div>`
     : "";
   const notes = d.notes.map((n, i) => `<div class="note">${i + 1}. ${esc(n)}</div>`).join("");
 
@@ -114,12 +132,13 @@ table.items tr.total td{font-weight:700;}
 .specs{padding:5px 2px;font-size:11.5px;}
 .spec-group{margin-bottom:2px;}
 .spec-title{font-weight:700;margin:1px 0 1px;color:#2b3a47;}
-.spec-cols{display:grid;grid-template-columns:1fr 1fr;gap:0 24px;}
+.spec-cols{display:grid;grid-template-columns:1fr 1fr;gap:0 16px;}
 /* 각 열 = 라벨(고정폭 max-content)|값(나머지). 라벨이 세로로 정렬되고 값은 제 칸에서만 줄바꿈.
    col-gap은 0 — 항목/값 간격과 세로 구분선은 .spec-k 우측 패딩 + .spec-v 좌측 보더가 담당. */
-.spec-col{display:grid;grid-template-columns:max-content 1fr;gap:1px 0;align-content:start;}
-.spec-k{color:#5b6b78;white-space:nowrap;line-height:1.32;padding-right:8px;}
-.spec-v{color:#1a1a1a;line-height:1.32;padding-left:9px;border-left:1px solid #c4d0d6;}
+/* 라벨 컬럼 폭 = 가장 넓은 라벨로 통일(--label-w, .specs 인라인). 양쪽 열 구분선이 같은 x로 정렬. */
+.spec-col{display:grid;grid-template-columns:var(--label-w,max-content) 1fr;gap:1px 0;align-content:start;}
+.spec-k{color:#5b6b78;white-space:nowrap;line-height:1.28;padding-right:6px;}
+.spec-v{color:#1a1a1a;line-height:1.28;padding-left:7px;border-left:1px solid #e3e9ec;}
 /* 라벨 없는 값(크기 목록 등)은 두 칸 폭 차지 — 구분선 없이 정렬 유지. */
 .spec-v.wide{grid-column:1 / -1;color:#39444e;border-left:none;padding-left:0;}
 .note{margin:2px 0;color:#333;}

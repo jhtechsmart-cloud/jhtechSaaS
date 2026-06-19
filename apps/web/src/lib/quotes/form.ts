@@ -146,11 +146,16 @@ export function validateQuoteForm(items: QuoteRow[], options: QuoteRow[]): strin
 }
 
 // 견적 메인 장비(첫 카탈로그 장비행)의 사양 — 워커의 items[0] 기준과 일치. 직접입력만이면 [].
+// 값 없는 항목은 제외(PDF 미포함 규칙과 동일) — 선택 UI·예산·기본선택 모두 일관되게.
 export function mainEquipmentSpecs(items: ItemRow[], catalog: QuoteCatalogItem[]): SpecGroup[] {
   for (const it of items) {
     if (!it.equipmentId) continue;
     const eq = catalog.find((c) => c.id === it.equipmentId);
-    if (eq) return eq.specs;
+    if (eq) {
+      return eq.specs
+        .map((g) => ({ ...g, items: g.items.filter((i) => i.value.trim() !== "") }))
+        .filter((g) => g.items.length > 0);
+    }
   }
   return [];
 }
