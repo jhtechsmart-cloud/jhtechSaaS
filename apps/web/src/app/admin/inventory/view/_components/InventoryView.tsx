@@ -14,7 +14,7 @@ function StatusBadge({ qty }: { qty: number }) {
   const st = STATUS_STYLE[s];
   return (
     <span
-      className="inline-block rounded-full px-2 py-0.5 text-small font-semibold"
+      className="inline-block whitespace-nowrap rounded-full px-2 py-0.5 text-small font-semibold"
       style={{ color: st.color, backgroundColor: st.bg }}
     >
       {STOCK_STATUS_LABEL[s]}
@@ -38,10 +38,11 @@ export function InventoryView({ groups }: { groups: { category: string; rows: In
 
           {/* PC: 평면 게시판 표 */}
           <div className="hidden overflow-x-auto border-t border-border lg:block">
-            {/* table-fixed + colgroup으로 열 너비 고정 — 분류 그룹마다 동일 정렬(통일성) */}
-            <table className="w-full min-w-[720px] table-fixed text-small">
+            {/* table-fixed + colgroup으로 열 너비 고정 — 전체폭으로 늘리지 않음(w-full X) → 데이터가 이름 옆에 붙음.
+                장비 열은 가장 긴 장비명에 맞춘 고정폭. 분류 그룹마다 동일 정렬. */}
+            <table className="table-fixed text-small">
               <colgroup>
-                <col />{/* 장비 — 나머지 폭 */}
+                <col className="w-96" />{/* 장비 — 가장 긴 이름 기준 고정폭 */}
                 <col className="w-24" />{/* 상태 */}
                 <col className="w-24" />{/* 재고 수량 */}
                 <col className="w-32" />{/* 입고예정일 */}

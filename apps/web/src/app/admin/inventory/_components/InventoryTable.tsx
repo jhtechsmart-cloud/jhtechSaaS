@@ -77,14 +77,15 @@ export function InventoryTable({ groups }: { groups: { category: string; rows: I
         <section key={g.category} className="rounded-md border border-border bg-surface">
           <h2 className="border-b border-border px-4 py-2 text-h2 font-medium text-text">{g.category}</h2>
           <div className="overflow-x-auto">
-            {/* table-fixed + colgroup으로 열 너비 고정 — 분류 그룹마다 동일 정렬(통일성) */}
-            <table className="w-full min-w-[1040px] table-fixed text-small">
+            {/* table-fixed + colgroup으로 열 너비 고정 — 전체폭으로 늘리지 않음(w-full X) → 데이터가 이름 옆에 붙음.
+                장비 열은 가장 긴 장비명에 맞춘 고정폭. 분류 그룹마다 동일 정렬. */}
+            <table className="table-fixed text-small">
               <colgroup>
-                <col />{/* 장비 — 나머지 폭 */}
-                <col className="w-24" />{/* 상태 */}
+                <col className="w-80" />{/* 장비 — 가장 긴 이름 기준 고정폭 */}
+                <col className="w-28" />{/* 상태 */}
                 <col className="w-28" />{/* 재고 수량 */}
                 <col className="w-40" />{/* 입고예정일 */}
-                <col className="w-56" />{/* 메모 */}
+                <col className="w-52" />{/* 메모 */}
                 <col className="w-40" />{/* 최종수정 */}
                 <col className="w-20" />{/* 저장 */}
               </colgroup>
@@ -113,7 +114,7 @@ export function InventoryTable({ groups }: { groups: { category: string; rows: I
                       </td>
                       <td className="px-4 py-2">
                         <span
-                          className="inline-block rounded-full px-2 py-0.5 text-small font-semibold"
+                          className="inline-block whitespace-nowrap rounded-full px-2 py-0.5 text-small font-semibold"
                           style={
                             status === "in_stock"
                               ? { color: "#176455", backgroundColor: "#D9F3E9" }
