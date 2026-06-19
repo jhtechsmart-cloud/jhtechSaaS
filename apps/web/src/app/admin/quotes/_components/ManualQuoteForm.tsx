@@ -15,6 +15,9 @@ import {
   type QuoteRow,
 } from "@/lib/quotes/form";
 import { createManualQuoteAction } from "@/lib/quotes/actions";
+import type { QuoteCustomer } from "@/lib/quotes/customer-search";
+import { customerToFormFields } from "@/lib/quotes/customer-prefill";
+import { CustomerPicker } from "./CustomerPicker";
 import { QuoteLinesEditor } from "@/app/admin/_components/QuoteLinesEditor";
 import { SpecSelectionEditor } from "@/app/admin/_components/SpecSelectionEditor";
 import { QuoteTotalsAside } from "@/app/admin/_components/QuoteTotalsAside";
@@ -22,11 +25,21 @@ import { QuoteEditModeBanner } from "@/app/admin/_components/QuoteEditModeBanner
 import { QuoteBottomBar } from "@/app/admin/_components/QuoteBottomBar";
 
 // 수기 견적 폼 — 회사 필드 + 카탈로그 라인 에디터. 저장 시 create_manual_quote(app+quote 원자).
-export function ManualQuoteForm({ catalog }: { catalog: QuoteCatalogItem[] }) {
-  const [company, setCompany] = useState("");
-  const [ceo, setCeo] = useState("");
-  const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
+// initialCustomer: 고객상세에서 "새 견적"으로 진입(딥링크) 시 프리필될 고객. 폼 내 검색으로도 선택 가능.
+export function ManualQuoteForm({
+  catalog,
+  initialCustomer,
+}: {
+  catalog: QuoteCatalogItem[];
+  initialCustomer?: QuoteCustomer;
+}) {
+  const init = initialCustomer ? customerToFormFields(initialCustomer) : null;
+  const [company, setCompany] = useState(init?.company ?? "");
+  const [ceo, setCeo] = useState(init?.ceo ?? "");
+  const [phone, setPhone] = useState(init?.phone ?? "");
+  const [email, setEmail] = useState(init?.email ?? "");
+  // 연결된 고객 id(있으면 견적이 그 고객 이력에 노출). 검색 선택/딥링크로 설정, "직접 입력"으로 해제.
+  const [companyId, setCompanyId] = useState<string | null>(init?.companyId ?? null);
   const [items, setItems] = useState<ItemRow[]>([{ equipmentId: "", name: "", unitPrice: 0, quantity: 1 }]);
   const [includedDeselected, setIncludedDeselected] = useState<string[]>([]);
   const [options, setOptions] = useState<QuoteRow[]>([]);
@@ -76,6 +89,7 @@ export function ManualQuoteForm({ catalog }: { catalog: QuoteCatalogItem[] }) {
         options: pOptions,
         status,
         specSelection,
+        companyId: companyId ?? undefined,
       });
       if (res?.error) setError(res.error);
     });
@@ -87,7 +101,37 @@ export function ManualQuoteForm({ catalog }: { catalog: QuoteCatalogItem[] }) {
       <div className="grid grid-cols-1 gap-6 pb-24 lg:grid-cols-[1fr_320px] lg:pb-0">
       <div className="flex flex-col gap-6">
         <section className="rounded-md border border-border border-l-4 border-l-accent bg-surface p-4">
-          <h2 className="mb-2 text-h2 font-medium text-text">고객</h2>
+          <div className="mb-2 flex items-center gap-2">
+            <h2 className="text-h2 font-medium text-text">고객</h2>
+            {companyId && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-mint px-2 py-0.5 text-small font-medium text-accent-2">
+                고객 연결됨
+                <button
+                  type="button"
+                  onClick={() => setCompanyId(null)}
+                  disabled={pending}
+                  className="underline disabled:opacity-50"
+                  title="연결 해제(직접 입력)"
+                >
+                  직접 입력
+                </button>
+              </span>
+            )}
+          </div>
+          {/* 기존 고객 검색·선택 → 회사 정보 프리필 + companyId 연결(견적이 고객 이력에 노출) */}
+          <div className="mb-3">
+            <CustomerPicker
+              disabled={pending}
+              onSelect={(c) => {
+                const f = customerToFormFields(c);
+                setCompany(f.company);
+                setCeo(f.ceo);
+                setPhone(f.phone);
+                setEmail(f.email);
+                setCompanyId(f.companyId);
+              }}
+            />
+          </div>
           <div className="flex flex-col gap-2">
             <Field label="회사명" value={company} onChange={setCompany} disabled={pending} required />
             <Field label="대표자" value={ceo} onChange={setCeo} disabled={pending} />

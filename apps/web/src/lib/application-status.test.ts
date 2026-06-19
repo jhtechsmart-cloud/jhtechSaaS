@@ -25,9 +25,9 @@ describe("application status 색 스파인 (8단계)", () => {
     expect(APPLICATION_STATUS_META.closed.label).toBe("종료");
   });
 
-  test("신규 단계 라벨·납품=파랑 언어", () => {
-    expect(APPLICATION_STATUS_META.delivered.label).toBe("납품완료");
-    expect(APPLICATION_STATUS_META.delivered.color).toBe("#3E7BC0"); // 캘린더 납품=파랑과 일치
+  test("신규 단계 라벨·계약완료=파랑 언어", () => {
+    expect(APPLICATION_STATUS_META.delivered.label).toBe("계약완료");
+    expect(APPLICATION_STATUS_META.delivered.color).toBe("#3E7BC0"); // 캘린더 납품=파랑과 일치(키·색 불변)
     expect(APPLICATION_STATUS_META.collecting.label).toBe("수금중");
   });
 

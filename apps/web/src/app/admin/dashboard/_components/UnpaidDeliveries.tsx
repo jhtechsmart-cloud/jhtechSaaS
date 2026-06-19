@@ -13,7 +13,7 @@ export function UnpaidDeliveries({ summary }: { summary: UnpaidSummary }) {
   const rest = summary.count - shown.length;
   return (
     <section className="rounded-2xl border border-border bg-surface p-6 shadow-card">
-      <SectionHeader title="미수금 (납품 후 수금 미완)" />
+      <SectionHeader title="미수금 (계약 후 수금 미완)" />
       {summary.count === 0 ? (
         <p className="rounded-lg bg-surface-2 px-3 py-4 text-center text-small text-muted">
           미수금 건이 없습니다

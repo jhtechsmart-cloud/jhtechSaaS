@@ -73,7 +73,7 @@ export function CustomerHeader({
         </div>
         <div className="flex shrink-0 gap-2">
           {/* 내비게이션은 시맨틱상 link — buttonVariants로 버튼 외형만 차용(role=link 유지) */}
-          <Link href="/admin/quotes/new" className={buttonVariants({ variant: "outline" })}>
+          <Link href={`/admin/quotes/new?company=${id}`} className={buttonVariants({ variant: "outline" })}>
             견적 작성
           </Link>
           <Link href={`/admin/customers/${id}/edit`} className={buttonVariants()}>수정</Link>

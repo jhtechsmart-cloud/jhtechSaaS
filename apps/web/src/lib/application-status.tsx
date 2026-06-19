@@ -1,5 +1,5 @@
 // 견적(applications) status 색 스파인 — request-status(AS·소모품)와 대칭이나 enum이 다르다.
-// 라이프사이클(2026-06-18): 접수→배정→견적중→견적발송→납품완료→수금중→수금완료, +종료(중단/종결).
+// 라이프사이클(2026-06-18): 접수→배정→견적중→견적발송→계약완료(구 납품완료)→수금중→수금완료, +종료(중단/종결).
 // 이 파일이 상태 단일 출처 — 배열·진행중/완료군 셋·색·배지가 여기서 파생된다.
 import type { ApplicationStatus } from "@/lib/customers/history";
 
@@ -40,7 +40,7 @@ export const APPLICATION_STATUS_META: Record<
   assigned: { label: "배정", color: "#D3E478", fg: "#4D6B63", bg: "#EEF5F2" }, // 중립
   quoted: { label: "견적중", color: "#BFE6C1", fg: "#4D6B63", bg: "#EEF5F2" }, // 중립
   quote_sent: { label: "견적발송", color: "#34B8A5", fg: "#176455", bg: "#D9F3E9" }, // 긍정(견적 단계 완료)
-  delivered: { label: "납품완료", color: "#3E7BC0", fg: "#2C5A8F", bg: "#E3EDF7" }, // 파랑 — 납품(캘린더 납품색과 일치)
+  delivered: { label: "계약완료", color: "#3E7BC0", fg: "#2C5A8F", bg: "#E3EDF7" }, // 파랑 — 계약완료(구 납품완료, 키·색·캘린더색 유지)
   collecting: { label: "수금중", color: "#A9BC2F", fg: "#5F6E1A", bg: "#F2F5DE" }, // 라임 — 수금 진행
   collected: { label: "수금완료", color: "#176455", fg: "#176455", bg: "#D9F3E9" }, // 파인 — 전체완료(최종 성공)
   closed: { label: "종료", color: "#92ACA4", fg: "#5E7C73", bg: "#EEF5F2" }, // 중립 — 중단/종결(수금완료와 구분)

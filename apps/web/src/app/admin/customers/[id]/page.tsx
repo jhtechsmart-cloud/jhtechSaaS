@@ -113,6 +113,7 @@ export default async function CustomerDetailPage({
         </div>
         <div className="lg:col-start-2 lg:row-span-2 lg:row-start-1">
           <CustomerActivityTabs
+            companyId={id}
             applications={history.applications}
             equipment={equipment}
             serviceRequests={history.service_requests}
