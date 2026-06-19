@@ -69,12 +69,14 @@ function ActivityRow({
 }
 
 export function CustomerActivityTabs({
+  companyId,
   applications,
   equipment,
   serviceRequests,
   supplyRequests,
   counts,
 }: {
+  companyId: string;
   applications: HistoryApplication[];
   equipment: EquipmentRow[];
   serviceRequests: HistoryServiceRequest[];
@@ -108,7 +110,7 @@ export function CustomerActivityTabs({
                 icon={FileText}
                 label="견적"
                 description="견적을 작성하면 이 고객의 견적 이력이 여기에 쌓입니다"
-                ctaHref="/admin/quotes/new"
+                ctaHref={`/admin/quotes/new?company=${companyId}`}
                 ctaLabel="새 견적 작성"
               />
             ) : (
