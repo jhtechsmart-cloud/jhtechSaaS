@@ -1,5 +1,5 @@
 "use client";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { signIn, type SignInState } from "./actions";
 import { buildSavedEmailCookie } from "@/lib/auth/saved-email";
 
@@ -8,13 +8,15 @@ export default function LoginForm({ savedEmail = "" }: { savedEmail?: string }) 
     signIn,
     null,
   );
+  // 이메일은 제어 입력으로 둔다. React 19는 form action 제출 후 비제어 입력을
+  // defaultValue로 자동 초기화하는데, 로그인 실패 시(리다이렉트 없음) 사용자가
+  // 방금 친 아이디가 옛 저장값으로 되돌아가는 버그가 생기기 때문이다.
+  const [email, setEmail] = useState(savedEmail);
+  const [remember, setRemember] = useState(savedEmail !== "");
 
   // 제출 시 "이메일 저장" 체크 상태에 따라 쿠키를 쓰거나 지운다.
   // preventDefault 하지 않으므로 서버 액션(action)은 그대로 실행된다.
-  function rememberOnSubmit(e: React.FormEvent<HTMLFormElement>) {
-    const fd = new FormData(e.currentTarget);
-    const email = String(fd.get("email") ?? "");
-    const remember = fd.get("remember") === "on";
+  function rememberOnSubmit() {
     document.cookie = buildSavedEmailCookie(email, remember);
   }
 
@@ -29,7 +31,8 @@ export default function LoginForm({ savedEmail = "" }: { savedEmail?: string }) 
             type="email"
             required
             autoComplete="email"
-            defaultValue={savedEmail}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             className="rounded-md border border-border bg-surface px-3 py-2 text-body text-text"
           />
         </label>
@@ -47,7 +50,8 @@ export default function LoginForm({ savedEmail = "" }: { savedEmail?: string }) 
           <input
             name="remember"
             type="checkbox"
-            defaultChecked={savedEmail !== ""}
+            checked={remember}
+            onChange={(e) => setRemember(e.target.checked)}
             className="size-4 rounded border-border accent-accent"
           />
           아이디 저장
