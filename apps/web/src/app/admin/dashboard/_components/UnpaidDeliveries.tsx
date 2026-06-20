@@ -22,7 +22,7 @@ export function UnpaidDeliveries({ summary }: { summary: UnpaidSummary }) {
         <>
           <div className="mb-3 flex items-baseline justify-between rounded-lg bg-mint px-3 py-2">
             <span className="text-small font-medium text-accent-2">
-              {summary.count}건 · 미수금 합계
+              {summary.count}건 · 견적 합계
             </span>
             <span className="font-mono text-h2 font-extrabold tabular-nums text-accent-2">
               {won(summary.totalAmount)}
