@@ -85,6 +85,21 @@ export function MobileNav({ items, isAdmin }: { items: NavItem[]; isAdmin: boole
 
             <SidebarNav items={items} expanded />
 
+            {/* 사용 설명서 — 새 창. 프로필 박스 바로 위. */}
+            <div className="mt-auto px-3 pb-1 pt-2">
+              <a
+                href="/manual/index.html"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex items-center rounded-full border border-transparent text-body font-semibold text-sidebar-text transition-colors hover:border-border hover:bg-surface hover:text-text"
+              >
+                <span className="flex size-10 shrink-0 items-center justify-center">
+                  <Icon name="book" size={18} className="text-sidebar-text transition-colors group-hover:text-text" />
+                </span>
+                <span className="min-w-0 flex-1 truncate whitespace-nowrap pr-3">사용 설명서</span>
+              </a>
+            </div>
+
             <div className="mx-3 mb-4 mt-2 flex items-center gap-3 rounded-[12px] border border-border bg-surface px-3 py-3 shadow-card">
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-soft text-small font-bold text-accent">
                 {isAdmin ? "관" : "영"}

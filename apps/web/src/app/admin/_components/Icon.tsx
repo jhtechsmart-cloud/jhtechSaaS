@@ -20,6 +20,7 @@ const PATHS: Record<string, string> = {
   chevronLeft: "M15 18l-6-6 6-6",
   chevronRight: "M9 18l6-6-6-6",
   menu: "M3 6h18M3 12h18M3 18h18",
+  book: "M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5z",
 };
 
 export function Icon({
