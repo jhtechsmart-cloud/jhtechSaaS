@@ -77,6 +77,24 @@ export function AdminSidebar({
         <SidebarNav items={items} expanded={expanded} />
       </div>
 
+      {/* 사용 설명서 — 새 창으로 열림(public/manual/index.html). 프로필 박스 바로 위. */}
+      <div className="px-3 pb-1 pt-2">
+        <a
+          href="/manual/index.html"
+          target="_blank"
+          rel="noopener noreferrer"
+          title={expanded ? undefined : "사용 설명서"}
+          className={`group relative flex items-center rounded-full border border-transparent text-body font-semibold text-sidebar-text transition-colors hover:border-border hover:bg-surface hover:text-text ${expanded ? "w-full" : "w-10"}`}
+        >
+          <span className="flex size-10 shrink-0 items-center justify-center">
+            <Icon name="book" size={18} className="text-sidebar-text transition-colors group-hover:text-text" />
+          </span>
+          <span className={`min-w-0 truncate whitespace-nowrap transition-opacity duration-150 ${expanded ? "flex-1 pr-3 opacity-100" : "w-0 flex-none opacity-0"}`}>
+            사용 설명서
+          </span>
+        </a>
+      </div>
+
       {/* 프로필 — 접힘 시 라벨·로그아웃을 폭 0으로 접어 아바타가 중앙(아이콘 레일과 동일 정렬) */}
       <div data-testid="sidebar-profile" className={`mb-4 mt-2 flex items-center rounded-[12px] border border-border bg-surface py-3 shadow-card ${expanded ? "mx-3 gap-3 px-3" : "mx-2 justify-center px-0"}`}>
         <UserAvatar imageUrl={avatarUrl} name={userName} fallback={isAdmin ? "관" : "영"} variant="soft" size={36} />
