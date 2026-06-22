@@ -6,6 +6,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { sanitizePermissions } from "./permissions-ui";
 import { generateTempPassword } from "./password";
+import { hasDeleteBlockers, type DeleteUserBlockers } from "./delete-blockers";
 
 export type CreateUserResult =
   | { error: string }
@@ -186,5 +187,60 @@ export async function setUserHiworksId(userId: string, value: string): Promise<U
     .select("id");
   if (error || !data || data.length === 0) return { error: "하이웍스 ID 저장에 실패했습니다" };
   revalidatePath(`/admin/users/${userId}`);
+  return { ok: true };
+}
+
+export type DeleteUserResult =
+  | { ok: true }
+  | { error: string }
+  | { error: string; blockers: DeleteUserBlockers };
+
+// 계정 하드 삭제 — users.manage 필요, 본인 불가.
+// 담당(assignee) 건이 하나라도 있으면 차단하고 건수를 돌려줘 화면이 "재배정 후 삭제" 안내를 띄운다.
+// 감사기록(작성자)은 마이그레이션의 ON DELETE SET NULL로 자동 정리되므로 차단하지 않는다.
+// 실삭제 = auth.users 삭제 → profiles ON DELETE CASCADE(아바타 등 동반). 사전 카운트와 실삭제 사이
+// 경쟁으로 담당이 새로 생겨도, assignee FK(NO ACTION)가 막아 deleteUser가 실패 → friendly 에러로 처리.
+export async function deleteUserAction(userId: string): Promise<DeleteUserResult> {
+  const access = await requirePermission("users.manage");
+  if (access.status === "forbidden") return { error: "권한이 없습니다" };
+  if (userId === access.userId) return { error: "본인 계정은 삭제할 수 없습니다" };
+
+  const admin = createSupabaseAdminClient();
+
+  // 담당 건 카운트 — service_role이라 RLS 우회. head:true로 행 없이 count만.
+  const [companies, applications, quotes, supplyRequests, serviceRequests] = await Promise.all([
+    admin.from("companies").select("id", { count: "exact", head: true }).eq("assignee_id", userId),
+    admin.from("applications").select("id", { count: "exact", head: true }).eq("assignee_id", userId),
+    admin.from("quotes").select("id", { count: "exact", head: true }).eq("assignee_id", userId),
+    admin.from("supply_requests").select("id", { count: "exact", head: true }).eq("assignee_id", userId),
+    admin.from("service_requests").select("id", { count: "exact", head: true }).eq("assignee_id", userId),
+  ]);
+  const blockers: DeleteUserBlockers = {
+    companies: companies.count ?? 0,
+    applications: applications.count ?? 0,
+    quotes: quotes.count ?? 0,
+    supply_requests: supplyRequests.count ?? 0,
+    service_requests: serviceRequests.count ?? 0,
+  };
+  if (hasDeleteBlockers(blockers)) {
+    return { error: "담당 건이 있어 삭제할 수 없습니다", blockers };
+  }
+
+  // 아바타 스토리지 정리(best-effort) — avatars/<uid>/ 하위 객체 제거. 실패해도 삭제는 진행.
+  const listed = await admin.storage.from("avatars").list(userId);
+  if (listed.data && listed.data.length > 0) {
+    await admin.storage.from("avatars").remove(listed.data.map((o) => `${userId}/${o.name}`));
+  }
+
+  // 실삭제. auth.users 제거 → profiles CASCADE → 감사기록 FK는 SET NULL.
+  const del = await admin.auth.admin.deleteUser(userId);
+  if (del.error) {
+    console.error("[deleteUserAction] 삭제 실패", del.error);
+    return {
+      error: "삭제 중 오류가 발생했습니다. 담당 건을 모두 재배정했는지 확인 후 다시 시도하세요.",
+    };
+  }
+
+  revalidatePath("/admin/users");
   return { ok: true };
 }
