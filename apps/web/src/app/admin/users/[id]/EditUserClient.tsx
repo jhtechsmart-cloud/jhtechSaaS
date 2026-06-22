@@ -2,8 +2,9 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { UserListRow } from "@/lib/users/queries";
-import { updateUserPermissions, setUserActive, setUserHiworksId, updateUserBasics } from "@/lib/users/actions";
+import { updateUserPermissions, setUserActive, setUserHiworksId, updateUserBasics, deleteUserAction } from "@/lib/users/actions";
 import { resetUserPasswordAction } from "@/lib/users/password-actions";
+import { formatDeleteBlockers } from "@/lib/users/delete-blockers";
 import { PermissionPicker } from "../_components/PermissionPicker";
 import { TempPasswordModal } from "../_components/TempPasswordModal";
 
@@ -27,6 +28,7 @@ export function EditUserClient({
   const [position, setPosition] = useState<string>(user.position ?? "");
   const [phone, setPhone] = useState<string>(user.phone ?? "");
   const [basicsPending, startBasics] = useTransition();
+  const [deletePending, startDelete] = useTransition();
   const basicsDirty =
     name.trim() !== user.name || position !== (user.position ?? "") || phone !== (user.phone ?? "");
 
@@ -76,6 +78,31 @@ export function EditUserClient({
         setMessage({ kind: "ok", text: "권한을 저장했습니다" });
         router.refresh();
       }
+    });
+  }
+
+  function deleteUser() {
+    if (
+      !window.confirm(
+        "이 계정을 완전히 삭제할까요?\n되돌릴 수 없습니다. (담당 건이 남아 있으면 삭제되지 않습니다.)",
+      )
+    )
+      return;
+    setMessage(null);
+    startDelete(async () => {
+      const res = await deleteUserAction(user.id);
+      if ("ok" in res) {
+        router.push("/admin/users");
+        return;
+      }
+      if ("blockers" in res) {
+        setMessage({
+          kind: "error",
+          text: `이 사용자에게 연결된 ${formatDeleteBlockers(res.blockers)}이(가) 있어 삭제할 수 없습니다. 먼저 다른 담당자로 변경(재배정)한 뒤 다시 시도하세요.`,
+        });
+        return;
+      }
+      setMessage({ kind: "error", text: res.error });
     });
   }
 
@@ -228,6 +255,25 @@ export function EditUserClient({
         >
           목록으로
         </button>
+      </div>
+
+      {/* 위험 구역 — 계정 하드 삭제. 담당 건이 있으면 서버가 차단하고 안내. 본인 계정은 불가. */}
+      <div className="flex flex-col gap-2 rounded-md border border-danger/40 bg-danger/5 p-4">
+        <span className="text-small font-medium text-danger">위험 구역 — 계정 삭제</span>
+        <span className="text-micro text-muted">
+          계정을 완전히 삭제합니다(되돌릴 수 없음). 담당 고객사·의뢰·견적·소모품·A/S가 남아 있으면
+          삭제되지 않으니, 먼저 다른 담당자로 변경(재배정)하세요. 작성 이력은 보존되고 작성자 표시만 비워집니다.
+        </span>
+        <div className="flex justify-end">
+          <button
+            onClick={deleteUser}
+            disabled={deletePending || isSelf}
+            title={isSelf ? "본인 계정은 삭제할 수 없습니다" : undefined}
+            className="rounded-md border border-danger px-4 py-2 text-small font-medium text-danger hover:bg-danger hover:text-white disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-danger"
+          >
+            {deletePending ? "삭제 중…" : "계정 삭제"}
+          </button>
+        </div>
       </div>
 
       {resetResult && (
