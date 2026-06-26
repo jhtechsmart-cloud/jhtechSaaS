@@ -28,6 +28,32 @@ describe("cleanRows — 미완성(빈) 행 제거", () => {
   });
 });
 
+describe("비고(remark) 보존 — itemRowsToLines·buildQuoteOptions·parseQuoteLines", () => {
+  test("장비 줄 비고는 trim 후 보존, 빈 비고는 생략", () => {
+    const lines = itemRowsToLines([
+      { equipmentId: "eq1", name: "커팅기", unitPrice: 1, quantity: 1, remark: "  설치 포함  " },
+      { equipmentId: "", name: "직접", unitPrice: 1, quantity: 1, remark: "   " },
+    ]);
+    expect(lines[0]).toEqual({ name: "커팅기", unitPrice: 1, quantity: 1, equipmentId: "eq1", remark: "설치 포함" });
+    expect(lines[1]).toEqual({ name: "직접", unitPrice: 1, quantity: 1 }); // 빈 비고 생략
+  });
+  test("추가옵션 비고는 보존, 포함옵션엔 비고 없음", () => {
+    const opts = buildQuoteOptions(["기본칼날"], [{ name: "칼날", unitPrice: 1, quantity: 1, remark: "소모품" }]);
+    const included = opts.find((o) => o.kind === "included");
+    const extra = opts.find((o) => o.kind === "extra");
+    expect(included).toEqual({ name: "기본칼날", unitPrice: 0, quantity: 1, kind: "included" });
+    expect(extra).toEqual({ name: "칼날", unitPrice: 1, quantity: 1, kind: "extra", remark: "소모품" });
+  });
+  test("parseQuoteLines는 저장된 비고를 복원(재발행 프리필)", () => {
+    const rows = parseQuoteLines([
+      { name: "커팅기", unitPrice: 1, quantity: 1, remark: "설치 포함" },
+      { name: "옵션", unitPrice: 1, quantity: 1 },
+    ]);
+    expect(rows[0].remark).toBe("설치 포함");
+    expect(rows[1].remark).toBeUndefined();
+  });
+});
+
 describe("rowsToQuoteInput — 폼 행 → RPC 입력(정리된 행만)", () => {
   test("빈 행을 빼고 items·options 구성", () => {
     const input = rowsToQuoteInput(

@@ -106,6 +106,15 @@ export function QuoteLinesEditor({
                 >
                   ×
                 </button>
+                {/* 비고 — 견적서 PDF '비 고' 칸에 그대로 출력(선택). 전폭으로 줄바꿈. */}
+                <input
+                  aria-label="장비 비고"
+                  value={r.remark ?? ""}
+                  onChange={(e) => updateItem(i, { remark: e.target.value })}
+                  disabled={disabled}
+                  placeholder="비고 (선택)"
+                  className="basis-full rounded-md border border-border bg-surface px-2 py-1 text-small text-text"
+                />
               </div>
             );
           })}
@@ -151,7 +160,7 @@ export function QuoteLinesEditor({
             const lineTotal = (Number.isFinite(r.unitPrice) ? r.unitPrice : 0) * (Number.isFinite(r.quantity) ? r.quantity : 0);
             const update = (patch: Partial<QuoteRow>) => setOptions(options.map((o, idx) => (idx === i ? { ...o, ...patch } : o)));
             return (
-              <div key={i} className="flex items-center gap-2">
+              <div key={i} className="flex flex-wrap items-center gap-2">
                 <input aria-label="추가 옵션 이름" value={r.name} onChange={(e) => update({ name: e.target.value })} disabled={disabled} placeholder="옵션명"
                   className="min-w-0 flex-1 rounded-md border border-border bg-surface px-2 py-1 text-body text-text" />
                 <input aria-label="추가 옵션 단가" type="number" value={Number.isFinite(r.unitPrice) ? r.unitPrice : ""} onChange={(e) => update({ unitPrice: numOrNaN(e.target.value) })} disabled={disabled} placeholder="단가"
@@ -161,6 +170,9 @@ export function QuoteLinesEditor({
                 <span className="w-32 shrink-0 text-right font-mono tabular-nums text-small text-muted">{won(lineTotal)}</span>
                 <button type="button" aria-label="추가 옵션 행 삭제" onClick={() => setOptions(options.filter((_, idx) => idx !== i))} disabled={disabled}
                   className="px-2 text-muted hover:text-danger">×</button>
+                {/* 비고 — 견적서 PDF '비 고' 칸에 그대로 출력(선택). 전폭으로 줄바꿈. */}
+                <input aria-label="추가 옵션 비고" value={r.remark ?? ""} onChange={(e) => update({ remark: e.target.value })} disabled={disabled} placeholder="비고 (선택)"
+                  className="basis-full rounded-md border border-border bg-surface px-2 py-1 text-small text-text" />
               </div>
             );
           })}

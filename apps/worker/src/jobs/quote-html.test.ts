@@ -51,6 +51,26 @@ describe("renderQuoteHtml", () => {
     expect(html).toContain("추가 헤드");
     expect(html).toContain("2,000,000");
   });
+  test("항목 비고는 '비 고' 칸에 출력 — 장비·추가옵션 줄 모두", () => {
+    const html = renderQuoteHtml({
+      ...base,
+      items: [{ name: "커팅기", qtyLabel: "1SET", unitPrice: 50_000_000, amount: 50_000_000, remark: "설치 포함" }],
+      extraOptions: [{ name: "칼날", qtyLabel: "10ea", unitPrice: 400_000, amount: 4_000_000, remark: "소모품" }],
+    });
+    expect(html).toContain("설치 포함");
+    expect(html).toContain("소모품");
+    expect(html).toContain('class="remark"');
+  });
+  test("편집된 특기사항(notes)이 그대로 번호 매겨 렌더", () => {
+    const html = renderQuoteHtml({ ...base, notes: ["부가세 별도", "설치 2주 이내"] });
+    expect(html).toContain("1. 부가세 별도");
+    expect(html).toContain("2. 설치 2주 이내");
+  });
+  test("특기사항이 빈 배열이면 특기사항 내용 줄 없음", () => {
+    const html = renderQuoteHtml({ ...base, notes: [] });
+    expect(html).toContain("특 기 사 항"); // 섹션 띠는 유지
+    expect(html).not.toContain('class="note"'); // 내용 줄 없음
+  });
   test("specGroups 없으면 장비사양 섹션 미출력", () => {
     expect(renderQuoteHtml(base)).not.toContain("장비사양");
     const withSpecs = renderQuoteHtml({ ...base, specGroups: [{ group: "성능", items: [{ label: "해상도", value: "1200DPI" }] }] });

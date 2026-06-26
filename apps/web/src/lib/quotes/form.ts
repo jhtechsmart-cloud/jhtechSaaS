@@ -12,7 +12,7 @@ import {
 
 // 폼 한 줄. 입력 중에는 단가·수량이 비거나 NaN일 수 있다.
 // kind: 옵션 줄 구분('included'=포함옵션 스냅샷·단가 0 / 'extra'=추가 과금). 장비 줄은 미지정.
-export type QuoteRow = { name: string; unitPrice: number; quantity: number; kind?: "included" | "extra"; equipmentId?: string };
+export type QuoteRow = { name: string; unitPrice: number; quantity: number; kind?: "included" | "extra"; equipmentId?: string; remark?: string };
 
 // 폼에 넘기는 카탈로그(클라 직렬화 안전). 서버 listEquipmentForMatch에서 가공.
 export type QuoteCatalogItem = {
@@ -26,7 +26,7 @@ export type QuoteCatalogItem = {
 };
 
 // 장비 행 — 카탈로그에서 고른 equipmentId(빈 문자열="직접 입력") + 표시명·단가·수량.
-export type ItemRow = { equipmentId: string; name: string; unitPrice: number; quantity: number };
+export type ItemRow = { equipmentId: string; name: string; unitPrice: number; quantity: number; remark?: string };
 
 // 선택된 장비들의 포함옵션 이름 풀(중복 제거, 입력 순서 보존). equipmentId 없는 행(직접입력)은 무시.
 export function availableIncludedNames(items: ItemRow[], catalog: QuoteCatalogItem[]): string[] {
@@ -55,6 +55,7 @@ export function itemRowsToLines(items: ItemRow[]): QuoteRow[] {
     unitPrice: i.unitPrice,
     quantity: i.quantity,
     ...(i.equipmentId ? { equipmentId: i.equipmentId } : {}),
+    ...(i.remark && i.remark.trim() ? { remark: i.remark.trim() } : {}),
   }));
 }
 
@@ -65,7 +66,14 @@ export function buildIncludedRows(names: string[]): QuoteRow[] {
 
 // 포함옵션 선택 + 추가옵션 입력 → 저장용 옵션 배열(included 먼저, extra 뒤). 추가옵션은 kind=extra 태깅.
 export function buildQuoteOptions(includedNames: string[], extra: QuoteRow[]): QuoteRow[] {
-  const extraTagged = cleanRows(extra).map((r) => ({ ...r, kind: "extra" as const }));
+  const extraTagged = cleanRows(extra).map((r) => {
+    const { remark, ...rest } = r;
+    return {
+      ...rest,
+      kind: "extra" as const,
+      ...(remark && remark.trim() ? { remark: remark.trim() } : {}),
+    };
+  });
   return [...buildIncludedRows(includedNames), ...extraTagged];
 }
 
@@ -115,12 +123,14 @@ export function parseQuoteLines(value: unknown): QuoteRow[] {
     const o = (e ?? {}) as Record<string, unknown>;
     const kind = o.kind === "included" || o.kind === "extra" ? o.kind : undefined;
     const equipmentId = typeof o.equipmentId === "string" && o.equipmentId ? o.equipmentId : undefined;
+    const remark = typeof o.remark === "string" && o.remark.trim() ? o.remark : undefined;
     return {
       name: typeof o.name === "string" ? o.name : "",
       unitPrice: typeof o.unitPrice === "number" && Number.isFinite(o.unitPrice) ? o.unitPrice : 0,
       quantity: typeof o.quantity === "number" && Number.isFinite(o.quantity) ? o.quantity : 0,
       ...(kind ? { kind } : {}),
       ...(equipmentId ? { equipmentId } : {}),
+      ...(remark ? { remark } : {}),
     };
   });
 }

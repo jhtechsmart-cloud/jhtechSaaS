@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { defaultSpecSelection } from "@jhtechsaas/shared";
+import { DEFAULT_QUOTE_NOTES, defaultSpecSelection, normalizeQuoteNotes } from "@jhtechsaas/shared";
 import {
   availableIncludedNames,
   buildQuoteOptions,
@@ -19,6 +19,7 @@ import type { QuoteCustomer } from "@/lib/quotes/customer-search";
 import { customerToFormFields } from "@/lib/quotes/customer-prefill";
 import { CustomerPicker } from "./CustomerPicker";
 import { QuoteLinesEditor } from "@/app/admin/_components/QuoteLinesEditor";
+import { QuoteNotesEditor } from "@/app/admin/_components/QuoteNotesEditor";
 import { SpecSelectionEditor } from "@/app/admin/_components/SpecSelectionEditor";
 import { QuoteTotalsAside } from "@/app/admin/_components/QuoteTotalsAside";
 import { QuoteEditModeBanner } from "@/app/admin/_components/QuoteEditModeBanner";
@@ -45,6 +46,8 @@ export function ManualQuoteForm({
   const [options, setOptions] = useState<QuoteRow[]>([]);
   // 수기 견적은 초기 장비 없음 → []로 시작. 첫 장비 선택 시 아래 effect가 기본 사양을 채운다.
   const [specSelection, setSpecSelection] = useState<string[]>([]);
+  // 특기사항 — 기본 2줄 프리필. 편집한 줄이 발행 PDF에 반영된다.
+  const [notes, setNotes] = useState<string[]>(() => [...DEFAULT_QUOTE_NOTES]);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -89,6 +92,7 @@ export function ManualQuoteForm({
         options: pOptions,
         status,
         specSelection,
+        notes: normalizeQuoteNotes(notes),
         companyId: companyId ?? undefined,
       });
       if (res?.error) setError(res.error);
@@ -157,6 +161,7 @@ export function ManualQuoteForm({
           max={specSelectionBudget(items, options, includedDeselected, catalog, specSelection).max}
           disabled={pending}
         />
+        <QuoteNotesEditor notes={notes} setNotes={setNotes} disabled={pending} />
       </div>
 
       <QuoteTotalsAside totals={totals}>

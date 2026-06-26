@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
-import { defaultSpecSelection } from "@jhtechsaas/shared";
+import { DEFAULT_QUOTE_NOTES, defaultSpecSelection, normalizeQuoteNotes } from "@jhtechsaas/shared";
 import { matchEquipmentName } from "@/lib/quotes/equipment-match";
 import {
   availableIncludedNames,
@@ -18,6 +18,7 @@ import {
 } from "@/lib/quotes/form";
 import { createQuoteAction } from "@/lib/quotes/actions";
 import { QuoteLinesEditor } from "@/app/admin/_components/QuoteLinesEditor";
+import { QuoteNotesEditor } from "@/app/admin/_components/QuoteNotesEditor";
 import { SpecSelectionEditor } from "@/app/admin/_components/SpecSelectionEditor";
 import { QuoteTotalsAside } from "@/app/admin/_components/QuoteTotalsAside";
 import { QuoteEditModeBanner } from "@/app/admin/_components/QuoteEditModeBanner";
@@ -42,6 +43,7 @@ export function QuoteForm({
   initialItems,
   initialOptions,
   initialSpecSelection,
+  initialNotes,
   contextSlot,
 }: {
   applicationId: string;
@@ -49,6 +51,7 @@ export function QuoteForm({
   initialItems?: QuoteRow[];
   initialOptions?: QuoteRow[];
   initialSpecSelection?: string[];
+  initialNotes?: string[];
   contextSlot?: ReactNode;
 }) {
   const [items, setItems] = useState<ItemRow[]>(() => toItemRows(initialItems, catalog));
@@ -63,6 +66,8 @@ export function QuoteForm({
   const [specSelection, setSpecSelection] = useState<string[]>(
     () => initialSpecSelection ?? defaultSpecSelection(mainEquipmentSpecs(toItemRows(initialItems, catalog), catalog)),
   );
+  // 특기사항 — 재발행이면 저장값, 새 견적이면 기본 2줄. 편집한 줄이 발행 PDF에 반영된다.
+  const [notes, setNotes] = useState<string[]>(() => initialNotes ?? [...DEFAULT_QUOTE_NOTES]);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -94,7 +99,7 @@ export function QuoteForm({
     }
     setError(null);
     startTransition(async () => {
-      const res = await createQuoteAction(applicationId, { items: cItems, options: cOptions, status, specSelection });
+      const res = await createQuoteAction(applicationId, { items: cItems, options: cOptions, status, specSelection, notes: normalizeQuoteNotes(notes) });
       if (res?.error) setError(res.error);
     });
   }
@@ -122,6 +127,7 @@ export function QuoteForm({
           max={specSelectionBudget(items, options, includedDeselected, catalog, specSelection).max}
           disabled={pending}
         />
+        <QuoteNotesEditor notes={notes} setNotes={setNotes} disabled={pending} />
       </div>
       <QuoteTotalsAside totals={totals}>
         {error && <p className="text-small text-danger">{error}</p>}
