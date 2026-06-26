@@ -200,7 +200,7 @@ export function EquipmentForm(props: Props) {
             {...register("status")}
             className="rounded-md border border-border bg-surface px-3 py-2 text-body text-text"
           >
-            <option value="active">운영중</option>
+            <option value="active">판매중</option>
             <option value="inactive">비활성</option>
           </select>
         </Field>

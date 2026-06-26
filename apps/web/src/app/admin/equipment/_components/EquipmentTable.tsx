@@ -14,7 +14,7 @@ function formatPrice(n: number): string {
 }
 
 const STATUS_BADGE: Record<Equipment["status"], { label: string; cls: string }> = {
-  active: { label: "운영중", cls: "bg-active/10 text-active" },
+  active: { label: "판매중", cls: "bg-active/10 text-active" },
   inactive: { label: "비활성", cls: "bg-surface-2 text-muted" },
 };
 
@@ -69,7 +69,7 @@ export function EquipmentTable({ items }: { items: Equipment[] }) {
                 status === s ? "bg-accent text-white" : "bg-surface-2 text-muted"
               }`}
             >
-              {s === "all" ? "전체" : s === "active" ? "운영중" : "비활성"}
+              {s === "all" ? "전체" : s === "active" ? "판매중" : "비활성"}
             </button>
           ))}
         </div>
