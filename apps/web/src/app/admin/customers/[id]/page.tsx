@@ -3,6 +3,8 @@ import { Toaster } from "@/components/ui/sonner";
 import { SavedToast } from "./_components/SavedToast";
 import { requireCustomersEdit } from "@/lib/auth/guard";
 import { getCompanyDetail, getCustomerHistory } from "@/lib/customers/queries";
+import { listSalesLogsForCompany } from "@/lib/sales-logs/queries";
+import { SalesLogPanel } from "@/app/admin/_components/SalesLogPanel";
 import { summarizeApplications, summarizeRequests } from "@/lib/customers/history";
 import { tradeStatusOf } from "@/lib/customers/detail-display";
 import { signOut } from "@/app/login/actions";
@@ -35,8 +37,12 @@ export default async function CustomerDetailPage({
     );
   }
 
-  // 업체+장비와 이력(RPC)을 병렬 fetch.
-  const [company, history] = await Promise.all([getCompanyDetail(id), getCustomerHistory(id)]);
+  // 업체+장비와 이력(RPC), 영업일지를 병렬 fetch.
+  const [company, history, salesLogs] = await Promise.all([
+    getCompanyDetail(id),
+    getCustomerHistory(id),
+    listSalesLogsForCompany(id),
+  ]);
 
   if (!company) {
     return (
@@ -125,6 +131,9 @@ export default async function CustomerDetailPage({
           <CustomerInfoCards c={fields} />
         </div>
       </div>
+
+      {/* 영업일지 — 내부 메모(견적 작성 시 참고). 견적서·고객에 미노출. */}
+      <SalesLogPanel companyId={id} currentUserId={access.userId} initialLogs={salesLogs} />
 
       <Toaster position="bottom-center" />
       <SavedToast id={id} />

@@ -7,6 +7,8 @@ import { normalizeQuoteNotes } from "@jhtechsaas/shared";
 import { parseQuoteLines, type QuoteRow, type QuoteCatalogItem } from "@/lib/quotes/form";
 import { listEquipmentForMatch } from "@/lib/quotes/equipment-match.server";
 import { matchEquipmentName } from "@/lib/quotes/equipment-match";
+import { listSalesLogsForCompany } from "@/lib/sales-logs/queries";
+import { SalesLogPanel } from "@/app/admin/_components/SalesLogPanel";
 import { QuoteForm } from "../../_components/QuoteForm";
 import { ApplicationContext } from "../../_components/ApplicationContext";
 
@@ -37,7 +39,7 @@ export default async function NewQuotePage({
   const supabase = await createSupabaseServerClient();
   const { data: app } = await supabase
     .from("applications")
-    .select("company, equipment_id, fields")
+    .select("company, equipment_id, fields, company_id")
     .eq("id", id)
     .single();
   if (!app) {
@@ -84,6 +86,10 @@ export default async function NewQuotePage({
     if (reqEq) initialItems = [{ name: reqEq.name, unitPrice: reqEq.basePrice, quantity: 1 }];
   }
 
+  // 연결 고객이 있으면 영업일지를 견적 작성 화면에도 표시(견적 시 참고). 공개폼 의뢰는 company_id 없음.
+  const linkedCompanyId = typeof app.company_id === "string" ? app.company_id : null;
+  const salesLogs = linkedCompanyId ? await listSalesLogsForCompany(linkedCompanyId) : [];
+
   return (
     <section className="mx-auto flex w-full max-w-[1180px] flex-col gap-4">
       <Link href={`/admin/applications/${id}`} className="text-small text-muted hover:text-text">
@@ -99,7 +105,14 @@ export default async function NewQuotePage({
         initialOptions={initialOptions}
         initialSpecSelection={initialSpecSelection}
         initialNotes={initialNotes}
-        contextSlot={<ApplicationContext id={id} />}
+        contextSlot={
+          <>
+            <ApplicationContext id={id} />
+            {linkedCompanyId && (
+              <SalesLogPanel companyId={linkedCompanyId} currentUserId={access.userId} initialLogs={salesLogs} />
+            )}
+          </>
+        }
       />
     </section>
   );

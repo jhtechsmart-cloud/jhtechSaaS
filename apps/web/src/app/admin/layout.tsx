@@ -73,6 +73,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     },
     // TODO(테마 스펙): 고객 메뉴 건수 칩 — 전체 고객 카운트 쿼리 연결 시 badge 추가
     { href: "/admin/customers", label: "고객", icon: "customers", show: anyOf(["customers.edit", "customers.view_all"]), section: "업무" },
+    { href: "/admin/sales-logs", label: "영업일지", icon: "book", show: anyOf(["quotes.write", "customers.edit", "customers.view_all"]), section: "업무" },
     {
       href: "/admin/service-requests", label: "A/S", icon: "service", section: "업무",
       show: anyOf(["service_requests.view_all", "service_requests.status", "service_requests.claim"]),

@@ -64,7 +64,7 @@ export default async function NewManualQuotePage({
         ← 견적 목록
       </Link>
       <h1 className="text-h1 font-semibold text-text">수기 견적 작성</h1>
-      <ManualQuoteForm catalog={catalog} initialCustomer={initialCustomer} />
+      <ManualQuoteForm catalog={catalog} initialCustomer={initialCustomer} currentUserId={access.userId} />
     </section>
   );
 }

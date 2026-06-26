@@ -20,6 +20,7 @@ import { customerToFormFields } from "@/lib/quotes/customer-prefill";
 import { CustomerPicker } from "./CustomerPicker";
 import { QuoteLinesEditor } from "@/app/admin/_components/QuoteLinesEditor";
 import { QuoteNotesEditor } from "@/app/admin/_components/QuoteNotesEditor";
+import { SalesLogPanel } from "@/app/admin/_components/SalesLogPanel";
 import { SpecSelectionEditor } from "@/app/admin/_components/SpecSelectionEditor";
 import { QuoteTotalsAside } from "@/app/admin/_components/QuoteTotalsAside";
 import { QuoteEditModeBanner } from "@/app/admin/_components/QuoteEditModeBanner";
@@ -30,9 +31,11 @@ import { QuoteBottomBar } from "@/app/admin/_components/QuoteBottomBar";
 export function ManualQuoteForm({
   catalog,
   initialCustomer,
+  currentUserId,
 }: {
   catalog: QuoteCatalogItem[];
   initialCustomer?: QuoteCustomer;
+  currentUserId: string;
 }) {
   const init = initialCustomer ? customerToFormFields(initialCustomer) : null;
   const [company, setCompany] = useState(init?.company ?? "");
@@ -162,6 +165,8 @@ export function ManualQuoteForm({
           disabled={pending}
         />
         <QuoteNotesEditor notes={notes} setNotes={setNotes} disabled={pending} />
+        {/* 영업일지 — 연결 고객이 있을 때만(견적 시 참고). 고객 미연결이면 안내만 노출. */}
+        <SalesLogPanel companyId={companyId} currentUserId={currentUserId} />
       </div>
 
       <QuoteTotalsAside totals={totals}>
