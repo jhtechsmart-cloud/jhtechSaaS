@@ -47,14 +47,19 @@ const prepCard = (label: string, options: readonly string[], selected: string[],
     .join("")}</div></div>`;
 
 function printerPanel(d: ReleaseOrderDetails, active: boolean): string {
-  const p = d.printer ?? { rip: "", headType: "", headCount: "", colors: [], inkType: "", inkQty: "" };
+  const p = d.printer ?? { rip: "", ripOther: "", headType: "", headCount: "", colors: [], colorsOther: "", inkType: "", inkQty: "" };
+  // RIP '기타' 선택 시 직접입력값 줄 추가. 칼라 직접입력값은 있으면 줄 추가.
+  const ripOtherRow = p.rip === "기타" && p.ripOther?.trim() ? valRow("제공 RIP(기타)", esc(p.ripOther)) : "";
+  const colorsOtherRow = p.colorsOther?.trim() ? valRow("칼라 직접입력", esc(p.colorsOther)) : "";
   return `
     <div class="panel${active ? " active" : " inactive"}">
       <div class="panel-h"><span>프린터</span>${active ? '<span class="chk on"><span class="box">✓</span>선택됨</span>' : '<span class="chk"><span class="box"></span>미선택</span>'}</div>
       <div class="panel-b">
         ${checksRow("제공 RIP", RELEASE_OPTIONS.printerRip, p.rip ? [p.rip] : [])}
+        ${ripOtherRow}
         ${valRow("헤드종류·수량", `${txt(p.headType)}${p.headCount ? " / " + esc(p.headCount) : ""}`)}
         ${checksRow("칼라 구성", RELEASE_OPTIONS.printerColors, p.colors)}
+        ${colorsOtherRow}
         ${valRow("잉크 종류", txt(p.inkType))}
         ${valRow("잉크 제공수량", txt(p.inkQty))}
       </div>
