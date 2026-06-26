@@ -6,6 +6,7 @@ import { renderReleaseHtml, type ReleaseHtmlData } from "./release-html";
 function make(over: Partial<ReleaseHtmlData> = {}): ReleaseHtmlData {
   return {
     seqNo: "REL-20260617-00042",
+    version: 1,
     company: "애드넷",
     deviceName: "JU-9060",
     contactPhone: "010-1234-5678",

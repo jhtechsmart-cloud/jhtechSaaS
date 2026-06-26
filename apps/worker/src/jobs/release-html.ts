@@ -5,6 +5,7 @@ import { RELEASE_OPTIONS, type ReleaseOrderDetails } from "@jhtechsaas/shared";
 
 export type ReleaseHtmlData = {
   seqNo: string;
+  version: number;
   company: string;
   deviceName: string;
   contactPhone: string;
@@ -133,7 +134,7 @@ export function renderReleaseHtml(d: ReleaseHtmlData): string {
 
   <div class="topbar">
     <h1>장비출고의뢰서</h1>
-    <div class="meta">출고번호 ${esc(d.seqNo)}<br>${esc(d.company)} · 발행일 ${esc(d.issuedDateLabel)}</div>
+    <div class="meta">출고번호 ${esc(d.seqNo)} (V${d.version})<br>${esc(d.company)} · 발행일 ${esc(d.issuedDateLabel)}</div>
   </div>
 
   <div class="section">

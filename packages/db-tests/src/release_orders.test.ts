@@ -229,13 +229,43 @@ describe("upsert_release_order — 권한·행스코프·서버 스냅샷·1:1",
     });
   });
 
-  test("발행본은 upsert 거부(발행 후 수정 불가)", async () => {
+  test("발행 후 upsert = 새 draft 버전 생성(버전관리), seq_no 공유·발행본 보존", async () => {
     await inRollbackTx(c, async () => {
       const { appId } = await seedAppWithIssuedQuote(UID.sales1);
       await asUser(c, UID.sales1);
-      const out = await upsert(appId, "printer");
-      await c.query("select public.issue_release_order($1)", [out.id]);
-      await expect(upsert(appId, "cutter")).rejects.toThrow();
+      const v1 = await upsert(appId, "printer");
+      const issued = (await c.query("select public.issue_release_order($1) as out", [v1.id])).rows[0].out as { id: string };
+      // 발행 후 수정 → 새 버전(V2 draft) 생성. V1 발행본은 그대로 보존.
+      const v2 = await upsert(appId, "cutter");
+      expect(v2.id).not.toBe(issued.id);
+
+      await asPostgres(c);
+      const rows = await c.query(
+        "select id, version, status, device_kind, seq_no from public.release_orders where application_id=$1 order by version",
+        [appId],
+      );
+      expect(rows.rows).toHaveLength(2);
+      expect(rows.rows[0].version).toBe(1);
+      expect(rows.rows[0].status).toBe("issued"); // V1 발행본 보존
+      expect(rows.rows[0].device_kind).toBe("printer");
+      expect(rows.rows[1].version).toBe(2);
+      expect(rows.rows[1].status).toBe("draft"); // V2 새 draft
+      expect(rows.rows[1].device_kind).toBe("cutter");
+      expect(rows.rows[0].seq_no).toBe(rows.rows[1].seq_no); // 출고번호 버전 간 공유
+    });
+  });
+
+  test("최신이 draft면 같은 버전 제자리 갱신(버전 안 늘어남)", async () => {
+    await inRollbackTx(c, async () => {
+      const { appId } = await seedAppWithIssuedQuote(UID.sales1);
+      await asUser(c, UID.sales1);
+      await upsert(appId, "printer");
+      await upsert(appId, "cutter"); // draft 최신 → 제자리 갱신
+      await asPostgres(c);
+      const rows = await c.query("select version, device_kind from public.release_orders where application_id=$1", [appId]);
+      expect(rows.rows).toHaveLength(1);
+      expect(rows.rows[0].version).toBe(1);
+      expect(rows.rows[0].device_kind).toBe("cutter");
     });
   });
 });

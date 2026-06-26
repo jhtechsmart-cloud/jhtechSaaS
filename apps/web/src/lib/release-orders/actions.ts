@@ -19,13 +19,33 @@ export async function isReleaseOrderPdfReady(applicationId: string): Promise<boo
   if (access.status === "forbidden") return false;
   if (!z.guid().safeParse(applicationId).success) return false;
   const supabase = await createSupabaseServerClient();
+  // 최신 버전 기준(버전관리 — 한 의뢰에 여러 버전 존재 가능).
   const { data } = await supabase
     .from("release_orders")
     .select("pdf_url, status")
     .eq("application_id", applicationId)
+    .order("version", { ascending: false })
+    .limit(1)
     .maybeSingle();
   const ro = data as { pdf_url?: string | null; status?: string } | null;
   return !!ro && ro.status === "issued" && !!ro.pdf_url;
+}
+
+// 특정 버전 출고의뢰서 PDF 서명URL — 버전 이력에서 각 발행본 다운로드용.
+export async function getReleaseOrderVersionPdfUrl(releaseOrderId: string): Promise<string | null> {
+  const access = await requireReleaseOrdersWrite();
+  if (access.status === "forbidden") return null;
+  if (!z.guid().safeParse(releaseOrderId).success) return null;
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase
+    .from("release_orders")
+    .select("pdf_url, status")
+    .eq("id", releaseOrderId)
+    .maybeSingle();
+  const ro = data as { pdf_url?: string | null; status?: string } | null;
+  if (!ro || ro.status !== "issued" || !ro.pdf_url) return null;
+  const { data: signed } = await supabase.storage.from("release-orders").createSignedUrl(ro.pdf_url, 600);
+  return signed?.signedUrl ?? null;
 }
 
 // RPC가 raise한 안내(P0001)·권한거부(42501)만 사용자에게 노출, 그 외 Postgres 원문은 일반 문구로 마스킹.

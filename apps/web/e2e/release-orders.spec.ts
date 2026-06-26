@@ -111,4 +111,22 @@ test.describe.serial("출고의뢰서 작성 E2E", () => {
     await page.getByTestId("release-issue").click();
     await page.waitForURL(new RegExp(`/admin/applications/${appId}$`), { timeout: 20_000 });
   });
+
+  test("발행본 재진입 → 수정 임시저장 → 새 버전(V2) 생성 + 버전 이력 노출", async ({ page }) => {
+    await login(page);
+    // 발행된 출고의뢰서(V1) 재진입 → 발행 배너 표시
+    await page.goto(`/admin/applications/${appId}/release-order`);
+    await expect(page.getByText(/발행됨 \(V1\)/)).toBeVisible({ timeout: 20_000 });
+
+    // 내용 수정(헤드 종류) 후 임시저장 → 새 버전 생성
+    await page.getByLabel("헤드 종류").fill("새 버전 헤드");
+    await page.getByTestId("release-save").click();
+    await expect(page.getByTestId("release-feedback")).toContainText("저장", { timeout: 15_000 });
+
+    // 재진입 → 버전 이력에 V2(임시저장)·V1(발행) 노출
+    await page.goto(`/admin/applications/${appId}/release-order`);
+    await expect(page.getByText("버전 이력")).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText("V2", { exact: true })).toBeVisible();
+    await expect(page.getByText("V1", { exact: true })).toBeVisible();
+  });
 });
