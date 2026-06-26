@@ -4,8 +4,9 @@ import { z } from "zod";
 
 // 종이 양식 고정 체크박스 항목(목업 그대로). 화면 폼·PDF가 공용으로 쓴다(같은 순서·라벨).
 export const RELEASE_OPTIONS = {
-  printerRip: ["토파즈", "포토프린트", "오닉스"],
-  printerColors: ["CMYK", "화이트(W)", "바니쉬"],
+  // '기타' 선택 시 printer.ripOther 자유입력값을 함께 표기.
+  printerRip: ["토파즈", "포토프린트", "오닉스", "기타"],
+  printerColors: ["CMYK", "화이트(W)", "바니쉬", "프라이머"],
   cutterTools: ["기본툴", "RCT(로터리)", "POT(공압진동)", "라우터툴", "라우터매트"],
   cutterCamera: ["내장형", "외부 OCC"],
   cutterExtras: ["링블로워", "에어컴프레서", "컨베이어벨트"],
@@ -16,10 +17,12 @@ export const RELEASE_OPTIONS = {
 } as const;
 
 const PrinterDetail = z.object({
-  rip: z.string().default(""), // 제공 RIP(토파즈/포토프린트/오닉스)
+  rip: z.string().default(""), // 제공 RIP(토파즈/포토프린트/오닉스/기타)
+  ripOther: z.string().default(""), // rip='기타'일 때 관리자 직접입력값
   headType: z.string().default(""), // 헤드 종류
   headCount: z.string().default(""), // 헤드 수량
-  colors: z.array(z.string()).default([]), // 칼라 구성(CMYK/W/바니쉬)
+  colors: z.array(z.string()).default([]), // 칼라 구성(CMYK/W/바니쉬/프라이머)
+  colorsOther: z.string().default(""), // 칼라 구성 직접입력(추가 항목)
   inkType: z.string().default(""),
   inkQty: z.string().default(""),
 });

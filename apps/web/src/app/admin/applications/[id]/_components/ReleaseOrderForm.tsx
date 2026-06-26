@@ -222,9 +222,13 @@ export function ReleaseOrderForm({
             <div className={`flex items-center justify-between rounded-t-2xl px-3 py-2.5 text-small font-bold ${deviceKind === "printer" ? "bg-mint text-text" : "bg-surface-2 text-muted"}`}>프린터 {deviceKind === "printer" ? "· 선택됨" : ""}</div>
             <div className="flex flex-col gap-3 p-3">
               <CheckGroup label="제공 RIP" options={RELEASE_OPTIONS.printerRip} selected={p?.rip ? [p.rip] : []} disabled={locked || deviceKind !== "printer"} onToggle={(v) => setPrinter({ rip: p?.rip === v ? "" : v })} />
+              {p?.rip === "기타" && (
+                <TextField label="제공 RIP 직접입력" value={p?.ripOther ?? ""} disabled={locked || deviceKind !== "printer"} onChange={(v) => setPrinter({ ripOther: v })} placeholder="RIP 이름 입력" />
+              )}
               <TextField label="헤드 종류" value={p?.headType ?? ""} disabled={locked || deviceKind !== "printer"} onChange={(v) => setPrinter({ headType: v })} placeholder="예: 리코 G5i 헤드" />
               <TextField label="헤드 수량" value={p?.headCount ?? ""} disabled={locked || deviceKind !== "printer"} onChange={(v) => setPrinter({ headCount: v })} placeholder="예: 3개" />
               <CheckGroup label="칼라 구성" options={RELEASE_OPTIONS.printerColors} selected={p?.colors ?? []} disabled={locked || deviceKind !== "printer"} onToggle={(v) => setPrinter({ colors: toggleArrayValue(p?.colors ?? [], v) })} />
+              <TextField label="칼라 구성 직접입력" value={p?.colorsOther ?? ""} disabled={locked || deviceKind !== "printer"} onChange={(v) => setPrinter({ colorsOther: v })} placeholder="추가 칼라 항목(선택)" />
               <TextField label="잉크 종류" value={p?.inkType ?? ""} disabled={locked || deviceKind !== "printer"} onChange={(v) => setPrinter({ inkType: v })} />
               <TextField label="잉크 제공수량" value={p?.inkQty ?? ""} disabled={locked || deviceKind !== "printer"} onChange={(v) => setPrinter({ inkQty: v })} />
             </div>

@@ -44,6 +44,32 @@ describe("renderReleaseHtml", () => {
     expect(html).toContain("화이트(W)");
     // 고정 옵션은 미선택도 칩으로 노출(체크박스 양식)
     expect(html).toContain("바니쉬");
+    // 추가 옵션 '기타'(RIP)·'프라이머'(칼라)도 칩으로 노출
+    expect(html).toContain("기타");
+    expect(html).toContain("프라이머");
+  });
+
+  it("RIP '기타' 선택 시 직접입력값 출력, 칼라 직접입력값 출력", () => {
+    const html = renderReleaseHtml(
+      make({
+        deviceKind: "printer",
+        details: ReleaseOrderDetailsSchema.parse({
+          printer: { rip: "기타", ripOther: "커스텀RIP X", colors: ["프라이머"], colorsOther: "스팟 화이트" },
+        }),
+      }),
+    );
+    expect(html).toContain("커스텀RIP X"); // 제공 RIP(기타) 직접입력
+    expect(html).toContain("스팟 화이트"); // 칼라 직접입력
+  });
+
+  it("RIP가 '기타'가 아니면 ripOther는 출력 안 함", () => {
+    const html = renderReleaseHtml(
+      make({
+        deviceKind: "printer",
+        details: ReleaseOrderDetailsSchema.parse({ printer: { rip: "토파즈", ripOther: "안나옴값" } }),
+      }),
+    );
+    expect(html).not.toContain("안나옴값");
   });
 
   it("커팅기 선택 시 커팅기 패널 active + 선택 툴 체크", () => {
