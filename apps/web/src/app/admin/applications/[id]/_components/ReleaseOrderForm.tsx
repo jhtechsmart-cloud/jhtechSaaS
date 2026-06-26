@@ -125,6 +125,12 @@ export function ReleaseOrderForm({
   const locked = releaseOrder?.status === "issued";
   const [deviceKind, setDeviceKind] = useState<DeviceKind>(initialDeviceKind);
   const [details, setDetails] = useState<ReleaseOrderDetails>(() => normalizeDetailsForKind(initialDetails, initialDeviceKind));
+  // 편집 가능 고객정보 — 자동채움으로 시작, 담당자가 수정 가능. 저장 시 출고의뢰서에 저장.
+  const [company, setCompany] = useState(autofill.company);
+  const [contactPhone, setContactPhone] = useState(autofill.contactPhone);
+  const [installAddress, setInstallAddress] = useState(autofill.installAddress);
+  // 체크 시 수정한 고객정보를 고객관리 레코드(연결 고객)에도 반영.
+  const [reflectToCustomer, setReflectToCustomer] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -151,11 +157,18 @@ export function ReleaseOrderForm({
 
   async function save(): Promise<string | null> {
     const normalized = normalizeDetailsForKind(details, deviceKind);
-    const res = await saveReleaseOrderAction(applicationId, deviceKind, normalized);
+    const res = await saveReleaseOrderAction(
+      applicationId,
+      deviceKind,
+      normalized,
+      { company, contactPhone, installAddress },
+      reflectToCustomer,
+    );
     if ("error" in res) {
       setError(res.error);
       return null;
     }
+    if (res.notice) setNotice(res.notice); // 고객 반영 결과 안내
     return res.id;
   }
 
@@ -165,7 +178,7 @@ export function ReleaseOrderForm({
     setNotice(null);
     startTransition(async () => {
       const id = await save();
-      if (id) setNotice("임시저장되었습니다.");
+      if (id && !reflectToCustomer) setNotice("임시저장되었습니다.");
     });
   }
 
@@ -192,16 +205,22 @@ export function ReleaseOrderForm({
       {error && <div className="rounded-xl border border-coral/40 bg-coral-soft px-4 py-3 text-small text-coral-text">{error}</div>}
       {notice && <div className="rounded-xl border border-accent-ring/40 bg-mint px-4 py-3 text-small text-accent-2">{notice}</div>}
 
-      {/* ① 고객정보 — 전부 자동채움(읽기전용) */}
+      {/* ① 고객정보 — 회사·연락처·주소는 자동채움 후 수정 가능. 장비명·설치일시는 견적 기반(읽기전용). */}
       <section>
         <SectionHead title="고객정보" en="CUSTOMER INFORMATION" />
-        <p className="mb-2 text-micro text-muted"><span className="mr-1 inline-block h-3 w-3 rounded-[3px] border border-accent-ring/40 bg-mint align-middle" />연한 민트 = 견적·신청에서 자동으로 채워진 항목</p>
+        <p className="mb-2 text-micro text-muted">회사·연락처·설치주소는 자동으로 채워지며 직접 수정할 수 있습니다. 장비명·설치 일시는 견적 기준입니다.</p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <AutoField label="회사/고객명" value={autofill.company} />
+          <TextField label="회사/고객명" value={company} onChange={setCompany} disabled={locked} placeholder="회사/고객명" />
           <AutoField label="장비명" value={autofill.deviceName} />
-          <AutoField label="전화번호" value={autofill.contactPhone} />
-          <AutoField label="설치 일시" value={autofill.installAtLabel ?? ""} badge="자동·견적 납품일정" />
-          <AutoField label="설치 주소" value={autofill.installAddress} full />
+          <TextField label="전화번호" value={contactPhone} onChange={setContactPhone} disabled={locked} placeholder="연락처" />
+          <AutoField label="설치 일시" value={autofill.installAtLabel ?? ""} badge="견적 납품일정" />
+          <div className="sm:col-span-2">
+            <TextField label="설치 주소" value={installAddress} onChange={setInstallAddress} disabled={locked} placeholder="설치 주소" />
+          </div>
+          <label className="flex items-center gap-2 self-end pb-2 text-small text-text sm:col-span-1">
+            <input type="checkbox" checked={reflectToCustomer} onChange={(e) => setReflectToCustomer(e.target.checked)} disabled={locked} className="size-4 accent-accent" />
+            <span>수정한 고객정보를 고객관리에도 반영</span>
+          </label>
         </div>
       </section>
 
