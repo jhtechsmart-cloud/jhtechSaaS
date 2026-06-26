@@ -105,6 +105,7 @@ export function renderReleaseHtml(d: ReleaseHtmlData): string {
   .tag{ font-size:9px; font-weight:700; color:var(--pine); background:var(--mint); border-radius:4px; padding:1px 5px; }
   .grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:7px 12px; }
   .field{ border:1px solid var(--border); border-radius:7px; padding:6px 9px; }
+  .memo{ border:1px solid var(--border); border-radius:7px; padding:8px 10px; font-size:11px; line-height:1.5; white-space:pre-wrap; word-break:break-word; }
   .field.auto{ background:var(--mint-soft); border-color:#bfe3d4; }
   .field .k{ font-size:10px; color:var(--muted); }
   .field .val{ font-size:12px; margin-top:2px; }
@@ -186,6 +187,15 @@ export function renderReleaseHtml(d: ReleaseHtmlData): string {
       <div class="field toggle-field"><div class="k">컴프레서</div><div class="val">${chk(s.compressor.install ? "설치" : "미설치", s.compressor.install)}${s.compressor.note ? " " + esc(s.compressor.note) : ""}</div></div>
     </div>
   </div>
+
+  ${
+    d.details.memo?.trim()
+      ? `<div class="section">
+    <div class="sec-head"><span class="bar"></span><h2>메모/특이사항</h2></div>
+    <div class="memo">${esc(d.details.memo).replace(/\n/g, "<br>")}</div>
+  </div>`
+      : ""
+  }
 
   </div></body></html>`;
 }

@@ -95,6 +95,16 @@ describe("renderReleaseHtml", () => {
     expect(html).toMatch(/chk on[\s\S]*윙바디/);
   });
 
+  it("메모/특이사항 — 있으면 섹션·내용(줄바꿈→br) 렌더, 없으면 섹션 미출력", () => {
+    const withMemo = renderReleaseHtml(
+      make({ details: ReleaseOrderDetailsSchema.parse({ memo: "분해 입고 필요\n사다리차 예약" }) }),
+    );
+    expect(withMemo).toContain("메모/특이사항");
+    expect(withMemo).toContain("분해 입고 필요");
+    expect(withMemo).toContain("<br>"); // 줄바꿈 보존
+    expect(renderReleaseHtml(make())).not.toContain("메모/특이사항"); // 메모 없으면 미출력
+  });
+
   it("폰트 data-URI를 @font-face에 임베드", () => {
     const html = renderReleaseHtml(make({ fontDataUri: "data:font/otf;base64,ZZZ" }));
     expect(html).toContain("@font-face");
