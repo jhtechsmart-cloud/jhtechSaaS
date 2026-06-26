@@ -8,6 +8,7 @@ import type { ReleaseHtmlData } from "./release-html";
 async function main() {
   const data: ReleaseHtmlData = {
     seqNo: "REL-20260617-00042",
+    version: 1,
     company: "애드넷",
     deviceName: "JU-9060 (G5i 장착)",
     contactPhone: "010-3218-8850",

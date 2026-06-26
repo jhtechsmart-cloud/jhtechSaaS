@@ -2,7 +2,8 @@
 import { useState, useTransition } from "react";
 import type { ReleaseOrderDetails } from "@jhtechsaas/shared";
 import { RELEASE_OPTIONS, normalizeDetailsForKind, toggleArrayValue } from "@/lib/release-orders/form";
-import { issueReleaseOrderAction, saveReleaseOrderAction } from "@/lib/release-orders/actions";
+import { getReleaseOrderVersionPdfUrl, issueReleaseOrderAction, saveReleaseOrderAction } from "@/lib/release-orders/actions";
+import type { ReleaseOrderVersion } from "@/lib/release-orders/queries";
 import { ReleaseOrderPdfButton } from "./ReleaseOrderPdfButton";
 
 type DeviceKind = "printer" | "cutter";
@@ -84,6 +85,7 @@ function TextField({ label, value, onChange, disabled, placeholder }: { label: s
     <div>
       <label className="mb-1 block text-micro text-muted">{label}</label>
       <input
+        aria-label={label}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
@@ -113,16 +115,21 @@ export function ReleaseOrderForm({
   initialDetails,
   releaseOrder,
   pdfReady,
+  versions,
 }: {
   applicationId: string;
   autofill: Autofill;
   hasIssuedQuote: boolean;
   initialDeviceKind: DeviceKind;
   initialDetails: ReleaseOrderDetails;
-  releaseOrder: { id: string; status: "draft" | "issued" } | null;
+  releaseOrder: { id: string; status: "draft" | "issued"; version: number } | null;
   pdfReady: boolean;
+  versions: ReleaseOrderVersion[];
 }) {
-  const locked = releaseOrder?.status === "issued";
+  // 버전관리: 발행본도 폼은 편집 가능(저장 시 새 버전이 생성됨). 잠금 없음.
+  const locked = false;
+  const isIssued = releaseOrder?.status === "issued";
+  const currentVersion = releaseOrder?.version ?? null;
   const [deviceKind, setDeviceKind] = useState<DeviceKind>(initialDeviceKind);
   const [details, setDetails] = useState<ReleaseOrderDetails>(() => normalizeDetailsForKind(initialDetails, initialDeviceKind));
   // 편집 가능 고객정보 — 자동채움으로 시작, 담당자가 수정 가능. 저장 시 출고의뢰서에 저장.
@@ -196,12 +203,15 @@ export function ReleaseOrderForm({
 
   return (
     <div className="flex flex-col gap-6">
-      {locked && (
+      {/* 발행본이 최신이면: 수정 시 새 버전 안내 + 최신 PDF 다운로드. */}
+      {isIssued && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-accent-ring/40 bg-mint px-4 py-3 text-small text-accent-2">
-          <span>발행된 출고의뢰서입니다. 내용은 잠겨 있습니다.</span>
+          <span>발행됨 (V{currentVersion}). 내용을 수정해 저장하면 새 버전으로 발행됩니다.</span>
           <ReleaseOrderPdfButton applicationId={applicationId} initialReady={pdfReady} />
         </div>
       )}
+      {/* 버전 이력 — 2개 이상일 때 표시. 각 발행본 PDF 다운로드. */}
+      {versions.length > 1 && <VersionHistory versions={versions} currentId={releaseOrder?.id ?? null} />}
       {error && <div className="rounded-xl border border-coral/40 bg-coral-soft px-4 py-3 text-small text-coral-text">{error}</div>}
       {notice && <div className="rounded-xl border border-accent-ring/40 bg-mint px-4 py-3 text-small text-accent-2">{notice}</div>}
 
@@ -318,14 +328,47 @@ export function ReleaseOrderForm({
           )}
           <div className="flex gap-2">
             <button type="button" onClick={onSaveDraft} disabled={pending} className="rounded-full border border-border bg-surface px-5 py-2 text-small font-semibold text-text disabled:opacity-50" data-testid="release-save">
-              임시저장
+              {isIssued ? "수정 임시저장(새 버전)" : "임시저장"}
             </button>
             <button type="button" onClick={onIssue} disabled={pending || !canIssue} className="rounded-full bg-accent px-5 py-2 text-small font-semibold text-white disabled:opacity-50" data-testid="release-issue">
-              발행 + PDF 생성
+              {isIssued ? "새 버전 발행 + PDF" : "발행 + PDF 생성"}
             </button>
           </div>
         </div>
       )}
     </div>
+  );
+}
+
+// 버전 이력 — 각 버전의 상태·생성/발행일. 발행본은 PDF 다운로드(서명URL on-demand).
+function VersionHistory({ versions, currentId }: { versions: ReleaseOrderVersion[]; currentId: string | null }) {
+  const [pending, startTransition] = useTransition();
+  function openPdf(id: string) {
+    startTransition(async () => {
+      const url = await getReleaseOrderVersionPdfUrl(id);
+      if (url) window.open(url, "_blank", "noopener,noreferrer");
+    });
+  }
+  return (
+    <section className="rounded-xl border border-border bg-surface p-3">
+      <div className="mb-2 text-small font-semibold text-text">버전 이력</div>
+      <ul className="flex flex-col gap-1.5">
+        {versions.map((v) => (
+          <li key={v.id} className="flex flex-wrap items-center gap-2 text-small">
+            <span className="font-semibold text-text">V{v.version}</span>
+            {v.id === currentId && <span className="rounded-full bg-mint px-1.5 py-0.5 text-micro font-semibold text-accent">최신</span>}
+            <span className={`rounded-full px-1.5 py-0.5 text-micro font-semibold ${v.status === "issued" ? "bg-accent/10 text-accent" : "bg-surface-2 text-muted"}`}>
+              {v.status === "issued" ? "발행" : "임시저장"}
+            </span>
+            <span className="text-micro text-muted">{(v.issuedAt ?? v.createdAt)?.slice(0, 10)}</span>
+            {v.hasPdf && (
+              <button type="button" onClick={() => openPdf(v.id)} disabled={pending} className="ml-auto text-micro font-semibold text-accent hover:underline disabled:opacity-50">
+                PDF 다운로드
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

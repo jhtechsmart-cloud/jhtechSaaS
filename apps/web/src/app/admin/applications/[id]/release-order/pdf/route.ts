@@ -4,7 +4,7 @@ import { requireReleaseOrdersWrite } from "@/lib/auth/guard";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 // 출고의뢰서 PDF 열람 — 클릭 시점에 서명URL을 새로 발급해 리다이렉트(만료 박제 방지).
-// 출고의뢰서는 의뢰 1:1이라 application id로 조회. 비공개 release-orders 버킷.
+// 버전관리 — application id로 최신 발행본(issued, version desc) PDF 조회. 비공개 release-orders 버킷.
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const access = await requireReleaseOrdersWrite();
   if (access.status === "forbidden") return new Response("권한이 없습니다", { status: 403 });
@@ -17,6 +17,9 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     .from("release_orders")
     .select("pdf_url, status")
     .eq("application_id", id)
+    .eq("status", "issued")
+    .order("version", { ascending: false })
+    .limit(1)
     .maybeSingle();
   if (error) console.error("[release-orders.pdfRoute]", error);
   if (!ro || ro.status !== "issued" || !ro.pdf_url) {

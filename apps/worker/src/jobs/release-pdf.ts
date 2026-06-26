@@ -25,7 +25,7 @@ export async function processReleasePdfJob(
   const { data: ro, error } = await supabase
     .from("release_orders")
     .select(
-      "seq_no, company, device_name, contact_phone, install_address, install_at, issued_at, device_kind, details",
+      "seq_no, version, company, device_name, contact_phone, install_address, install_at, issued_at, device_kind, details",
     )
     .eq("id", id)
     .single();
@@ -34,6 +34,7 @@ export async function processReleasePdfJob(
 
   const data: ReleaseHtmlData = {
     seqNo: (r.seq_no as string) ?? "",
+    version: typeof r.version === "number" ? r.version : 1,
     company: (r.company as string | null) ?? "",
     deviceName: (r.device_name as string | null) ?? "",
     contactPhone: (r.contact_phone as string | null) ?? "",

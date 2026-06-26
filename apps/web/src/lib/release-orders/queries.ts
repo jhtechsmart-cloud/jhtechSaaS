@@ -13,12 +13,23 @@ export type ReleaseOrderFormData = {
   deviceName: string;
   installAt: string | null;
   hasIssuedQuote: boolean;
-  // 기존 출고의뢰서(편집). 없으면 신규(프리필).
-  releaseOrder: { id: string; status: "draft" | "issued" } | null;
-  pdfReady: boolean; // 발행 + PDF 생성 완료(다운로드 버튼 활성화)
+  // 최신 출고의뢰서 버전(편집 대상). 없으면 신규(프리필).
+  releaseOrder: { id: string; status: "draft" | "issued"; version: number } | null;
+  pdfReady: boolean; // 최신 발행본 PDF 생성 완료(다운로드 버튼 활성화)
+  // 버전 이력(최신순) — 각 버전 상태·발행일·PDF 보유 여부.
+  versions: ReleaseOrderVersion[];
 
   deviceKind: "printer" | "cutter";
   details: ReleaseOrderDetails;
+};
+
+export type ReleaseOrderVersion = {
+  id: string;
+  version: number;
+  status: "draft" | "issued";
+  issuedAt: string | null;
+  createdAt: string;
+  hasPdf: boolean;
 };
 
 // 견적 장비의 대분류 quote_logo_kind로 device_kind 자동판별(best-effort).
@@ -72,13 +83,15 @@ export async function loadReleaseOrderForForm(applicationId: string): Promise<Re
     .limit(1)
     .maybeSingle();
 
-  const { data: existing } = await supabase
+  // 모든 버전(최신순). 최신 버전 = 편집 대상, 나머지는 이력.
+  const { data: rows } = await supabase
     .from("release_orders")
-    .select("id, status, device_kind, details, pdf_url, company, contact_phone, install_address")
+    .select("id, version, status, device_kind, details, pdf_url, company, contact_phone, install_address, issued_at, created_at")
     .eq("application_id", applicationId)
-    .maybeSingle();
-  const ro = existing as {
+    .order("version", { ascending: false });
+  const allRows = (rows ?? []) as {
     id: string;
+    version: number;
     status: "draft" | "issued";
     device_kind: string;
     details: unknown;
@@ -86,7 +99,18 @@ export async function loadReleaseOrderForForm(applicationId: string): Promise<Re
     company: string | null;
     contact_phone: string | null;
     install_address: string | null;
-  } | null;
+    issued_at: string | null;
+    created_at: string;
+  }[];
+  const ro = allRows[0] ?? null; // 최신 버전
+  const versions: ReleaseOrderVersion[] = allRows.map((r) => ({
+    id: r.id,
+    version: r.version,
+    status: r.status,
+    issuedAt: r.issued_at,
+    createdAt: r.created_at,
+    hasPdf: r.status === "issued" && !!r.pdf_url,
+  }));
 
   // device_kind: 기존 출고서 우선 → 견적 장비 대분류 → printer 폴백.
   let deviceKind: "printer" | "cutter" = "printer";
@@ -119,8 +143,9 @@ export async function loadReleaseOrderForForm(applicationId: string): Promise<Re
     deviceName: prefill.device_name,
     installAt: prefill.install_at,
     hasIssuedQuote: !!quote,
-    releaseOrder: ro ? { id: ro.id, status: ro.status } : null,
+    releaseOrder: ro ? { id: ro.id, status: ro.status, version: ro.version } : null,
     pdfReady: !!ro && ro.status === "issued" && !!ro.pdf_url,
+    versions,
     deviceKind,
     details,
   };
