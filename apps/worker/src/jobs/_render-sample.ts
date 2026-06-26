@@ -28,6 +28,8 @@ async function main() {
     assigneeName: "관리자",
     assigneePhone: null,
     recipient: "주식회사 커팅",
+    recipientManager: null,
+    recipientTitle: null,
     supplyPrice: 58_000_000,
     koreanAmount: "오천팔백만",
     items: [{ name: "플래스십 디지털 평판 커팅기", qtyLabel: "1SET", unitPrice: 50_000_000, amount: 50_000_000 }],

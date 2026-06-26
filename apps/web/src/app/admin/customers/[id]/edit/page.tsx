@@ -70,6 +70,7 @@ export default async function EditCustomerPage({
     biz_no: cs("biz_no"),
     ceo: cs("ceo"),
     manager: cs("manager"),
+    manager_title: cs("manager_title"),
     phone: cs("phone"),
     email: cs("email"),
     address: cs("address"),

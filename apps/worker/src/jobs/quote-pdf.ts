@@ -73,7 +73,9 @@ export async function processQuotePdfJob(
     .from("quotes")
     .select(
       "id, quote_no, items, options, supply_price, issued_at, application_id, spec_selection, notes, " +
-        "assignee:assignee_id(name, phone), application:application_id(company, equipment_id)",
+        "assignee:assignee_id(name, phone), " +
+        // 수신처 = 의뢰 회사명 + (연결된 고객의 담당자·직책). company_id 없는 공개폼 의뢰는 customer=null.
+        "application:application_id(company, equipment_id, customer:company_id(manager, manager_title))",
     )
     .eq("id", quoteId)
     .single();
@@ -82,7 +84,11 @@ export async function processQuotePdfJob(
   // 임베디드 select라 supabase-js 추론 타입이 복합형 → unknown 경유 후 레코드로 좁힘(형식 방어).
   const q = quote as unknown as Record<string, unknown>;
   // 임베디드 to-one 관계는 supabase-js가 단일 객체로 추론하지만 런타임 형식 방어 캐스트.
-  const app = q.application as { company?: string; equipment_id?: string | null } | null;
+  const app = q.application as {
+    company?: string;
+    equipment_id?: string | null;
+    customer?: { manager?: string | null; manager_title?: string | null } | null;
+  } | null;
   const assignee = q.assignee as { name?: string; phone?: string | null } | null;
 
   const items = parseLines(q.items);
@@ -169,6 +175,9 @@ export async function processQuotePdfJob(
     assigneeName: assignee?.name ?? "담당자",
     assigneePhone: assignee?.phone ?? null,
     recipient: app?.company ?? "고객",
+    // 연결된 고객의 담당자·직책(없으면 null=공개폼 의뢰 → 회사명만 표기).
+    recipientManager: app?.customer?.manager ?? null,
+    recipientTitle: app?.customer?.manager_title ?? null,
     supplyPrice,
     koreanAmount: numberToKoreanAmount(supplyPrice),
     items: htmlItems,

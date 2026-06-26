@@ -10,6 +10,8 @@ export type QuoteHtmlData = {
   assigneeName: string;
   assigneePhone: string | null;
   recipient: string;
+  recipientManager: string | null; // 수신처 담당자(연결 고객, 없으면 null)
+  recipientTitle: string | null; // 수신처 담당자 직책(없으면 null)
   supplyPrice: number;
   koreanAmount: string;
   items: QuoteHtmlItem[];
@@ -69,6 +71,11 @@ export function renderQuoteHtml(d: QuoteHtmlData): string {
     ? `<div class="band">장비사양 (Specification)</div><div class="specs" style="--label-w:${labelW}em"><div class="spec-list">${specItemsHtml}</div></div>`
     : "";
   const notes = d.notes.map((n, i) => `<div class="note">${i + 1}. ${esc(n)}</div>`).join("");
+  // 수신처 담당자·직책 — 연결 고객이 있을 때만(공개폼 의뢰는 둘 다 null → 회사명만). 빈 값은 제외.
+  const recipientContact = [d.recipientManager, d.recipientTitle]
+    .filter((s): s is string => !!s && s.trim() !== "")
+    .map(esc)
+    .join(" ");
 
   return `<!doctype html><html lang="ko"><head><meta charset="utf-8"><style>
 @font-face{font-family:'KR';src:url("${d.fontDataUri}");}
@@ -92,8 +99,10 @@ body{position:relative;width:210mm;min-height:296mm;color:#111;font-size:13px;
 .meta div{line-height:1.7;}
 .meta .ml{display:inline-block;width:74px;}
 .recipient-row{margin-top:auto;padding-top:10px;padding-bottom:3px;text-align:right;border-bottom:2.5px solid #111;}
-.recipient{font-size:24px;font-weight:700;}
-.rsuffix{font-size:16px;font-weight:500;margin-left:6px;}
+/* 수신처 = 회사명 + (담당자·직책) 귀하. 담당자·직책이 붙어 길어지므로 회사명도 축소(이전 24px). */
+.recipient{font-size:18px;font-weight:700;}
+.rcontact{font-size:13px;font-weight:600;margin-left:6px;}
+.rsuffix{font-size:13px;font-weight:500;margin-left:6px;}
 .supplier{position:relative;width:54%;font-size:12px;}
 .supplier table{width:100%;border-collapse:collapse;background:rgba(255,255,255,.85);}
 .supplier td{border:1px solid #888;padding:3px 7px;word-break:keep-all;}
@@ -145,7 +154,7 @@ table.items tr.total td{font-weight:700;}
         <div><span class="ml">담 당 자 명 :</span>${esc(d.assigneeName)}</div>
         ${d.assigneePhone ? `<div><span class="ml"></span>${esc(d.assigneePhone)}</div>` : ""}
       </div>
-      <div class="recipient-row"><span class="recipient">${esc(d.recipient)}</span><span class="rsuffix">귀하</span></div>
+      <div class="recipient-row"><span class="recipient">${esc(d.recipient)}</span>${recipientContact ? `<span class="rcontact">${recipientContact}</span>` : ""}<span class="rsuffix">귀하</span></div>
     </div>
     <div class="supplier">
       <img class="stamp" src="${d.stampDataUri}">
