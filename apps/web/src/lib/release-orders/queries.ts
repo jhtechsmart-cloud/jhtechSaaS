@@ -74,7 +74,7 @@ export async function loadReleaseOrderForForm(applicationId: string): Promise<Re
 
   const { data: existing } = await supabase
     .from("release_orders")
-    .select("id, status, device_kind, details, pdf_url")
+    .select("id, status, device_kind, details, pdf_url, company, contact_phone, install_address")
     .eq("application_id", applicationId)
     .maybeSingle();
   const ro = existing as {
@@ -83,6 +83,9 @@ export async function loadReleaseOrderForForm(applicationId: string): Promise<Re
     device_kind: string;
     details: unknown;
     pdf_url: string | null;
+    company: string | null;
+    contact_phone: string | null;
+    install_address: string | null;
   } | null;
 
   // device_kind: 기존 출고서 우선 → 견적 장비 대분류 → printer 폴백.
@@ -107,11 +110,12 @@ export async function loadReleaseOrderForForm(applicationId: string): Promise<Re
   // 기존 draft가 있으면 저장된 details, 없으면 설문 기반 프리필.
   const details = ro ? ReleaseOrderDetailsSchema.parse(ro.details) : prefill.details;
 
+  // 고객정보 프리필 — 기존 출고의뢰서에 저장된(편집된) 값 우선, 없으면 application 기반 프리필.
   return {
     applicationId,
-    company: prefill.company,
-    contactPhone: prefill.contact_phone,
-    installAddress: prefill.install_address,
+    company: ro?.company ?? prefill.company,
+    contactPhone: ro?.contact_phone ?? prefill.contact_phone,
+    installAddress: ro?.install_address ?? prefill.install_address,
     deviceName: prefill.device_name,
     installAt: prefill.install_at,
     hasIssuedQuote: !!quote,

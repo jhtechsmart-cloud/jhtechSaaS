@@ -135,6 +135,46 @@ describe("upsert_release_order — 권한·행스코프·서버 스냅샷·1:1",
     });
   });
 
+  test("고객정보 편집: 클라가 보낸 회사·연락처·주소를 저장(스냅샷 덮어씀)", async () => {
+    await inRollbackTx(c, async () => {
+      const { appId } = await seedAppWithIssuedQuote(UID.sales1);
+      await asUser(c, UID.sales1);
+      const r = await c.query(
+        "select public.upsert_release_order($1,$2,$3::jsonb,$4,$5,$6) as out",
+        [appId, "printer", "{}", "수정한회사", "010-9999-0000", "부산시 해운대구 99"],
+      );
+      const out = r.rows[0].out as { id: string };
+      await asPostgres(c);
+      const row = await c.query(
+        "select company, contact_phone, install_address from public.release_orders where id=$1",
+        [out.id],
+      );
+      expect(row.rows[0].company).toBe("수정한회사");
+      expect(row.rows[0].contact_phone).toBe("010-9999-0000");
+      expect(row.rows[0].install_address).toBe("부산시 해운대구 99");
+    });
+  });
+
+  test("고객정보 빈 값이면 application 값으로 폴백", async () => {
+    await inRollbackTx(c, async () => {
+      const { appId } = await seedAppWithIssuedQuote(UID.sales1);
+      await asUser(c, UID.sales1);
+      const r = await c.query(
+        "select public.upsert_release_order($1,$2,$3::jsonb,$4,$5,$6) as out",
+        [appId, "printer", "{}", "  ", "", null],
+      );
+      const out = r.rows[0].out as { id: string };
+      await asPostgres(c);
+      const row = await c.query(
+        "select company, contact_phone, install_address from public.release_orders where id=$1",
+        [out.id],
+      );
+      expect(row.rows[0].company).toBe("애드넷"); // 폴백
+      expect(row.rows[0].contact_phone).toBe("010-1234-5678");
+      expect(row.rows[0].install_address).toBe("서울시 강남구 1");
+    });
+  });
+
   test("release_orders.write 없으면 거부", async () => {
     await inRollbackTx(c, async () => {
       const { appId } = await seedAppWithIssuedQuote(UID.sales1);
@@ -292,9 +332,9 @@ describe("issue_release_order — 발행 + PDF 잡 enqueue", () => {
     await asPostgres(c);
     const r = await c.query(
       `select
-         has_function_privilege('anon','public.upsert_release_order(uuid,text,jsonb)','execute') anon_upsert,
+         has_function_privilege('anon','public.upsert_release_order(uuid,text,jsonb,text,text,text)','execute') anon_upsert,
          has_function_privilege('anon','public.issue_release_order(uuid)','execute') anon_issue,
-         has_function_privilege('authenticated','public.upsert_release_order(uuid,text,jsonb)','execute') auth_upsert,
+         has_function_privilege('authenticated','public.upsert_release_order(uuid,text,jsonb,text,text,text)','execute') auth_upsert,
          has_function_privilege('authenticated','public.issue_release_order(uuid)','execute') auth_issue`,
     );
     expect(r.rows[0].anon_upsert).toBe(false);
