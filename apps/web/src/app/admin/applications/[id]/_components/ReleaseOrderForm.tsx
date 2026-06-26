@@ -315,6 +315,20 @@ export function ReleaseOrderForm({
         </div>
       </section>
 
+      {/* ⑤ 메모/특이사항 — PDF 하단에 인쇄(현장 전달용). */}
+      <section>
+        <SectionHead title="메모/특이사항" en="MEMO" />
+        <textarea
+          aria-label="메모/특이사항"
+          value={details.memo}
+          disabled={locked}
+          onChange={(e) => setDetails((d) => ({ ...d, memo: e.target.value }))}
+          rows={3}
+          placeholder="현장에 전달할 특이사항·요청을 적으세요 (출고의뢰서 PDF에 인쇄됩니다)"
+          className="w-full rounded-xl border border-border bg-surface px-3 py-2 text-small text-text outline-none focus:border-accent-ring disabled:opacity-50"
+        />
+      </section>
+
       {/* 액션 */}
       {!locked && (
         <div className="flex flex-col items-end gap-2">

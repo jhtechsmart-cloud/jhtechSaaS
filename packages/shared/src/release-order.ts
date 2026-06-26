@@ -70,6 +70,8 @@ export const ReleaseOrderDetailsSchema = z.object({
   common: CommonDetail.default(() => CommonDetail.parse({})),
   prep: PrepDetail.default(() => PrepDetail.parse({})),
   site: SiteDetail.default(() => SiteDetail.parse({})),
+  // 메모/특이사항 — 출고의뢰서 PDF 하단에 인쇄(현장 전달용 자유 메모).
+  memo: z.string().max(2000).default(""),
 });
 
 export type ReleaseOrderDetails = z.infer<typeof ReleaseOrderDetailsSchema>;
