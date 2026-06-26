@@ -7,6 +7,8 @@ const base: QuoteHtmlData = {
   assigneeName: "대표 이무직",
   assigneePhone: "010-5347-8180",
   recipient: "예일아트",
+  recipientManager: null,
+  recipientTitle: null,
   supplyPrice: 75_000_000,
   koreanAmount: "칠천오백만",
   items: [{ name: "멀티컷 에코 SG1625 Digital Cutter", qtyLabel: "1SET", unitPrice: 75_000_000, amount: 75_000_000 }],
@@ -70,6 +72,22 @@ describe("renderQuoteHtml", () => {
     const html = renderQuoteHtml({ ...base, notes: [] });
     expect(html).toContain("특 기 사 항"); // 섹션 띠는 유지
     expect(html).not.toContain('class="note"'); // 내용 줄 없음
+  });
+  test("수신처에 담당자·직책이 있으면 '회사 담당자 직책 귀하'로 렌더", () => {
+    const html = renderQuoteHtml({ ...base, recipientManager: "홍길동", recipientTitle: "과장" });
+    expect(html).toContain("예일아트");
+    expect(html).toContain("홍길동 과장");
+    expect(html).toContain('class="rcontact"');
+  });
+  test("담당자·직책 없으면(공개폼 의뢰) 회사명만 — 담당자 span 미출력", () => {
+    const html = renderQuoteHtml({ ...base, recipientManager: null, recipientTitle: null });
+    expect(html).toContain("예일아트");
+    expect(html).not.toContain('class="rcontact"');
+  });
+  test("담당자만 있고 직책 없으면 담당자만 표기", () => {
+    const html = renderQuoteHtml({ ...base, recipientManager: "홍길동", recipientTitle: null });
+    expect(html).toContain('class="rcontact"');
+    expect(html).toContain("홍길동");
   });
   test("specGroups 없으면 장비사양 섹션 미출력", () => {
     expect(renderQuoteHtml(base)).not.toContain("장비사양");

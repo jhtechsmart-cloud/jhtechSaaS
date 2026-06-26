@@ -9,6 +9,8 @@ const data: QuoteHtmlData = {
   assigneeName: "대표 이무직",
   assigneePhone: "010-5347-8180",
   recipient: "테스트상사",
+  recipientManager: null,
+  recipientTitle: null,
   supplyPrice: 55_000_000,
   koreanAmount: "오천오백만",
   items: [{ name: "테스트 장비", qtyLabel: "1SET", unitPrice: 55_000_000, amount: 55_000_000 }],

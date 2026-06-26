@@ -19,6 +19,8 @@ async function base(modelName: string, recipient: string): Promise<Omit<QuoteHtm
     assigneeName: "관리자",
     assigneePhone: null,
     recipient,
+    recipientManager: null,
+    recipientTitle: null,
     supplyPrice: 30_000_000,
     koreanAmount: "삼천만",
     items: [{ name: modelName, qtyLabel: "1SET", unitPrice: 30_000_000, amount: 30_000_000 }],

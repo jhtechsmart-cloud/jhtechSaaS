@@ -57,7 +57,7 @@ type FormInput = z.input<typeof companyFormSchema>;
 
 // 변경 요약(저장 바)·헤더에 쓰는 필드 라벨.
 const FIELD_LABELS: Record<string, string> = {
-  name: "업체명", biz_no: "사업자등록번호", ceo: "대표자", manager: "담당자",
+  name: "업체명", biz_no: "사업자등록번호", ceo: "대표자", manager: "담당자", manager_title: "직책",
   phone: "연락처(대표)", email: "이메일", address: "주소(사업장)", biz_type: "업태",
   biz_item: "업종(종목)", ledger_name: "장부명", phone1: "전화1", phone2: "전화2",
   fax: "팩스", mobile: "휴대폰", address_actual1: "실제주소1", address_actual2: "실제주소2",
@@ -111,7 +111,7 @@ export function CompanyForm(props: Props) {
           })),
         }
       : {
-          name: "", biz_no: "", ceo: "", manager: "", phone: "", email: "",
+          name: "", biz_no: "", ceo: "", manager: "", manager_title: "", phone: "", email: "",
           address: "", biz_type: "", biz_item: "", ledger_name: "", phone1: "",
           phone2: "", fax: "", mobile: "", address_actual1: "", address_actual2: "",
           note: "", assignee_id: "", equipment: [],
@@ -308,6 +308,9 @@ export function CompanyForm(props: Props) {
             <div className="grid grid-cols-1 gap-4 min-[860px]:grid-cols-2">
               <Field label="담당자" error={errors.manager?.message} dirty={!!dirtyFields.manager}>
                 <input {...register("manager")} className={inputCls(!!dirtyFields.manager)} />
+              </Field>
+              <Field label="직책" error={errors.manager_title?.message} dirty={!!dirtyFields.manager_title}>
+                <input {...register("manager_title")} placeholder="과장, 대리 등" className={inputCls(!!dirtyFields.manager_title)} />
               </Field>
               <Field label="휴대폰" error={errors.mobile?.message} dirty={!!dirtyFields.mobile}>
                 <input

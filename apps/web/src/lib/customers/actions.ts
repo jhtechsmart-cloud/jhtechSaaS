@@ -51,6 +51,7 @@ function companyRow(v: CompanyFormValues) {
     biz_no: v.biz_no ? normalizeBizNo(v.biz_no) : null,
     ceo: v.ceo || null,
     manager: v.manager || null,
+    manager_title: v.manager_title || null,
     phone: v.phone || null,
     email: v.email || null,
     address: v.address || null,

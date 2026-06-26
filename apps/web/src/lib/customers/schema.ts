@@ -29,6 +29,8 @@ export const companyFormSchema = z.object({
   ceo: z.string().trim().max(200).default(""),
   // 담당자(고객 측)·업태 — 기본 정보(견적 신청기업 정보와 1:1).
   manager: z.string().trim().max(200, "200자 이내").default(""),
+  // 담당자 직책 — 견적서 PDF "[회사][담당자][직책] 귀하"에 사용.
+  manager_title: z.string().trim().max(100, "100자 이내").default(""),
   phone: z.string().trim().max(50).default(""),
   email: z.string().trim().max(200).default(""),
   address: z.string().trim().max(500, "500자 이내").default(""),
