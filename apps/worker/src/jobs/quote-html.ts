@@ -104,9 +104,12 @@ body{position:relative;width:210mm;min-height:296mm;color:#111;font-size:13px;
 .sumband{display:flex;align-items:stretch;margin:8px 0;}
 .sumband .lbl{width:200px;display:flex;align-items:center;justify-content:center;background:#3a4a5a;color:#fff;font-weight:700;letter-spacing:4px;padding:8px 16px;}
 .sumband .amt-bg{flex:1;display:flex;align-items:center;background:#ececec;padding:0 16px;}
-.sumband .amt{margin-left:auto;font-size:18px;font-weight:700;}
-.sumband .unit{margin-left:18px;font-size:12px;font-weight:700;color:#555;}
-table.items{width:100%;border-collapse:collapse;margin-top:4px;background:rgba(255,255,255,.85);}
+/* 합계 한글금액 — 폰트 축소 + 줄바꿈 금지(긴 금액·(단위:원) 모두 한 줄 유지). min-width:0이라야 nowrap이 amt-bg를 안 넘침. */
+.sumband .amt-bg{min-width:0;overflow:hidden;}
+.sumband .amt{margin-left:auto;font-size:12px;font-weight:700;white-space:nowrap;}
+.sumband .unit{margin-left:18px;font-size:11px;font-weight:700;color:#555;white-space:nowrap;flex:0 0 auto;}
+/* 품목표 — 폰트를 특기사항(.note)과 동일 톤으로 축소. */
+table.items{width:100%;border-collapse:collapse;margin-top:4px;background:rgba(255,255,255,.85);font-size:11.5px;}
 table.items th,table.items td{border:1px solid #333;padding:4px 6px;text-align:center;}
 table.items th{background:#f3f3f3;}
 table.items td.name{text-align:left;}
@@ -122,7 +125,7 @@ table.items tr.total td{font-weight:700;}
 .spec-k{flex:0 0 var(--label-w,7em);color:#5b6b78;white-space:nowrap;padding-right:6px;}
 /* 값 — 라벨 우측 고정 위치에서 시작(구분선 정렬). min-width:0이라야 긴 값이 제 칸에서 줄바꿈. */
 .spec-v{flex:1 1 auto;min-width:0;color:#1a1a1a;padding-left:7px;border-left:1px solid #e3e9ec;}
-.note{margin:2px 0;color:#333;}
+.note{margin:2px 0;color:#333;font-size:11.5px;}
 /* 하단 좌우 장비 영역 — 배경 조명 위. 좌=네임, 우=이미지. flex:1 .pad가 하단으로 밀어 1페이지 바닥 고정. */
 .device{display:flex;justify-content:space-between;align-items:flex-end;padding:0 14mm 10mm;gap:10mm;}
 .device .name-img{width:60mm;max-height:30mm;object-fit:contain;}
