@@ -1,6 +1,6 @@
 import { SUPPLIER } from "@jhtechsaas/shared";
 
-export type QuoteHtmlItem = { name: string; qtyLabel: string; unitPrice: number; amount: number };
+export type QuoteHtmlItem = { name: string; qtyLabel: string; unitPrice: number; amount: number; remark?: string };
 export type QuoteHtmlIncluded = { name: string; qtyLabel: string };
 export type QuoteHtmlSpecGroup = { group: string; items: { label: string; value: string }[] };
 
@@ -34,14 +34,14 @@ const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&l
 export function renderQuoteHtml(d: QuoteHtmlData): string {
   const itemRows = d.items
     .map(
-      (it) => `<tr class="main"><td class="name"><b>${esc(it.name)}</b></td><td>${esc(it.qtyLabel)}</td><td class="num">${won(it.unitPrice)}</td><td class="num">${won(it.amount)}</td><td></td></tr>`,
+      (it) => `<tr class="main"><td class="name"><b>${esc(it.name)}</b></td><td>${esc(it.qtyLabel)}</td><td class="num">${won(it.unitPrice)}</td><td class="num">${won(it.amount)}</td><td class="remark">${esc(it.remark ?? "")}</td></tr>`,
     )
     .join("");
   const incRows = d.includedOptions
     .map((o) => `<tr class="sub"><td class="name"> - ${esc(o.name)}</td><td>${esc(o.qtyLabel)}</td><td class="num">포함</td><td class="num">포함</td><td></td></tr>`)
     .join("");
   const extraRows = d.extraOptions
-    .map((o) => `<tr class="sub"><td class="name"> - ${esc(o.name)}</td><td>${esc(o.qtyLabel)}</td><td class="num">${won(o.unitPrice)}</td><td class="num">${won(o.amount)}</td><td></td></tr>`)
+    .map((o) => `<tr class="sub"><td class="name"> - ${esc(o.name)}</td><td>${esc(o.qtyLabel)}</td><td class="num">${won(o.unitPrice)}</td><td class="num">${won(o.amount)}</td><td class="remark">${esc(o.remark ?? "")}</td></tr>`)
     .join("");
   // 사양 = 항목 이름(라벨)·값이 모두 있는 항목만(둘 중 하나라도 비면 PDF 미포함). 그룹 제목 미표시.
   // 2단 CSS 다단 흐름(column-count)으로 항목을 위→아래로 채워 자동 균형 → 좌·우 행이 엮이지 않아
@@ -114,6 +114,7 @@ table.items th,table.items td{border:1px solid #333;padding:4px 6px;text-align:c
 table.items th{background:#f3f3f3;}
 table.items td.name{text-align:left;}
 table.items td.num{text-align:right;font-variant-numeric:tabular-nums;}
+table.items td.remark{text-align:left;white-space:pre-wrap;word-break:break-word;}
 table.items tr.total td{font-weight:700;}
 .band{background:#3a4a5a;color:#fff;text-align:center;letter-spacing:6px;padding:5px;margin-top:8px;}
 /* 사양 — 항목 이름·값만(그룹 제목 없음). 2단 CSS 다단 흐름(위→아래 자동 균형)으로 항목을 채워

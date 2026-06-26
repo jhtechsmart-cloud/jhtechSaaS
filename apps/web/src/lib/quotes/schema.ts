@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { QuoteInputSchema } from "@jhtechsaas/shared";
+import { QuoteInputSchema, QuoteNotesSchema } from "@jhtechsaas/shared";
 
 // 견적 생성 서버액션 입력 — 슬라이스1 경계 스키마 재사용 + 장비 ≥1줄·status 제한.
 // (서버 RPC가 한 번 더 재검증·재계산하므로 이건 1차 방어선.)
@@ -9,6 +9,8 @@ export const createQuotePayloadSchema = z.object({
   status: z.enum(["draft", "issued"]),
   // 견적서 PDF에 넣을 사양 항목 id 목록(빈배열=0개). 미지정 시 빈배열로 저장.
   specSelection: z.array(z.string()).default([]),
+  // 견적서 특기사항(줄 배열). 미지정 시 빈배열 = 특기사항 없음(폼은 기본 2줄을 프리필해 보냄).
+  notes: QuoteNotesSchema.default([]),
 });
 
 export type CreateQuotePayload = z.infer<typeof createQuotePayloadSchema>;

@@ -13,6 +13,8 @@ export type QuoteLine = {
   // 장비 줄이 가리키는 카탈로그 장비 id(선택). PDF 워커가 이 id로 사양·로고·장비이미지를
   // 가져온다(의뢰 신청 장비가 아니라 견적에서 고른 장비 기준). 직접입력 줄은 미지정. 계산엔 무영향.
   equipmentId?: string;
+  // 비고(선택) — 견적서 PDF '비 고' 칸에 그대로 출력. 계산엔 무영향. z.object strip 방지로 스키마에도 명시.
+  remark?: string;
 };
 
 export type QuoteInput = {
@@ -38,7 +40,29 @@ const QuoteLineSchema = z.object({
   kind: z.enum(["included", "extra"]).optional(),
   // 장비 id(선택) — 같은 이유로 명시해야 RPC 저장 jsonb에 보존된다(strip 방지).
   equipmentId: z.string().optional(),
+  // 비고(선택) — 명시해야 jsonb에 보존된다(strip 방지). 줄당 200자 제한.
+  remark: z.string().trim().max(200, "비고는 200자 이내로 입력하세요").optional(),
 });
+
+// 견적 특기사항 기본 2줄 — 폼 프리필(작성/수정) + 워커 PDF 폴백(구 견적·미저장)의 단일 출처.
+export const DEFAULT_QUOTE_NOTES: readonly string[] = [
+  "상기금액은 부가세(V.A.T) 별도 금액입니다.",
+  "본 견적서의 유효기간은 발행일로부터 1개월입니다.",
+];
+
+// 특기사항 입력 검증 — 줄당 200자, 최대 20줄. (빈 줄 정리는 normalizeQuoteNotes로.)
+export const QuoteNotesSchema = z
+  .array(z.string().max(200, "특기사항은 한 줄에 200자 이내로 입력하세요"))
+  .max(20, "특기사항은 최대 20줄까지 입력할 수 있습니다");
+
+// 저장/표시용 특기사항 정규화 — 문자열만, 각 줄 trim, 빈 줄 제거. (jsonb·폼 양쪽에서 재사용.)
+export function normalizeQuoteNotes(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((s): s is string => typeof s === "string")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+}
 
 export const QuoteInputSchema = z.object({
   items: z.array(QuoteLineSchema),

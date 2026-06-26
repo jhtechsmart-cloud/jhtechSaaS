@@ -3,6 +3,7 @@ import { requireQuotesWrite } from "@/lib/auth/guard";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { signOut } from "@/app/login/actions";
 import { getQuote } from "@/lib/quotes/queries";
+import { normalizeQuoteNotes } from "@jhtechsaas/shared";
 import { parseQuoteLines, type QuoteRow, type QuoteCatalogItem } from "@/lib/quotes/form";
 import { listEquipmentForMatch } from "@/lib/quotes/equipment-match.server";
 import { matchEquipmentName } from "@/lib/quotes/equipment-match";
@@ -58,6 +59,7 @@ export default async function NewQuotePage({
   let initialItems: QuoteRow[] | undefined;
   let initialOptions: QuoteRow[] | undefined;
   let initialSpecSelection: string[] | undefined;
+  let initialNotes: string[] | undefined;
   if (from) {
     // 재발행 프리필 — 같은 의뢰의 견적 줄만 초기값으로(타 의뢰 견적 주입 방지).
     const src = await getQuote(from);
@@ -68,6 +70,8 @@ export default async function NewQuotePage({
       initialSpecSelection = Array.isArray(src.spec_selection)
         ? src.spec_selection.filter((x): x is string => typeof x === "string")
         : undefined;
+      // 특기사항도 복원(배열이면 그대로, null=구 견적이면 undefined → 폼이 기본 2줄로).
+      initialNotes = Array.isArray(src.notes) ? normalizeQuoteNotes(src.notes) : undefined;
     }
   } else {
     // 새 견적 — 고객이 신청 시 고른 장비를 기본 셋팅(담당자 재입력·오선택 방지).
@@ -94,6 +98,7 @@ export default async function NewQuotePage({
         initialItems={initialItems}
         initialOptions={initialOptions}
         initialSpecSelection={initialSpecSelection}
+        initialNotes={initialNotes}
         contextSlot={<ApplicationContext id={id} />}
       />
     </section>

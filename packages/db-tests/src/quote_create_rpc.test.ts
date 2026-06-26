@@ -156,6 +156,64 @@ describe("create_quote — 금액 SQL 계산 + 채번", () => {
   });
 });
 
+describe("create_quote — 특기사항(notes)·비고(remark) 보존", () => {
+  test("p_notes(문자열 배열)가 quotes.notes에 그대로 저장", async () => {
+    await inRollbackTx(c, async () => {
+      await seed();
+      await asUser(c, UID.sales1);
+      const notes = ["부가세 별도", "설치 2주 이내"];
+      const r = await c.query("select public.create_quote($1,$2,$3,$4,$5,$6) as q", [
+        APP,
+        JSON.stringify([ITEM(10_000_000)]),
+        JSON.stringify([]),
+        "draft",
+        null,
+        JSON.stringify(notes),
+      ]);
+      expect((r.rows[0].q as { notes: unknown }).notes).toEqual(notes);
+    });
+  });
+
+  test("p_notes 미지정(폴백)이면 notes=null", async () => {
+    await inRollbackTx(c, async () => {
+      await seed();
+      await asUser(c, UID.sales1);
+      const q = await createQuote([ITEM(10_000_000)], []);
+      expect(q.notes).toBeNull();
+    });
+  });
+
+  test("p_notes에 비문자열 줄이 섞이면 거부", async () => {
+    await inRollbackTx(c, async () => {
+      await seed();
+      await asUser(c, UID.sales1);
+      await expect(
+        c.query("select public.create_quote($1,$2,$3,$4,$5,$6) as q", [
+          APP,
+          JSON.stringify([ITEM(10_000_000)]),
+          JSON.stringify([]),
+          "draft",
+          null,
+          JSON.stringify(["정상", 123]),
+        ]),
+      ).rejects.toThrow();
+    });
+  });
+
+  test("items·options의 remark(비고)가 jsonb에 보존(검증 통과)", async () => {
+    await inRollbackTx(c, async () => {
+      await seed();
+      await asUser(c, UID.sales1);
+      const q = await createQuote(
+        [{ name: "커팅기", unitPrice: 10_000_000, quantity: 1, remark: "설치 포함" }],
+        [{ name: "칼날", unitPrice: 400_000, quantity: 1, kind: "extra", remark: "소모품" }],
+      );
+      expect((q.items as { remark?: string }[])[0].remark).toBe("설치 포함");
+      expect((q.options as { remark?: string }[])[0].remark).toBe("소모품");
+    });
+  });
+});
+
 async function createManualQuote(
   company: string | null,
   items: object[],

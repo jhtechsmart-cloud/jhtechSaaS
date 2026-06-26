@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { formatKstKoreanDate, matchEquipmentName, numberToKoreanAmount, parseSpecs, selectPdfSpecItems } from "@jhtechsaas/shared";
+import { DEFAULT_QUOTE_NOTES, formatKstKoreanDate, matchEquipmentName, normalizeQuoteNotes, numberToKoreanAmount, parseSpecs, selectPdfSpecItems } from "@jhtechsaas/shared";
 import { buildQuotePdf } from "./render-quote-pdf";
 import {
   getFontDataUri,
@@ -20,6 +20,7 @@ type QuoteLine = {
   quantity: number;
   kind?: "included" | "extra";
   equipmentId?: string;
+  remark?: string;
 };
 
 // 견적 줄(jsonb) → 타입 보정.
@@ -33,6 +34,7 @@ function parseLines(v: unknown): QuoteLine[] {
       quantity: Number(r.quantity) || 0,
       kind: r.kind === "included" || r.kind === "extra" ? r.kind : undefined,
       equipmentId: typeof r.equipmentId === "string" && r.equipmentId ? r.equipmentId : undefined,
+      remark: typeof r.remark === "string" && r.remark.trim() ? r.remark : undefined,
     }));
 }
 
@@ -70,7 +72,7 @@ export async function processQuotePdfJob(
   const { data: quote, error } = await supabase
     .from("quotes")
     .select(
-      "id, quote_no, items, options, supply_price, issued_at, application_id, spec_selection, " +
+      "id, quote_no, items, options, supply_price, issued_at, application_id, spec_selection, notes, " +
         "assignee:assignee_id(name, phone), application:application_id(company, equipment_id)",
     )
     .eq("id", quoteId)
@@ -95,12 +97,14 @@ export async function processQuotePdfJob(
       qtyLabel: `${o.quantity}ea`,
       unitPrice: o.unitPrice,
       amount: o.unitPrice * o.quantity,
+      remark: o.remark,
     }));
   const htmlItems: QuoteHtmlItem[] = items.map((it) => ({
     name: it.name,
     qtyLabel: it.quantity === 1 ? "1SET" : `${it.quantity}SET`,
     unitPrice: it.unitPrice,
     amount: it.unitPrice * it.quantity,
+    remark: it.remark,
   }));
 
   // 2) 장비(사양·로고·장비이미지) 조회 — 우선순위:
@@ -171,10 +175,8 @@ export async function processQuotePdfJob(
     includedOptions,
     extraOptions,
     specGroups,
-    notes: [
-      "상기금액은 부가세(V.A.T) 별도 금액입니다.",
-      "본 견적서의 유효기간은 발행일로부터 1개월입니다.",
-    ],
+    // 특기사항 = 견적에 저장된 줄(배열). null/구 견적이면 기본 2줄 폴백. 빈 배열이면 특기사항 없음.
+    notes: Array.isArray(q.notes) ? normalizeQuoteNotes(q.notes) : [...DEFAULT_QUOTE_NOTES],
     // 상단 헤더 큰 텍스트 = 견적 메인 품목명(첫 품목). 없으면 빈 문자열.
     modelName: htmlItems[0]?.name ?? "",
     modelFontDataUri: await getModelFontDataUri(),
