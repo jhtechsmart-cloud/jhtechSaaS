@@ -3,7 +3,11 @@
 import { useState } from "react";
 import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { fetchDayReservations } from "@/lib/demo-reservations/actions";
-import type { EquipmentOptionRow } from "@/lib/demo-reservations/queries";
+import type {
+  DemoStaffRow,
+  EquipmentOptionRow,
+} from "@/lib/demo-reservations/queries";
+import type { CategoryNode } from "@/lib/equipment/category-tree";
 import { NewReservationForm } from "./NewReservationForm";
 import { DaySummaryPanel } from "./DaySummaryPanel";
 
@@ -12,14 +16,23 @@ import { DaySummaryPanel } from "./DaySummaryPanel";
 export function NewReservationShell({
   initialDate,
   equipmentOptions,
+  staff,
+  categories,
 }: {
   initialDate: string;
   equipmentOptions: EquipmentOptionRow[];
+  staff: DemoStaffRow[];
+  categories: CategoryNode[];
 }) {
   const [client] = useState(() => new QueryClient());
   return (
     <QueryClientProvider client={client}>
-      <Inner initialDate={initialDate} equipmentOptions={equipmentOptions} />
+      <Inner
+        initialDate={initialDate}
+        equipmentOptions={equipmentOptions}
+        staff={staff}
+        categories={categories}
+      />
     </QueryClientProvider>
   );
 }
@@ -27,9 +40,13 @@ export function NewReservationShell({
 function Inner({
   initialDate,
   equipmentOptions,
+  staff,
+  categories,
 }: {
   initialDate: string;
   equipmentOptions: EquipmentOptionRow[];
+  staff: DemoStaffRow[];
+  categories: CategoryNode[];
 }) {
   const [date, setDate] = useState(initialDate);
   const dayQuery = useQuery({
@@ -45,6 +62,8 @@ function Inner({
         date={date}
         onDateChange={setDate}
         equipmentOptions={equipmentOptions}
+        staff={staff}
+        categories={categories}
         reservations={reservations}
         loading={dayQuery.isLoading}
         onSaved={() => dayQuery.refetch()}

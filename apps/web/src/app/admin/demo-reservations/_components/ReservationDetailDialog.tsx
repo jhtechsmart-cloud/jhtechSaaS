@@ -62,7 +62,9 @@ export function ReservationDetailDialog({
       >
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-h2 font-semibold text-text">{r.equipmentName} 데모</p>
+            <p className="text-h2 font-semibold text-text">
+              {r.equipmentNames.join(", ") || "장비"} 데모
+            </p>
             <p className="mt-0.5 text-small text-muted tabular-nums">
               {r.date} · {r.start}–{r.end} ({r.durationMin}분)
             </p>
@@ -81,7 +83,8 @@ export function ReservationDetailDialog({
           <Row label="고객" value={r.customerName} />
           <Row label="방문자" value={r.visitorName} />
           <Row label="연락처" value={r.visitorPhone} />
-          <Row label="담당자" value={r.createdByName} />
+          <Row label="담당자" value={r.assigneeName} />
+          <Row label="등록자" value={r.createdByName} />
           <Row label="메모" value={r.memo} />
         </div>
 

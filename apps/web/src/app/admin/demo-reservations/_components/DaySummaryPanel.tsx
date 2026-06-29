@@ -34,7 +34,8 @@ export function DaySummaryPanel({
                   {r.start}–{r.end}
                 </span>
                 <span className="truncate text-small text-text">
-                  {r.customerName} · {r.equipmentName}
+                  {r.customerName} · {r.equipmentNames.join(", ") || "장비"}
+                  {r.assigneeName ? ` · 담당 ${r.assigneeName}` : ""}
                 </span>
               </div>
             ))
@@ -43,10 +44,11 @@ export function DaySummaryPanel({
       </div>
 
       <div className="rounded-2xl border border-border bg-mint-hover p-5">
-        <p className="text-small font-semibold text-accent">데모센터 1곳, 동시간대 1건</p>
+        <p className="text-small font-semibold text-accent">장비별 시간 중복 차단</p>
         <p className="mt-1.5 text-small leading-relaxed text-muted">
-          데모센터가 한 곳뿐이라 같은 시간대에 두 건을 받을 수 없습니다. 저장 시점에 다른
-          예약이 먼저 등록되면 충돌 안내가 표시됩니다.
+          한 예약에 여러 장비를 담을 수 있고, 같은 장비가 같은 시간대에 겹칠 때만 충돌로
+          막습니다. 다른 장비는 같은 시간대도 가능합니다. 저장 시점에 같은 장비 예약이 먼저
+          등록되면 충돌 안내가 표시됩니다.
         </p>
       </div>
     </aside>
