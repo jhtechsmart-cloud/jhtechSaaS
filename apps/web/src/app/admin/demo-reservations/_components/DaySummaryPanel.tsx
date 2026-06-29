@@ -28,8 +28,9 @@ export function DaySummaryPanel({
             reservations.map((r) => (
               <div
                 key={r.id}
-                className="flex items-center gap-3 rounded-lg border-l-4 border-demo bg-demo-soft/60 px-3 py-2"
+                className="flex items-center gap-2.5 rounded-lg bg-demo-soft/60 px-3 py-2"
               >
+                <span className="size-2 shrink-0 rounded-full bg-demo" />
                 <span className="shrink-0 text-small font-semibold text-text tabular-nums">
                   {r.start}–{r.end}
                 </span>
