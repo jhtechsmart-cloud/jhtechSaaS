@@ -90,11 +90,20 @@ test.describe.serial("E2E 장비 생성·토글 플로우", () => {
     await specLabels.nth(1).fill("출력");
     await specValues.nth(1).fill("3kW");
 
-    // §3 이미지 — ImageUploader: file input은 hidden(className="hidden"), setInputFiles로 직접 주입
-    // (견적서 배너 업로더도 file input이라, hidden 클래스로 사진 업로더만 특정)
-    await page.locator('input[type="file"].hidden').setInputFiles(FIXTURE);
+    // §3 이미지 — ImageUploader: file input은 hidden + multiple(복수 첨부). 견적서 자산·카탈로그도
+    // 이제 공통 드롭존 카드(FileDropCard)라 input.hidden이 여럿 → multiple 속성으로 카탈로그 이미지만 특정.
+    await page.locator('input[type="file"][multiple]').setInputFiles(FIXTURE);
     // 업로드 완료 → "대표" 뱃지 표시 대기 (최대 15초)
     await expect(page.getByText("대표")).toBeVisible({ timeout: 15_000 });
+
+    // 견적서 로고/이미지·제품 카탈로그가 공통 드롭존 카드(접근명 "… 첨부")로 렌더되는지 회귀
+    await expect(
+      page.getByRole("button", { name: "장비 네임 로고 (견적서 좌하단) 첨부" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "장비 이미지 (견적서 우하단) 첨부" }),
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "제품 카탈로그 (PDF) 첨부" })).toBeVisible();
 
     // §4 옵션 — OptionEditor: "+ 옵션 추가" → placeholder="옵션명"
     await page.getByRole("button", { name: "+ 옵션 추가" }).click();
