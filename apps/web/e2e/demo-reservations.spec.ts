@@ -1,10 +1,10 @@
 import { test, expect, type Page } from "@playwright/test";
 
-// 데모예약 E2E — 스펙 핵심 시나리오:
-// ① 14:00–15:30 예약 존재 상태에서 13:00 + 90분 선택 → 충돌 경고 + 저장 비활성
-// ② 10:00 + 90분 → 저장 성공 → 목록 타임라인에 블록 표시
-// ③ 사이드바 '데모예약' 메뉴 진입
-// ④ 예약 취소 후 같은 시간 재등록 가능(EXCLUDE는 canceled 제외)
+// 데모예약 E2E — 복수장비·장비별 겹침·담당자 개편 반영:
+// ① 14:00–15:30 (EQ) 예약 존재 → 같은 장비 EQ 선택 시 14:00 점유, 13:00+90분 충돌
+// ② 다른 장비(EQ2)만 선택하면 같은 시간대(14:00)도 점유 아님(허용)
+// ③ 10:00 + 90분 + 담당자 지정 → 저장 성공 → 타임라인 블록 표시
+// ④ 예약 취소 후 같은 장비·같은 시간 재등록 가능(EXCLUDE는 canceled 제외)
 const LOCAL_SUPABASE_URL = "http://127.0.0.1:54321";
 const LOCAL_SERVICE_ROLE_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
@@ -15,6 +15,7 @@ const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD ?? "jhtech-admin-dev";
 // 미래 고정 날짜(오늘 기준 의존 제거) + e2e 전용 표식 이름
 const DATE = "2027-03-02";
 const EQ_NAME = "E2E_데모장비";
+const EQ2_NAME = "E2E_데모장비2";
 const CUSTOMER_SEED = "E2E_데모고객_기존";
 const CUSTOMER_NEW = "E2E_데모고객_신규";
 
@@ -31,17 +32,19 @@ function rest(path: string, init: RequestInit = {}) {
 }
 
 async function cleanup() {
+  // 부모 삭제 시 자식(demo_reservation_equipment)은 on delete cascade로 함께 제거.
   await rest(`demo_reservations?customer_name=like.E2E_데모고객*`, {
     method: "DELETE",
     headers: { Prefer: "return=minimal" },
   }).catch(() => {});
-  await rest(`equipment?name=eq.${encodeURIComponent(EQ_NAME)}`, {
+  await rest(`equipment?name=like.E2E_데모장비*`, {
     method: "DELETE",
     headers: { Prefer: "return=minimal" },
   }).catch(() => {});
 }
 
 let equipmentId: string;
+let equipmentId2: string;
 let adminId: string;
 
 async function login(page: Page) {
@@ -52,18 +55,31 @@ async function login(page: Page) {
   await page.waitForURL(/\/admin\//, { timeout: 20_000 });
 }
 
-async function seedReservation(start: string, end: string): Promise<void> {
+// 부모 1행 + 자식 1행(장비별 겹침은 자식 EXCLUDE가 차단) 직접 시드.
+async function seedReservation(start: string, end: string, eqId = equipmentId): Promise<void> {
+  const range = `[${DATE}T${start}:00+09:00,${DATE}T${end}:00+09:00)`;
   const res = await rest("demo_reservations", {
     method: "POST",
-    headers: { Prefer: "return=minimal" },
-    body: JSON.stringify({
-      customer_name: CUSTOMER_SEED,
-      equipment_id: equipmentId,
-      time_range: `[${DATE}T${start}:00+09:00,${DATE}T${end}:00+09:00)`,
-      created_by: adminId,
-    }),
+    headers: { Prefer: "return=representation" },
+    body: JSON.stringify([
+      {
+        customer_name: CUSTOMER_SEED,
+        time_range: range,
+        status: "confirmed",
+        created_by: adminId,
+      },
+    ]),
   });
   if (!res.ok) throw new Error(`예약 시드 실패: ${res.status} ${await res.text()}`);
+  const reservationId = ((await res.json()) as Array<{ id: string }>)[0].id;
+  const child = await rest("demo_reservation_equipment", {
+    method: "POST",
+    headers: { Prefer: "return=minimal" },
+    body: JSON.stringify([
+      { reservation_id: reservationId, equipment_id: eqId, time_range: range, status: "confirmed" },
+    ]),
+  });
+  if (!child.ok) throw new Error(`예약 장비 시드 실패: ${child.status} ${await child.text()}`);
 }
 
 test.describe.serial("데모예약 E2E", () => {
@@ -72,15 +88,20 @@ test.describe.serial("데모예약 E2E", () => {
     const eqRes = await rest("equipment", {
       method: "POST",
       headers: { Prefer: "return=representation" },
-      body: JSON.stringify([{ name: EQ_NAME, base_price: 1000, status: "active", is_demo: true }]),
+      body: JSON.stringify([
+        { name: EQ_NAME, base_price: 1000, status: "active", is_demo: true },
+        { name: EQ2_NAME, base_price: 1000, status: "active", is_demo: true },
+      ]),
     });
     if (!eqRes.ok) throw new Error(`장비 시드 실패: ${eqRes.status}`);
-    equipmentId = ((await eqRes.json()) as Array<{ id: string }>)[0].id;
+    const eqs = (await eqRes.json()) as Array<{ id: string; name: string }>;
+    equipmentId = eqs.find((e) => e.name === EQ_NAME)!.id;
+    equipmentId2 = eqs.find((e) => e.name === EQ2_NAME)!.id;
 
     const profRes = await rest("profiles?select=id&limit=1");
     adminId = ((await profRes.json()) as Array<{ id: string }>)[0].id;
 
-    // 기존 예약: 14:00–15:30 (스펙 시나리오의 전제)
+    // 기존 예약: EQ 14:00–15:30 (스펙 시나리오의 전제)
     await seedReservation("14:00", "15:30");
   });
 
@@ -93,22 +114,35 @@ test.describe.serial("데모예약 E2E", () => {
     await page.getByRole("link", { name: "데모예약" }).click();
     await page.waitForURL(/\/admin\/demo-reservations/);
     await page.goto(`/admin/demo-reservations?date=${DATE}`);
-    // 고객명은 타임라인 + 월간 예약 리스트 두 곳에 노출되므로 first()로 구체화
     await expect(page.getByText(CUSTOMER_SEED).first()).toBeVisible();
-    // "(90분)" 형식은 타임라인 블록 전용 → 블록 렌더 검증
     await expect(page.getByText("14:00–15:30 (90분)")).toBeVisible();
   });
 
-  test("13:00 + 90분 → 충돌 경고 + 저장 비활성 / 10:00 + 90분 → 등록 성공", async ({ page }) => {
+  test("다른 장비는 같은 시간대 점유로 막지 않는다", async ({ page }) => {
     await login(page);
     await page.goto(`/admin/demo-reservations/new?date=${DATE}`);
 
-    // 폼 입력 — 미등록 고객 직접 입력 + 장비 선택
+    // EQ2만 선택 → 14:00은 EQ 예약뿐이라 점유 아님(선택 가능)
+    await page.getByRole("checkbox", { name: EQ2_NAME, exact: true }).check();
+    await page.getByRole("button", { name: "90분", exact: true }).click();
+    await expect(page.getByRole("button", { name: "14:00", exact: true })).toBeEnabled();
+
+    // EQ도 추가 선택 → 같은 장비 점유로 14:00 비활성
+    await page.getByRole("checkbox", { name: EQ_NAME, exact: true }).check();
+    await expect(page.getByRole("button", { name: "14:00", exact: true })).toBeDisabled();
+  });
+
+  test("같은 장비 13:00+90분 충돌 / 10:00+90분+담당자 → 등록 성공", async ({ page }) => {
+    await login(page);
+    await page.goto(`/admin/demo-reservations/new?date=${DATE}`);
+
+    // 미등록 고객 직접 입력 + 담당자 지정 + 장비 체크박스 선택
     await page.getByLabel("고객").fill(CUSTOMER_NEW);
-    await page.locator("select").selectOption({ label: `${EQ_NAME}` });
+    await page.getByLabel("담당자").selectOption({ index: 1 });
+    await page.getByRole("checkbox", { name: EQ_NAME, exact: true }).check();
     await page.getByRole("button", { name: "90분", exact: true }).click();
 
-    // 14:00 슬롯은 점유로 비활성(취소선)
+    // 14:00 슬롯은 같은 장비(EQ) 점유로 비활성(취소선)
     await expect(page.getByRole("button", { name: "14:00", exact: true })).toBeDisabled();
 
     // 13:00 + 90분(13:00–14:30) → 기존 14:00–15:30과 겹침 → 경고 + 저장 비활성
@@ -123,12 +157,11 @@ test.describe.serial("데모예약 E2E", () => {
     await expect(save).toBeEnabled();
     await save.click();
     await page.waitForURL(new RegExp(`/admin/demo-reservations\\?date=${DATE}`), { timeout: 15_000 });
-    // 고객명은 타임라인 + 월간 예약 리스트 두 곳에 노출 → first()
     await expect(page.getByText(CUSTOMER_NEW).first()).toBeVisible();
     await expect(page.getByText("10:00–11:30 (90분)")).toBeVisible();
   });
 
-  test("블록 클릭 → 상세 → 취소 → 같은 시간 재등록 가능", async ({ page }) => {
+  test("블록 클릭 → 상세 → 취소 → 같은 장비·같은 시간 재등록 가능", async ({ page }) => {
     await login(page);
     await page.goto(`/admin/demo-reservations?date=${DATE}`);
 
@@ -141,17 +174,50 @@ test.describe.serial("데모예약 E2E", () => {
     await page.reload();
     await expect(page.getByText("10:00–11:30 (90분)")).toBeHidden();
 
-    // 같은 시간대(10:00–11:30) 재등록 — canceled는 EXCLUDE에서 제외되므로 성공해야 함
+    // 같은 장비·같은 시간대(10:00–11:30) 재등록 — canceled는 EXCLUDE에서 제외되므로 성공해야 함
     await page.goto(`/admin/demo-reservations/new?date=${DATE}`);
     await page.getByLabel("고객").fill(`${CUSTOMER_NEW}2`);
-    await page.locator("select").selectOption({ label: `${EQ_NAME}` });
+    await page.getByRole("checkbox", { name: EQ_NAME, exact: true }).check();
     await page.getByRole("button", { name: "90분", exact: true }).click();
     await page.getByRole("button", { name: "10:00", exact: true }).click();
     await page.getByRole("button", { name: /예약 저장/ }).click();
     await page.waitForURL(new RegExp(`/admin/demo-reservations\\?date=${DATE}`), { timeout: 15_000 });
-    // 고객명은 타임라인 + 월간 예약 리스트 두 곳에 노출 → first()
     await expect(page.getByText(`${CUSTOMER_NEW}2`).first()).toBeVisible();
-    // 타임라인 블록 재렌더까지 검증(월간 리스트만으로 통과하지 않게 — "(90분)"은 타임라인 전용)
     await expect(page.getByText("10:00–11:30 (90분)")).toBeVisible();
+  });
+
+  test("등록 → 상세 '수정' → 장비·시간 변경 → 목록 반영", async ({ page }) => {
+    const EDIT_CUST = "E2E_데모고객_수정";
+    await login(page);
+
+    // 1) EQ2로 11:00+60분 등록
+    await page.goto(`/admin/demo-reservations/new?date=${DATE}`);
+    await page.getByLabel("고객").fill(EDIT_CUST);
+    await page.getByRole("checkbox", { name: EQ2_NAME, exact: true }).check();
+    await page.getByRole("button", { name: "60분", exact: true }).click();
+    await page.getByRole("button", { name: "11:00", exact: true }).click();
+    await page.getByRole("button", { name: /예약 저장/ }).click();
+    await page.waitForURL(new RegExp(`/admin/demo-reservations\\?date=${DATE}`), { timeout: 15_000 });
+    await expect(page.getByText("11:00–12:00 (60분)")).toBeVisible();
+
+    // 2) 블록 → 상세 → 수정
+    await page.getByRole("button", { name: /11:00–12:00/ }).click();
+    await page.getByRole("button", { name: "수정", exact: true }).click();
+    await page.waitForURL(new RegExp(`/admin/demo-reservations/[0-9a-f-]+/edit$`), { timeout: 15_000 });
+
+    // 프리필 검증: EQ2 체크됨, 자기 시간(11:00)은 자기-제외라 점유 아님(선택 가능)
+    await expect(page.getByRole("checkbox", { name: EQ2_NAME, exact: true })).toBeChecked();
+    await expect(page.getByRole("button", { name: "11:00", exact: true })).toBeEnabled();
+
+    // 3) 장비 EQ 추가 + 시작시간 16:00으로 변경 → 수정 저장
+    await page.getByRole("checkbox", { name: EQ_NAME, exact: true }).check();
+    await page.getByRole("button", { name: "16:00", exact: true }).click();
+    await page.getByRole("button", { name: /수정 저장/ }).click();
+    await page.waitForURL(new RegExp(`/admin/demo-reservations\\?date=${DATE}`), { timeout: 15_000 });
+
+    // 4) 16:00–17:00으로 이동, 11:00 사라짐
+    await expect(page.getByText("16:00–17:00 (60분)")).toBeVisible();
+    await expect(page.getByText("11:00–12:00 (60분)")).toBeHidden();
+    await expect(page.getByText(EDIT_CUST).first()).toBeVisible();
   });
 });

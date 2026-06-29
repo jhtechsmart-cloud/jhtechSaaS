@@ -20,7 +20,10 @@ export const createReservationSchema = z
   .object({
     companyId: z.guid().nullable(),
     customerName: z.string().trim().min(1, "고객명을 입력하세요").max(200),
-    equipmentId: z.guid(),
+    // 복수 장비(체크박스) — 최소 1개. 같은 장비 시간 겹침은 자식 EXCLUDE가 최종 차단.
+    equipmentIds: z.array(z.guid()).min(1, "장비를 1개 이상 선택하세요"),
+    // 담당 영업(미지정 허용).
+    assigneeId: z.guid().nullable().default(null),
     visitorName: z.string().trim().max(80).optional().default(""),
     visitorPhone: z.string().trim().max(32).optional().default(""),
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "날짜 형식이 잘못되었습니다"),

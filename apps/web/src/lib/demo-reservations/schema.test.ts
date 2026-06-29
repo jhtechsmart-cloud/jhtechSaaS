@@ -4,7 +4,8 @@ import { createReservationSchema } from "./schema";
 const VALID = {
   companyId: null,
   customerName: "재현테크",
-  equipmentId: "fa1f4df4-0000-4000-8000-000000000001",
+  equipmentIds: ["fa1f4df4-0000-4000-8000-000000000001"],
+  assigneeId: null,
   date: "2026-07-01",
   startTime: "10:00",
   durationMin: 90,
@@ -48,12 +49,15 @@ describe("createReservationSchema", () => {
     expect(r.success).toBe(false);
   });
 
-  test("고객명 공백 거부·장비 id 형식 거부", () => {
+  test("고객명 공백 거부·장비 id 형식 거부·장비 0개 거부", () => {
     expect(
       createReservationSchema.safeParse({ ...VALID, customerName: "  " }).success,
     ).toBe(false);
     expect(
-      createReservationSchema.safeParse({ ...VALID, equipmentId: "abc" }).success,
+      createReservationSchema.safeParse({ ...VALID, equipmentIds: ["abc"] }).success,
+    ).toBe(false);
+    expect(
+      createReservationSchema.safeParse({ ...VALID, equipmentIds: [] }).success,
     ).toBe(false);
   });
 });

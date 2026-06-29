@@ -2,7 +2,11 @@ import Link from "next/link";
 import { requireDemoReservationsWrite } from "@/lib/auth/guard";
 import { signOut } from "@/app/login/actions";
 import { todayKst } from "@/lib/format/kst";
-import { listActiveEquipmentOptions } from "@/lib/demo-reservations/queries";
+import {
+  listActiveEquipmentOptions,
+  listDemoStaff,
+} from "@/lib/demo-reservations/queries";
+import { listCategoryTree } from "@/lib/equipment/queries";
 import { Toaster } from "@/components/ui/sonner";
 import { NewReservationShell } from "../_components/NewReservationShell";
 
@@ -31,7 +35,11 @@ export default async function NewDemoReservationPage({
   const sp = await searchParams;
   const raw = typeof sp.date === "string" ? sp.date : "";
   const date = /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : todayKst();
-  const equipmentOptions = await listActiveEquipmentOptions();
+  const [equipmentOptions, staff, categories] = await Promise.all([
+    listActiveEquipmentOptions(),
+    listDemoStaff(),
+    listCategoryTree(),
+  ]);
 
   return (
     <section className="flex flex-col gap-4">
@@ -43,10 +51,17 @@ export default async function NewDemoReservationPage({
           ← 데모예약
         </Link>
         <h1 className="mt-1 text-h1 font-semibold text-text">예약 등록</h1>
-        <p className="mt-0.5 text-small text-muted">데모센터 1곳 · 동시간대 1건 · 15분 단위</p>
+        <p className="mt-0.5 text-small text-muted">
+          데모센터 1곳 · 같은 장비만 시간 중복 차단 · 15분 단위
+        </p>
       </div>
 
-      <NewReservationShell initialDate={date} equipmentOptions={equipmentOptions} />
+      <NewReservationShell
+        initialDate={date}
+        equipmentOptions={equipmentOptions}
+        staff={staff}
+        categories={categories}
+      />
       <Toaster position="bottom-center" />
     </section>
   );

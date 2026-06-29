@@ -47,7 +47,7 @@ export function MonthReservationList({
                     )}
                   </p>
                   <p className="mt-0.5 truncate text-micro text-muted">
-                    {r.customerName} · {r.equipmentName}
+                    {r.customerName} · {r.equipmentNames.join(", ") || "장비"}
                   </p>
                 </Link>
               </li>

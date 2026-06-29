@@ -61,7 +61,11 @@ export function DayTimeline({
         {reservations.map((r) => {
           const top = (minutesFromOpen(r.start) * HOUR_PX) / 60;
           const height = (r.durationMin * HOUR_PX) / 60;
-          const contacts = [r.visitorName, r.visitorPhone, r.createdByName]
+          const contacts = [
+            r.assigneeName ? `담당 ${r.assigneeName}` : null,
+            r.visitorName,
+            r.visitorPhone,
+          ]
             .filter(Boolean)
             .join(" · ");
           return (
@@ -77,7 +81,7 @@ export function DayTimeline({
               style={{ top: top + 1, height: Math.max(height - 2, 28) }}
             >
               <p className="truncate text-small font-semibold text-text">
-                {r.equipmentName}
+                {r.equipmentNames.join(", ") || "장비"}
                 <span className="ml-2 font-normal text-muted tabular-nums">
                   {r.start}–{r.end} ({r.durationMin}분)
                 </span>
