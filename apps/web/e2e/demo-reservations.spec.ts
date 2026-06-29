@@ -56,8 +56,13 @@ async function login(page: Page) {
 }
 
 // 부모 1행 + 자식 1행(장비별 겹침은 자식 EXCLUDE가 차단) 직접 시드.
-async function seedReservation(start: string, end: string, eqId = equipmentId): Promise<void> {
-  const range = `[${DATE}T${start}:00+09:00,${DATE}T${end}:00+09:00)`;
+async function seedReservation(
+  start: string,
+  end: string,
+  eqId = equipmentId,
+  dateStr = DATE,
+): Promise<void> {
+  const range = `[${dateStr}T${start}:00+09:00,${dateStr}T${end}:00+09:00)`;
   const res = await rest("demo_reservations", {
     method: "POST",
     headers: { Prefer: "return=representation" },
@@ -219,5 +224,27 @@ test.describe.serial("데모예약 E2E", () => {
     await expect(page.getByText("16:00–17:00 (60분)")).toBeVisible();
     await expect(page.getByText("11:00–12:00 (60분)")).toBeHidden();
     await expect(page.getByText(EDIT_CUST).first()).toBeVisible();
+  });
+
+  test("같은 시간대 겹치는 예약은 타임라인에 열로 나란히 표시(가림 없음)", async ({ page }) => {
+    const DATE2 = "2027-03-03";
+    // 다른 장비로 11:00 겹치게 2건 시드(EQ 60분 + EQ2 90분) → 같은 장비 아니라 둘 다 유효.
+    await seedReservation("11:00", "12:00", equipmentId, DATE2);
+    await seedReservation("11:00", "12:30", equipmentId2, DATE2);
+    await login(page);
+    await page.goto(`/admin/demo-reservations?date=${DATE2}`);
+
+    // 타임라인 블록 두 개 모두 렌더(시각 라벨에 '(N분)'은 타임라인 전용 → 월간 리스트와 구분)
+    const b1 = page.getByRole("button").filter({ hasText: "11:00–12:00 (60분)" });
+    const b2 = page.getByRole("button").filter({ hasText: "11:00–12:30 (90분)" });
+    await expect(b1).toBeVisible();
+    await expect(b2).toBeVisible();
+
+    // 열 분할 검증: 두 블록의 x좌표가 충분히 떨어져 가로로 안 겹친다(나란히).
+    const box1 = await b1.boundingBox();
+    const box2 = await b2.boundingBox();
+    expect(box1).not.toBeNull();
+    expect(box2).not.toBeNull();
+    expect(Math.abs(box1!.x - box2!.x)).toBeGreaterThan(20);
   });
 });

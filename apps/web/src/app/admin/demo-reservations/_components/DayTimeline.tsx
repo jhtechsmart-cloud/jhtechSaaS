@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { DemoReservationRow } from "@/lib/demo-reservations/queries";
 import { OPEN_HOUR, CLOSE_HOUR } from "@/lib/demo-reservations/constants";
+import { layoutDayReservations } from "@/lib/demo-reservations/timeline-layout";
 import { ReservationDetailDialog } from "./ReservationDetailDialog";
 
 // 선택일 타임라인 — 09:00–18:00, 1시간 행 그리드 위에 예약 블록을 분 단위 절대배치.
+// 같은 시간대 겹치는 예약(복수장비 개편으로 가능)은 열로 나눠 나란히 표시한다.
 // 블록 클릭 → 상세/취소 다이얼로그.
 
 const HOUR_PX = 64; // 1시간 행 높이(px) — 1분 = 64/60px
@@ -28,6 +30,14 @@ export function DayTimeline({
   const hours = Array.from({ length: CLOSE_HOUR - OPEN_HOUR }, (_, i) => OPEN_HOUR + i);
   const selected = reservations.find((r) => r.id === openId) ?? null;
   const [, mm, dd] = date.split("-");
+  // 겹치는 예약을 열로 나누기 위한 배치(col/cols) 계산.
+  const placements = useMemo(
+    () =>
+      layoutDayReservations(
+        reservations.map((r) => ({ id: r.id, start: r.start, end: r.end })),
+      ),
+    [reservations],
+  );
 
   return (
     <div className="rounded-2xl border border-border bg-surface p-5 shadow-card">
@@ -57,44 +67,53 @@ export function DayTimeline({
           </span>
         </div>
 
-        {/* 예약 블록 */}
-        {reservations.map((r) => {
-          const top = (minutesFromOpen(r.start) * HOUR_PX) / 60;
-          const height = (r.durationMin * HOUR_PX) / 60;
-          const contacts = [
-            r.assigneeName ? `담당 ${r.assigneeName}` : null,
-            r.visitorName,
-            r.visitorPhone,
-          ]
-            .filter(Boolean)
-            .join(" · ");
-          return (
-            <button
-              key={r.id}
-              type="button"
-              onClick={() => setOpenId(r.id)}
-              className={`absolute left-14 right-2 overflow-hidden rounded-lg border-l-4 px-3 py-1.5 text-left transition-shadow hover:shadow-card ${
-                r.status === "done"
-                  ? "border-inactive bg-surface-2"
-                  : "border-demo bg-demo-soft"
-              }`}
-              style={{ top: top + 1, height: Math.max(height - 2, 28) }}
-            >
-              <p className="truncate text-small font-semibold text-text">
-                {r.equipmentNames.join(", ") || "장비"}
-                <span className="ml-2 font-normal text-muted tabular-nums">
-                  {r.start}–{r.end} ({r.durationMin}분)
-                </span>
-              </p>
-              {height >= 48 && (
-                <p className="truncate text-micro text-muted">
-                  {r.customerName}
-                  {contacts && <span> · {contacts}</span>}
+        {/* 예약 블록 — 트랙(시간축 오른쪽) 안에서 겹침은 열로 분할 배치 */}
+        <div className="absolute inset-y-0 left-14 right-2">
+          {reservations.map((r) => {
+            const top = (minutesFromOpen(r.start) * HOUR_PX) / 60;
+            const height = (r.durationMin * HOUR_PX) / 60;
+            const place = placements.get(r.id) ?? { col: 0, cols: 1 };
+            const widthPct = 100 / place.cols;
+            const contacts = [
+              r.assigneeName ? `담당 ${r.assigneeName}` : null,
+              r.visitorName,
+              r.visitorPhone,
+            ]
+              .filter(Boolean)
+              .join(" · ");
+            return (
+              <button
+                key={r.id}
+                type="button"
+                onClick={() => setOpenId(r.id)}
+                className={`absolute overflow-hidden rounded-lg border-l-4 px-3 py-1.5 text-left transition-shadow hover:shadow-card ${
+                  r.status === "done"
+                    ? "border-inactive bg-surface-2"
+                    : "border-demo bg-demo-soft"
+                }`}
+                style={{
+                  top: top + 1,
+                  height: Math.max(height - 2, 28),
+                  left: `${place.col * widthPct}%`,
+                  width: `calc(${widthPct}% - 4px)`,
+                }}
+              >
+                <p className="truncate text-small font-semibold text-text">
+                  {r.equipmentNames.join(", ") || "장비"}
+                  <span className="ml-2 font-normal text-muted tabular-nums">
+                    {r.start}–{r.end} ({r.durationMin}분)
+                  </span>
                 </p>
-              )}
-            </button>
-          );
-        })}
+                {height >= 48 && (
+                  <p className="truncate text-micro text-muted">
+                    {r.customerName}
+                    {contacts && <span> · {contacts}</span>}
+                  </p>
+                )}
+              </button>
+            );
+          })}
+        </div>
 
         {reservations.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center">
