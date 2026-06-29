@@ -99,7 +99,7 @@ body{position:relative;width:210mm;min-height:296mm;color:#111;font-size:13px;
 .meta div{line-height:1.7;}
 .meta .ml{display:inline-block;width:74px;}
 .recipient-row{margin-top:auto;padding-top:10px;padding-bottom:3px;text-align:right;border-bottom:2.5px solid #111;}
-/* 수신처 = 회사명 + (담당자·직책) 귀하. 담당자·직책이 붙어 길어지므로 회사명도 축소(이전 24px). */
+/* 수신처 = 회사명 + (담당자·직책)님 귀하. 담당자·직책이 붙어 길어지므로 회사명도 축소(이전 24px). */
 .recipient{font-size:18px;font-weight:700;}
 .rcontact{font-size:13px;font-weight:600;margin-left:6px;}
 .rsuffix{font-size:13px;font-weight:500;margin-left:6px;}
@@ -154,7 +154,7 @@ table.items tr.total td{font-weight:700;}
         <div><span class="ml">담 당 자 명 :</span>${esc(d.assigneeName)}</div>
         ${d.assigneePhone ? `<div><span class="ml"></span>${esc(d.assigneePhone)}</div>` : ""}
       </div>
-      <div class="recipient-row"><span class="recipient">${esc(d.recipient)}</span>${recipientContact ? `<span class="rcontact">${recipientContact}</span>` : ""}<span class="rsuffix">귀하</span></div>
+      <div class="recipient-row"><span class="recipient">${esc(d.recipient)}</span>${recipientContact ? `<span class="rcontact">${recipientContact}님</span>` : ""}<span class="rsuffix">귀하</span></div>
     </div>
     <div class="supplier">
       <img class="stamp" src="${d.stampDataUri}">
