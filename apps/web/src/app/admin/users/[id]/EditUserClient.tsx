@@ -119,7 +119,7 @@ export function EditUserClient({
     <div className="flex max-w-2xl flex-col gap-5">
       {/* 기본 정보 — 이름·직책·연락처 편집(이메일=로그인ID는 읽기전용). */}
       <div className="flex flex-col gap-3 rounded-md border border-border bg-surface p-4">
-        <span className="text-small font-medium text-text">기본 정보</span>
+        <span className="text-body font-semibold text-text">기본 정보</span>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <label className="flex flex-col gap-1">
             <span className="text-micro text-muted">이름</span>
@@ -203,12 +203,12 @@ export function EditUserClient({
       </div>
 
       <div className="flex flex-col gap-2">
-        <span className="text-small font-medium text-text">권한</span>
+        <span className="text-body font-semibold text-text">권한</span>
         <PermissionPicker value={permissions} onChange={setPermissions} />
       </div>
 
       <div className="flex flex-col gap-2 rounded-md border border-border bg-surface p-4">
-        <span className="text-small font-medium text-text">하이웍스 발송자 ID</span>
+        <span className="text-body font-semibold text-text">하이웍스 발송자 ID</span>
         <span className="text-micro text-muted">
           견적 메일을 이 담당자 명의로 발송할 때 쓰는 하이웍스 계정 ID. 미설정 시 발송 차단됩니다.
         </span>
@@ -259,7 +259,7 @@ export function EditUserClient({
 
       {/* 위험 구역 — 계정 하드 삭제. 담당 건이 있으면 서버가 차단하고 안내. 본인 계정은 불가. */}
       <div className="flex flex-col gap-2 rounded-md border border-danger/40 bg-danger/5 p-4">
-        <span className="text-small font-medium text-danger">위험 구역 — 계정 삭제</span>
+        <span className="text-body font-semibold text-danger">위험 구역 — 계정 삭제</span>
         <span className="text-micro text-muted">
           계정을 완전히 삭제합니다(되돌릴 수 없음). 담당 고객사·의뢰·견적·소모품·A/S가 남아 있으면
           삭제되지 않으니, 먼저 다른 담당자로 변경(재배정)하세요. 작성 이력은 보존되고 작성자 표시만 비워집니다.

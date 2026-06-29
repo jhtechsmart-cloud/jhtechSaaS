@@ -39,7 +39,7 @@ export function AsPhotoUploader({
 
   return (
     <fieldset className="flex flex-col gap-3">
-      <legend className="text-small font-medium text-muted">증상 사진 (선택, 최대 3장)</legend>
+      <legend className="text-body font-semibold text-text">증상 사진 (선택, 최대 3장)</legend>
       <div className="grid grid-cols-3 gap-3">
         {AS_PHOTO_SLOTS.map((slot) => {
           const url = previews[slot];

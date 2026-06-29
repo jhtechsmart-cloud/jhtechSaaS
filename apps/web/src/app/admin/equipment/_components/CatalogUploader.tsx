@@ -52,7 +52,6 @@ export function CatalogUploader({ equipmentId, value, onChange, onUploadingChang
       <FileDropCard
         label="제품 카탈로그 (PDF)"
         accept="application/pdf"
-        icon="📄"
         preview={value ? { kind: "file", name: "catalog.pdf" } : null}
         onPick={handle}
         onClear={() => onChange("")}
