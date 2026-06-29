@@ -46,6 +46,8 @@ export const equipmentFormSchema = z.object({
     .number({ message: "올바른 금액을 입력하세요" })
     .min(0, "올바른 금액을 입력하세요"),
   status: z.enum(["active", "inactive"]),
+  // 데모 가능 장비 여부 — 데모예약 폼에 노출할지. 기본 false.
+  is_demo: z.boolean().default(false),
   // 요약 불릿(P-A)
   highlights: z.array(z.string()).default([]),
   // 복수 제품 영상(P-A) — 각 항목 YouTube 호스트 제한

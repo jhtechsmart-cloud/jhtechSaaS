@@ -18,7 +18,7 @@ export default async function EditEquipmentPage({
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("equipment")
-    .select("name, model, category_id, base_price, status, highlights, youtube_urls, specs, photos, quote_device_name, quote_device_image, catalog_pdf")
+    .select("name, model, category_id, base_price, status, is_demo, highlights, youtube_urls, specs, photos, quote_device_name, quote_device_image, catalog_pdf")
     .eq("id", id)
     .single();
   if (error || !data) notFound();
@@ -37,6 +37,7 @@ export default async function EditEquipmentPage({
     category_id: data.category_id ?? "",
     base_price: Number(data.base_price),
     status: data.status,
+    is_demo: Boolean(data.is_demo),
     highlights: (data.highlights ?? []) as string[],
     youtube_urls: (data.youtube_urls ?? []) as string[],
     // pdf 미설정 항목은 편집 폼에서 기본 체크(true)로 표시 — 관리자가 빼고 싶은 것만 해제.

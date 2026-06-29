@@ -81,6 +81,7 @@ export async function createEquipment(
     category_id: v.category_id || null,
     base_price: v.base_price,
     status: v.status,
+    is_demo: v.is_demo,
     // 빈 불릿·빈 URL은 저장 단계에서 제거(공개면 phantom 빈 줄/빈 영상섹션 방지).
     highlights: v.highlights.map((h) => h.trim()).filter(Boolean),
     youtube_urls: v.youtube_urls.map((u) => u.trim()).filter(Boolean),
@@ -142,6 +143,7 @@ export async function updateEquipment(
       category_id: v.category_id || null,
       base_price: v.base_price,
       status: v.status,
+      is_demo: v.is_demo,
       // 빈 불릿·빈 URL은 저장 단계에서 제거(공개면 phantom 빈 줄/빈 영상섹션 방지).
       highlights: v.highlights.map((h) => h.trim()).filter(Boolean),
       youtube_urls: v.youtube_urls.map((u) => u.trim()).filter(Boolean),
