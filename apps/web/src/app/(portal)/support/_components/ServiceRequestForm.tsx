@@ -81,7 +81,7 @@ export function ServiceRequestForm({ policyBody }: { policyBody: string }) {
     <form onSubmit={onSubmit} className="mt-8 flex flex-col gap-6">
       {/* 1단계: 사업자번호 조회 */}
       <div className="flex flex-col gap-2 rounded-md border border-border bg-surface p-4">
-        <label className="text-small text-muted" htmlFor="sr-bizno">
+        <label className="text-body font-semibold text-text" htmlFor="sr-bizno">
           사업자등록번호로 조회
         </label>
         <div className="flex gap-2">

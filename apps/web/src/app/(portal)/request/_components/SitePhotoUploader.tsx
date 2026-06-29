@@ -47,7 +47,7 @@ export function SitePhotoUploader({
     <div className="flex flex-col gap-5">
       {GROUPS.map((g) => (
         <fieldset key={g.title} className="flex flex-col gap-3">
-          <legend className="text-small font-medium text-muted">{g.title}</legend>
+          <legend className="text-body font-semibold text-text">{g.title}</legend>
           <div className="grid grid-cols-2 gap-3">
             {g.slots.map((slot) => {
               const url = previews[slot];

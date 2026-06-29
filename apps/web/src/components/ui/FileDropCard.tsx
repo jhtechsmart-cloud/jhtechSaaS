@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState, type ReactNode } from "react";
+import { useRef, useState } from "react";
 
 // 사진/파일 첨부 공통 UI 셸 — 점선 드롭존 카드. 업로드·검증 로직은 부모가 담당하고,
 // 이 컴포넌트는 "고르기 UX"(클릭·드래그앤드롭·미리보기·삭제)만 책임진다.
@@ -18,7 +18,6 @@ export type FileDropCardProps = {
   busy?: boolean; // 업로드 중(입력 차단)
   disabled?: boolean;
   hint?: string; // 형식/크기 안내
-  icon?: ReactNode; // 빈 상태 아이콘(기본 📷)
 };
 
 export function FileDropCard({
@@ -31,7 +30,6 @@ export function FileDropCard({
   busy = false,
   disabled = false,
   hint,
-  icon,
 }: FileDropCardProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -48,7 +46,7 @@ export function FileDropCard({
 
   return (
     <div className="flex flex-col gap-1">
-      <span className="text-small font-medium text-muted">{label}</span>
+      <span className="text-small text-muted">{label}</span>
       <div
         role="button"
         tabIndex={interactive ? 0 : -1}
@@ -82,17 +80,9 @@ export function FileDropCard({
           <img src={preview.url} alt={label} className="absolute inset-0 h-full w-full object-contain" />
         ) : preview?.kind === "file" ? (
           // PDF는 파일명만 — 작은 한 줄 박스로 충분.
-          <>
-            <span className="text-base" aria-hidden>
-              📄
-            </span>
-            <span className="max-w-full truncate text-small text-text">{preview.name}</span>
-          </>
+          <span className="max-w-full truncate text-small text-text">{preview.name}</span>
         ) : (
           <>
-            <span className="text-base" aria-hidden>
-              {icon ?? "📷"}
-            </span>
             <span className="text-micro text-muted">클릭 · 끌어다 놓기</span>
             {hint ? <span className="text-micro text-muted">{hint}</span> : null}
           </>

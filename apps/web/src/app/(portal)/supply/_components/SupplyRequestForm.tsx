@@ -242,7 +242,7 @@ export function SupplyRequestForm({ policyBody }: { policyBody: string }) {
               if (items.length === 0) return null;
               return (
                 <div key={sec.key} className="rounded-md border border-border bg-surface">
-                  <div className="border-b border-border px-3 py-2 text-small font-medium text-muted">{sec.title}</div>
+                  <div className="border-b border-border px-3 py-2 text-body font-semibold text-text">{sec.title}</div>
                   <ul>
                     {items.map((c) => (
                       <li key={c.id} className="flex items-center justify-between gap-3 border-b border-border px-3 py-2 last:border-b-0">
