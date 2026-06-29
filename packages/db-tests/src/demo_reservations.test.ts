@@ -21,6 +21,7 @@ afterAll(async () => {
 });
 
 const EQ = "00000000-0000-0000-0000-00000000e001";
+const EQ2 = "00000000-0000-0000-0000-00000000e002";
 
 // sales1=demo_reservations.write, sales2=권한 없음(콘솔 조회만), admin=users.manage(super).
 async function seed(): Promise<void> {
@@ -37,8 +38,12 @@ async function seed(): Promise<void> {
     [UID.admin],
   );
   await c.query(
-    "insert into public.equipment (id,name,base_price,status) values ($1,'데모장비',1000,'active')",
+    "insert into public.equipment (id,name,base_price,status,is_demo) values ($1,'데모장비',1000,'active',true)",
     [EQ],
+  );
+  await c.query(
+    "insert into public.equipment (id,name,base_price,status,is_demo) values ($1,'데모장비2',1000,'active',true)",
+    [EQ2],
   );
 }
 
@@ -47,18 +52,27 @@ function range(date: string, start: string, end: string): string {
   return `[${date}T${start}:00+09:00,${date}T${end}:00+09:00)`;
 }
 
+// 부모 1행 + 자식 1행(장비). 장비별 겹침은 자식 EXCLUDE가 판정한다.
+// eq 기본=EQ. 다른 장비 시나리오는 eq=EQ2로 호출.
 async function insertAs(
   client: Client,
   uid: string,
   tr: string,
-  extra: { status?: string; createdBy?: string } = {},
+  extra: { status?: string; createdBy?: string; eq?: string } = {},
 ): Promise<void> {
   await asUser(client, uid);
-  await client.query(
+  const status = extra.status ?? "confirmed";
+  const r = await client.query(
     `insert into public.demo_reservations
-       (customer_name, equipment_id, time_range, status, created_by)
-     values ('테스트고객', $1, $2::tstzrange, $3, $4)`,
-    [EQ, tr, extra.status ?? "confirmed", extra.createdBy ?? uid],
+       (customer_name, time_range, status, created_by)
+     values ('테스트고객', $1::tstzrange, $2, $3) returning id`,
+    [tr, status, extra.createdBy ?? uid],
+  );
+  await client.query(
+    `insert into public.demo_reservation_equipment
+       (reservation_id, equipment_id, time_range, status)
+     values ($1, $2, $3::tstzrange, $4)`,
+    [r.rows[0].id, extra.eq ?? EQ, tr, status],
   );
 }
 
@@ -119,6 +133,37 @@ describe("demo_reservations — RLS capability", () => {
       expect(r.rowCount).toBe(0); // RLS using 절이 행을 숨김 → 0행
     });
   });
+
+  test("RPC create_demo_reservation — 부모+자식(복수 장비) 원자 생성", async () => {
+    await inRollbackTx(c, async () => {
+      await seed();
+      await asUser(c, UID.sales1);
+      await c.query(
+        `select public.create_demo_reservation(
+           null, '고객', null, null, null, null, $1::tstzrange, array[$2,$3]::uuid[])`,
+        [range("2026-07-01", "10:00", "11:00"), EQ, EQ2],
+      );
+      await asPostgres(c);
+      const p = await c.query("select count(*)::int n from public.demo_reservations");
+      const ch = await c.query("select count(*)::int n from public.demo_reservation_equipment");
+      expect(p.rows[0].n).toBe(1);
+      expect(ch.rows[0].n).toBe(2);
+    });
+  });
+
+  test("RPC — 권한 없는 직원은 거부", async () => {
+    await inRollbackTx(c, async () => {
+      await seed();
+      await asUser(c, UID.sales2);
+      await expect(
+        c.query(
+          `select public.create_demo_reservation(
+             null, '고객', null, null, null, null, $1::tstzrange, array[$2]::uuid[])`,
+          [range("2026-07-01", "10:00", "11:00"), EQ],
+        ),
+      ).rejects.toThrow();
+    });
+  });
 });
 
 describe("demo_reservations — 겹침 차단(EXCLUDE)", () => {
@@ -129,6 +174,20 @@ describe("demo_reservations — 겹침 차단(EXCLUDE)", () => {
       await expect(
         insertAs(c, UID.sales1, range("2026-07-01", "13:00", "14:30")),
       ).rejects.toMatchObject({ code: "23P01" });
+    });
+  });
+
+  test("다른 장비는 같은 시간대 허용(장비별 겹침)", async () => {
+    await inRollbackTx(c, async () => {
+      await seed();
+      await insertAs(c, UID.sales1, range("2026-07-01", "14:00", "15:30")); // 장비 EQ
+      // 같은 시간이지만 다른 장비(EQ2) → 허용.
+      await insertAs(c, UID.sales1, range("2026-07-01", "14:00", "15:30"), { eq: EQ2 });
+      await asPostgres(c);
+      const r = await c.query(
+        "select count(*)::int n from public.demo_reservation_equipment where status='confirmed'",
+      );
+      expect(r.rows[0].n).toBe(2);
     });
   });
 
@@ -191,11 +250,18 @@ describe("demo_reservations — 겹침 차단(EXCLUDE)", () => {
         await client.query("begin");
         try {
           await asUser(client, RACE_UID);
-          await client.query(
+          const ins = await client.query(
             `insert into public.demo_reservations
-               (customer_name, equipment_id, time_range, created_by, memo)
-             values ('레이스', $1, $2::tstzrange, $3, $4)`,
-            [RACE_EQ, tr, RACE_UID, marker],
+               (customer_name, time_range, created_by, memo)
+             values ('레이스', $1::tstzrange, $2, $3) returning id`,
+            [tr, RACE_UID, marker],
+          );
+          // 자식 EXCLUDE(같은 장비·겹침)가 레이스에서 한쪽을 23P01로 실패시킨다.
+          await client.query(
+            `insert into public.demo_reservation_equipment
+               (reservation_id, equipment_id, time_range, status)
+             values ($1, $2, $3::tstzrange, 'confirmed')`,
+            [ins.rows[0].id, RACE_EQ, tr],
           );
           await client.query("commit");
         } catch (e) {

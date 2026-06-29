@@ -86,16 +86,22 @@ describe("user hard delete — FK 삭제 동작", () => {
         "insert into public.equipment (name) values ('데모장비') returning id",
       );
       const eqId = eq.rows[0].id;
-      // postgres(auth.uid()=NULL)는 트리거가 지정 created_by 유지.
+      // postgres(auth.uid()=NULL)는 트리거가 지정 created_by 유지. 장비는 자식 테이블로.
+      const drIns = await c.query<{ id: string }>(
+        `insert into public.demo_reservations (customer_name, time_range, created_by)
+         values ('고객사', tstzrange('2030-01-01 10:00:00+09','2030-01-01 11:00:00+09'), $1) returning id`,
+        [UID.sales1],
+      );
+      const rid = drIns.rows[0].id;
       await c.query(
-        `insert into public.demo_reservations (customer_name, equipment_id, time_range, created_by)
-         values ('고객사', $1, tstzrange('2030-01-01 10:00:00+09','2030-01-01 11:00:00+09'), $2)`,
-        [eqId, UID.sales1],
+        `insert into public.demo_reservation_equipment (reservation_id, equipment_id, time_range, status)
+         values ($1, $2, tstzrange('2030-01-01 10:00:00+09','2030-01-01 11:00:00+09'), 'confirmed')`,
+        [rid, eqId],
       );
       await c.query("delete from auth.users where id=$1", [UID.sales1]);
       const dr = await c.query<{ created_by: string | null }>(
-        "select created_by from public.demo_reservations where equipment_id=$1",
-        [eqId],
+        "select created_by from public.demo_reservations where id=$1",
+        [rid],
       );
       expect(dr.rowCount).toBe(1); // 예약(이력) 보존
       expect(dr.rows[0].created_by).toBeNull(); // 작성자만 비움
