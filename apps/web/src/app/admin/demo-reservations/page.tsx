@@ -56,7 +56,7 @@ export default async function DemoReservationsPage({
         <div>
           <h1 className="text-h1 font-semibold text-text">데모예약</h1>
           <p className="mt-0.5 text-small text-muted">
-            데모센터 1곳 · 동시간대 1건 — 15분 단위 예약
+            데모센터 1곳 · 장비별 시간 중복 차단 — 15분 단위 예약
           </p>
         </div>
         {canWrite && (
