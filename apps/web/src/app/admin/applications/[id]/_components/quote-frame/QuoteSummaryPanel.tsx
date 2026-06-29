@@ -65,10 +65,14 @@ export function QuoteSummaryPanel({
               {canReissue && (
                 <Link href={`/admin/applications/${applicationId}/quote/new?from=${quoteId}`} className="flex-1 rounded-md border border-border py-2 text-center text-small font-medium text-text">수정</Link>
               )}
-              {quoteId ? (
+              {/* 발행본만 PDF가 생성된다. 임시저장(draft)은 생성 자체가 없으므로 '발행 후 확인' 안내
+                  (대기 커서·생성중 스피너 금지 — 영원히 동작 중처럼 보이는 오해 방지). */}
+              {quoteId && isIssued ? (
                 <QuotePdfButton quoteId={quoteId} initialReady={pdfReady} />
               ) : (
-                <span className="flex-1 cursor-not-allowed rounded-md bg-surface-2 py-2 text-center text-small font-medium text-muted">견적서 확인</span>
+                <span className="flex-1 cursor-not-allowed rounded-md bg-surface-2 py-2 text-center text-small font-medium text-muted">
+                  {quoteId ? "견적서 · 발행 후 확인" : "견적서 확인"}
+                </span>
               )}
             </div>
             {/* 메일 발송 — 발행본 + email.send 권한이면 발송 모달, 아니면 안내 비활성. */}
