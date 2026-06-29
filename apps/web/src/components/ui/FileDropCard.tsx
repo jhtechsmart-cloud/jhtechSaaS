@@ -70,24 +70,27 @@ export function FileDropCard({
           setDragOver(false);
           if (interactive) handleFiles(e.dataTransfer.files);
         }}
-        className={`relative flex aspect-[4/3] flex-col items-center justify-center gap-1 overflow-hidden rounded-md border border-dashed p-3 text-center transition ${
-          dragOver ? "border-accent bg-accent-soft" : "border-border bg-surface-2"
-        } ${interactive ? "cursor-pointer" : "pointer-events-none opacity-60"}`}
+        className={`relative flex flex-col items-center justify-center gap-0.5 overflow-hidden rounded-md border border-dashed p-2 text-center transition ${
+          preview?.kind === "image" ? "h-28" : "h-16"
+        } ${dragOver ? "border-accent bg-accent-soft" : "border-border bg-surface-2"} ${
+          interactive ? "cursor-pointer" : "pointer-events-none opacity-60"
+        }`}
       >
         {preview?.kind === "image" ? (
+          // object-contain: 사진을 잘라내지 않고 박스 안에 전부 보이게(letterbox).
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={preview.url} alt={label} className="absolute inset-0 h-full w-full object-cover" />
+          <img src={preview.url} alt={label} className="absolute inset-0 h-full w-full object-contain" />
         ) : preview?.kind === "file" ? (
+          // PDF는 파일명만 — 작은 한 줄 박스로 충분.
           <>
-            <span className="text-2xl" aria-hidden>
+            <span className="text-base" aria-hidden>
               📄
             </span>
             <span className="max-w-full truncate text-small text-text">{preview.name}</span>
-            <span className="text-micro text-muted">다시 클릭해 교체</span>
           </>
         ) : (
           <>
-            <span className="text-2xl" aria-hidden>
+            <span className="text-base" aria-hidden>
               {icon ?? "📷"}
             </span>
             <span className="text-micro text-muted">클릭 · 끌어다 놓기</span>
