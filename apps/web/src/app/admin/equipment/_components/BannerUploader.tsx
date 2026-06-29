@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { validateImageFile, publicImageUrl } from "@/lib/equipment/images";
+import { FileDropCard } from "@/components/ui/FileDropCard";
 
 // DB CHECK가 허용하는 확장자(견적서 장비 자산 경로). 그 외는 저장 시 CHECK 위반 → 업로드 전 거부.
 const ALLOWED_BANNER_EXT = new Set(["jpg", "jpeg", "png", "webp"]);
@@ -15,6 +16,7 @@ type Props = {
 };
 
 // 견적서 장비 자산 단일 업로더 — equipment-images/equipment/{id}/device-{slot}.{ext}. 덮어쓰기(upsert).
+// UI는 공통 드롭존 카드(FileDropCard)로 통일. 업로드 로직·경로·검증은 기존 그대로.
 export function BannerUploader({
   equipmentId,
   slot,
@@ -23,6 +25,8 @@ export function BannerUploader({
   onUploadingChange,
 }: Props) {
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const label = slot === "name" ? "장비 네임 로고 (견적서 좌하단)" : "장비 이미지 (견적서 우하단)";
 
   async function handle(file: File) {
     // 형식·크기 검증(이미지 공통 헬퍼) — {ok,error} 형태.
@@ -39,6 +43,7 @@ export function BannerUploader({
       return;
     }
     setError(null);
+    setBusy(true);
     onUploadingChange(true);
     try {
       const path = `equipment/${equipmentId}/device-${slot}.${ext}`;
@@ -52,28 +57,21 @@ export function BannerUploader({
       }
       onChange(path);
     } finally {
+      setBusy(false);
       onUploadingChange(false);
     }
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      <span className="text-small text-muted">
-        {slot === "name" ? "장비 네임 로고 (견적서 좌하단)" : "장비 이미지 (견적서 우하단)"}
-      </span>
-      {value && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={publicImageUrl(value)}
-          alt={slot === "name" ? "장비 네임" : "장비 이미지"}
-          className="w-full rounded-sm border border-border"
-        />
-      )}
-      <input
-        type="file"
+    <div className="flex flex-col gap-1">
+      <FileDropCard
+        label={label}
         accept="image/*"
-        onChange={(e) => e.target.files?.[0] && handle(e.target.files[0])}
-        className="text-small"
+        preview={value ? { kind: "image", url: publicImageUrl(value) } : null}
+        onPick={handle}
+        onClear={() => onChange("")}
+        busy={busy}
+        hint="jpg · png · webp"
       />
       {error && <span className="text-small text-danger">{error}</span>}
     </div>
