@@ -86,10 +86,8 @@ export function DayTimeline({
                 key={r.id}
                 type="button"
                 onClick={() => setOpenId(r.id)}
-                className={`absolute overflow-hidden rounded-lg border-l-4 px-3 py-1.5 text-left transition-shadow hover:shadow-card ${
-                  r.status === "done"
-                    ? "border-inactive bg-surface-2"
-                    : "border-demo bg-demo-soft"
+                className={`absolute overflow-hidden rounded-lg px-3 py-1.5 text-left transition-shadow hover:shadow-card ${
+                  r.status === "done" ? "bg-surface-2" : "bg-demo-soft"
                 }`}
                 style={{
                   top: top + 1,
@@ -98,10 +96,17 @@ export function DayTimeline({
                   width: `calc(${widthPct}% - 4px)`,
                 }}
               >
-                <p className="truncate text-small font-semibold text-text">
-                  {r.equipmentNames.join(", ") || "장비"}
-                  <span className="ml-2 font-normal text-muted tabular-nums">
-                    {r.start}–{r.end} ({r.durationMin}분)
+                <p className="flex items-center gap-1.5 text-small font-semibold text-text">
+                  <span
+                    className={`size-2 shrink-0 rounded-full ${
+                      r.status === "done" ? "bg-inactive" : "bg-demo"
+                    }`}
+                  />
+                  <span className="truncate">
+                    {r.equipmentNames.join(", ") || "장비"}
+                    <span className="ml-2 font-normal text-muted tabular-nums">
+                      {r.start}–{r.end} ({r.durationMin}분)
+                    </span>
                   </span>
                 </p>
                 {height >= 48 && (

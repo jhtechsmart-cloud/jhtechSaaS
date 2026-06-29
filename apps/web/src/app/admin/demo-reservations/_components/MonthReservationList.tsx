@@ -31,11 +31,14 @@ export function MonthReservationList({
               <li key={r.id}>
                 <Link
                   href={`/admin/demo-reservations?date=${r.date}`}
-                  className={`block rounded-lg border-l-4 px-3 py-2 transition-colors ${
-                    done ? "border-inactive bg-surface-2" : "border-demo bg-demo-soft/50 hover:bg-demo-soft"
+                  className={`block rounded-lg px-3 py-2 transition-colors ${
+                    done ? "bg-surface-2" : "bg-demo-soft/50 hover:bg-demo-soft"
                   } ${isSel ? "ring-1 ring-demo" : ""}`}
                 >
                   <p className="flex items-center gap-2 text-small font-semibold text-text">
+                    <span
+                      className={`size-2 shrink-0 rounded-full ${done ? "bg-inactive" : "bg-demo"}`}
+                    />
                     <span className="tabular-nums">{formatMonthDayWeekday(r.date)}</span>
                     <span className="font-normal text-muted tabular-nums">
                       {r.start}–{r.end}

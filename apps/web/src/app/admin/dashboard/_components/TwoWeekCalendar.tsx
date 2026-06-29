@@ -67,7 +67,6 @@ function DayCell({
               style={{
                 backgroundColor: meta.bg,
                 color: meta.fg,
-                boxShadow: `inset 2px 0 0 ${meta.color}`,
               }}
             >
               {e.hm ? <span className="tabular-nums">{e.hm} </span> : null}
