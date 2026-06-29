@@ -63,6 +63,53 @@ export async function createDemoReservation(
   return { status: "ok", date: v.date };
 }
 
+export async function updateDemoReservation(
+  id: unknown,
+  values: unknown,
+): Promise<ReservationActionResult> {
+  const access = await requireDemoReservationsWrite();
+  if (access.status === "forbidden") {
+    return { status: "error", message: "데모예약 수정 권한이 없습니다." };
+  }
+  if (!z.guid().safeParse(id).success) {
+    return { status: "error", message: "잘못된 요청입니다." };
+  }
+
+  const parsed = createReservationSchema.safeParse(values);
+  if (!parsed.success) {
+    const first = parsed.error.issues[0];
+    return { status: "error", message: first?.message ?? "입력값을 확인하세요." };
+  }
+  const v = parsed.data;
+  const { startIso, endIso } = kstRangeIso(v.date, v.startTime, v.durationMin);
+
+  const supabase = await createSupabaseServerClient();
+  // 부모 UPDATE + 자식(복수 장비) 전체 교체. 권한·is_demo·담당자·취소여부 검증은 RPC가 담당.
+  const { error } = await supabase.rpc("update_demo_reservation", {
+    p_id: id as string,
+    p_company_id: v.companyId,
+    p_customer_name: v.customerName,
+    p_visitor_name: v.visitorName || null,
+    p_visitor_phone: v.visitorPhone || null,
+    p_assignee_id: v.assigneeId,
+    p_memo: v.memo || null,
+    p_time_range: `[${startIso},${endIso})`,
+    p_equipment_ids: v.equipmentIds,
+  });
+
+  if (error) {
+    // 23P01 = exclusion_violation — 같은 장비가 다른 예약과 겹침.
+    if (error.code === "23P01") {
+      return { status: "conflict", message: CONFLICT_MESSAGE };
+    }
+    console.error("[demo_reservations.update]", error);
+    return { status: "error", message: "수정에 실패했습니다. 잠시 후 다시 시도해주세요." };
+  }
+
+  revalidatePath("/admin/demo-reservations");
+  return { status: "ok", date: v.date };
+}
+
 /** 등록 폼의 날짜 변경 시 해당일 예약 재조회(useQuery용 fetch 래퍼 — 조회는 콘솔 전 직원). */
 export async function fetchDayReservations(
   date: unknown,

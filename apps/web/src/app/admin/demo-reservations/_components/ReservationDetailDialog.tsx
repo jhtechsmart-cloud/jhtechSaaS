@@ -100,9 +100,18 @@ export function ReservationDetailDialog({
                 </Button>
               </>
             ) : (
-              <Button variant="outline" size="sm" onClick={() => setConfirming(true)}>
-                예약 취소
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => router.push(`/admin/demo-reservations/${r.id}/edit`)}
+                >
+                  수정
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setConfirming(true)}>
+                  예약 취소
+                </Button>
+              </>
             )}
           </div>
         )}

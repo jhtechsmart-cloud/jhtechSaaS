@@ -9,7 +9,10 @@ import {
 } from "@/lib/demo-reservations/constants";
 import { computeSelection } from "@/lib/demo-reservations/slots";
 import { createReservationSchema } from "@/lib/demo-reservations/schema";
-import { createDemoReservation } from "@/lib/demo-reservations/actions";
+import {
+  createDemoReservation,
+  updateDemoReservation,
+} from "@/lib/demo-reservations/actions";
 import { groupDemoEquipment } from "@/lib/demo-reservations/equipment-grouping";
 import type {
   DemoReservationRow,
@@ -83,6 +86,19 @@ function EquipmentGroup({
   );
 }
 
+// 수정 모드 프리필 값(등록 모드면 undefined). date는 상위(셸)가 보유.
+export interface ReservationFormInitial {
+  companyId: string | null;
+  customerName: string;
+  equipmentIds: string[];
+  assigneeId: string | null;
+  visitorName: string;
+  visitorPhone: string;
+  startTime: string;
+  durationMin: DurationOption;
+  memo: string;
+}
+
 export function NewReservationForm({
   date,
   onDateChange,
@@ -92,6 +108,8 @@ export function NewReservationForm({
   reservations,
   loading,
   onSaved,
+  initial,
+  editingId,
 }: {
   date: string;
   onDateChange: (date: string) => void;
@@ -101,17 +119,22 @@ export function NewReservationForm({
   reservations: DemoReservationRow[];
   loading: boolean;
   onSaved: () => void;
+  initial?: ReservationFormInitial; // 수정 모드 프리필
+  editingId?: string; // 있으면 수정 모드(updateDemoReservation 호출)
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [customer, setCustomer] = useState({ companyId: null as string | null, customerName: "" });
-  const [equipmentIds, setEquipmentIds] = useState<string[]>([]);
-  const [assigneeId, setAssigneeId] = useState("");
-  const [visitorName, setVisitorName] = useState("");
-  const [visitorPhone, setVisitorPhone] = useState("");
-  const [memo, setMemo] = useState("");
-  const [durationMin, setDurationMin] = useState<DurationOption>(60);
-  const [startTime, setStartTime] = useState<string | null>(null);
+  const [customer, setCustomer] = useState({
+    companyId: initial?.companyId ?? null,
+    customerName: initial?.customerName ?? "",
+  });
+  const [equipmentIds, setEquipmentIds] = useState<string[]>(initial?.equipmentIds ?? []);
+  const [assigneeId, setAssigneeId] = useState(initial?.assigneeId ?? "");
+  const [visitorName, setVisitorName] = useState(initial?.visitorName ?? "");
+  const [visitorPhone, setVisitorPhone] = useState(initial?.visitorPhone ?? "");
+  const [memo, setMemo] = useState(initial?.memo ?? "");
+  const [durationMin, setDurationMin] = useState<DurationOption>(initial?.durationMin ?? 60);
+  const [startTime, setStartTime] = useState<string | null>(initial?.startTime ?? null);
   const [banner, setBanner] = useState<string | null>(null);
 
   const grouped = useMemo(
@@ -176,7 +199,9 @@ export function NewReservationForm({
       return;
     }
     startTransition(async () => {
-      const result = await createDemoReservation(parsed.data);
+      const result = editingId
+        ? await updateDemoReservation(editingId, parsed.data)
+        : await createDemoReservation(parsed.data);
       if (result.status === "ok") {
         sessionStorage.setItem("jh-demo-saved", "1");
         router.push(`/admin/demo-reservations?date=${result.date}`);
@@ -349,7 +374,7 @@ export function NewReservationForm({
             : "시작 시간을 선택하세요"}
         </p>
         <Button type="submit" disabled={!canSave}>
-          {pending ? "저장 중…" : "예약 저장"}
+          {pending ? "저장 중…" : editingId ? "수정 저장" : "예약 저장"}
         </Button>
       </div>
     </form>

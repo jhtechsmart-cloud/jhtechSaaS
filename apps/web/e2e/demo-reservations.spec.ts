@@ -185,4 +185,39 @@ test.describe.serial("데모예약 E2E", () => {
     await expect(page.getByText(`${CUSTOMER_NEW}2`).first()).toBeVisible();
     await expect(page.getByText("10:00–11:30 (90분)")).toBeVisible();
   });
+
+  test("등록 → 상세 '수정' → 장비·시간 변경 → 목록 반영", async ({ page }) => {
+    const EDIT_CUST = "E2E_데모고객_수정";
+    await login(page);
+
+    // 1) EQ2로 11:00+60분 등록
+    await page.goto(`/admin/demo-reservations/new?date=${DATE}`);
+    await page.getByLabel("고객").fill(EDIT_CUST);
+    await page.getByRole("checkbox", { name: EQ2_NAME, exact: true }).check();
+    await page.getByRole("button", { name: "60분", exact: true }).click();
+    await page.getByRole("button", { name: "11:00", exact: true }).click();
+    await page.getByRole("button", { name: /예약 저장/ }).click();
+    await page.waitForURL(new RegExp(`/admin/demo-reservations\\?date=${DATE}`), { timeout: 15_000 });
+    await expect(page.getByText("11:00–12:00 (60분)")).toBeVisible();
+
+    // 2) 블록 → 상세 → 수정
+    await page.getByRole("button", { name: /11:00–12:00/ }).click();
+    await page.getByRole("button", { name: "수정", exact: true }).click();
+    await page.waitForURL(new RegExp(`/admin/demo-reservations/[0-9a-f-]+/edit$`), { timeout: 15_000 });
+
+    // 프리필 검증: EQ2 체크됨, 자기 시간(11:00)은 자기-제외라 점유 아님(선택 가능)
+    await expect(page.getByRole("checkbox", { name: EQ2_NAME, exact: true })).toBeChecked();
+    await expect(page.getByRole("button", { name: "11:00", exact: true })).toBeEnabled();
+
+    // 3) 장비 EQ 추가 + 시작시간 16:00으로 변경 → 수정 저장
+    await page.getByRole("checkbox", { name: EQ_NAME, exact: true }).check();
+    await page.getByRole("button", { name: "16:00", exact: true }).click();
+    await page.getByRole("button", { name: /수정 저장/ }).click();
+    await page.waitForURL(new RegExp(`/admin/demo-reservations\\?date=${DATE}`), { timeout: 15_000 });
+
+    // 4) 16:00–17:00으로 이동, 11:00 사라짐
+    await expect(page.getByText("16:00–17:00 (60분)")).toBeVisible();
+    await expect(page.getByText("11:00–12:00 (60분)")).toBeHidden();
+    await expect(page.getByText(EDIT_CUST).first()).toBeVisible();
+  });
 });

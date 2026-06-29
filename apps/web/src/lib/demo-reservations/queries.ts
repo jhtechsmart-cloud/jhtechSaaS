@@ -11,7 +11,8 @@ export interface DemoReservationRow {
   customerName: string;
   equipmentNames: string[]; // 복수 장비(자식 조인)
   equipmentIds: string[]; // 겹침 판정용(선택 장비별 점유 슬롯)
-  assigneeName: string | null; // 담당 영업(미지정 null)
+  assigneeId: string | null; // 담당 영업 id(수정 폼 프리필용)
+  assigneeName: string | null; // 담당 영업 이름(미지정 null)
   visitorName: string | null;
   visitorPhone: string | null;
   memo: string | null;
@@ -47,6 +48,7 @@ function mapRow(r: Record<string, unknown>): DemoReservationRow | null {
     customerName: r.customer_name as string,
     equipmentNames: children.map((x) => x.equipment?.name ?? "-"),
     equipmentIds: children.map((x) => x.equipment_id ?? "").filter(Boolean),
+    assigneeId: (r.assignee_id as string | null) ?? null,
     assigneeName: assignee?.name ?? null,
     visitorName: (r.visitor_name as string | null) ?? null,
     visitorPhone: (r.visitor_phone as string | null) ?? null,
@@ -61,7 +63,7 @@ function mapRow(r: Record<string, unknown>): DemoReservationRow | null {
 }
 
 const SELECT_COLS =
-  "id,company_id,customer_name,visitor_name,visitor_phone,memo,status,time_range,assignee:assignee_id(name),profiles:created_by(name),demo_reservation_equipment(equipment_id,equipment:equipment_id(name))";
+  "id,company_id,customer_name,visitor_name,visitor_phone,memo,status,time_range,assignee_id,assignee:assignee_id(name),profiles:created_by(name),demo_reservation_equipment(equipment_id,equipment:equipment_id(name))";
 
 /** 선택일(KST)의 예약 목록 — 취소 제외, 시작시각 오름차순. */
 export async function listReservationsForDate(
@@ -81,6 +83,23 @@ export async function listReservationsForDate(
   return (data ?? [])
     .map((r) => mapRow(r as Record<string, unknown>))
     .filter((r): r is DemoReservationRow => r != null);
+}
+
+/** 단건 조회 — 수정 폼 프리필용. 취소된 예약은 null(수정 불가). */
+export async function getDemoReservation(id: string): Promise<DemoReservationRow | null> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("demo_reservations")
+    .select(SELECT_COLS)
+    .eq("id", id)
+    .neq("status", "canceled")
+    .maybeSingle();
+  if (error) {
+    console.error("[demo_reservations.get]", error);
+    return null;
+  }
+  if (!data) return null;
+  return mapRow(data as Record<string, unknown>);
 }
 
 /** 선택 월(KST)의 예약 목록 — 취소 제외, 시작시각 오름차순. 캘린더 아래 "이번 달 예약" 리스트용. */

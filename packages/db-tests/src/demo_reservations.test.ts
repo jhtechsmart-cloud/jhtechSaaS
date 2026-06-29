@@ -301,6 +301,107 @@ describe("demo_reservations — 겹침 차단(EXCLUDE)", () => {
   });
 });
 
+// create RPC로 예약 1건 생성 후 id 반환(update 테스트 전제).
+async function createViaRpc(uid: string, tr: string, eqs: string[]): Promise<string> {
+  await asUser(c, uid);
+  const r = await c.query(
+    `select public.create_demo_reservation(
+       null, '고객', null, null, null, null, $1::tstzrange, $2::uuid[]) as id`,
+    [tr, eqs],
+  );
+  return r.rows[0].id as string;
+}
+
+describe("demo_reservations — RPC update_demo_reservation", () => {
+  test("부모 필드 수정 + 자식 장비 교체(EQ→EQ2)", async () => {
+    await inRollbackTx(c, async () => {
+      await seed();
+      const id = await createViaRpc(UID.sales1, range("2026-07-01", "10:00", "11:00"), [EQ]);
+      await asUser(c, UID.sales1);
+      await c.query(
+        `select public.update_demo_reservation(
+           $1, null, '수정된고객', null, null, null, '메모', $2::tstzrange, $3::uuid[])`,
+        [id, range("2026-07-01", "10:00", "11:00"), [EQ2]],
+      );
+      await asPostgres(c);
+      const p = await c.query("select customer_name, memo from public.demo_reservations where id=$1", [id]);
+      expect(p.rows[0].customer_name).toBe("수정된고객");
+      expect(p.rows[0].memo).toBe("메모");
+      const ch = await c.query(
+        "select equipment_id from public.demo_reservation_equipment where reservation_id=$1",
+        [id],
+      );
+      expect(ch.rows.map((r) => r.equipment_id)).toEqual([EQ2]); // EQ는 교체로 사라짐
+    });
+  });
+
+  test("같은 시간·장비 유지 수정 허용(자기 예약은 겹침 제외)", async () => {
+    await inRollbackTx(c, async () => {
+      await seed();
+      const id = await createViaRpc(UID.sales1, range("2026-07-01", "10:00", "11:00"), [EQ]);
+      await asUser(c, UID.sales1);
+      // 같은 시간·장비로 고객명만 변경 → 자기 옛 자식이 먼저 삭제되므로 23P01 안 남.
+      await c.query(
+        `select public.update_demo_reservation(
+           $1, null, '재현테크', null, null, null, null, $2::tstzrange, $3::uuid[])`,
+        [id, range("2026-07-01", "10:00", "11:00"), [EQ]],
+      );
+      await asPostgres(c);
+      const p = await c.query("select customer_name from public.demo_reservations where id=$1", [id]);
+      expect(p.rows[0].customer_name).toBe("재현테크");
+    });
+  });
+
+  test("다른 예약과 같은-장비·겹치는 시간으로 수정 → 23P01", async () => {
+    await inRollbackTx(c, async () => {
+      await seed();
+      await createViaRpc(UID.sales1, range("2026-07-01", "10:00", "11:00"), [EQ]); // A
+      const b = await createViaRpc(UID.sales1, range("2026-07-01", "14:00", "15:00"), [EQ]); // B
+      await asUser(c, UID.sales1);
+      // B를 A와 겹치는 10:00–11:00 + 같은 장비로 수정 → 차단.
+      await expect(
+        c.query(
+          `select public.update_demo_reservation(
+             $1, null, '고객', null, null, null, null, $2::tstzrange, $3::uuid[])`,
+          [b, range("2026-07-01", "10:00", "11:00"), [EQ]],
+        ),
+      ).rejects.toMatchObject({ code: "23P01" });
+    });
+  });
+
+  test("권한 없는 직원은 update 거부", async () => {
+    await inRollbackTx(c, async () => {
+      await seed();
+      const id = await createViaRpc(UID.sales1, range("2026-07-01", "10:00", "11:00"), [EQ]);
+      await asUser(c, UID.sales2);
+      await expect(
+        c.query(
+          `select public.update_demo_reservation(
+             $1, null, '고객', null, null, null, null, $2::tstzrange, $3::uuid[])`,
+          [id, range("2026-07-01", "10:00", "11:00"), [EQ]],
+        ),
+      ).rejects.toThrow();
+    });
+  });
+
+  test("취소된 예약은 update 거부", async () => {
+    await inRollbackTx(c, async () => {
+      await seed();
+      const id = await createViaRpc(UID.sales1, range("2026-07-01", "10:00", "11:00"), [EQ]);
+      await asPostgres(c);
+      await c.query("update public.demo_reservations set status='canceled' where id=$1", [id]);
+      await asUser(c, UID.sales1);
+      await expect(
+        c.query(
+          `select public.update_demo_reservation(
+             $1, null, '고객', null, null, null, null, $2::tstzrange, $3::uuid[])`,
+          [id, range("2026-07-01", "10:00", "11:00"), [EQ]],
+        ),
+      ).rejects.toMatchObject({ code: "23514" });
+    });
+  });
+});
+
 describe("demo_reservations — 값 제약", () => {
   test("15분 단위 아닌 시작(10:07) → check 거부", async () => {
     await inRollbackTx(c, async () => {
