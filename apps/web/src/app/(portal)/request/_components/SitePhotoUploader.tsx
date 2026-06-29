@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { type PhotoSlot } from "@/lib/applications/schema";
 import { PHOTO_SLOT_LABELS } from "@/lib/applications/upload";
+import { FileDropCard } from "@/components/ui/FileDropCard";
 
 const GROUPS: { title: string; slots: PhotoSlot[] }[] = [
   { title: "외부 전경(선택)", slots: ["ext_entrance", "ext_building"] },
@@ -9,6 +10,7 @@ const GROUPS: { title: string; slots: PhotoSlot[] }[] = [
 ];
 
 // 현장사진 4슬롯 — 선택+로컬 미리보기. 선택 File을 부모에 콜백(업로드는 제출 시 — Task 8).
+// UI는 슬롯별 공통 드롭존 카드(FileDropCard). 콜백 시그니처는 기존 그대로.
 export function SitePhotoUploader({
   onChange,
 }: {
@@ -47,25 +49,20 @@ export function SitePhotoUploader({
         <fieldset key={g.title} className="flex flex-col gap-3">
           <legend className="text-small font-medium text-muted">{g.title}</legend>
           <div className="grid grid-cols-2 gap-3">
-            {g.slots.map((slot) => (
-              <label key={slot} className="flex flex-col gap-1 text-small text-muted">
-                {PHOTO_SLOT_LABELS[slot]}
-                <input
-                  type="file"
+            {g.slots.map((slot) => {
+              const url = previews[slot];
+              return (
+                <FileDropCard
+                  key={slot}
+                  label={PHOTO_SLOT_LABELS[slot]}
                   accept="image/jpeg,image/png,image/webp"
-                  onChange={(e) => pick(slot, e.target.files?.[0])}
-                  className="text-small"
+                  preview={url ? { kind: "image", url } : null}
+                  onPick={(f) => pick(slot, f)}
+                  onClear={() => pick(slot, undefined)}
+                  hint="jpg · png · webp"
                 />
-                {previews[slot] && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={previews[slot]}
-                    alt={PHOTO_SLOT_LABELS[slot]}
-                    className="mt-1 aspect-[4/3] w-full rounded-sm object-cover"
-                  />
-                )}
-              </label>
-            ))}
+              );
+            })}
           </div>
         </fieldset>
       ))}
