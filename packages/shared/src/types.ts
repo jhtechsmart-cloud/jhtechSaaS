@@ -39,6 +39,7 @@ export interface Equipment {
   specs: SpecGroup[];        // 아이콘 그룹 구조(P-A)
   youtube_urls: string[];    // 복수 영상(P-A)
   status: EquipmentStatus;
+  is_demo: boolean;          // 데모 가능 장비 여부(데모예약 폼 노출)
   created_at: string;
 }
 

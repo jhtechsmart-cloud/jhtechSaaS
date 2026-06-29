@@ -72,7 +72,7 @@ test.describe.serial("데모예약 E2E", () => {
     const eqRes = await rest("equipment", {
       method: "POST",
       headers: { Prefer: "return=representation" },
-      body: JSON.stringify([{ name: EQ_NAME, base_price: 1000, status: "active" }]),
+      body: JSON.stringify([{ name: EQ_NAME, base_price: 1000, status: "active", is_demo: true }]),
     });
     if (!eqRes.ok) throw new Error(`장비 시드 실패: ${eqRes.status}`);
     equipmentId = ((await eqRes.json()) as Array<{ id: string }>)[0].id;

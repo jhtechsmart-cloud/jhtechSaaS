@@ -52,6 +52,7 @@ export function EquipmentForm(props: Props) {
             category_id: "",
             base_price: 0,
             status: "active",
+            is_demo: false,
             highlights: [],
             youtube_urls: [],
             // UI-SPEC: 생성 시 1 빈 그룹(아이템 1 빈 행)
@@ -151,10 +152,17 @@ export function EquipmentForm(props: Props) {
       {/* §1 기본 정보 */}
       <section className="flex flex-col gap-5">
         <Field label="장비명" error={errors.name?.message}>
-          <input
-            {...register("name")}
-            className="rounded-md border border-border bg-surface px-3 py-2 text-body text-text"
-          />
+          {/* 장비명 옆 '데모 가능' 체크박스 — 켜면 데모예약 폼 장비 목록에 노출된다. */}
+          <div className="flex items-center gap-3">
+            <input
+              {...register("name")}
+              className="flex-1 rounded-md border border-border bg-surface px-3 py-2 text-body text-text"
+            />
+            <label className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-small text-text">
+              <input type="checkbox" {...register("is_demo")} className="h-4 w-4 accent-accent" />
+              데모 가능
+            </label>
+          </div>
         </Field>
         <Field label="모델" error={errors.model?.message}>
           <input

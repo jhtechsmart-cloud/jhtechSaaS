@@ -143,15 +143,17 @@ export interface EquipmentOptionRow {
   id: string;
   name: string;
   model: string | null;
+  category_id: string | null; // 대분류 분류용(프린터/커팅기 — Phase 2 체크박스 그리드)
 }
 
-/** 데모 장비 선택용 active 카탈로그(이름순). */
+/** 데모 장비 선택용 — active + is_demo 카탈로그(이름순). */
 export async function listActiveEquipmentOptions(): Promise<EquipmentOptionRow[]> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("equipment")
-    .select("id,name,model")
+    .select("id,name,model,category_id")
     .eq("status", "active")
+    .eq("is_demo", true)
     .order("name", { ascending: true });
   if (error) {
     console.error("[demo_reservations.equipmentOptions]", error);
