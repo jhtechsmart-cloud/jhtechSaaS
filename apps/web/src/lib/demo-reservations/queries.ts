@@ -9,7 +9,9 @@ export interface DemoReservationRow {
   id: string;
   companyId: string | null;
   customerName: string;
-  equipmentName: string;
+  equipmentNames: string[]; // 복수 장비(자식 조인)
+  equipmentIds: string[]; // 겹침 판정용(선택 장비별 점유 슬롯)
+  assigneeName: string | null; // 담당 영업(미지정 null)
   visitorName: string | null;
   visitorPhone: string | null;
   memo: string | null;
@@ -33,13 +35,19 @@ function mapRow(r: Record<string, unknown>): DemoReservationRow | null {
   const start = kstHmOf(range.startIso);
   const end = kstHmOf(range.endIso);
   if (!date || !start || !end) return null;
-  const equipment = r.equipment as { name?: string } | null;
+  const children = (r.demo_reservation_equipment as Array<{
+    equipment_id?: string;
+    equipment?: { name?: string } | null;
+  }> | null) ?? [];
   const profile = r.profiles as { name?: string } | null;
+  const assignee = r.assignee as { name?: string } | null;
   return {
     id: r.id as string,
     companyId: (r.company_id as string | null) ?? null,
     customerName: r.customer_name as string,
-    equipmentName: equipment?.name ?? "-",
+    equipmentNames: children.map((x) => x.equipment?.name ?? "-"),
+    equipmentIds: children.map((x) => x.equipment_id ?? "").filter(Boolean),
+    assigneeName: assignee?.name ?? null,
     visitorName: (r.visitor_name as string | null) ?? null,
     visitorPhone: (r.visitor_phone as string | null) ?? null,
     memo: (r.memo as string | null) ?? null,
@@ -53,7 +61,7 @@ function mapRow(r: Record<string, unknown>): DemoReservationRow | null {
 }
 
 const SELECT_COLS =
-  "id,company_id,customer_name,visitor_name,visitor_phone,memo,status,time_range,equipment:equipment_id(name),profiles:created_by(name)";
+  "id,company_id,customer_name,visitor_name,visitor_phone,memo,status,time_range,assignee:assignee_id(name),profiles:created_by(name),demo_reservation_equipment(equipment_id,equipment:equipment_id(name))";
 
 /** 선택일(KST)의 예약 목록 — 취소 제외, 시작시각 오름차순. */
 export async function listReservationsForDate(
@@ -146,6 +154,26 @@ export interface EquipmentOptionRow {
   category_id: string | null; // 대분류 분류용(프린터/커팅기 — Phase 2 체크박스 그리드)
 }
 
+export interface DemoStaffRow {
+  id: string;
+  name: string;
+}
+
+/** 데모 담당 영업 선택용 — 활성 직원(이름순). 권한 세분화는 비목표(미지정 허용). */
+export async function listDemoStaff(): Promise<DemoStaffRow[]> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id,name")
+    .eq("is_active", true)
+    .order("name", { ascending: true });
+  if (error) {
+    console.error("[demo_reservations.staff]", error);
+    return [];
+  }
+  return (data ?? []).map((r) => ({ id: r.id as string, name: (r.name as string) ?? "" }));
+}
+
 /** 데모 장비 선택용 — active + is_demo 카탈로그(이름순). */
 export async function listActiveEquipmentOptions(): Promise<EquipmentOptionRow[]> {
   const supabase = await createSupabaseServerClient();
@@ -181,7 +209,7 @@ export async function listUpcomingSchedules(
   const [demoRes, deliveryRes] = await Promise.all([
     supabase
       .from("demo_reservations")
-      .select("id,customer_name,time_range,equipment:equipment_id(name)")
+      .select("id,customer_name,time_range,demo_reservation_equipment(equipment:equipment_id(name))")
       .overlaps("time_range", `[${todayKstDate}T00:00:00+09:00,infinity)`)
       .neq("status", "canceled")
       .order("time_range", { ascending: true })
@@ -202,11 +230,12 @@ export async function listUpcomingSchedules(
     if (!range) continue;
     const date = kstDateOf(range.startIso);
     if (!date) continue;
-    const equipment = r.equipment as { name?: string } | null;
+    const children = (r.demo_reservation_equipment as Array<{ equipment?: { name?: string } | null }> | null) ?? [];
+    const eqLabel = children.map((x) => x.equipment?.name).filter(Boolean).join(", ") || "장비";
     rows.push({
       kind: "demo",
       id: r.id as string,
-      title: `${r.customer_name as string} · ${equipment?.name ?? "장비"} 데모`,
+      title: `${r.customer_name as string} · ${eqLabel} 데모`,
       date,
       start: kstHmOf(range.startIso),
       end: kstHmOf(range.endIso),

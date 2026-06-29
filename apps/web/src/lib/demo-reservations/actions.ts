@@ -38,19 +38,20 @@ export async function createDemoReservation(
   const { startIso, endIso } = kstRangeIso(v.date, v.startTime, v.durationMin);
 
   const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.from("demo_reservations").insert({
-    company_id: v.companyId,
-    customer_name: v.customerName,
-    equipment_id: v.equipmentId,
-    visitor_name: v.visitorName || null,
-    visitor_phone: v.visitorPhone || null,
-    memo: v.memo || null,
-    time_range: `[${startIso},${endIso})`,
-    created_by: access.userId, // 트리거가 auth.uid()로 재강제(위조 무시)
+  // 부모+자식(복수 장비) 원자 저장. 권한·is_demo·담당자 검증과 created_by 강제는 RPC가 담당.
+  const { error } = await supabase.rpc("create_demo_reservation", {
+    p_company_id: v.companyId,
+    p_customer_name: v.customerName,
+    p_visitor_name: v.visitorName || null,
+    p_visitor_phone: v.visitorPhone || null,
+    p_assignee_id: v.assigneeId,
+    p_memo: v.memo || null,
+    p_time_range: `[${startIso},${endIso})`,
+    p_equipment_ids: v.equipmentIds,
   });
 
   if (error) {
-    // 23P01 = exclusion_violation — 저장 직전 다른 예약이 먼저 들어온 레이스.
+    // 23P01 = exclusion_violation — 같은 장비가 저장 직전 다른 예약에 먼저 들어온 레이스.
     if (error.code === "23P01") {
       return { status: "conflict", message: CONFLICT_MESSAGE };
     }
