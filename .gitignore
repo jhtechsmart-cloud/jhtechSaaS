@@ -41,3 +41,6 @@ apps/web/playwright-report/
 .vercel
 
 .superpowers/
+
+# Claude Code worktree (로컬 격리 작업본 — 커밋 금지)
+.claude/worktrees/
