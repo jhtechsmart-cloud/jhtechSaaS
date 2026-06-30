@@ -2,15 +2,16 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { DEFAULT_QUOTE_NOTES, defaultSpecSelection, normalizeQuoteNotes } from "@jhtechsaas/shared";
 import {
+  buildQuoteOptions,
   formPreviewTotals,
   itemRowsToLines,
-  itemsToIncludedOptions,
   mainEquipmentSpecs,
   rowsToQuoteInput,
   specSelectionBudget,
   validateQuoteForm,
   type ItemRow,
   type QuoteCatalogItem,
+  type QuoteRow,
 } from "@/lib/quotes/form";
 import { createManualQuoteAction } from "@/lib/quotes/actions";
 import type { QuoteCustomer } from "@/lib/quotes/customer-search";
@@ -43,6 +44,8 @@ export function ManualQuoteForm({
   // 연결된 고객 id(있으면 견적이 그 고객 이력에 노출). 검색 선택/딥링크로 설정, "직접 입력"으로 해제.
   const [companyId, setCompanyId] = useState<string | null>(init?.companyId ?? null);
   const [items, setItems] = useState<ItemRow[]>([{ equipmentId: "", name: "", unitPrice: 0, quantity: 1, included: [] }]);
+  // 추가옵션(별도 과금) — 포함옵션과 별개. 수기 견적은 빈 목록으로 시작.
+  const [options, setOptions] = useState<QuoteRow[]>([]);
   // 수기 견적은 초기 장비 없음 → []로 시작. 첫 장비 선택 시 아래 effect가 기본 사양을 채운다.
   const [specSelection, setSpecSelection] = useState<string[]>([]);
   // 특기사항 — 기본 2줄 프리필. 편집한 줄이 발행 PDF에 반영된다.
@@ -63,7 +66,7 @@ export function ManualQuoteForm({
   }, [mainEqId, catalog]);
 
   // 실시간 합계 미리보기(폼 상태 기반, 표시 전용 — 저장 권위는 서버 RPC).
-  const totals = formPreviewTotals(items);
+  const totals = formPreviewTotals(items, options);
 
   function submit(status: "draft" | "issued") {
     if (company.trim() === "") {
@@ -72,7 +75,7 @@ export function ManualQuoteForm({
     }
     const { items: pItems, options: pOptions } = rowsToQuoteInput(
       itemRowsToLines(items),
-      itemsToIncludedOptions(items),
+      buildQuoteOptions(items, options),
     );
     const msg = validateQuoteForm(pItems, pOptions);
     if (msg) {
@@ -146,13 +149,15 @@ export function ManualQuoteForm({
           catalog={catalog}
           items={items}
           setItems={setItems}
+          options={options}
+          setOptions={setOptions}
           disabled={pending}
         />
         <SpecSelectionEditor
           specs={mainEquipmentSpecs(items, catalog)}
           selected={specSelection}
           setSelected={setSpecSelection}
-          max={specSelectionBudget(items, catalog, specSelection).max}
+          max={specSelectionBudget(items, options, catalog, specSelection).max}
           disabled={pending}
         />
         <QuoteNotesEditor notes={notes} setNotes={setNotes} disabled={pending} />

@@ -70,19 +70,25 @@ test.describe.serial("E5 견적 작성 폼 E2E", () => {
     await page.getByLabel("장비 가격").fill("50000000");
     await page.getByLabel("장비 수량").fill("1");
 
-    // 3) 실시간 합계 = 공급가 50,000,000 (VAT 별도 — 부가세는 화면에 표시하지 않음)
-    await expect(page.getByText("50,000,000원").first()).toBeVisible();
+    // 3) 추가 옵션 입력(별도 과금 — 포함옵션과 별개)
+    await page.getByRole("button", { name: "+ 추가 옵션" }).click();
+    await page.getByLabel("추가 옵션 이름").fill("프린트헤드");
+    await page.getByLabel("추가 옵션 단가").fill("2500000");
+    await page.getByLabel("추가 옵션 수량").fill("2");
 
-    // 4) 발행 → 의뢰 상세로 복귀
+    // 4) 실시간 합계 = 공급가 55,000,000 (50M 장비 + 2.5M×2 추가옵션, VAT 별도)
+    await expect(page.getByText("55,000,000원").first()).toBeVisible();
+
+    // 5) 발행 → 의뢰 상세로 복귀
     await page.getByRole("button", { name: "발행하기" }).click();
     await page.waitForURL(new RegExp(`/admin/applications/${appId}$`), { timeout: 20_000 });
 
-    // 5) 견적 목록에 노출(발행 배지 + 채번 + 금액) + 의뢰 상태 = 견적발송
+    // 6) 견적 목록에 노출(발행 배지 + 채번 + 금액) + 의뢰 상태 = 견적발송
     // 견적번호·발행 배지·합계가 히어로/처리바 버전칩/요약패널 여러 곳에 노출 → first().
     // (합계는 화면에선 ₩ 표기 — 버전이력 표의 '원' 표기는 '버전정보' 모달 안에 있음.)
     await expect(page.getByText(/^JHQ-\d{8}-\d{3,}-V1$/).first()).toBeVisible();
     await expect(page.getByText("발행", { exact: true }).first()).toBeVisible();
-    await expect(page.getByText("₩50,000,000").first()).toBeVisible();
+    await expect(page.getByText("₩55,000,000").first()).toBeVisible();
     await expect(page.getByTestId("app-status")).toHaveText("견적발송"); // 발행 → 의뢰 상태 자동 전이
 
     // 7) 🔧 회귀 — 좌측 2분할 목록의 해당 의뢰 행 배지도 새 상태(견적발송)로 갱신돼야 한다.
