@@ -1041,6 +1041,502 @@
   "project": "jhtechSaaS",
   "entries": [
     {
+      "tldr": "재현테크 SaaS 세션20(6/29): PR 8건(#179~#186) 머지+prod db push 전부 라이브. 핵심=데모예약 개편(장비 '데모 가능' 플래그→복수장비 체크박스 선택·장비별 겹침차단·담당자·캘린더 구분·예약 수정), 사진/파일 첨부 UI를 드롭존 카드로 전면 통일, 타임라인 겹침 예약 열 분할, 일정 박스 색 스파인→플랫, 임시저장 견적 PDF 버튼 문구 수정.",
+      "tags": [
+        "데모예약",
+        "drag-drop-upload",
+        "ui-consistency",
+        "supabase-rpc",
+        "design-system"
+      ],
+      "features": [
+        {
+          "title": "사진/파일 첨부 UI를 드롭존 카드로 통일",
+          "type": "feat",
+          "scope": "upload-ux",
+          "status": "completed",
+          "filesChanged": [
+            "apps/web/src/components/ui/FileDropCard.tsx",
+            "apps/web/src/app/admin/equipment/_components/CatalogUploader.tsx",
+            "apps/web/src/app/admin/equipment/_components/BannerUploader.tsx",
+            "apps/web/src/app/(public)/request/_components/SitePhotoUploader.tsx",
+            "apps/web/src/app/(public)/support/_components/AsPhotoUploader.tsx"
+          ],
+          "context": "기존엔 대부분 '텍스트 링크'를 눌러야 첨부 가능 → 어디서 사진을 올리는지 인식이 어려웠다. 사용자가 장비 카탈로그 이미지 첨부식(드롭존 카드)을 표준으로 지정.",
+          "implementation": "공용 FileDropCard 컴포넌트 신설(드래그앤드롭+클릭). 관리자(장비 카탈로그/배너)·공개(의뢰 현장사진·AS 사진) 등 첨부 지점 전체를 카드형으로 교체. 이미지는 카드 내부 미리보기, PDF 등은 파일명만 표시.",
+          "decisions": [
+            {
+              "title": "첨부 UI 단일 표준 = 드롭존 카드(텍스트 링크 폐기)"
+            }
+          ],
+          "learnings": [
+            "흩어진 업로더를 공용 컴포넌트 1개로 수렴해야 일관성·유지보수 확보"
+          ],
+          "id": "사진-파일-첨부-ui를-드롭존-카드로-통일"
+        },
+        {
+          "title": "드롭존 카드 크기 축소 + 제목 위계 구분 + 아이콘 제거",
+          "type": "fix",
+          "scope": "upload-ux",
+          "status": "completed",
+          "filesChanged": [
+            "apps/web/src/components/ui/FileDropCard.tsx"
+          ],
+          "context": "통일 후 카드가 너무 컸고(정사각형 강제 불필요), 박스 안 아이콘이 거슬렸으며, 메인/서브 타이틀이 크기·색이 같아 구분이 안 됐다.",
+          "implementation": "카드 크기 최소화(정사각형 해제·콘텐츠에 맞춤), 박스 내 아이콘 제거, 메인 타이틀 vs 서브 타이틀을 글자 크기·색으로 위계 구분. 이미지 미리보기는 박스에 꽉 차게. 동일 패턴 다른 화면도 전수 수정(#181).",
+          "decisions": [
+            {
+              "title": "제목 위계는 디자인 시스템 일관성 항목 — 발견 시 전수 교정"
+            }
+          ],
+          "id": "드롭존-카드-크기-축소-제목-위계-구분-아이콘-제거"
+        },
+        {
+          "title": "장비 '데모 가능' 플래그 (데모예약 개편 Phase 1)",
+          "type": "feat",
+          "scope": "demo-reservations",
+          "status": "completed",
+          "filesChanged": [
+            "supabase/migrations/20260629120000_equipment_is_demo.sql",
+            "apps/web/src/lib/equipment/schema.ts",
+            "apps/web/src/app/admin/equipment/_components/EquipmentForm.tsx",
+            "packages/shared/src/types.ts"
+          ],
+          "context": "데모예약에서 장비를 고를 때 데모 대상 장비만 노출해야 함 → equipment에 데모 가능 여부 플래그 필요.",
+          "implementation": "equipment.is_demo boolean 컬럼 마이그(+롤백). 장비 폼에 '데모 가능' 토글, schema·shared 타입 동기화.",
+          "learnings": [
+            "기존 prod 장비는 is_demo=false 기본 → 데모 노출하려면 장비별 수동 체크 필요"
+          ],
+          "id": "장비-데모-가능-플래그-데모예약-개편-phase-1"
+        },
+        {
+          "title": "데모예약 복수장비·장비별 겹침·담당자 + 예약 수정 (Phase 2)",
+          "type": "feat",
+          "scope": "demo-reservations",
+          "status": "completed",
+          "filesChanged": [
+            "supabase/migrations/20260629130000_demo_reservation_equipment.sql",
+            "supabase/migrations/20260629131000_demo_reservation_rpc.sql",
+            "supabase/migrations/20260629132000_demo_reservation_update_rpc.sql",
+            "apps/web/src/app/admin/demo-reservations/_components/NewReservationForm.tsx",
+            "apps/web/src/app/admin/demo-reservations/[id]/edit/page.tsx",
+            "apps/web/src/lib/demo-reservations/actions.ts",
+            "apps/web/src/lib/demo-reservations/queries.ts",
+            "apps/web/src/lib/demo-reservations/equipment-grouping.ts"
+          ],
+          "context": "단수 equipment_id 한계 해소. 한 예약에 복수 장비, 동일 장비는 같은 시간대 중복예약 차단하되 다른 장비면 같은 시간대 예약 허용, 캘린더에서 구분, 그리고 발행 후 예약 수정 지원.",
+          "implementation": "장비를 드롭박스→대분류 기준 체크박스 그룹(equipment-grouping)으로 모두 노출. 자식 테이블 + 장비별 겹침 차단 RPC. 담당자 필드 추가. 예약 수정용 update RPC + edit 페이지. db-tests로 권한·겹침 검증.",
+          "decisions": [
+            {
+              "title": "장비 선택 = 대분류 체크박스 그룹(전부 보이게)"
+            },
+            {
+              "title": "겹침 차단은 장비 단위(예약 단위 아님)"
+            }
+          ],
+          "learnings": [
+            "동시성 db-test는 23P01/40P01 레이스로 본질적 flaky",
+            "로컬 supabase db reset 후 GRANT 회귀 2차(함수 EXECUTE까지 벗겨짐→service_role 함수 grant 복구 필요)"
+          ],
+          "id": "데모예약-복수장비-장비별-겹침-담당자-예약-수정-phase-2"
+        },
+        {
+          "title": "데모예약 타임라인 겹침 예약 열 분할",
+          "type": "fix",
+          "scope": "demo-reservations",
+          "status": "completed",
+          "filesChanged": [
+            "apps/web/src/app/admin/demo-reservations/_components/DayTimeline.tsx",
+            "apps/web/src/lib/demo-reservations/timeline-layout.ts"
+          ],
+          "context": "같은 시간(예: 11시)에 예약 2건이면 먼저 예약한 건이 뒤 예약에 가려 우측 일정에 안 보였다.",
+          "implementation": "겹치는 예약을 열(column)로 분할 배치하는 timeline-layout 순수함수 신설 → 둘 다 시간표에 표시. 단위 테스트 포함.",
+          "decisions": [
+            {
+              "title": "겹침 레이아웃은 순수함수로 분리해 TDD"
+            }
+          ],
+          "id": "데모예약-타임라인-겹침-예약-열-분할"
+        },
+        {
+          "title": "일정/이벤트 박스 좌측 색 스파인 → 플랫(옅은 배경+색 도트)",
+          "type": "fix",
+          "scope": "design-system",
+          "status": "completed",
+          "filesChanged": [
+            "apps/web/src/app/admin/demo-reservations/_components/DaySummaryPanel.tsx",
+            "apps/web/src/app/admin/demo-reservations/_components/MonthReservationList.tsx",
+            "apps/web/src/app/admin/dashboard/_components/TwoWeekCalendar.tsx"
+          ],
+          "context": "예약/일정 박스 좌측의 두껍고 진한 색 스파인 대신 얇은 테두리 톤으로 통일 요청. 프로젝트 내 동일 디자인 박스를 샘플로 비교 후 변경.",
+          "implementation": "좌측 색 스파인 → 옅은 배경 + 색 도트 + 얇은 테두리로 플랫화. 용도별 색 매핑 유지. (DESIGN.md 시각 방향과 정합)",
+          "decisions": [
+            {
+              "title": "상태 색 = 스파인 폐기, 플랫(옅은 배경+도트)로 통일"
+            }
+          ],
+          "id": "일정-이벤트-박스-좌측-색-스파인-플랫-옅은-배경-색-도트"
+        },
+        {
+          "title": "임시저장(견적중) 견적 PDF 버튼 문구 수정",
+          "type": "fix",
+          "scope": "quote",
+          "status": "completed",
+          "filesChanged": [
+            "apps/web/src/app/admin/applications/[id]/_components/quote-frame/QuoteSummaryPanel.tsx"
+          ],
+          "context": "수기 견적을 임시저장하면 '견적중' 태그가 달리는데, PDF 버튼이 '견적서 생성중…'으로 표시되고 호버 시 모래시계가 계속 돌아 오해를 줬다(실제론 발행 전이라 PDF 없음).",
+          "implementation": "임시저장 상태 버튼 문구를 '생성중…' → '발행 후 확인'으로 변경(로딩 스피너 제거).",
+          "decisions": [
+            {
+              "title": "발행 전 견적은 PDF 미생성 — 버튼이 '발행 후 확인'으로 명확히 안내"
+            }
+          ],
+          "id": "임시저장-견적중-견적-pdf-버튼-문구-수정"
+        }
+      ],
+      "prompts": [
+        {
+          "label": "첨부 UI 전수 파악 후 표준화",
+          "prompt": "관리자 페이지 전체와 고객견적신청(as, 소모품)페이지 전체에서 사진을 첨부하는 기능이 있는 곳이 얼마나 있는지 전부 확인해봐 → 장비추가 페이지의 카탈로그 이미지 첨부 형식으로 나머지 모든 사진첨부 방법을 변경",
+          "verdict": "good",
+          "lesson": "UI 통일은 '먼저 전수 인벤토리 → 표준 1개 지정 → 전체 교체' 순서로 시키면 누락이 적다"
+        },
+        {
+          "label": "디자인 변경 전 현황 샘플 요구",
+          "prompt": "지금 이 프로젝트에 있는 동일한 디자인의 박스를 찾아서 모두 샘플로 보여주고, 변경 후 박스도 샘플로 볼 수 있게 html페이지로 간단히 만들어서 보여줘",
+          "verdict": "good",
+          "lesson": "시각 변경은 before/after를 HTML 샘플로 먼저 확인시키면 안전 — 적용 범위와 색 매핑 검증 가능"
+        },
+        {
+          "label": "실패 시 자율 재시도 위임",
+          "prompt": "실패하는 경우에는 내가 따로 이야기 안해도 계속 시도하고 처리해",
+          "verdict": "good",
+          "lesson": "사용자는 작고 명확한 작업의 끝까지 자율 진행을 선호(autonomy-just-proceed)"
+        }
+      ],
+      "references": [],
+      "changelog": {
+        "added": [
+          "공용 FileDropCard 드롭존 카드 컴포넌트",
+          "equipment.is_demo 플래그",
+          "데모예약 복수장비·담당자·예약 수정",
+          "데모예약 겹침 타임라인 열 분할"
+        ],
+        "changed": [
+          "사진/파일 첨부 UI 전면 드롭존 카드화",
+          "일정/이벤트 박스 색 스파인→플랫",
+          "임시저장 견적 PDF 버튼 문구"
+        ],
+        "fixed": [
+          "같은 시간 겹침 예약 가림",
+          "제목 위계 미구분",
+          "임시저장 견적 버튼 무한 로딩 표시"
+        ],
+        "removed": [
+          "첨부 텍스트 링크 방식",
+          "박스 내 아이콘",
+          "박스 좌측 색 스파인"
+        ]
+      },
+      "nextSteps": [
+        "기존 prod 장비 is_demo 수동 체크(데모 노출 대상 지정)",
+        "신규장비 가격(0원) 채우기",
+        "감사 후속(공개 lookup 레이트리밋·.env.example Gmail→Hiworks·gen types·RLS db-tests CI·DB백업)",
+        "수금 원장(receivables-ledger-plan)",
+        "출고의뢰서 모바일 대응",
+        "untracked analysis.md·docs/audit-2026-06-19.md 커밋 여부 결정"
+      ],
+      "claudeHints": "데모예약은 복수장비·자식테이블·장비별 겹침차단 구조다(단수 equipment_id 아님). 로컬 supabase db reset 후엔 GRANT가 테이블+함수 EXECUTE까지 회귀하니 seed 전 GRANT 복구 SQL 필수(supabase-local-grant-regression). 첨부 UI는 공용 FileDropCard로 통일됐으니 새 첨부 지점도 이걸 써라. 동시성 db-test는 본질 flaky라 단발 실패는 환경 탓.",
+      "reusablePatterns": [
+        {
+          "name": "FileDropCard",
+          "description": "드래그앤드롭+클릭 첨부 공용 카드(이미지 미리보기·파일명 표시)",
+          "file": "apps/web/src/components/ui/FileDropCard.tsx"
+        },
+        {
+          "name": "timeline-layout",
+          "description": "겹치는 예약을 열로 분할 배치하는 순수함수(TDD)",
+          "file": "apps/web/src/lib/demo-reservations/timeline-layout.ts"
+        },
+        {
+          "name": "equipment-grouping",
+          "description": "장비를 대분류 기준 체크박스 그룹으로 묶는 순수함수",
+          "file": "apps/web/src/lib/demo-reservations/equipment-grouping.ts"
+        }
+      ],
+      "date": "2026-06-30",
+      "mainTask": "데모예약-개편-첨부UI통일-8건",
+      "codeDiagram": "flowchart LR\n    N0[\"devnote_data.json\"]\n    N1[\"DeliverySchedule.tsx\"]\n    N2[\"QuotePdfButton.tsx\"]\n    N3[\"QuoteSummaryPanel.tsx\"]\n    N4[\"SendQuoteEmailModal.tsx\"]\n    N5[\"TwoWeekCalendar.tsx\"]\n    N6[\"page.tsx\"]\n    N7[\"CustomerCombobox.tsx\"]\n    N8[\"DaySummaryPanel.tsx\"]\n    N9[\"DayTimeline.tsx\"]\n    N10[\"MonthReservationList.tsx\"]\n    N11[\"NewReservationForm.tsx\"]\n    N12[\"NewReservationShell.tsx\"]\n    N13[\"ReservationDetailDialog.tsx\"]\n    N14[\"TimeSlotPicker.tsx\"]\n    N15[\"BannerUploader.tsx\"]\n    N16[\"CatalogUploader.tsx\"]\n    N17[\"EquipmentForm.tsx\"]\n    N18[\"HighlightsEditor.tsx\"]\n    N19[\"ImageUploader.tsx\"]\n    N20[\"OptionEditor.tsx\"]\n    N21[\"SpecEditor.tsx\"]\n    N22[\"YoutubeUrlsEditor.tsx\"]\n    N23[\"FileDropCard.tsx\"]\n    N24[\"actions.ts\"]\n    N25[\"equipment-grouping.ts\"]\n    N26[\"queries.ts\"]\n    N27[\"range.ts\"]\n    N28[\"schema.ts\"]\n    N29[\"slots.ts\"]\n    N30[\"timeline-layout.ts\"]\n    N31[\"schema.ts\"]\n    N32[\"permissions.ts\"]\n    N33[\"specs.ts\"]\n    N34[\"types.ts\"]\n    N35[\"20260629120000_equipment_is_demo.sql\"]\n    N36[\"20260629130000_demo_reservation_equipment.sql\"]\n    N37[\"20260629131000_demo_reservation_rpc.sql\"]\n    N38[\"20260629132000_demo_reservation_update_rpc.sql\"]\n    N17 --> N21\n    N17 --> N18\n    N17 --> N22\n    N17 --> N20\n    N17 --> N19\n    N17 --> N15\n    N17 --> N16\n    N34 --> N32\n    N34 --> N33\n    N11 --> N7\n    N11 --> N14\n    N6 --> N12\n    N6 --> N11\n    N24 --> N29\n    N24 --> N28\n    N24 --> N26\n    N26 --> N27\n    N25 --> N26\n    N9 --> N13\n    N3 --> N2\n    N3 --> N1\n    N3 --> N4\n    style N31 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N11 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N9 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N36 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N24 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N38 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N15 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N35 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N37 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N8 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N0 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N34 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N17 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N25 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N5 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N3 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N6 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N16 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N10 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N26 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N23 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N30 fill:#dbeafe,stroke:#2563eb,stroke-width:2px"
+    },
+    {
+      "tldr": "견적서 8건 + 출고의뢰서 5건, 총 13개 개선을 8개 PR(#170~177)로 구현·머지·프로덕션 배포. 견적: PDF 폰트/라벨 다듬기, 특기사항 편집, 항목별 비고, 수신처 담당자·직책, 영업일지(신규). 출고의뢰서: RIP'기타'/칼라'프라이머'+직접입력, 고객정보 편집+고객DB반영, 발행후 수정+버전관리, PDF 메모. 전 게이트 GREEN, db push 5건 라이브.",
+      "tags": [
+        "견적서",
+        "출고의뢰서",
+        "PDF",
+        "버전관리",
+        "RLS",
+        "Supabase",
+        "영업일지"
+      ],
+      "features": [
+        {
+          "title": "견적서 PDF 표시 다듬기 + 장비 라벨 '판매중'",
+          "type": "fix",
+          "scope": "quote-pdf",
+          "status": "completed",
+          "filesChanged": [
+            "apps/worker/src/jobs/quote-html.ts",
+            "apps/web/src/app/admin/equipment/_components/EquipmentForm.tsx",
+            "apps/web/src/app/admin/equipment/_components/EquipmentTable.tsx"
+          ],
+          "context": "견적서 PDF 가독성 다듬기 + 장비 상태 라벨 변경 요청. DB 무변경.",
+          "implementation": "품목표·특기사항 폰트 11.5px 통일, 합계 한글금액 12px + white-space:nowrap(긴 금액·(단위:원) 한 줄 유지), 장비 상태 라벨 '운영중'→'판매중'(DB enum active 불변·UI만).",
+          "decisions": [],
+          "problems": [],
+          "learnings": [
+            "합계 한글금액은 nowrap+min-width:0+overflow:hidden으로 12억대 최악케이스도 한 줄 유지 확인(Read 도구 PDF 대조)"
+          ],
+          "id": "견적서-pdf-표시-다듬기-장비-라벨-판매중"
+        },
+        {
+          "title": "견적 특기사항 편집 + 항목별 비고",
+          "type": "feat",
+          "scope": "quote",
+          "status": "completed",
+          "filesChanged": [
+            "supabase/migrations/20260626120000_quote_notes.sql",
+            "packages/shared/src/quote-calc.ts",
+            "apps/web/src/lib/quotes/*",
+            "apps/web/src/app/admin/_components/QuoteNotesEditor.tsx",
+            "apps/worker/src/jobs/quote-pdf.ts"
+          ],
+          "context": "특기사항이 워커에 하드코딩이었고 항목별 비고가 없었음. 견적별 편집 가능화 요청.",
+          "implementation": "quotes.notes(jsonb) + create_quote/create_manual_quote/_quote_insert에 p_notes 추가(최신 본문 재정의·상태전이/company_id 보존). 특기사항 여러 줄 자유편집 에디터(기본 2줄 프리필). 비고는 QuoteLine.remark를 shared 스키마에 명시(jsonb strip 방지)→RPC 변경 불필요(_quote_validate_lines가 단가·수량만 검사).",
+          "decisions": [
+            {
+              "title": "특기사항=여러 줄 자유편집(사용자 선택)"
+            },
+            {
+              "title": "비고는 RPC 무변경 — 줄 검증이 단가·수량만 보므로 jsonb에 그대로 보존"
+            }
+          ],
+          "problems": [],
+          "learnings": [
+            "RPC 인자추가는 named-arg 하위호환 → db push를 머지보다 먼저 하면 배포윈도우 리스크0",
+            "_quote_insert 재정의는 반드시 최신 마이그 본문 기준(상태전이 로직 보존)"
+          ],
+          "id": "견적-특기사항-편집-항목별-비고"
+        },
+        {
+          "title": "견적서 수신처 담당자·직책 + 글씨 축소",
+          "type": "feat",
+          "scope": "quote-pdf",
+          "status": "completed",
+          "filesChanged": [
+            "supabase/migrations/20260626130000_company_manager_title.sql",
+            "apps/web/src/lib/customers/schema.ts",
+            "apps/web/src/app/admin/customers/_components/CompanyForm.tsx",
+            "apps/worker/src/jobs/quote-pdf.ts",
+            "apps/worker/src/jobs/quote-html.ts"
+          ],
+          "context": "수신처가 '[회사] 귀하'뿐이라 담당자·직책 표기 요청. 고객에 직책 칸 신설 필요.",
+          "implementation": "companies.manager_title 컬럼 + 고객 폼/스키마. 워커 PDF가 quotes→application.company_id→companies 중첩조인(customer 별칭으로 company 텍스트 컬럼과 충돌 회피)으로 담당자·직책을 끌어와 '[회사][담당자][직책] 귀하'. 회사명 24→18px, 담당자·직책 13px.",
+          "decisions": [],
+          "problems": [],
+          "learnings": [
+            "중첩조인 별칭은 부모 텍스트컬럼명과 충돌 회피(customer:company_id)",
+            "공개폼 의뢰는 company_id=null → 회사명만 폴백"
+          ],
+          "id": "견적서-수신처-담당자-직책-글씨-축소"
+        },
+        {
+          "title": "영업일지(내부용) — 신규 기능",
+          "type": "feat",
+          "scope": "sales-logs",
+          "status": "completed",
+          "filesChanged": [
+            "supabase/migrations/20260626140000_sales_logs.sql",
+            "apps/web/src/lib/sales-logs/*",
+            "apps/web/src/app/admin/_components/SalesLogPanel.tsx",
+            "apps/web/src/app/admin/sales-logs/page.tsx",
+            "apps/web/src/app/admin/layout.tsx"
+          ],
+          "context": "업체별로 견적 작성 시 참고할 내부 메모 필요. PDF·고객 미노출.",
+          "implementation": "sales_logs 테이블 + RLS(부모 company 접근권+본인 작성분, author_id/created_at/company_id 트리거 서버강제·불변). SalesLogPanel을 고객 상세+견적 작성 화면 공용(회사 바뀌면 서버액션 재조회). /admin/sales-logs 작성자 모아보기 + 사이드바.",
+          "decisions": [
+            {
+              "title": "고객 페이지+견적 화면 둘 다 노출(사용자 선택)"
+            },
+            {
+              "title": "별도 capability 없이 기존 customers 스코프 재사용"
+            }
+          ],
+          "problems": [
+            {
+              "solution": "companyId null 분기의 동기 setLogs([]) 제거(렌더가 placeholder로 가려 잔상 안 보임)",
+              "title": "set-state-in-effect lint 에러"
+            }
+          ],
+          "learnings": [
+            "db-tests는 클린 reset 직후에만 — seed-local+e2e 오염 시 전역카운트 17개 거짓실패(전/후 분리 필수)"
+          ],
+          "id": "영업일지-내부용-신규-기능"
+        },
+        {
+          "title": "출고의뢰서 제공RIP '기타'·칼라 '프라이머'+직접입력",
+          "type": "feat",
+          "scope": "release-order",
+          "status": "completed",
+          "filesChanged": [
+            "packages/shared/src/release-order.ts",
+            "apps/web/src/app/admin/applications/[id]/_components/ReleaseOrderForm.tsx",
+            "apps/worker/src/jobs/release-html.ts"
+          ],
+          "context": "제공 RIP·칼라구성에 옵션 추가 + 관리자 직접입력 요청.",
+          "implementation": "RELEASE_OPTIONS.printerRip에 '기타', printerColors에 '프라이머' 추가. printer.ripOther/colorsOther 자유입력. 폼·PDF 반영. DB 무변경(details jsonb).",
+          "decisions": [],
+          "problems": [],
+          "learnings": [
+            "release_orders.details는 jsonb라 옵션·필드 추가는 마이그 불필요(RPC는 객체·20KB만 검증)"
+          ],
+          "id": "출고의뢰서-제공rip-기타-칼라-프라이머-직접입력"
+        },
+        {
+          "title": "출고의뢰서 고객정보 편집 + 고객DB 반영(선택)",
+          "type": "feat",
+          "scope": "release-order",
+          "status": "completed",
+          "filesChanged": [
+            "supabase/migrations/20260626150000_release_order_editable_customer.sql",
+            "apps/web/src/lib/release-orders/actions.ts",
+            "apps/web/src/lib/release-orders/queries.ts",
+            "apps/web/src/app/admin/applications/[id]/_components/ReleaseOrderForm.tsx"
+          ],
+          "context": "고객정보가 읽기전용 스냅샷이라 수정 불가. 편집 가능화 + 고객관리 반영 여부 결정 필요.",
+          "implementation": "upsert_release_order에 p_company/p_contact_phone/p_install_address 추가(클라 우선·application 폴백). 회사·연락처·주소 편집 가능. '고객관리에도 반영' 체크박스→연결 고객(application.company_id)의 companies 갱신(companies_update RLS 통제).",
+          "decisions": [
+            {
+              "title": "매번 체크박스로 선택(사용자 선택) — 체크 시에만 고객관리 원본 갱신"
+            }
+          ],
+          "problems": [],
+          "learnings": [],
+          "id": "출고의뢰서-고객정보-편집-고객db-반영-선택"
+        },
+        {
+          "title": "출고의뢰서 발행 후 수정 + 버전관리",
+          "type": "feat",
+          "scope": "release-order",
+          "status": "completed",
+          "filesChanged": [
+            "supabase/migrations/20260626160000_release_order_versioning.sql",
+            "apps/web/src/lib/release-orders/*",
+            "apps/web/src/app/admin/applications/[id]/release-order/pdf/route.ts",
+            "apps/worker/src/jobs/release-pdf.ts",
+            "apps/worker/src/jobs/release-html.ts"
+          ],
+          "context": "발행 후 잠겨 수정 불가. 발행 후에도 수정 + 이력 보존(버전관리) 요청.",
+          "implementation": "견적 버전 패턴 미러: version 컬럼+UNIQUE(application_id,version), 1:1 해제. seq_no 버전 간 공유. 발행본 불변(트리거)·수정 시 새 draft 버전. upsert가 최신 draft면 제자리·발행본/없음이면 새 버전 INSERT. 폼 잠금해제+버전이력 패널(버전별 PDF). pdf route/isReady/워커 모두 최신버전 기준.",
+          "decisions": [
+            {
+              "title": "견적처럼 버전관리(사용자 선택) — V1·V2·V3 이력·PDF 모두 보존"
+            }
+          ],
+          "problems": [
+            {
+              "solution": "TextField input에 aria-label 추가(접근성+테스트 동시 개선)",
+              "title": "TextField label-input 미연결로 e2e getByLabel 실패"
+            }
+          ],
+          "learnings": [
+            "버전관리=발행본 잠금 트리거는 유지하되 upsert가 새 버전을 INSERT(발행본 보존)",
+            "모델 변경 시 기존 db-test의 단일행 가정 단언 갱신 필요(발행후 upsert=거부→새버전)"
+          ],
+          "id": "출고의뢰서-발행-후-수정-버전관리"
+        },
+        {
+          "title": "출고의뢰서 메모/특이사항(PDF 인쇄)",
+          "type": "feat",
+          "scope": "release-order",
+          "status": "completed",
+          "filesChanged": [
+            "packages/shared/src/release-order.ts",
+            "apps/web/src/app/admin/applications/[id]/_components/ReleaseOrderForm.tsx",
+            "apps/worker/src/jobs/release-html.ts"
+          ],
+          "context": "출고의뢰서에 현장 전달용 메모 필요. PDF 인쇄.",
+          "implementation": "details.memo(2000자) 추가. 폼 하단 메모 textarea. 워커 PDF 하단 '메모/특이사항' 섹션(내용 있을 때만·줄바꿈 보존). DB 무변경.",
+          "decisions": [
+            {
+              "title": "PDF에 인쇄되는 메모 영역(사용자 선택)"
+            }
+          ],
+          "problems": [],
+          "learnings": [],
+          "id": "출고의뢰서-메모-특이사항-pdf-인쇄"
+        }
+      ],
+      "prompts": [
+        {
+          "label": "기능 갭 일괄 지정",
+          "prompt": "견적서 작성에 관련된 내용 중에서 작업이 안되어 있는게 있어. 1. 영업일지... 2. 특기사항... (8건 번호 나열)",
+          "verdict": "good",
+          "lesson": "번호 매긴 기능 목록 + 각 항목에 '왜/어디서 보이게/PDF 포함여부'까지 명시하면 탐색→PR 그룹핑→결정질문이 매끄럽게 흐른다."
+        },
+        {
+          "label": "결정 위임형 요청",
+          "prompt": "출고의뢰서에서 변경한 고객정보는 고객정보에 반영할지 여부도 확인해야 함 / (메모) 어느위치에 어떻게 추가할 지 고민중",
+          "verdict": "good",
+          "lesson": "사용자가 미정 사항을 명시적으로 표시 → AskUserQuestion으로 핵심 결정만 모아 물어보고 나머지는 자율 진행하는 패턴이 효율적."
+        }
+      ],
+      "references": [],
+      "changelog": {
+        "added": [
+          "sales_logs 테이블·영업일지 기능",
+          "companies.manager_title(담당자 직책)",
+          "quotes.notes(특기사항)·QuoteLine.remark(비고)",
+          "release_orders.version(버전관리)·details.memo",
+          "출고의뢰서 RIP'기타'/칼라'프라이머'+직접입력"
+        ],
+        "changed": [
+          "견적 PDF 폰트·합계 줄바꿈",
+          "장비 상태 라벨 '운영중'→'판매중'",
+          "출고의뢰서 고객정보 편집 가능",
+          "출고의뢰서 발행 후 수정 가능(버전 생성)"
+        ],
+        "fixed": [
+          "견적 합계 한글금액 줄바꿈 방지"
+        ],
+        "removed": []
+      },
+      "nextSteps": [
+        "데모 예약 장비 복수 선택(현재 단수 equipment_id — 자식테이블 vs 배열 결정 필요)",
+        "신규 장비 가격(0원) 채우기",
+        "감사 후속(공개 lookup 레이트리밋·.env.example Gmail→Hiworks·gen types·RLS db-tests CI·DB백업)",
+        "수금 원장(receivables-ledger-plan)",
+        "출고의뢰서 모바일 대응"
+      ],
+      "claudeHints": "이 프로젝트는 마이그레이션 RPC 인자추가가 named-arg 하위호환이라 db push를 머지보다 먼저 하면 배포 윈도우 리스크가 0이다. release_orders/quotes의 details·items는 jsonb라 필드 추가는 마이그 불필요(RPC는 객체·크기만 검증). PDF 변경은 반드시 Read 도구로 렌더 PDF를 대조 검증하고, db-tests:rls는 클린 db reset 직후에만 돌린다(seed-local+e2e 오염 시 전역카운트 거짓실패).",
+      "reusablePatterns": [
+        {
+          "name": "버전관리(견적 패턴)",
+          "description": "version 컬럼+UNIQUE(parent,version), 발행본 불변 트리거 유지+upsert가 새 draft 버전 INSERT, seq_no는 버전 간 공유",
+          "file": "supabase/migrations/20260626160000_release_order_versioning.sql"
+        },
+        {
+          "name": "자식 스코프 RLS",
+          "description": "부모 company 접근권(assignee OR view_all) EXISTS 미러 + 본인 작성분, 서버강제 필드는 BEFORE 트리거",
+          "file": "supabase/migrations/20260626140000_sales_logs.sql"
+        }
+      ],
+      "date": "2026-06-26",
+      "mainTask": "견적·출고의뢰서-개선-13건",
+      "codeDiagram": "flowchart LR\n    N0[\"MEMORY.md\"]\n    N1[\"release-orders.spec.ts\"]\n    N2[\"sales-logs.spec.ts\"]\n    N3[\"QuoteLinesEditor.tsx\"]\n    N4[\"QuoteNotesEditor.tsx\"]\n    N5[\"SalesLogPanel.tsx\"]\n    N6[\"QuoteForm.tsx\"]\n    N7[\"ReleaseOrderForm.tsx\"]\n    N8[\"page.tsx\"]\n    N9[\"page.tsx\"]\n    N10[\"route.ts\"]\n    N11[\"page.tsx\"]\n    N12[\"page.tsx\"]\n    N13[\"CompanyForm.tsx\"]\n    N14[\"EquipmentForm.tsx\"]\n    N15[\"EquipmentTable.tsx\"]\n    N16[\"layout.tsx\"]\n    N17[\"ManualQuoteForm.tsx\"]\n    N18[\"page.tsx\"]\n    N19[\"page.tsx\"]\n    N20[\"actions.ts\"]\n    N21[\"schema.ts\"]\n    N22[\"actions.ts\"]\n    N23[\"form.test.ts\"]\n    N24[\"form.ts\"]\n    N25[\"queries.ts\"]\n    N26[\"schema.ts\"]\n    N27[\"actions.ts\"]\n    N28[\"queries.ts\"]\n    N29[\"actions.ts\"]\n    N30[\"queries.ts\"]\n    N31[\"_render-logo-check.ts\"]\n    N32[\"quote-html.test.ts\"]\n    N33[\"quote-html.ts\"]\n    N34[\"quote-pdf.ts\"]\n    N35[\"release-html.test.ts\"]\n    N36[\"release-html.ts\"]\n    N37[\"release-pdf.ts\"]\n    N38[\"quote_create_rpc.test.ts\"]\n    N39[\"release_orders.test.ts\"]\n    N40[\"sales_logs.test.ts\"]\n    N41[\"quote-calc.ts\"]\n    N42[\"release-order.ts\"]\n    N43[\"20260626120000_quote_notes.sql\"]\n    N44[\"20260626130000_company_manager_title.sql\"]\n    N45[\"20260626140000_sales_logs.sql\"]\n    N46[\"20260626150000_release_order_editable_customer.sql\"]\n    N47[\"20260626160000_release_order_versioning.sql\"]\n    N48[\"20260626120000_quote_notes_down.sql\"]\n    N49[\"20260626130000_company_manager_title_down.sql\"]\n    N50[\"20260626140000_sales_logs_down.sql\"]\n    N51[\"20260626150000_release_order_editable_customer_down.sql\"]\n    N52[\"20260626160000_release_order_versioning_down.sql\"]\n    N53[\"devnote_data.json\"]\n    N54[\"AccountMenu.tsx\"]\n    N55[\"AdminSidebar.tsx\"]\n    N56[\"BadgePoller.tsx\"]\n    N57[\"ConsoleMain.tsx\"]\n    N58[\"ForcedPasswordChange.tsx\"]\n    N59[\"Icon.tsx\"]\n    N60[\"MobileNav.tsx\"]\n    N61[\"QuoteNotesEditor.tsx\"]\n    N62[\"SalesLogPanel.tsx\"]\n    N63[\"ApplicationContext.tsx\"]\n    N64[\"QuoteForm.tsx\"]\n    N65[\"ReleaseOrderForm.tsx\"]\n    N66[\"ReleaseOrderPdfButton.tsx\"]\n    N67[\"route.ts\"]\n    N68[\"CustomerActivityTabs.tsx\"]\n    N69[\"CustomerHeader.tsx\"]\n    N70[\"CustomerInfoSidebar.tsx\"]\n    N71[\"CustomerKpiStrip.tsx\"]\n    N72[\"SavedToast.tsx\"]\n    N73[\"CompanyEquipmentEditor.tsx\"]\n    N74[\"CompanyForm.tsx\"]\n    N75[\"FormSectionCard.tsx\"]\n    N76[\"StickyFormFooter.tsx\"]\n    N77[\"BannerUploader.tsx\"]\n    N78[\"CatalogUploader.tsx\"]\n    N79[\"EquipmentForm.tsx\"]\n    N80[\"EquipmentTable.tsx\"]\n    N81[\"HighlightsEditor.tsx\"]\n    N82[\"ImageUploader.tsx\"]\n    N83[\"OptionEditor.tsx\"]\n    N84[\"SpecEditor.tsx\"]\n    N85[\"YoutubeUrlsEditor.tsx\"]\n    N86[\"layout.tsx\"]\n    N87[\"CustomerPicker.tsx\"]\n    N88[\"ManualQuoteForm.tsx\"]\n    N89[\"page.tsx\"]\n    N90[\"schema.ts\"]\n    N91[\"actions.ts\"]\n    N92[\"queries.ts\"]\n    N93[\"queries.ts\"]\n    N94[\"assets.ts\"]\n    N95[\"logo-kind.ts\"]\n    N96[\"quote-html.ts\"]\n    N97[\"quote-pdf.ts\"]\n    N98[\"release-html.ts\"]\n    N99[\"release-pdf.ts\"]\n    N100[\"render-quote-pdf.ts\"]\n    N101[\"render-release-pdf.ts\"]\n    N102[\"helpers.ts\"]\n    N103[\"quote-calc.ts\"]\n    N104[\"release-order.ts\"]\n    N105[\"20260626120000_quote_notes.sql\"]\n    N106[\"20260626130000_company_manager_title.sql\"]\n    N107[\"20260626140000_sales_logs.sql\"]\n    N108[\"20260626150000_release_order_editable_customer.sql\"]\n    N109[\"20260626160000_release_order_versioning.sql\"]\n    N79 --> N84\n    N79 --> N81\n    N79 --> N85\n    N79 --> N83\n    N79 --> N82\n    N79 --> N77\n    N79 --> N78\n    N97 --> N100\n    N97 --> N95\n    N97 --> N96\n    N74 --> N73\n    N74 --> N75\n    N74 --> N76\n    N86 --> N59\n    N86 --> N55\n    N86 --> N54\n    N86 --> N60\n    N86 --> N58\n    N86 --> N56\n    N86 --> N57\n    N65 --> N66\n    N99 --> N101\n    N99 --> N94\n    N99 --> N98\n    N14 --> N84\n    N14 --> N81\n    N14 --> N85\n    N14 --> N83\n    N14 --> N82\n    N14 --> N77\n    N14 --> N78\n    N17 --> N87\n    N8 --> N64\n    N8 --> N63\n    N34 --> N100\n    N34 --> N95\n    N34 --> N96\n    N32 --> N96\n    N38 --> N102\n    N13 --> N73\n    N13 --> N75\n    N13 --> N76\n    N11 --> N74\n    N31 --> N100\n    N31 --> N96\n    N29 --> N93\n    N12 --> N72\n    N12 --> N69\n    N12 --> N70\n    N12 --> N68\n    N12 --> N71\n    N18 --> N88\n    N16 --> N59\n    N16 --> N55\n    N16 --> N54\n    N16 --> N60\n    N16 --> N58\n    N16 --> N56\n    N16 --> N57\n    N40 --> N102\n    N7 --> N66\n    N35 --> N98\n    N39 --> N102\n    N9 --> N65\n    N37 --> N101\n    N37 --> N94\n    N37 --> N98\n    style N79 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N106 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N65 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N5 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N35 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N3 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N7 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N51 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N6 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N19 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N52 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N2 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N42 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N36 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N22 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N80 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N107 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N31 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N45 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N25 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N53 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N1 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N67 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N74 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N39 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N105 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N41 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N28 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N91 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N43 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N29 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N92 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N16 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N23 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N9 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N4 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N103 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N62 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N24 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N8 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N104 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N17 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N96 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N99 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N14 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N108 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N61 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N86 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N34 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N32 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N90 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N33 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N18 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N27 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N21 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N50 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N44 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N13 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N40 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N98 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N12 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N46 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N26 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N38 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N37 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N20 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N97 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N49 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N30 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N10 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N48 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N89 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N15 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N0 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N109 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N11 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N47 fill:#dbeafe,stroke:#2563eb,stroke-width:2px"
+    },
+    {
       "tldr": "로그인 '아이디 저장' 회귀 버그 수정, 대시보드 미수금 라벨 임시 변경, 고객사 납품용 HTML 사용 설명서 제작(실제 화면 캡처 18장 포함) + 사이드바 링크 추가, 프로덕션에 장비 23종 신규 등록 + 2종 견적자산 보강.",
       "tags": [
         "bugfix",
