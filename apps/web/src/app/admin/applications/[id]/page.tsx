@@ -122,30 +122,36 @@ export default async function ApplicationDetailPage({
   let includedNames: string[]; // 포함 옵션 이름
   let matched: (MatchableEquipmentWithOptions | null)[];
 
+  // 포함옵션 소계(가격) — 장비 최종가에 합산. 화면엔 이름만 표시(가격은 견적서 미표기, PDF와 일관).
+  let includedSubtotal = 0;
   if (quote) {
     // 발행/임시 견적 — 저장된 줄을 그대로. 포함옵션은 quote.options(kind=included) 스냅샷에서.
     items = parseQuoteLines(quote.items);
     const allOptions = parseQuoteLines(quote.options);
-    optionRows = allOptions.filter((o) => o.kind !== "included");
-    includedNames = allOptions.filter((o) => o.kind === "included").map((o) => o.name);
+    optionRows = allOptions.filter((o) => o.kind === "extra"); // 구 견적 추가옵션(호환)
+    const includedOpts = allOptions.filter((o) => o.kind === "included");
+    includedNames = includedOpts.map((o) => o.name);
+    includedSubtotal = includedOpts.reduce((s, o) => s + o.unitPrice * o.quantity, 0);
     matched = items.map((it) => matchEquipmentName(it.name, catalog));
   } else {
     // 미발행 — 요청 장비(equipment_id 우선, 없으면 equipment_name 매칭) 1줄을 기본공급가로 미리보기.
-    // 포함옵션은 요청 장비의 카탈로그 포함옵션에서(아직 견적 미저장이라 라이브).
+    // 포함옵션은 요청 장비의 카탈로그 옵션 전부(가격 포함 — 빌더와 동일하게 전부 포함옵션).
     const reqEq =
       (typeof r.equipment_id === "string" ? catalog.find((e) => e.id === r.equipment_id) : undefined) ??
       (fields.equipment_name ? matchEquipmentName(fields.equipment_name, catalog) : null) ??
       null;
     items = reqEq ? [{ name: reqEq.name, unitPrice: reqEq.basePrice, quantity: 1 }] : [];
     optionRows = [];
-    includedNames = reqEq ? reqEq.options.filter((o) => o.kind === "included").map((o) => o.name) : [];
+    includedNames = reqEq ? reqEq.options.map((o) => o.name) : [];
+    includedSubtotal = reqEq ? reqEq.options.reduce((s, o) => s + Number(o.price || 0), 0) : 0;
     matched = reqEq ? [reqEq] : [];
   }
   // 중복 제거 후 표시용 {name}
   const includedDisplay = Array.from(new Set(includedNames)).map((name) => ({ name }));
 
-  // 소계 헬퍼 — 인라인 계산(DB·RPC 값과 별개, 화면 표시전용)
-  const equipmentSubtotal = items.reduce((s, r) => s + r.unitPrice * r.quantity, 0);
+  // 소계 헬퍼 — 인라인 계산(DB·RPC 값과 별개, 화면 표시전용).
+  // 장비 소계 = 기본가 + 포함옵션(장비 최종가). 옵션 소계 = 구 추가옵션(호환).
+  const equipmentSubtotal = items.reduce((s, r) => s + r.unitPrice * r.quantity, 0) + includedSubtotal;
   const optionSubtotal = optionRows.reduce((s, r) => s + r.unitPrice * r.quantity, 0);
   // 표시 합계 = 공급가(VAT 별도). 부가세는 화면에 따로 표시하지 않음(견적서 특기사항의 'VAT 별도' 안내로 갈음).
   const displayTotal = quote ? quote.supply_price : String(equipmentSubtotal + optionSubtotal);

@@ -1,5 +1,53 @@
 import { describe, expect, test } from "vitest";
-import { renderQuoteHtml, type QuoteHtmlData } from "./quote-html";
+import { buildItemTable, renderQuoteHtml, type QuoteHtmlData } from "./quote-html";
+
+describe("buildItemTable — 포함옵션 금액을 장비 줄에 흡수", () => {
+  test("장비 단가=기본가+포함옵션, 포함옵션 줄은 이름만(금액 없음)", () => {
+    const { htmlItems, includedOptions } = buildItemTable(
+      [{ name: "UV3300S", unitPrice: 50_000_000, quantity: 1, equipmentId: "uv" }],
+      [{ name: "집진 장치", unitPrice: 800_000, quantity: 1, kind: "included", equipmentId: "uv" }],
+    );
+    expect(htmlItems[0].amount).toBe(50_800_000); // 기본가 + 포함옵션
+    expect(htmlItems[0].unitPrice).toBe(50_800_000); // 최종 단가 = 공급가/수량
+    expect(includedOptions).toEqual([{ name: "집진 장치", qtyLabel: "1ea" }]); // 이름만
+  });
+  test("수량 2 — (기본가+포함옵션)×2, 단가는 최종 단가", () => {
+    const { htmlItems } = buildItemTable(
+      [{ name: "UV", unitPrice: 50_000_000, quantity: 2, equipmentId: "uv" }],
+      [{ name: "집진", unitPrice: 800_000, quantity: 2, kind: "included", equipmentId: "uv" }],
+    );
+    expect(htmlItems[0].amount).toBe(101_600_000); // (50,000,000+800,000)×2
+    expect(htmlItems[0].unitPrice).toBe(50_800_000);
+  });
+  test("여러 장비 — 각 장비에 자기 포함옵션만 흡수", () => {
+    const { htmlItems } = buildItemTable(
+      [
+        { name: "A", unitPrice: 10_000_000, quantity: 1, equipmentId: "a" },
+        { name: "B", unitPrice: 20_000_000, quantity: 1, equipmentId: "b" },
+      ],
+      [
+        { name: "옵A", unitPrice: 500_000, quantity: 1, kind: "included", equipmentId: "a" },
+        { name: "옵B", unitPrice: 300_000, quantity: 1, kind: "included", equipmentId: "b" },
+      ],
+    );
+    expect(htmlItems[0].amount).toBe(10_500_000);
+    expect(htmlItems[1].amount).toBe(20_300_000);
+  });
+  test("추가옵션(구 견적)은 별도 금액 줄로 유지", () => {
+    const { extraOptions } = buildItemTable(
+      [{ name: "장비", unitPrice: 1, quantity: 1 }],
+      [{ name: "추가 헤드", unitPrice: 1_000_000, quantity: 2, kind: "extra" }],
+    );
+    expect(extraOptions).toEqual([{ name: "추가 헤드", qtyLabel: "2ea", unitPrice: 1_000_000, amount: 2_000_000, remark: undefined }]);
+  });
+  test("equipmentId 없는 구 포함옵션(가격 0)은 첫 장비에 흡수(합계 보존)", () => {
+    const { htmlItems } = buildItemTable(
+      [{ name: "장비", unitPrice: 5_000_000, quantity: 1 }],
+      [{ name: "옛 포함옵션", unitPrice: 0, quantity: 1, kind: "included" }],
+    );
+    expect(htmlItems[0].amount).toBe(5_000_000);
+  });
+});
 
 const base: QuoteHtmlData = {
   quoteNo: "JHQ-20260607-001-V1",
@@ -43,15 +91,16 @@ describe("renderQuoteHtml", () => {
     expect(html).toContain("data:image/png;base64,NAME");  // 좌하단 장비 네임
     expect(html).toContain("MULTICUT ECO SG1625 Digital Cutter"); // 상단 모델명
   });
-  test("포함옵션은 '포함'으로, 추가옵션은 금액으로 렌더", () => {
+  test("포함옵션은 이름만(단가/공급가 빈칸), 추가옵션은 금액으로 렌더", () => {
     const html = renderQuoteHtml({
       ...base,
+      includedOptions: [{ name: "자동 급지", qtyLabel: "1ea" }],
       extraOptions: [{ name: "추가 헤드", qtyLabel: "2ea", unitPrice: 1_000_000, amount: 2_000_000 }],
     });
-    expect(html).toContain("기본 3헤드(라우터 기본 포함)");
-    expect(html).toMatch(/포함/);
+    expect(html).toContain("자동 급지"); // 포함옵션 이름은 표시
+    expect(html).not.toContain('class="num">포함'); // 단가/공급가 칸에 '포함' 텍스트 없음(빈칸)
     expect(html).toContain("추가 헤드");
-    expect(html).toContain("2,000,000");
+    expect(html).toContain("2,000,000"); // 추가옵션 금액은 표시
   });
   test("항목 비고는 '비 고' 칸에 출력 — 장비·추가옵션 줄 모두", () => {
     const html = renderQuoteHtml({

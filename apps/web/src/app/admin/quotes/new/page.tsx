@@ -46,7 +46,8 @@ export default async function NewManualQuotePage({
 
   const catalog: QuoteCatalogItem[] = (await listEquipmentForMatch()).map((e) => ({
     id: e.id, name: e.name, model: e.model, basePrice: e.basePrice, category: e.category,
-    options: e.options.map((o) => ({ kind: o.kind, name: o.name })),
+    // 장비 옵션은 전부 포함옵션(이름+가격). 구 'extra'도 포함으로 흡수.
+    options: e.options.map((o) => ({ name: o.name, price: Number(o.price) })),
     specs: e.specs,
   }));
 
