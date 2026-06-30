@@ -12,6 +12,7 @@ function make(over: Partial<ReleaseHtmlData> = {}): ReleaseHtmlData {
     contactPhone: "010-1234-5678",
     installAddress: "서울 금천구 1",
     installAtLabel: "2026-07-01 13:30",
+    assigneeName: "박영업",
     issuedDateLabel: "2026년 6월 17일",
     deviceKind: "printer",
     details: ReleaseOrderDetailsSchema.parse({
@@ -25,21 +26,26 @@ function make(over: Partial<ReleaseHtmlData> = {}): ReleaseHtmlData {
 }
 
 describe("renderReleaseHtml", () => {
-  it("헤더·고객정보 자동채움값 포함", () => {
+  it("헤더·고객정보값 + 영업담당자 포함", () => {
     const html = renderReleaseHtml(make());
     expect(html).toContain("장비출고의뢰서");
     expect(html).toContain("REL-20260617-00042");
     expect(html).toContain("애드넷");
     expect(html).toContain("JU-9060");
     expect(html).toContain("2026-07-01 13:30");
+    // 영업담당자 — 고객정보 제목 우측
+    expect(html).toMatch(/영업담당자[\s\S]*박영업/);
   });
 
-  it("두 패널 모두 렌더 — 프린터 선택 시 프린터 active·커팅기 inactive", () => {
+  it("영업담당자 미지정 시 '미배정' 표기", () => {
+    const html = renderReleaseHtml(make({ assigneeName: "" }));
+    expect(html).toMatch(/영업담당자[\s\S]*미배정/);
+  });
+
+  it("선택 장비만 상세 표 + 미선택 장비는 소제목으로만 표시", () => {
     const html = renderReleaseHtml(make({ deviceKind: "printer" }));
-    expect(html).toContain("프린터");
-    expect(html).toContain("커팅기"); // 미선택 패널도 종이 양식대로 표시
-    // 선택 장비 패널이 active(선택됨), 고정 체크박스 항목·선택 체크 렌더
-    expect(html).toMatch(/panel active[\s\S]*프린터[\s\S]*선택됨/);
+    expect(html).toContain("프린터 · 선택됨");
+    expect(html).toContain("커팅기 · 미선택"); // 미선택은 소제목만
     expect(html).toContain("토파즈");
     expect(html).toContain("CMYK");
     expect(html).toContain("화이트(W)");
@@ -48,6 +54,12 @@ describe("renderReleaseHtml", () => {
     // 추가 옵션 '기타'(RIP)·'프라이머'(칼라)도 칩으로 노출
     expect(html).toContain("기타");
     expect(html).toContain("프라이머");
+  });
+
+  it("민트 자동채움 흔적 제거 — 안내문·자동/설문 배지 없음", () => {
+    const html = renderReleaseHtml(make());
+    expect(html).not.toContain("자동으로 채워진");
+    expect(html).not.toContain("설문 연동");
   });
 
   it("RIP '기타' 선택 시 직접입력값 출력, 칼라 직접입력값 출력", () => {
@@ -73,14 +85,15 @@ describe("renderReleaseHtml", () => {
     expect(html).not.toContain("안나옴값");
   });
 
-  it("커팅기 선택 시 커팅기 패널 active + 선택 툴 체크", () => {
+  it("커팅기 선택 시 커팅기 상세 표 + 선택 툴 체크", () => {
     const html = renderReleaseHtml(
       make({
         deviceKind: "cutter",
         details: ReleaseOrderDetailsSchema.parse({ cutter: { tools: ["기본툴", "RCT(로터리)"], camera: ["내장형"] } }),
       }),
     );
-    expect(html).toMatch(/panel active[\s\S]*커팅기[\s\S]*선택됨/);
+    expect(html).toContain("커팅기 · 선택됨");
+    expect(html).toContain("프린터 · 미선택");
     expect(html).toContain("기본툴");
     expect(html).toContain("RCT(로터리)");
     expect(html).toContain("내장형");
@@ -95,14 +108,15 @@ describe("renderReleaseHtml", () => {
     expect(html).toMatch(/chk on[\s\S]*윙바디/);
   });
 
-  it("메모/특이사항 — 있으면 섹션·내용(줄바꿈→br) 렌더, 없으면 섹션 미출력", () => {
+  it("메모/특이사항 — 항상 섹션 표시(빈 칸 유지), 있으면 내용·줄바꿈→br 렌더", () => {
     const withMemo = renderReleaseHtml(
       make({ details: ReleaseOrderDetailsSchema.parse({ memo: "분해 입고 필요\n사다리차 예약" }) }),
     );
-    expect(withMemo).toContain("메모/특이사항");
+    expect(withMemo).toContain("메모 / 특이사항");
     expect(withMemo).toContain("분해 입고 필요");
     expect(withMemo).toContain("<br>"); // 줄바꿈 보존
-    expect(renderReleaseHtml(make())).not.toContain("메모/특이사항"); // 메모 없으면 미출력
+    // 메모 없어도 섹션(작성 공간)은 항상 표시
+    expect(renderReleaseHtml(make())).toContain("메모 / 특이사항");
   });
 
   it("폰트 data-URI를 @font-face에 임베드", () => {

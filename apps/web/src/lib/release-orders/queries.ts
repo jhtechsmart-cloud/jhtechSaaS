@@ -86,7 +86,7 @@ export async function loadReleaseOrderForForm(applicationId: string): Promise<Re
   // 모든 버전(최신순). 최신 버전 = 편집 대상, 나머지는 이력.
   const { data: rows } = await supabase
     .from("release_orders")
-    .select("id, version, status, device_kind, details, pdf_url, company, contact_phone, install_address, issued_at, created_at")
+    .select("id, version, status, device_kind, details, pdf_url, company, contact_phone, install_address, install_at, device_name, issued_at, created_at")
     .eq("application_id", applicationId)
     .order("version", { ascending: false });
   const allRows = (rows ?? []) as {
@@ -99,6 +99,8 @@ export async function loadReleaseOrderForForm(applicationId: string): Promise<Re
     company: string | null;
     contact_phone: string | null;
     install_address: string | null;
+    install_at: string | null;
+    device_name: string | null;
     issued_at: string | null;
     created_at: string;
   }[];
@@ -134,14 +136,15 @@ export async function loadReleaseOrderForForm(applicationId: string): Promise<Re
   // 기존 draft가 있으면 저장된 details, 없으면 설문 기반 프리필.
   const details = ro ? ReleaseOrderDetailsSchema.parse(ro.details) : prefill.details;
 
-  // 고객정보 프리필 — 기존 출고의뢰서에 저장된(편집된) 값 우선, 없으면 application 기반 프리필.
+  // 프리필 — 기존 출고의뢰서에 저장된(편집된) 값 우선, 없으면 견적/application 기반 프리필.
+  // 장비명·설치일시도 이제 출고의뢰서가 보존하는 편집 가능 값(견적은 최초 진입 폴백).
   return {
     applicationId,
     company: ro?.company ?? prefill.company,
     contactPhone: ro?.contact_phone ?? prefill.contact_phone,
     installAddress: ro?.install_address ?? prefill.install_address,
-    deviceName: prefill.device_name,
-    installAt: prefill.install_at,
+    deviceName: ro?.device_name ?? prefill.device_name,
+    installAt: ro?.install_at ?? prefill.install_at,
     hasIssuedQuote: !!quote,
     releaseOrder: ro ? { id: ro.id, status: ro.status, version: ro.version } : null,
     pdfReady: !!ro && ro.status === "issued" && !!ro.pdf_url,

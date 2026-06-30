@@ -2,7 +2,6 @@ import Link from "next/link";
 import { VALID_DAYS } from "@/lib/quotes/banner";
 import type { LastSend } from "@/lib/quotes/last-send";
 import { QuotePdfButton } from "./QuotePdfButton";
-import { DeliverySchedule } from "./DeliverySchedule";
 import { SendQuoteEmailModal } from "./SendQuoteEmailModal";
 
 const won = (s: string | number) => `₩${Number(s).toLocaleString("ko-KR")}`;
@@ -12,7 +11,7 @@ type LineRow = { name: string; unitPrice: number; quantity: number };
 export function QuoteSummaryPanel({
   applicationId, quoteId, quoteNo, statusLabel, equipmentSubtotal, optionSubtotal, items, options, total,
   issuedAtLabel, validUntilLabel, assigneeName, email, phone, pdfReady, canReissue, preview, canWrite,
-  isIssued, deliveryDate, deliveryTime, canEmail, emailStatus, lastSend, companyName,
+  isIssued, canEmail, emailStatus, lastSend, companyName,
   canReleaseOrder, hasIssuedQuote,
 }: {
   applicationId: string; quoteId: string | null; quoteNo: string | null; statusLabel: string;
@@ -21,8 +20,7 @@ export function QuoteSummaryPanel({
   email: string | null; phone: string | null; pdfReady: boolean; canReissue: boolean;
   preview?: boolean; // 미발행 — 예상치 + '견적 작성' 유도
   canWrite?: boolean; // quotes.write — 견적 작성 버튼 노출
-  isIssued?: boolean; // 납품 일정 입력 활성 조건(발행 견적만)
-  deliveryDate?: string | null; deliveryTime?: string | null;
+  isIssued?: boolean; // 발행 견적 여부(PDF 버튼 활성 조건)
   canEmail?: boolean; // email.send — 메일 발송 버튼 노출
   emailStatus?: string | null; // 현재 견적의 최신 발송 상태(sent/sending/pending/failed/null)
   lastSend?: LastSend | null; // 직전 발송 정보(재발송 모달 안내용)
@@ -109,15 +107,6 @@ export function QuoteSummaryPanel({
           <Meta label="유효기간" value={validUntilLabel ? `${validUntilLabel} (${VALID_DAYS}일)` : "발행 시 시작"} />
           <Meta label="담당자" value={assigneeName ?? "미배정"} />
         </div>
-        {quoteId && !preview && (
-          <DeliverySchedule
-            quoteId={quoteId}
-            issued={!!isIssued}
-            initialDate={deliveryDate ?? null}
-            initialTime={deliveryTime ?? null}
-            canWrite={!!canWrite}
-          />
-        )}
         <div className="mt-3 border-t border-border pt-3 text-small">
           <div className="mb-1 text-micro text-muted">발송 정보</div>
           <Meta label="이메일" value={email ?? "-"} />

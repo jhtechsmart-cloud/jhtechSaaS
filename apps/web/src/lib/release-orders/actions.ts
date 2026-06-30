@@ -9,8 +9,16 @@ import { requireReleaseOrdersWrite } from "@/lib/auth/guard";
 export type ReleaseOrderSaveResult = { error: string } | { id: string; notice?: string };
 export type ReleaseOrderActionResult = { error: string } | null;
 
-// 출고의뢰서에서 편집한 고객정보(회사·연락처·설치주소).
-export type ReleaseOrderCustomer = { company: string; contactPhone: string; installAddress: string };
+// 출고의뢰서에서 편집한 입력값 — 고객정보(회사·연락처·설치주소) + 장비명·설치일시.
+// 장비명·설치일시는 과거 견적에서 서버가 강제했으나 이제 담당자가 직접 수정한다.
+export type ReleaseOrderFields = {
+  company: string;
+  contactPhone: string;
+  installAddress: string;
+  deviceName: string;
+  installDate: string | null; // 'YYYY-MM-DD' (없으면 미정)
+  installTime: string | null; // 'HH:mm' (없으면 자정 처리)
+};
 
 // 출고의뢰서 PDF 준비 여부(폴링용) — 발행 직후 워커가 비동기로 PDF를 만들므로
 // pdf_url이 생길 때까지 폼이 폴링해 다운로드 버튼을 활성화한다. 의뢰 1:1이라 application id로 조회.
@@ -54,14 +62,14 @@ function raisedMessage(error: { code?: string; message?: string }, fallback: str
   return raised ? (error.message || fallback).slice(0, 200) : fallback;
 }
 
-// 출고의뢰서 임시저장(작성/갱신) — release_orders.write 필요. 스냅샷(회사·장비명·설치일 등)은
-// 서버 RPC가 application/발행견적에서 채운다(클라 미신뢰). 여기선 device_kind·details만 전달.
+// 출고의뢰서 임시저장(작성/갱신) — release_orders.write 필요. 회사·장비명·설치일시 등
+// 모든 항목을 담당자가 직접 편집하며, 빈 값은 RPC가 의뢰/견적에서 폴백한다(클라 미신뢰).
 // ⚠️ Server Action은 직접 POST로도 도달 가능 → 가드를 액션에서도 재호출.
 export async function saveReleaseOrderAction(
   applicationId: string,
   deviceKind: "printer" | "cutter",
   details: unknown,
-  customer: ReleaseOrderCustomer,
+  fields: ReleaseOrderFields,
   reflectToCustomer = false,
 ): Promise<ReleaseOrderSaveResult> {
   const access = await requireReleaseOrdersWrite();
@@ -70,25 +78,33 @@ export async function saveReleaseOrderAction(
   if (deviceKind !== "printer" && deviceKind !== "cutter") return { error: "장비 구분을 선택하세요." };
   const parsed = ReleaseOrderDetailsSchema.safeParse(details);
   if (!parsed.success) return { error: "입력값을 확인하세요." };
-  // 고객정보 경계 검증(회사명 필수, 길이 상한 — RPC가 한 번 더 폴백·left()로 강제).
-  const custParsed = z
+  // 입력값 경계 검증(회사명 필수·길이 상한·날짜시각 형식 — RPC가 한 번 더 폴백·left()로 강제).
+  const fieldsParsed = z
     .object({
       company: z.string().trim().min(1, "회사/고객명을 입력하세요.").max(200, "회사명은 200자 이내"),
       contactPhone: z.string().trim().max(50, "연락처는 50자 이내").default(""),
       installAddress: z.string().trim().max(1000, "주소는 1000자 이내").default(""),
+      deviceName: z.string().trim().max(200, "장비명은 200자 이내").default(""),
+      installDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "설치일 형식을 확인하세요.").nullable().default(null),
+      installTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "설치 시각 형식을 확인하세요.").nullable().default(null),
     })
-    .safeParse(customer);
-  if (!custParsed.success) return { error: custParsed.error.issues[0]?.message ?? "고객정보를 확인하세요." };
-  const cust = custParsed.data;
+    .safeParse(fields);
+  if (!fieldsParsed.success) return { error: fieldsParsed.error.issues[0]?.message ?? "입력값을 확인하세요." };
+  const f = fieldsParsed.data;
+  // 날짜 없이 시각만 있는 입력은 무의미 → 시각 무시.
+  const installTime = f.installDate ? f.installTime : null;
 
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.rpc("upsert_release_order", {
     p_application_id: applicationId,
     p_device_kind: deviceKind,
     p_details: parsed.data,
-    p_company: cust.company,
-    p_contact_phone: cust.contactPhone,
-    p_install_address: cust.installAddress,
+    p_company: f.company,
+    p_contact_phone: f.contactPhone,
+    p_install_address: f.installAddress,
+    p_device_name: f.deviceName,
+    p_install_date: f.installDate,
+    p_install_time: installTime,
   });
   if (error) {
     console.error("[release-orders.save] RPC 실패", error);
@@ -112,7 +128,7 @@ export async function saveReleaseOrderAction(
     }
     const { error: upErr } = await supabase
       .from("companies")
-      .update({ name: cust.company, phone: cust.contactPhone || null, address: cust.installAddress || null })
+      .update({ name: f.company, phone: f.contactPhone || null, address: f.installAddress || null })
       .eq("id", companyId);
     if (upErr) {
       console.error("[release-orders.reflectCustomer] 고객 반영 실패", upErr);

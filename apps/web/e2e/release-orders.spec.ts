@@ -95,10 +95,11 @@ test.describe.serial("출고의뢰서 작성 E2E", () => {
     await page.getByTestId("release-order-link").click();
     await page.waitForURL(/\/release-order$/, { timeout: 20_000 });
 
-    // 2) 자동채움 확인(제목 회사명·장비명·설치일)
+    // 2) 자동채움 확인(제목 회사명 + 편집 가능 입력칸에 장비명·설치일시 프리필)
     await expect(page.getByRole("heading", { level: 1 })).toContainText(APP_CO);
-    await expect(page.getByText("UV3300S")).toBeVisible();
-    await expect(page.getByText("2026-07-01 13:30")).toBeVisible();
+    await expect(page.getByLabel("장비명")).toHaveValue("UV3300S");
+    await expect(page.getByLabel("설치일")).toHaveValue("2026-07-01");
+    await expect(page.getByLabel("설치 시각")).toHaveValue("13:30");
 
     // 3) 프린터 칼라 체크박스 토글
     await page.getByRole("button", { name: "CMYK" }).click();

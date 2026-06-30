@@ -25,12 +25,16 @@ export async function processReleasePdfJob(
   const { data: ro, error } = await supabase
     .from("release_orders")
     .select(
-      "seq_no, version, company, device_name, contact_phone, install_address, install_at, issued_at, device_kind, details",
+      "seq_no, version, company, device_name, contact_phone, install_address, install_at, issued_at, device_kind, details, applications:application_id(profiles:assignee_id(name))",
     )
     .eq("id", id)
     .single();
   if (error || !ro) throw new Error(`출고의뢰서 조회 실패: ${error?.message ?? "없음"}`);
   const r = ro as Record<string, unknown>;
+
+  // 영업담당자 = 의뢰 배정자(applications.assignee → profiles.name). 미배정이면 빈 문자열.
+  const app = r.applications as { profiles?: { name?: string | null } | null } | null;
+  const assigneeName = app?.profiles?.name ?? "";
 
   const data: ReleaseHtmlData = {
     seqNo: (r.seq_no as string) ?? "",
@@ -40,6 +44,7 @@ export async function processReleasePdfJob(
     contactPhone: (r.contact_phone as string | null) ?? "",
     installAddress: (r.install_address as string | null) ?? "",
     installAtLabel: fmtInstallAt(r.install_at as string | null),
+    assigneeName,
     issuedDateLabel: (typeof r.issued_at === "string" ? formatKstKoreanDate(r.issued_at) : "") ?? "",
     deviceKind: r.device_kind === "cutter" ? "cutter" : "printer",
     details: ReleaseOrderDetailsSchema.parse(r.details),

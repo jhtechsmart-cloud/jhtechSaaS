@@ -7,7 +7,6 @@ export interface UnpaidQuoteLite {
   version: number;
   status: string; // 'draft' | 'issued'
   supply_price: number | string;
-  delivery_date: string | null;
 }
 
 export interface UnpaidAppRow {
@@ -16,6 +15,8 @@ export interface UnpaidAppRow {
   company: string;
   status: ApplicationStatus; // 'delivered' | 'collecting'
   assigneeName: string | null;
+  // 납품일 = 발행 출고의뢰서의 의뢰별 최신 설치일시(KST 'YYYY-MM-DD', 없으면 null).
+  deliveryDate: string | null;
   quotes: UnpaidQuoteLite[];
 }
 
@@ -48,7 +49,7 @@ export function buildUnpaidSummary(rows: ReadonlyArray<UnpaidAppRow>): UnpaidSum
       status: r.status,
       assigneeName: r.assigneeName,
       amount: rep ? Number(rep.supply_price) : 0,
-      deliveryDate: rep?.delivery_date ?? null,
+      deliveryDate: r.deliveryDate,
     };
   });
   items.sort((a, b) => b.amount - a.amount);
