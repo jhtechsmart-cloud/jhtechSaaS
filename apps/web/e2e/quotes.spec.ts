@@ -71,7 +71,7 @@ test.describe.serial("E5 견적 작성 폼 E2E", () => {
     await page.getByLabel("장비 수량").fill("1");
 
     // 3) 추가 옵션 입력(별도 과금 — 포함옵션과 별개)
-    await page.getByRole("button", { name: "+ 추가 옵션" }).click();
+    await page.getByRole("button", { name: "+ 항목 직접 추가" }).click();
     await page.getByLabel("추가 옵션 이름").fill("프린트헤드");
     await page.getByLabel("추가 옵션 단가").fill("2500000");
     await page.getByLabel("추가 옵션 수량").fill("2");

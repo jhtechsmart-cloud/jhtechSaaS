@@ -33,6 +33,7 @@ export function QuoteForm({
   initialSpecSelection,
   initialNotes,
   contextSlot,
+  salesLog,
 }: {
   applicationId: string;
   catalog: QuoteCatalogItem[];
@@ -41,6 +42,7 @@ export function QuoteForm({
   initialSpecSelection?: string[];
   initialNotes?: string[];
   contextSlot?: ReactNode;
+  salesLog?: ReactNode; // 영업일지 — 우측 합계 박스 아래에 배치
 }) {
   const [items, setItems] = useState<ItemRow[]>(() => buildInitialItemRows(initialItems, initialOptions, catalog));
   // 추가옵션(별도 과금) — 포함옵션과 별개. 재발행이면 저장된 kind=extra 줄 복원.
@@ -109,7 +111,7 @@ export function QuoteForm({
         />
         <QuoteNotesEditor notes={notes} setNotes={setNotes} disabled={pending} />
       </div>
-      <QuoteTotalsAside totals={totals}>
+      <QuoteTotalsAside totals={totals} below={salesLog}>
         {error && <p className="text-small text-danger">{error}</p>}
         <Link href={`/admin/applications/${applicationId}`}
           className="rounded-md border border-border px-4 py-2 text-center text-small font-medium text-muted hover:text-text">취소</Link>

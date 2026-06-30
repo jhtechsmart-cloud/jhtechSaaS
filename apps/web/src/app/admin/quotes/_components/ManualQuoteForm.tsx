@@ -161,11 +161,13 @@ export function ManualQuoteForm({
           disabled={pending}
         />
         <QuoteNotesEditor notes={notes} setNotes={setNotes} disabled={pending} />
-        {/* 영업일지 — 연결 고객이 있을 때만(견적 시 참고). 고객 미연결이면 안내만 노출. */}
-        <SalesLogPanel companyId={companyId} currentUserId={currentUserId} />
       </div>
 
-      <QuoteTotalsAside totals={totals}>
+      <QuoteTotalsAside
+        totals={totals}
+        // 영업일지 — 우측 합계 박스 아래. 연결 고객이 있을 때만 의미(미연결이면 안내만 노출).
+        below={<SalesLogPanel companyId={companyId} currentUserId={currentUserId} />}
+      >
         {error && <p className="text-small text-danger">{error}</p>}
         <button type="button" onClick={() => submit("draft")} disabled={pending}
           className="rounded-md bg-surface-2 px-4 py-2 text-small font-medium text-text disabled:opacity-50">임시저장</button>

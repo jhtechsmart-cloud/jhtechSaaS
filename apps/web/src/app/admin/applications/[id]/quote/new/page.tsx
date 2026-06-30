@@ -54,6 +54,7 @@ export default async function NewQuotePage({
   // 장비 카탈로그(클라 직렬화 안전) — 폼 드롭다운·포함옵션 체크박스용.
   const catalog: QuoteCatalogItem[] = (await listEquipmentForMatch()).map((e) => ({
     id: e.id, name: e.name, model: e.model, basePrice: e.basePrice, category: e.category,
+    image: e.photos[0] ?? null, // 대표 사진(선택 장비 카드 미리보기)
     // 장비 옵션은 전부 포함옵션(이름+가격). 구 'extra'도 포함으로 흡수.
     options: e.options.map((o) => ({ name: o.name, price: Number(o.price) })),
     specs: e.specs,
@@ -106,13 +107,11 @@ export default async function NewQuotePage({
         initialOptions={initialOptions}
         initialSpecSelection={initialSpecSelection}
         initialNotes={initialNotes}
-        contextSlot={
-          <>
-            <ApplicationContext id={id} />
-            {linkedCompanyId && (
-              <SalesLogPanel companyId={linkedCompanyId} currentUserId={access.userId} initialLogs={salesLogs} />
-            )}
-          </>
+        contextSlot={<ApplicationContext id={id} />}
+        salesLog={
+          linkedCompanyId ? (
+            <SalesLogPanel companyId={linkedCompanyId} currentUserId={access.userId} initialLogs={salesLogs} />
+          ) : null
         }
       />
     </section>
