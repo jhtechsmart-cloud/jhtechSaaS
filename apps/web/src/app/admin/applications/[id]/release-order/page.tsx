@@ -2,14 +2,8 @@ import Link from "next/link";
 import { requireReleaseOrdersWrite } from "@/lib/auth/guard";
 import { signOut } from "@/app/login/actions";
 import { loadReleaseOrderForForm } from "@/lib/release-orders/queries";
+import { kstDateOf, kstHmOf } from "@/lib/format/kst";
 import { ReleaseOrderForm } from "../_components/ReleaseOrderForm";
-
-// install_at(오프셋 포함 KST ISO) → 표시용 'YYYY-MM-DD HH:mm'.
-function fmtInstallAt(iso: string | null): string | null {
-  if (!iso) return null;
-  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
-  return m ? `${m[1]}-${m[2]}-${m[3]} ${m[4]}:${m[5]}` : iso;
-}
 
 // 장비출고의뢰서 작성 — release_orders.write 가드 + 프리필 적재 후 폼 렌더.
 export default async function ReleaseOrderPage({ params }: { params: Promise<{ id: string }> }) {
@@ -45,12 +39,14 @@ export default async function ReleaseOrderPage({ params }: { params: Promise<{ i
       <h1 className="text-h1 font-semibold text-text">장비출고의뢰서 — {data.company}</h1>
       <ReleaseOrderForm
         applicationId={id}
-        autofill={{
+        initial={{
           company: data.company,
           deviceName: data.deviceName,
           contactPhone: data.contactPhone,
           installAddress: data.installAddress,
-          installAtLabel: fmtInstallAt(data.installAt),
+          // install_at(KST ISO) → 날짜·시각 입력 초기값. 미정이면 빈칸.
+          installDate: data.installAt ? (kstDateOf(data.installAt) ?? "") : "",
+          installTime: data.installAt ? (kstHmOf(data.installAt) ?? "") : "",
         }}
         hasIssuedQuote={data.hasIssuedQuote}
         initialDeviceKind={data.deviceKind}

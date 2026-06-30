@@ -155,6 +155,39 @@ describe("upsert_release_order — 권한·행스코프·서버 스냅샷·1:1",
     });
   });
 
+  test("장비명·설치일시 직접입력: 클라가 보낸 값을 저장(견적 폴백 덮어씀)", async () => {
+    await inRollbackTx(c, async () => {
+      const { appId } = await seedAppWithIssuedQuote(UID.sales1); // 견적 납품일 2026-07-01 13:30
+      await asUser(c, UID.sales1);
+      const r = await c.query(
+        "select public.upsert_release_order($1,$2,$3::jsonb,$4,$5,$6,$7,$8,$9) as out",
+        [appId, "printer", "{}", null, null, null, "직접장비명", "2026-09-01", "10:30"],
+      );
+      const out = r.rows[0].out as { id: string };
+      await asPostgres(c);
+      const row = await c.query(
+        "select device_name, to_char(install_at at time zone 'Asia/Seoul','YYYY-MM-DD HH24:MI') ts from public.release_orders where id=$1",
+        [out.id],
+      );
+      expect(row.rows[0].device_name).toBe("직접장비명"); // 견적 'UV3300S' 아님
+      expect(row.rows[0].ts).toBe("2026-09-01 10:30"); // 견적 납품일 아님
+    });
+  });
+
+  test("설치일시 빈 값이면 견적 납품일정으로 폴백(하위호환)", async () => {
+    await inRollbackTx(c, async () => {
+      const { appId } = await seedAppWithIssuedQuote(UID.sales1); // 견적 납품일 2026-07-01 13:30
+      await asUser(c, UID.sales1);
+      const out = await upsert(appId, "printer"); // install 인자 없음 → 견적 폴백
+      await asPostgres(c);
+      const row = await c.query(
+        "select to_char(install_at at time zone 'Asia/Seoul','YYYY-MM-DD HH24:MI') ts from public.release_orders where id=$1",
+        [out.id],
+      );
+      expect(row.rows[0].ts).toBe("2026-07-01 13:30");
+    });
+  });
+
   test("고객정보 빈 값이면 application 값으로 폴백", async () => {
     await inRollbackTx(c, async () => {
       const { appId } = await seedAppWithIssuedQuote(UID.sales1);
@@ -362,9 +395,9 @@ describe("issue_release_order — 발행 + PDF 잡 enqueue", () => {
     await asPostgres(c);
     const r = await c.query(
       `select
-         has_function_privilege('anon','public.upsert_release_order(uuid,text,jsonb,text,text,text)','execute') anon_upsert,
+         has_function_privilege('anon','public.upsert_release_order(uuid,text,jsonb,text,text,text,text,text,text)','execute') anon_upsert,
          has_function_privilege('anon','public.issue_release_order(uuid)','execute') anon_issue,
-         has_function_privilege('authenticated','public.upsert_release_order(uuid,text,jsonb,text,text,text)','execute') auth_upsert,
+         has_function_privilege('authenticated','public.upsert_release_order(uuid,text,jsonb,text,text,text,text,text,text)','execute') auth_upsert,
          has_function_privilege('authenticated','public.issue_release_order(uuid)','execute') auth_issue`,
     );
     expect(r.rows[0].anon_upsert).toBe(false);

@@ -14,6 +14,7 @@ async function main() {
     contactPhone: "010-3218-8850",
     installAddress: "서울 금천구 가산디지털1로 19 (대륭테크노타운 18차) 1403호",
     installAtLabel: "2026-07-01 13:30",
+    assigneeName: "박영업",
     issuedDateLabel: "2026년 6월 17일",
     deviceKind: "printer",
     details: ReleaseOrderDetailsSchema.parse({

@@ -5,6 +5,7 @@ import "server-only";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { kstDateOf, kstHmOf } from "@/lib/format/kst";
 import { parseTstzRange, durationMinOf } from "@/lib/demo-reservations/range";
+import { loadLatestDeliveries } from "@/lib/release-orders/deliveries";
 import type { CalendarEvent } from "./v2-logic";
 
 /** 진행 중 견적 — 종결 전 의뢰 건수 + 각 의뢰 최신 견적 합계 금액. */
@@ -43,17 +44,14 @@ export async function weekDemoDelivery(
   weekEnd: string,
 ): Promise<{ demoCount: number; demoMinutes: number; deliveryCount: number }> {
   const supabase = await createSupabaseServerClient();
-  const [demoRes, delRes] = await Promise.all([
+  // 납품 = 발행 출고의뢰서의 의뢰별 최신 설치일시(견적 delivery_date 대체).
+  const [demoRes, deliveries] = await Promise.all([
     supabase
       .from("demo_reservations")
       .select("time_range")
       .overlaps("time_range", `[${weekStart}T00:00:00+09:00,${weekEnd}T00:00:00+09:00)`)
       .neq("status", "canceled"),
-    supabase
-      .from("quotes")
-      .select("id", { count: "exact", head: true })
-      .gte("delivery_date", weekStart)
-      .lt("delivery_date", weekEnd),
+    loadLatestDeliveries(),
   ]);
   if (demoRes.error) throw demoRes.error;
   let demoMinutes = 0;
@@ -61,10 +59,11 @@ export async function weekDemoDelivery(
     const range = parseTstzRange((r as { time_range: string }).time_range);
     if (range) demoMinutes += durationMinOf(range.startIso, range.endIso);
   }
+  const deliveryCount = deliveries.filter((d) => d.dateKst >= weekStart && d.dateKst < weekEnd).length;
   return {
     demoCount: (demoRes.data ?? []).length,
     demoMinutes,
-    deliveryCount: delRes.count ?? 0,
+    deliveryCount,
   };
 }
 
@@ -123,7 +122,7 @@ export async function listCalendarEvents(
   const fromIso = `${fromKst}T00:00:00+09:00`;
   const toIso = `${toKst}T00:00:00+09:00`;
 
-  const [quotesRes, svcRes, supRes, demoRes, delRes] = await Promise.all([
+  const [quotesRes, svcRes, supRes, demoRes, deliveries] = await Promise.all([
     supabase
       .from("quotes")
       .select("id, application_id, issued_at, applications:application_id(company)")
@@ -144,11 +143,8 @@ export async function listCalendarEvents(
       .select("id, customer_name, time_range, equipment:equipment_id(name)")
       .overlaps("time_range", `[${fromIso},${toIso})`)
       .neq("status", "canceled"),
-    supabase
-      .from("quotes")
-      .select("id, application_id, delivery_date, delivery_time, applications:application_id(company)")
-      .gte("delivery_date", fromKst)
-      .lt("delivery_date", toKst),
+    // 납품 = 발행 출고의뢰서의 의뢰별 최신 설치일시(견적 delivery_date 대체).
+    loadLatestDeliveries(),
   ]);
 
   const events: CalendarEvent[] = [];
@@ -209,18 +205,15 @@ export async function listCalendarEvents(
       href: `/admin/demo-reservations?date=${date}`,
     });
   }
-  for (const raw of delRes.data ?? []) {
-    const r = raw as Record<string, unknown>;
-    const date = r.delivery_date as string | null;
-    if (!date) continue;
-    const app = r.applications as { company?: string } | null;
+  for (const d of deliveries) {
+    if (d.dateKst < fromKst || d.dateKst >= toKst) continue;
     events.push({
       type: "delivery",
-      id: `delivery-${r.id as string}`,
-      title: `${app?.company ?? "고객"} 납품`,
-      date,
-      hm: (r.delivery_time as string | null)?.slice(0, 5) ?? null,
-      href: `/admin/applications/${r.application_id as string}?v=${r.id as string}`,
+      id: `delivery-${d.releaseOrderId}`,
+      title: `${d.company ?? "고객"} 납품`,
+      date: d.dateKst,
+      hm: d.hmKst,
+      href: `/admin/applications/${d.applicationId}`,
     });
   }
 

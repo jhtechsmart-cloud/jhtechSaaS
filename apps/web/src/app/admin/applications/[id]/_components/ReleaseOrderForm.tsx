@@ -4,17 +4,19 @@ import type { ReleaseOrderDetails } from "@jhtechsaas/shared";
 import { RELEASE_OPTIONS, normalizeDetailsForKind, toggleArrayValue } from "@/lib/release-orders/form";
 import { getReleaseOrderVersionPdfUrl, issueReleaseOrderAction, saveReleaseOrderAction } from "@/lib/release-orders/actions";
 import type { ReleaseOrderVersion } from "@/lib/release-orders/queries";
+import { formatDateMask, parseDeliveryDate } from "@/lib/quotes/delivery-date";
 import { ReleaseOrderPdfButton } from "./ReleaseOrderPdfButton";
 
 type DeviceKind = "printer" | "cutter";
 
-// 자동채움 표시값(읽기전용) — 저장 시 서버 RPC가 다시 채운다.
-type Autofill = {
+// 폼 초기값 — 견적/의뢰/기존 출고의뢰서에서 채운 값. 모든 항목을 담당자가 직접 수정할 수 있다.
+type Initial = {
   company: string;
   deviceName: string;
   contactPhone: string;
   installAddress: string;
-  installAtLabel: string | null;
+  installDate: string; // 'YYYY-MM-DD' (없으면 빈칸)
+  installTime: string; // 'HH:mm' (없으면 빈칸)
 };
 
 // 체크박스 칩 한 줄.
@@ -67,18 +69,6 @@ function CheckGroup({
   );
 }
 
-// 자동채움 텍스트 필드(민트 배경 + '자동' 배지). 읽기전용.
-function AutoField({ label, value, badge = "자동", full }: { label: string; value: string; badge?: string; full?: boolean }) {
-  return (
-    <div className={full ? "sm:col-span-2" : ""}>
-      <label className="mb-1 block text-micro text-muted">
-        {label} <span className="ml-1 rounded-full bg-mint px-1.5 py-0.5 text-micro font-semibold text-accent">{badge}</span>
-      </label>
-      <div className="w-full rounded-full border border-accent-ring/40 bg-mint px-3 py-2 text-small text-text">{value || "—"}</div>
-    </div>
-  );
-}
-
 // 자유입력 텍스트 필드.
 function TextField({ label, value, onChange, disabled, placeholder }: { label: string; value: string; onChange: (v: string) => void; disabled?: boolean; placeholder?: string }) {
   return (
@@ -109,7 +99,7 @@ function SectionHead({ title, en, right }: { title: string; en?: string; right?:
 
 export function ReleaseOrderForm({
   applicationId,
-  autofill,
+  initial,
   hasIssuedQuote,
   initialDeviceKind,
   initialDetails,
@@ -118,7 +108,7 @@ export function ReleaseOrderForm({
   versions,
 }: {
   applicationId: string;
-  autofill: Autofill;
+  initial: Initial;
   hasIssuedQuote: boolean;
   initialDeviceKind: DeviceKind;
   initialDetails: ReleaseOrderDetails;
@@ -132,18 +122,27 @@ export function ReleaseOrderForm({
   const currentVersion = releaseOrder?.version ?? null;
   const [deviceKind, setDeviceKind] = useState<DeviceKind>(initialDeviceKind);
   const [details, setDetails] = useState<ReleaseOrderDetails>(() => normalizeDetailsForKind(initialDetails, initialDeviceKind));
-  // 편집 가능 고객정보 — 자동채움으로 시작, 담당자가 수정 가능. 저장 시 출고의뢰서에 저장.
-  const [company, setCompany] = useState(autofill.company);
-  const [contactPhone, setContactPhone] = useState(autofill.contactPhone);
-  const [installAddress, setInstallAddress] = useState(autofill.installAddress);
+  // 편집 가능 항목 — 프리필로 시작, 담당자가 모두 직접 수정. 저장 시 출고의뢰서에 보존.
+  const [company, setCompany] = useState(initial.company);
+  const [deviceName, setDeviceName] = useState(initial.deviceName);
+  const [contactPhone, setContactPhone] = useState(initial.contactPhone);
+  const [installAddress, setInstallAddress] = useState(initial.installAddress);
+  // 설치 일시 — 날짜는 한 칸 마스크 입력(YYYY-MM-DD 자동 포맷), 시각은 time 입력.
+  const [installDate, setInstallDate] = useState(formatDateMask(initial.installDate));
+  const [installTime, setInstallTime] = useState(initial.installTime);
   // 체크 시 수정한 고객정보를 고객관리 레코드(연결 고객)에도 반영.
   const [reflectToCustomer, setReflectToCustomer] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
+  // 설치일 검증 — 8자리 다 친 뒤 잘못된 날짜만 에러. 빈 값 허용(미정).
+  const { iso: installDateIso, error: installDateError } = parseDeliveryDate(installDate);
+  const installRawLen = installDate.replace(/\D/g, "").length;
+  const showInstallError = !!installDateError && installRawLen >= 8;
+
   // 발행 전제(I1) 미러 — 견적·설치일 없으면 발행 불가(서버 RPC가 최종 강제).
-  const canIssue = hasIssuedQuote && !!autofill.installAtLabel;
+  const canIssue = hasIssuedQuote && !!installDateIso;
 
   function switchKind(k: DeviceKind) {
     if (locked) return;
@@ -168,7 +167,14 @@ export function ReleaseOrderForm({
       applicationId,
       deviceKind,
       normalized,
-      { company, contactPhone, installAddress },
+      {
+        company,
+        contactPhone,
+        installAddress,
+        deviceName,
+        installDate: installDateIso, // 검증된 ISO(YYYY-MM-DD) 또는 null
+        installTime: installDateIso ? installTime || null : null,
+      },
       reflectToCustomer,
     );
     if ("error" in res) {
@@ -215,15 +221,41 @@ export function ReleaseOrderForm({
       {error && <div className="rounded-xl border border-coral/40 bg-coral-soft px-4 py-3 text-small text-coral-text">{error}</div>}
       {notice && <div className="rounded-xl border border-accent-ring/40 bg-mint px-4 py-3 text-small text-accent-2">{notice}</div>}
 
-      {/* ① 고객정보 — 회사·연락처·주소는 자동채움 후 수정 가능. 장비명·설치일시는 견적 기반(읽기전용). */}
+      {/* ① 고객정보 — 모든 항목 자동채움 후 직접 수정 가능(설치 일시 포함). */}
       <section>
         <SectionHead title="고객정보" en="CUSTOMER INFORMATION" />
-        <p className="mb-2 text-micro text-muted">회사·연락처·설치주소는 자동으로 채워지며 직접 수정할 수 있습니다. 장비명·설치 일시는 견적 기준입니다.</p>
+        <p className="mb-2 text-micro text-muted">견적·의뢰에서 자동으로 채워지며 모든 항목을 직접 수정할 수 있습니다. 설치 일시(납품일)는 여기서 입력합니다.</p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <TextField label="회사/고객명" value={company} onChange={setCompany} disabled={locked} placeholder="회사/고객명" />
-          <AutoField label="장비명" value={autofill.deviceName} />
+          <TextField label="장비명" value={deviceName} onChange={setDeviceName} disabled={locked} placeholder="장비명" />
           <TextField label="전화번호" value={contactPhone} onChange={setContactPhone} disabled={locked} placeholder="연락처" />
-          <AutoField label="설치 일시" value={autofill.installAtLabel ?? ""} badge="견적 납품일정" />
+          {/* 설치 일시 — 날짜 마스크 + 시각(날짜 없으면 시각 비활성). */}
+          <div>
+            <label className="mb-1 block text-micro text-muted">설치 일시 (납품일)</label>
+            <div className="flex items-center gap-1.5">
+              <input
+                type="text"
+                inputMode="numeric"
+                aria-label="설치일"
+                placeholder="YYYY-MM-DD"
+                value={installDate}
+                maxLength={10}
+                onChange={(e) => setInstallDate(formatDateMask(e.target.value))}
+                disabled={locked}
+                className="min-w-0 flex-1 rounded-full border border-border bg-surface px-3 py-2 text-small tabular-nums text-text outline-none focus:border-accent-ring disabled:opacity-50"
+              />
+              <input
+                type="time"
+                aria-label="설치 시각"
+                value={installTime}
+                step={900}
+                onChange={(e) => setInstallTime(e.target.value)}
+                disabled={locked || installDateIso === null}
+                className="w-[7.5rem] shrink-0 rounded-full border border-border bg-surface px-3 py-2 text-small tabular-nums text-text outline-none focus:border-accent-ring disabled:opacity-50"
+              />
+            </div>
+            {showInstallError && <p className="mt-1 text-micro text-coral-text">{installDateError}</p>}
+          </div>
           <div className="sm:col-span-2">
             <TextField label="설치 주소" value={installAddress} onChange={setInstallAddress} disabled={locked} placeholder="설치 주소" />
           </div>
@@ -337,7 +369,7 @@ export function ReleaseOrderForm({
           {notice && <p className="text-small font-semibold text-accent-2" data-testid="release-feedback">{notice}</p>}
           {!canIssue && (
             <p className="text-micro text-muted">
-              {!hasIssuedQuote ? "발행하려면 먼저 견적을 발행해야 합니다." : "발행하려면 견적에 납품일정(설치일)을 입력해야 합니다."}
+              {!hasIssuedQuote ? "발행하려면 먼저 견적을 발행해야 합니다." : "발행하려면 설치 일시(납품일)를 입력해야 합니다."}
             </p>
           )}
           <div className="flex gap-2">

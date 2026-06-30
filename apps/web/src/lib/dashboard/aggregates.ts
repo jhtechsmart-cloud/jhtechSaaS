@@ -7,6 +7,7 @@ import {
 } from "@/lib/application-status";
 import { SERVICE_REQUEST_STATUSES } from "@/lib/service-requests/status";
 import { SUPPLY_REQUEST_STATUSES } from "@/lib/supply-requests/status";
+import { loadLatestDeliveries } from "@/lib/release-orders/deliveries";
 import { buildUnpaidSummary, type UnpaidAppRow, type UnpaidSummary } from "./unpaid";
 
 // 단일 (table,status) 건수. RLS가 가시 범위 제한(영업=본인+미배정 풀, view_all=전체). 에러는 throw —
@@ -49,18 +50,23 @@ export async function unpaidDeliveries(): Promise<UnpaidSummary> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("applications")
-    .select("id,seq_no,company,status,profiles:assignee_id(name),quotes(version,status,supply_price,delivery_date)")
+    .select("id,seq_no,company,status,profiles:assignee_id(name),quotes(version,status,supply_price)")
     .in("status", UNPAID_APPLICATION_STATUSES as unknown as string[]);
   if (error) throw new Error(`[dashboard.unpaidDeliveries] ${error.message}`);
+  // 납품일 = 발행 출고의뢰서의 의뢰별 최신 설치일시(견적 delivery_date 대체).
+  const deliveries = await loadLatestDeliveries();
+  const delMap = new Map(deliveries.map((d) => [d.applicationId, d.dateKst]));
   const rows: UnpaidAppRow[] = (data ?? []).map((r) => {
     const rec = r as Record<string, unknown>;
     const profiles = rec.profiles as { name?: string } | null;
+    const id = rec.id as string;
     return {
-      id: rec.id as string,
+      id,
       seq_no: rec.seq_no as string,
       company: rec.company as string,
       status: rec.status as UnpaidAppRow["status"],
       assigneeName: profiles?.name ?? null,
+      deliveryDate: delMap.get(id) ?? null,
       quotes: ((rec.quotes as UnpaidAppRow["quotes"]) ?? []),
     };
   });

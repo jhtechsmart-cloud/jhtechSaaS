@@ -59,44 +59,6 @@ export async function getQuotePdfUrl(quoteId: string): Promise<string | null> {
   return data?.signedUrl ?? null;
 }
 
-// 납품 일정 저장 — 발행(issued) 견적만. 동결 트리거의 예외 컬럼(견적 내용이 아닌 운영값).
-export async function setQuoteDeliveryAction(
-  quoteId: string,
-  values: { date: string | null; time: string | null },
-): Promise<QuoteActionResult> {
-  const access = await requireQuotesWrite();
-  if (access.status === "forbidden") return { error: "권한이 없습니다." };
-  if (!z.guid().safeParse(quoteId).success) return { error: "잘못된 요청입니다." };
-  const schema = z.object({
-    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(),
-    time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).nullable(),
-  });
-  const parsed = schema.safeParse(values);
-  if (!parsed.success) return { error: "날짜·시간 형식을 확인하세요." };
-  // 시간만 있고 날짜가 없는 입력은 무의미 → 거부
-  if (parsed.data.time && !parsed.data.date) return { error: "납품일을 먼저 선택하세요." };
-
-  const supabase = await createSupabaseServerClient();
-  const { data: quote } = await supabase
-    .from("quotes")
-    .select("status, application_id")
-    .eq("id", quoteId)
-    .single();
-  if (!quote) return { error: "견적을 찾을 수 없습니다." };
-  if (quote.status !== "issued") return { error: "발행된 견적에만 납품 일정을 입력할 수 있습니다." };
-
-  const { error } = await supabase
-    .from("quotes")
-    .update({ delivery_date: parsed.data.date, delivery_time: parsed.data.time })
-    .eq("id", quoteId);
-  if (error) {
-    console.error("[quotes.setDelivery]", error);
-    return { error: "납품 일정 저장에 실패했습니다." };
-  }
-  revalidatePath(`/admin/applications/${quote.application_id}`);
-  return null;
-}
-
 // 견적 메일 발송 요청 — email.send 필요. enqueue_quote_email RPC가 발송자(auth.uid())·
 // issued·pdf_url·hiworks_user_id·중복을 모두 검증하고 email_log+jobs를 원자 생성(워커가 실제 발송).
 // ⚠️ Server Action 직접 POST 대비 가드 재호출. 금액·발송자 등 권위값은 전부 서버 RPC가 통제.

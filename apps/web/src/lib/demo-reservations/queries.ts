@@ -3,6 +3,7 @@
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { addDaysKst, kstDateOf, kstHmOf } from "@/lib/format/kst";
+import { loadLatestDeliveries } from "@/lib/release-orders/deliveries";
 import { durationMinOf, parseTstzRange } from "./range";
 
 export interface DemoReservationRow {
@@ -136,17 +137,17 @@ export async function listDotDaysForMonth(
     month === 12 ? `${year + 1}-01-01` : `${year}-${String(month + 1).padStart(2, "0")}-01`;
   const supabase = await createSupabaseServerClient();
 
-  const [demoRes, deliveryRes] = await Promise.all([
+  const [demoRes, deliveries] = await Promise.all([
     supabase
       .from("demo_reservations")
       .select("time_range")
       .overlaps("time_range", `[${first}T00:00:00+09:00,${nextFirst}T00:00:00+09:00)`)
       .neq("status", "canceled"),
-    supabase
-      .from("quotes")
-      .select("delivery_date")
-      .gte("delivery_date", first)
-      .lt("delivery_date", nextFirst),
+    // 납품 = 발행 출고의뢰서의 의뢰별 최신 설치일시(견적 delivery_date 대체).
+    loadLatestDeliveries().catch((e) => {
+      console.error("[release-orders.deliveryDots]", e);
+      return [];
+    }),
   ]);
 
   const demo = new Set<string>();
@@ -158,10 +159,8 @@ export async function listDotDaysForMonth(
   }
 
   const delivery = new Set<string>();
-  if (deliveryRes.error) console.error("[quotes.deliveryDots]", deliveryRes.error);
-  for (const r of deliveryRes.data ?? []) {
-    const d = (r as { delivery_date: string | null }).delivery_date;
-    if (d) delivery.add(d);
+  for (const d of deliveries) {
+    if (d.dateKst >= first && d.dateKst < nextFirst) delivery.add(d.dateKst);
   }
   return { demo: [...demo], delivery: [...delivery] };
 }
@@ -225,7 +224,7 @@ export async function listUpcomingSchedules(
   limit = 5,
 ): Promise<UpcomingScheduleRow[]> {
   const supabase = await createSupabaseServerClient();
-  const [demoRes, deliveryRes] = await Promise.all([
+  const [demoRes, deliveries] = await Promise.all([
     supabase
       .from("demo_reservations")
       .select("id,customer_name,time_range,demo_reservation_equipment(equipment:equipment_id(name))")
@@ -233,12 +232,11 @@ export async function listUpcomingSchedules(
       .neq("status", "canceled")
       .order("time_range", { ascending: true })
       .limit(limit),
-    supabase
-      .from("quotes")
-      .select("id,quote_no,delivery_date,delivery_time,applications:application_id(id,company)")
-      .gte("delivery_date", todayKstDate)
-      .order("delivery_date", { ascending: true })
-      .limit(limit),
+    // 납품 = 발행 출고의뢰서의 의뢰별 최신 설치일시(견적 delivery_date 대체).
+    loadLatestDeliveries().catch((e) => {
+      console.error("[release-orders.upcomingDelivery]", e);
+      return [];
+    }),
   ]);
 
   const rows: UpcomingScheduleRow[] = [];
@@ -261,21 +259,16 @@ export async function listUpcomingSchedules(
       href: `/admin/demo-reservations?date=${date}`,
     });
   }
-  if (deliveryRes.error) console.error("[quotes.upcomingDelivery]", deliveryRes.error);
-  for (const raw of deliveryRes.data ?? []) {
-    const r = raw as Record<string, unknown>;
-    const date = r.delivery_date as string | null;
-    if (!date) continue;
-    const app = r.applications as { id?: string; company?: string } | null;
-    const time = (r.delivery_time as string | null)?.slice(0, 5) ?? null;
+  for (const d of deliveries) {
+    if (d.dateKst < todayKstDate) continue;
     rows.push({
       kind: "delivery",
-      id: r.id as string,
-      title: `${app?.company ?? "고객"} 납품`,
-      date,
-      start: time,
+      id: d.releaseOrderId,
+      title: `${d.company ?? "고객"} 납품`,
+      date: d.dateKst,
+      start: d.hmKst,
       end: null,
-      href: app?.id ? `/admin/applications/${app.id}?v=${r.id as string}` : "/admin/applications",
+      href: `/admin/applications/${d.applicationId}`,
     });
   }
 
