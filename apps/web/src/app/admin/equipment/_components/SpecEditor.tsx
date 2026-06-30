@@ -4,6 +4,7 @@ import { SPEC_ICONS } from "@jhtechsaas/shared";
 import { SpecGroupIcon } from "@/components/SpecGroupIcon";
 import type { equipmentFormSchema } from "@/lib/equipment/schema";
 import type { z } from "zod";
+import { DeleteButton } from "./Card";
 
 type FormInput = z.input<typeof equipmentFormSchema>;
 
@@ -34,10 +35,10 @@ export function SpecEditor({ control, register }: { control: Control<FormInput>;
                 <select {...register(`specs.${gIndex}.icon`)} className="rounded-sm border border-border bg-surface px-2 py-1 text-body text-text">
                   {SPEC_ICONS.map((ic) => (<option key={ic} value={ic}>{ic}</option>))}
                 </select>
-                <input {...register(`specs.${gIndex}.group`)} placeholder="그룹명 (예: 성능)" className="flex-1 rounded-sm border border-border bg-surface px-2 py-1 text-body text-text" />
+                <input {...register(`specs.${gIndex}.group`)} placeholder="그룹명 (예: 성능)" className="flex-1 rounded-[5px] border border-border bg-surface px-2.5 py-1.5 text-body text-text" />
                 <button type="button" onClick={() => gIndex > 0 && move(gIndex, gIndex - 1)} className="text-muted" aria-label="위로">↑</button>
                 <button type="button" onClick={() => gIndex < fields.length - 1 && move(gIndex, gIndex + 1)} className="text-muted" aria-label="아래로">↓</button>
-                <button type="button" onClick={() => remove(gIndex)} className="text-small text-danger hover:underline">그룹삭제</button>
+                <DeleteButton onClick={() => remove(gIndex)} label="그룹삭제" />
               </div>
               <SpecItems gIndex={gIndex} />
             </li>
@@ -97,9 +98,9 @@ function SpecItemRow({
           />
           <span className="hidden sm:inline">PDF</span>
         </label>
-        <input {...register(`specs.${gIndex}.items.${iIndex}.label`)} placeholder="항목 (예: 속도)" className="w-40 rounded-sm border border-border bg-surface px-2 py-1 text-body text-text" />
-        <input {...register(`specs.${gIndex}.items.${iIndex}.value`)} placeholder="값 (예: 1200매/h)" className="flex-1 rounded-sm border border-border bg-surface px-2 py-1 font-mono text-body text-text" />
-        <button type="button" onClick={onRemove} className="text-small text-danger hover:underline">삭제</button>
+        <input {...register(`specs.${gIndex}.items.${iIndex}.label`)} placeholder="항목 (예: 속도)" className="w-40 rounded-[5px] border border-border bg-surface px-2.5 py-1.5 text-body text-text" />
+        <input {...register(`specs.${gIndex}.items.${iIndex}.value`)} placeholder="값 (예: 1200매/h)" className="flex-1 rounded-[5px] border border-border bg-surface px-2.5 py-1.5 font-mono text-body text-text" />
+        <DeleteButton onClick={onRemove} />
       </div>
       {!canInclude && (
         <p className="pl-1 text-small text-muted">항목 이름과 값을 모두 입력해야 견적서 PDF에 포함됩니다.</p>

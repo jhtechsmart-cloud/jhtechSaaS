@@ -12,7 +12,7 @@ import {
   getModelFontDataUri,
 } from "./assets";
 import { resolveLogoKind, type CategoryLite } from "./logo-kind";
-import type { QuoteHtmlData, QuoteHtmlItem, QuoteHtmlIncluded } from "./quote-html";
+import { buildItemTable, type QuoteHtmlData } from "./quote-html";
 
 type QuoteLine = {
   name: string;
@@ -93,25 +93,8 @@ export async function processQuotePdfJob(
 
   const items = parseLines(q.items);
   const allOptions = parseLines(q.options);
-  const includedOptions: QuoteHtmlIncluded[] = allOptions
-    .filter((o) => o.kind === "included")
-    .map((o) => ({ name: o.name, qtyLabel: `${o.quantity}ea` }));
-  const extraOptions: QuoteHtmlItem[] = allOptions
-    .filter((o) => o.kind !== "included")
-    .map((o) => ({
-      name: o.name,
-      qtyLabel: `${o.quantity}ea`,
-      unitPrice: o.unitPrice,
-      amount: o.unitPrice * o.quantity,
-      remark: o.remark,
-    }));
-  const htmlItems: QuoteHtmlItem[] = items.map((it) => ({
-    name: it.name,
-    qtyLabel: it.quantity === 1 ? "1SET" : `${it.quantity}SET`,
-    unitPrice: it.unitPrice,
-    amount: it.unitPrice * it.quantity,
-    remark: it.remark,
-  }));
+  // 품목표 — 포함옵션 가격을 장비 줄에 흡수(순수 buildItemTable). 포함옵션 줄은 이름만(금액 빈칸).
+  const { htmlItems, includedOptions, extraOptions } = buildItemTable(items, allOptions);
 
   // 2) 장비(사양·로고·장비이미지) 조회 — 우선순위:
   //    ① 견적에서 고른 장비 id(items[0].equipmentId, 견적 수정으로 장비 바꾸면 이게 최신)

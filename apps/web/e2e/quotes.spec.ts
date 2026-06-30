@@ -65,30 +65,24 @@ test.describe.serial("E5 견적 작성 폼 E2E", () => {
     await page.getByRole("link", { name: "견적 작성" }).click();
     await page.waitForURL(/\/quote\/new$/, { timeout: 20_000 });
 
-    // 2) 장비 줄 입력(기본 1줄)
+    // 2) 장비 줄 입력(직접입력, 기본 1줄). 직접입력 장비는 포함옵션 없음.
     await page.getByLabel("장비 이름").fill("UV3300S");
-    await page.getByLabel("장비 단가").fill("50000000");
+    await page.getByLabel("장비 가격").fill("50000000");
     await page.getByLabel("장비 수량").fill("1");
 
-    // 3) 추가 옵션 입력(카탈로그 미선택 = 직접입력 경로, 포함옵션 섹션 없음)
-    await page.getByRole("button", { name: "+ 추가 옵션" }).click();
-    await page.getByLabel("추가 옵션 이름").fill("프린트헤드");
-    await page.getByLabel("추가 옵션 단가").fill("2500000");
-    await page.getByLabel("추가 옵션 수량").fill("2");
+    // 3) 실시간 합계 = 공급가 50,000,000 (VAT 별도 — 부가세는 화면에 표시하지 않음)
+    await expect(page.getByText("50,000,000원").first()).toBeVisible();
 
-    // 4) 실시간 합계 = 공급가 55,000,000 (VAT 별도 — 부가세는 화면에 표시하지 않음)
-    await expect(page.getByText("55,000,000원").first()).toBeVisible();
-
-    // 5) 발행 → 의뢰 상세로 복귀
+    // 4) 발행 → 의뢰 상세로 복귀
     await page.getByRole("button", { name: "발행하기" }).click();
     await page.waitForURL(new RegExp(`/admin/applications/${appId}$`), { timeout: 20_000 });
 
-    // 6) 견적 목록에 노출(발행 배지 + 채번 + 금액) + 의뢰 상태 = 견적발송
+    // 5) 견적 목록에 노출(발행 배지 + 채번 + 금액) + 의뢰 상태 = 견적발송
     // 견적번호·발행 배지·합계가 히어로/처리바 버전칩/요약패널 여러 곳에 노출 → first().
     // (합계는 화면에선 ₩ 표기 — 버전이력 표의 '원' 표기는 '버전정보' 모달 안에 있음.)
     await expect(page.getByText(/^JHQ-\d{8}-\d{3,}-V1$/).first()).toBeVisible();
     await expect(page.getByText("발행", { exact: true }).first()).toBeVisible();
-    await expect(page.getByText("₩55,000,000").first()).toBeVisible();
+    await expect(page.getByText("₩50,000,000").first()).toBeVisible();
     await expect(page.getByTestId("app-status")).toHaveText("견적발송"); // 발행 → 의뢰 상태 자동 전이
 
     // 7) 🔧 회귀 — 좌측 2분할 목록의 해당 의뢰 행 배지도 새 상태(견적발송)로 갱신돼야 한다.
@@ -125,7 +119,7 @@ test.describe.serial("E5 수기 견적 E2E", () => {
     // 2) 회사명 + 장비
     await page.getByLabel("회사명").fill(MANUAL_CO);
     await page.getByLabel("장비 이름").fill("UV5000");
-    await page.getByLabel("장비 단가").fill("30000000");
+    await page.getByLabel("장비 가격").fill("30000000");
     await page.getByLabel("장비 수량").fill("1");
     await expect(page.getByText("30,000,000원").first()).toBeVisible(); // 합계 = 공급가 30M(VAT 별도)
 
@@ -168,7 +162,7 @@ test.describe.serial("E5 견적 상세+재발행 E2E", () => {
     // V1 발행
     await page.goto(`/admin/applications/${reAppId}/quote/new`);
     await page.getByLabel("장비 이름").fill("UV3300S");
-    await page.getByLabel("장비 단가").fill("50000000");
+    await page.getByLabel("장비 가격").fill("50000000");
     await page.getByLabel("장비 수량").fill("1");
     await page.getByRole("button", { name: "발행하기" }).click();
     await page.waitForURL(new RegExp(`/admin/applications/${reAppId}$`), { timeout: 20_000 });
@@ -181,7 +175,7 @@ test.describe.serial("E5 견적 상세+재발행 E2E", () => {
     await page.getByRole("link", { name: "수정" }).first().click();
     await page.waitForURL(/\/quote\/new\?from=/, { timeout: 20_000 });
     // 프리필 확인 — 단가는 직접입력/카탈로그선택 모드 무관하게 채워짐(장비명은 모드별로 input/select라 단가로 검증).
-    await expect(page.getByLabel("장비 단가")).toHaveValue("50000000");
+    await expect(page.getByLabel("장비 가격")).toHaveValue("50000000");
 
     // 수정(수량 2) 후 발행 → V2
     await page.getByLabel("장비 수량").fill("2");

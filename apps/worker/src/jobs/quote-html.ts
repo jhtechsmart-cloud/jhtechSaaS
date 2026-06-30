@@ -33,14 +33,64 @@ export type QuoteHtmlData = {
 const won = (n: number) => `₩${Math.round(n).toLocaleString("ko-KR")}`;
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 
+// 견적 줄(품목·옵션)의 최소 형태.
+export type QuoteLineLite = { name: string; unitPrice: number; quantity: number; kind?: "included" | "extra"; equipmentId?: string; remark?: string };
+
+// 품목표 행 구성(순수) — 포함옵션 가격을 같은 장비(equipmentId) 줄에 흡수한다.
+//   · 장비 줄 단가 = 기본가 + 포함옵션 합 = 공급가/수량(최종 단가). 공급가 = Σ(기본가+포함옵션)×수량과 일치.
+//   · 포함옵션 줄 = 이름만(단가/공급가 빈칸). 추가옵션(구 견적)은 금액 그대로.
+//   · equipmentId 없는 구 포함옵션(가격 0)은 첫 장비에 흡수. 같은 equipmentId 중복은 1회만 흡수.
+export function buildItemTable(items: QuoteLineLite[], options: QuoteLineLite[]): {
+  htmlItems: QuoteHtmlItem[];
+  includedOptions: QuoteHtmlIncluded[];
+  extraOptions: QuoteHtmlItem[];
+} {
+  const included = options.filter((o) => o.kind === "included");
+  const includedOptions: QuoteHtmlIncluded[] = included.map((o) => ({ name: o.name, qtyLabel: `${o.quantity}ea` }));
+  const extraOptions: QuoteHtmlItem[] = options
+    .filter((o) => o.kind === "extra")
+    .map((o) => ({ name: o.name, qtyLabel: `${o.quantity}ea`, unitPrice: o.unitPrice, amount: o.unitPrice * o.quantity, remark: o.remark }));
+
+  const incByEq = new Map<string, number>();
+  let incNoEq = 0;
+  for (const o of included) {
+    const amt = o.unitPrice * o.quantity;
+    if (o.equipmentId) incByEq.set(o.equipmentId, (incByEq.get(o.equipmentId) ?? 0) + amt);
+    else incNoEq += amt;
+  }
+  const usedEq = new Set<string>();
+  let leftover = incNoEq;
+  const htmlItems: QuoteHtmlItem[] = items.map((it, idx) => {
+    let inc = 0;
+    if (it.equipmentId && !usedEq.has(it.equipmentId)) {
+      inc += incByEq.get(it.equipmentId) ?? 0;
+      usedEq.add(it.equipmentId);
+    }
+    if (idx === 0) {
+      inc += leftover;
+      leftover = 0;
+    }
+    const amount = it.unitPrice * it.quantity + inc;
+    return {
+      name: it.name,
+      qtyLabel: it.quantity === 1 ? "1SET" : `${it.quantity}SET`,
+      unitPrice: it.quantity ? Math.round(amount / it.quantity) : it.unitPrice,
+      amount,
+      remark: it.remark,
+    };
+  });
+  return { htmlItems, includedOptions, extraOptions };
+}
+
 export function renderQuoteHtml(d: QuoteHtmlData): string {
   const itemRows = d.items
     .map(
       (it) => `<tr class="main"><td class="name"><b>${esc(it.name)}</b></td><td>${esc(it.qtyLabel)}</td><td class="num">${won(it.unitPrice)}</td><td class="num">${won(it.amount)}</td><td class="remark">${esc(it.remark ?? "")}</td></tr>`,
     )
     .join("");
+  // 포함옵션 — 품목명만. 단가·공급가는 빈칸(금액은 장비 줄에 합산됨, 0/'포함' 표기 안 함).
   const incRows = d.includedOptions
-    .map((o) => `<tr class="sub"><td class="name"> - ${esc(o.name)}</td><td>${esc(o.qtyLabel)}</td><td class="num">포함</td><td class="num">포함</td><td></td></tr>`)
+    .map((o) => `<tr class="sub"><td class="name"> - ${esc(o.name)}</td><td>${esc(o.qtyLabel)}</td><td class="num"></td><td class="num"></td><td></td></tr>`)
     .join("");
   const extraRows = d.extraOptions
     .map((o) => `<tr class="sub"><td class="name"> - ${esc(o.name)}</td><td>${esc(o.qtyLabel)}</td><td class="num">${won(o.unitPrice)}</td><td class="num">${won(o.amount)}</td><td class="remark">${esc(o.remark ?? "")}</td></tr>`)

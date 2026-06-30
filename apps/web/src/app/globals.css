@@ -152,13 +152,12 @@ body {
 }
 
 /* ── 전역 인풋·포커스(스펙) — ⚠️ 의도적으로 unlayered: Tailwind 유틸(rounded-md·border-border)을
-   이겨야 기존 인풋 전부에 pill·틸 포커스가 적용된다(레이어 CSS는 unlayered에 진다). */
+   이겨야 기존 인풋 전부에 사각(8px)·틸 포커스가 적용된다(레이어 CSS는 unlayered에 진다).
+   값 입력칸·드롭박스(select)·textarea를 약간 둥근 사각으로 통일(버튼·칩은 영향 없음). */
 input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]),
-select {
-  border-radius: 9999px;
-}
+select,
 textarea {
-  border-radius: 14px;
+  border-radius: 8px;
 }
 /* 포커스 — 틸옅음 헤일로 + 틸 외곽선(시인성: 헤일로 단독은 1.15:1라 외곽 링 추가) */
 input:focus-visible,

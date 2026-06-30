@@ -2,12 +2,11 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import { DEFAULT_QUOTE_NOTES, defaultSpecSelection, normalizeQuoteNotes } from "@jhtechsaas/shared";
-import { matchEquipmentName } from "@/lib/quotes/equipment-match";
 import {
-  availableIncludedNames,
-  buildQuoteOptions,
+  buildInitialItemRows,
   formPreviewTotals,
   itemRowsToLines,
+  itemsToIncludedOptions,
   mainEquipmentSpecs,
   rowsToQuoteInput,
   specSelectionBudget,
@@ -24,18 +23,7 @@ import { QuoteTotalsAside } from "@/app/admin/_components/QuoteTotalsAside";
 import { QuoteEditModeBanner } from "@/app/admin/_components/QuoteEditModeBanner";
 import { QuoteBottomBar } from "@/app/admin/_components/QuoteBottomBar";
 
-// 저장된 견적 장비줄 → 폼 장비행. 저장된 equipmentId가 있으면 그대로 쓰고(카탈로그에 존재할 때),
-// 없으면 이름매칭으로 복원(구 견적 하위호환), 그래도 없으면 직접입력.
-function toItemRows(initial: QuoteRow[] | undefined, catalog: QuoteCatalogItem[]): ItemRow[] {
-  if (!initial || initial.length === 0) return [{ equipmentId: "", name: "", unitPrice: 0, quantity: 1 }];
-  return initial.map((it) => {
-    const byId = it.equipmentId ? catalog.find((c) => c.id === it.equipmentId) : undefined;
-    const eq = byId ?? matchEquipmentName(it.name, catalog);
-    return { equipmentId: eq?.id ?? "", name: it.name, unitPrice: it.unitPrice, quantity: it.quantity };
-  });
-}
-
-// 견적 작성 폼 — 장비는 카탈로그 선택, 포함옵션 체크박스, 추가옵션 자유입력.
+// 견적 작성 폼 — 장비는 카탈로그 선택, 장비별 포함옵션(이름·가격) 편집.
 // 금액 미리보기는 클라, 저장 권위는 서버 RPC(createQuoteAction).
 export function QuoteForm({
   applicationId,
@@ -54,17 +42,10 @@ export function QuoteForm({
   initialNotes?: string[];
   contextSlot?: ReactNode;
 }) {
-  const [items, setItems] = useState<ItemRow[]>(() => toItemRows(initialItems, catalog));
-  const [options, setOptions] = useState<QuoteRow[]>(() => (initialOptions ?? []).filter((o) => o.kind !== "included"));
-  // 재발행 프리필: 매칭 장비의 포함옵션 중 저장 안 된 것 = 해제 상태로 복원(새 견적은 전체 포함).
-  const [includedDeselected, setIncludedDeselected] = useState<string[]>(() => {
-    const saved = (initialOptions ?? []).filter((o) => o.kind === "included").map((o) => o.name);
-    if (!initialOptions || !initialOptions.some((o) => o.kind === "included")) return [];
-    return availableIncludedNames(toItemRows(initialItems, catalog), catalog).filter((n) => !saved.includes(n));
-  });
+  const [items, setItems] = useState<ItemRow[]>(() => buildInitialItemRows(initialItems, initialOptions, catalog));
   // 견적서 사양 선택 — 재발행이면 저장값, 새 견적이면 메인 장비의 기본(pdf:true, 없으면 전체).
   const [specSelection, setSpecSelection] = useState<string[]>(
-    () => initialSpecSelection ?? defaultSpecSelection(mainEquipmentSpecs(toItemRows(initialItems, catalog), catalog)),
+    () => initialSpecSelection ?? defaultSpecSelection(mainEquipmentSpecs(buildInitialItemRows(initialItems, initialOptions, catalog), catalog)),
   );
   // 특기사항 — 재발행이면 저장값, 새 견적이면 기본 2줄. 편집한 줄이 발행 PDF에 반영된다.
   const [notes, setNotes] = useState<string[]>(() => initialNotes ?? [...DEFAULT_QUOTE_NOTES]);
@@ -84,13 +65,12 @@ export function QuoteForm({
   }, [mainEqId, catalog]);
 
   // 실시간 합계 미리보기(폼 상태 기반, 표시 전용 — 저장 권위는 서버 RPC).
-  const totals = formPreviewTotals(items, options, includedDeselected, catalog);
+  const totals = formPreviewTotals(items);
 
   function submit(status: "draft" | "issued") {
-    const checkedIncluded = availableIncludedNames(items, catalog).filter((n) => !includedDeselected.includes(n));
     const { items: cItems, options: cOptions } = rowsToQuoteInput(
       itemRowsToLines(items),
-      buildQuoteOptions(checkedIncluded, options),
+      itemsToIncludedOptions(items),
     );
     const msg = validateQuoteForm(cItems, cOptions);
     if (msg) {
@@ -114,17 +94,13 @@ export function QuoteForm({
           catalog={catalog}
           items={items}
           setItems={setItems}
-          includedDeselected={includedDeselected}
-          setIncludedDeselected={setIncludedDeselected}
-          options={options}
-          setOptions={setOptions}
           disabled={pending}
         />
         <SpecSelectionEditor
           specs={mainEquipmentSpecs(items, catalog)}
           selected={specSelection}
           setSelected={setSpecSelection}
-          max={specSelectionBudget(items, options, includedDeselected, catalog, specSelection).max}
+          max={specSelectionBudget(items, catalog, specSelection).max}
           disabled={pending}
         />
         <QuoteNotesEditor notes={notes} setNotes={setNotes} disabled={pending} />

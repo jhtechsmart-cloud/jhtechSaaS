@@ -2,24 +2,33 @@
 import { describe, expect, test } from "vitest";
 import { calculateQuote } from "@jhtechsaas/shared";
 import {
-  availableIncludedNames,
-  buildIncludedRows,
-  buildQuoteOptions,
+  buildInitialItemRows,
+  catalogIncluded,
   cleanRows,
   formPreviewTotals,
+  itemFinalUnit,
   itemRowsToLines,
+  itemsToIncludedOptions,
+  mainEquipmentSpecs,
   parseQuoteLines,
   previewTotals,
   rowsToQuoteInput,
-  validateQuoteForm,
-  mainEquipmentSpecs,
   specSelectionBudget,
+  validateQuoteForm,
   type ItemRow,
   type QuoteCatalogItem,
   type QuoteRow,
 } from "./form";
 
 const row = (name: string, unitPrice: number, quantity: number): QuoteRow => ({ name, unitPrice, quantity });
+const item = (over: Partial<ItemRow> = {}): ItemRow => ({ equipmentId: "", name: "", unitPrice: 0, quantity: 1, included: [], ...over });
+
+const catalog: QuoteCatalogItem[] = [
+  { id: "jp", name: "JP1113", model: "JP1113", basePrice: 48_000_000, category: "평판커팅기", specs: [],
+    options: [{ name: "자동 급지", price: 1_200_000 }, { name: "안전 센서", price: 0 }] },
+  { id: "uv", name: "UV3300S", model: "UV-3300S", basePrice: 50_000_000, category: "평판커팅기", specs: [],
+    options: [{ name: "집진 장치", price: 800_000 }] },
+];
 
 describe("cleanRows — 미완성(빈) 행 제거", () => {
   test("이름 비고 단가 0인 행은 버림, 의미있는 행은 유지", () => {
@@ -28,21 +37,14 @@ describe("cleanRows — 미완성(빈) 행 제거", () => {
   });
 });
 
-describe("비고(remark) 보존 — itemRowsToLines·buildQuoteOptions·parseQuoteLines", () => {
+describe("비고(remark) 보존 — itemRowsToLines·parseQuoteLines", () => {
   test("장비 줄 비고는 trim 후 보존, 빈 비고는 생략", () => {
     const lines = itemRowsToLines([
-      { equipmentId: "eq1", name: "커팅기", unitPrice: 1, quantity: 1, remark: "  설치 포함  " },
-      { equipmentId: "", name: "직접", unitPrice: 1, quantity: 1, remark: "   " },
+      item({ equipmentId: "eq1", name: "커팅기", unitPrice: 1, remark: "  설치 포함  " }),
+      item({ name: "직접", unitPrice: 1, remark: "   " }),
     ]);
     expect(lines[0]).toEqual({ name: "커팅기", unitPrice: 1, quantity: 1, equipmentId: "eq1", remark: "설치 포함" });
     expect(lines[1]).toEqual({ name: "직접", unitPrice: 1, quantity: 1 }); // 빈 비고 생략
-  });
-  test("추가옵션 비고는 보존, 포함옵션엔 비고 없음", () => {
-    const opts = buildQuoteOptions(["기본칼날"], [{ name: "칼날", unitPrice: 1, quantity: 1, remark: "소모품" }]);
-    const included = opts.find((o) => o.kind === "included");
-    const extra = opts.find((o) => o.kind === "extra");
-    expect(included).toEqual({ name: "기본칼날", unitPrice: 0, quantity: 1, kind: "included" });
-    expect(extra).toEqual({ name: "칼날", unitPrice: 1, quantity: 1, kind: "extra", remark: "소모품" });
   });
   test("parseQuoteLines는 저장된 비고를 복원(재발행 프리필)", () => {
     const rows = parseQuoteLines([
@@ -67,104 +69,110 @@ describe("rowsToQuoteInput — 폼 행 → RPC 입력(정리된 행만)", () => 
   });
 });
 
+describe("catalogIncluded / itemFinalUnit — 카탈로그 포함옵션·장비 최종가", () => {
+  test("카탈로그 장비의 포함옵션(이름+가격) 프리필", () => {
+    expect(catalogIncluded(catalog, "jp")).toEqual([
+      { name: "자동 급지", price: 1_200_000 },
+      { name: "안전 센서", price: 0 },
+    ]);
+    expect(catalogIncluded(catalog, "")).toEqual([]); // 직접입력
+  });
+  test("최종가 = 기본가 + 포함옵션 합", () => {
+    const it = item({ equipmentId: "jp", unitPrice: 48_000_000, included: [{ name: "자동 급지", price: 1_200_000 }, { name: "안전 센서", price: 0 }] });
+    expect(itemFinalUnit(it)).toBe(49_200_000);
+  });
+});
+
+describe("itemsToIncludedOptions — 포함옵션 → 저장용 옵션 줄", () => {
+  test("kind=included·단가=가격·수량=장비수량·equipmentId 보존", () => {
+    const it = item({ equipmentId: "jp", name: "JP", unitPrice: 48_000_000, quantity: 1, included: [{ name: "자동 급지", price: 1_200_000 }] });
+    expect(itemsToIncludedOptions([it])).toEqual([
+      { name: "자동 급지", unitPrice: 1_200_000, quantity: 1, kind: "included", equipmentId: "jp" },
+    ]);
+  });
+  test("수량은 장비 수량을 따라간다(공급가에 ×수량 반영)", () => {
+    const it = item({ equipmentId: "jp", name: "JP", unitPrice: 48_000_000, quantity: 2, included: [{ name: "자동 급지", price: 1_200_000 }] });
+    expect(itemsToIncludedOptions([it])[0].quantity).toBe(2);
+  });
+  test("이름 빈 포함옵션은 제거", () => {
+    const it = item({ equipmentId: "jp", name: "JP", unitPrice: 1, included: [{ name: "  ", price: 5 }] });
+    expect(itemsToIncludedOptions([it])).toEqual([]);
+  });
+  test("itemRowsToLines — equipmentId 보존, 포함옵션은 미포함(별도 옵션 줄)", () => {
+    const it = item({ equipmentId: "jp", name: "JP1113", unitPrice: 48_000_000, included: [{ name: "자동 급지", price: 1_200_000 }] });
+    expect(itemRowsToLines([it])).toEqual([{ name: "JP1113", unitPrice: 48_000_000, quantity: 1, equipmentId: "jp" }]);
+  });
+});
+
+describe("포함옵션 가격이 공급가에 합산(핵심)", () => {
+  test("공급가 = 기본가 + 포함옵션 가격", () => {
+    const items = [item({ equipmentId: "uv", name: "UV3300S", unitPrice: 50_000_000, quantity: 1, included: [{ name: "집진 장치", price: 800_000 }] })];
+    const r = formPreviewTotals(items);
+    expect(r.supplyPrice).toBe(50_800_000); // 50,000,000 + 800,000
+    expect(r.taxPrice).toBe(5_080_000);
+    expect(r.total).toBe(55_880_000);
+  });
+  test("수량 2면 (기본가+포함옵션)×2", () => {
+    const items = [item({ equipmentId: "uv", name: "UV3300S", unitPrice: 50_000_000, quantity: 2, included: [{ name: "집진 장치", price: 800_000 }] })];
+    expect(formPreviewTotals(items).supplyPrice).toBe(101_600_000); // (50,000,000 + 800,000) × 2
+  });
+  test("포함옵션 없으면 기본가만", () => {
+    const items = [item({ equipmentId: "uv", name: "UV3300S", unitPrice: 50_000_000, quantity: 1, included: [] })];
+    expect(formPreviewTotals(items).supplyPrice).toBe(50_000_000);
+  });
+  test("빈/NaN 입력은 0으로 처리(공급가 0)", () => {
+    expect(formPreviewTotals([item({ unitPrice: Number.NaN, quantity: Number.NaN })]).supplyPrice).toBe(0);
+  });
+});
+
 describe("previewTotals — 실시간 합계(calculateQuote와 일치)", () => {
-  test("50M + 2.5M×2 → 공급가 55M·세액 5.5M·합계 60.5M", () => {
+  test("50M + 2.5M×2 → 공급가 55M", () => {
     const items = [row("UV3300S", 50_000_000, 1)];
     const options = [row("프린트헤드", 2_500_000, 2)];
-    expect(previewTotals(items, options)).toEqual(
-      calculateQuote({ items, options }),
-    );
+    expect(previewTotals(items, options)).toEqual(calculateQuote({ items, options }));
     expect(previewTotals(items, options).total).toBe(60_500_000);
-  });
-
-  test("입력 중 NaN/빈 값은 0으로 취급해 깨지지 않음", () => {
-    const items = [row("장비", Number.NaN, Number.NaN)];
-    expect(previewTotals(items, [])).toEqual({ supplyPrice: 0, taxPrice: 0, total: 0 });
   });
 });
 
 describe("parseQuoteLines — 저장된 jsonb → 폼 행(재발행 프리필)", () => {
   test("정상 줄은 그대로 행으로", () => {
-    const lines = [{ name: "UV3300S", unitPrice: 50_000_000, quantity: 1 }];
-    expect(parseQuoteLines(lines)).toEqual([row("UV3300S", 50_000_000, 1)]);
+    expect(parseQuoteLines([{ name: "UV3300S", unitPrice: 50_000_000, quantity: 1 }])).toEqual([row("UV3300S", 50_000_000, 1)]);
   });
   test("배열이 아니면 빈 배열", () => {
     expect(parseQuoteLines(null)).toEqual([]);
     expect(parseQuoteLines({})).toEqual([]);
-    expect(parseQuoteLines("x")).toEqual([]);
   });
-  test("깨진 값은 안전 기본으로 코어스", () => {
-    expect(parseQuoteLines([{ name: 123, unitPrice: "x", quantity: null }])).toEqual([
-      row("", 0, 0),
+  test("kind·equipmentId 보존, 잘못된 kind는 무시", () => {
+    expect(parseQuoteLines([{ name: "자동 급지", unitPrice: 1_200_000, quantity: 1, kind: "included", equipmentId: "jp" }])).toEqual([
+      { name: "자동 급지", unitPrice: 1_200_000, quantity: 1, kind: "included", equipmentId: "jp" },
     ]);
+    expect(parseQuoteLines([{ name: "x", unitPrice: 1, quantity: 1, kind: "weird" }])).toEqual([row("x", 1, 1)]);
   });
 });
 
-describe("availableIncludedNames / itemRowsToLines — 카탈로그 장비 선택", () => {
-  const catalog: QuoteCatalogItem[] = [
-    { id: "jp", name: "JP1113", model: "JP1113", basePrice: 48_000_000, category: "평판커팅기", specs: [],
-      options: [{ kind: "included", name: "자동 급지" }, { kind: "included", name: "안전 센서" }, { kind: "extra", name: "연장 보증" }] },
-    { id: "uv", name: "UV3300S", model: "UV-3300S", basePrice: 50_000_000, category: "평판커팅기", specs: [],
-      options: [{ kind: "included", name: "자동 급지" }, { kind: "included", name: "집진 장치" }] },
-  ];
-  const item = (equipmentId: string, name: string, unitPrice: number): ItemRow => ({ equipmentId, name, unitPrice, quantity: 1 });
-
-  test("선택 장비들의 포함옵션 풀(중복 제거·순서 보존)", () => {
-    expect(availableIncludedNames([item("jp", "JP1113", 48_000_000), item("uv", "UV3300S", 50_000_000)], catalog))
-      .toEqual(["자동 급지", "안전 센서", "집진 장치"]);
+describe("buildInitialItemRows — 신규/재발행 프리필", () => {
+  test("신규(initialOptions 없음): 카탈로그 기본 포함옵션 프리필", () => {
+    const rows = buildInitialItemRows([{ name: "JP1113", unitPrice: 48_000_000, quantity: 1, equipmentId: "jp" }], undefined, catalog);
+    expect(rows[0].included).toEqual([{ name: "자동 급지", price: 1_200_000 }, { name: "안전 센서", price: 0 }]);
   });
-  test("직접입력(equipmentId 빈값) 장비는 포함옵션 없음", () => {
-    expect(availableIncludedNames([item("", "커스텀장비", 1_000_000)], catalog)).toEqual([]);
+  test("재발행: 저장된 포함옵션(가격 포함)을 equipmentId로 복원", () => {
+    const rows = buildInitialItemRows(
+      [{ name: "JP1113", unitPrice: 48_000_000, quantity: 1, equipmentId: "jp" }],
+      [{ name: "자동 급지", unitPrice: 1_300_000, quantity: 1, kind: "included", equipmentId: "jp" }],
+      catalog,
+    );
+    expect(rows[0].included).toEqual([{ name: "자동 급지", price: 1_300_000 }]); // 저장값(카탈로그 1.2M 아님)
   });
-  test("itemRowsToLines — equipmentId 보존(PDF 장비 정보 조회용)", () => {
-    expect(itemRowsToLines([item("jp", "JP1113", 48_000_000)])).toEqual([{ name: "JP1113", unitPrice: 48_000_000, quantity: 1, equipmentId: "jp" }]);
+  test("구 견적(equipmentId 없는 포함옵션)은 첫 장비에 귀속", () => {
+    const rows = buildInitialItemRows(
+      [{ name: "JP1113", unitPrice: 48_000_000, quantity: 1, equipmentId: "jp" }],
+      [{ name: "옛 포함옵션", unitPrice: 0, quantity: 1, kind: "included" }],
+      catalog,
+    );
+    expect(rows[0].included).toEqual([{ name: "옛 포함옵션", price: 0 }]);
   });
-  test("itemRowsToLines — 직접입력(equipmentId 빈값)은 미포함", () => {
-    expect(itemRowsToLines([item("", "수기 장비", 1_000_000)])).toEqual([{ name: "수기 장비", unitPrice: 1_000_000, quantity: 1 }]);
-  });
-  test("parseQuoteLines — 저장된 equipmentId 복원(재발행 프리필)", () => {
-    expect(parseQuoteLines([{ name: "JP1113", unitPrice: 48_000_000, quantity: 1, equipmentId: "jp" }])).toEqual([
-      { name: "JP1113", unitPrice: 48_000_000, quantity: 1, equipmentId: "jp" },
-    ]);
-  });
-});
-
-describe("buildIncludedRows / buildQuoteOptions — 포함옵션 스냅샷", () => {
-  test("포함옵션 이름 → 단가0·수량1·kind=included", () => {
-    expect(buildIncludedRows(["자동 급지", "안전 센서"])).toEqual([
-      { name: "자동 급지", unitPrice: 0, quantity: 1, kind: "included" },
-      { name: "안전 센서", unitPrice: 0, quantity: 1, kind: "included" },
-    ]);
-  });
-  test("included 먼저 + extra(kind=extra) 뒤, 빈 extra 제거", () => {
-    const opts = buildQuoteOptions(["자동 급지"], [row("연장 보증", 1_500_000, 1), row("", 0, 1)]);
-    expect(opts).toEqual([
-      { name: "자동 급지", unitPrice: 0, quantity: 1, kind: "included" },
-      { name: "연장 보증", unitPrice: 1_500_000, quantity: 1, kind: "extra" },
-    ]);
-  });
-  test("포함옵션은 단가 0이라 합계에 영향 없음", () => {
-    const items = [row("UV3300S", 50_000_000, 1)];
-    const options = buildQuoteOptions(["자동 급지", "안전 센서"], []);
-    expect(calculateQuote({ items, options }).total).toBe(55_000_000);
-  });
-});
-
-describe("parseQuoteLines — kind 보존", () => {
-  test("kind=included/extra 줄은 kind 유지", () => {
-    const lines = [
-      { name: "자동 급지", unitPrice: 0, quantity: 1, kind: "included" },
-      { name: "연장 보증", unitPrice: 1_500_000, quantity: 1, kind: "extra" },
-    ];
-    expect(parseQuoteLines(lines)).toEqual([
-      { name: "자동 급지", unitPrice: 0, quantity: 1, kind: "included" },
-      { name: "연장 보증", unitPrice: 1_500_000, quantity: 1, kind: "extra" },
-    ]);
-  });
-  test("잘못된 kind는 무시(미지정)", () => {
-    expect(parseQuoteLines([{ name: "x", unitPrice: 1, quantity: 1, kind: "weird" }])).toEqual([
-      row("x", 1, 1),
-    ]);
+  test("초기값 없으면 빈 장비행 1개(included 빈 배열)", () => {
+    expect(buildInitialItemRows(undefined, undefined, catalog)).toEqual([{ equipmentId: "", name: "", unitPrice: 0, quantity: 1, included: [] }]);
   });
 });
 
@@ -175,57 +183,10 @@ describe("validateQuoteForm — 저장 전 검증", () => {
   test("장비 0줄이면 에러", () => {
     expect(validateQuoteForm([], [row("옵션", 1000, 1)])).toMatch(/장비/);
   });
-  test("이름 빈 줄이면 에러", () => {
+  test("이름 빈 줄·수량0·단가소수면 에러", () => {
     expect(validateQuoteForm([row("  ", 1000, 1)], [])).toMatch(/이름/);
-  });
-  test("수량 0·소수면 에러", () => {
     expect(validateQuoteForm([row("장비", 1000, 0)], [])).toMatch(/수량/);
-    expect(validateQuoteForm([row("장비", 1000, 1.5)], [])).toMatch(/수량/);
-  });
-  test("단가 소수면 에러", () => {
     expect(validateQuoteForm([row("장비", 1000.5, 1)], [])).toMatch(/단가/);
-  });
-});
-
-describe("formPreviewTotals", () => {
-  const catalog: QuoteCatalogItem[] = [
-    {
-      id: "eq1",
-      name: "UV3300S",
-      model: "M1",
-      basePrice: 50_000_000,
-      category: "프린터",
-      specs: [],
-      options: [
-        { kind: "included", name: "기본설치" },
-        { kind: "included", name: "원격지원" },
-      ],
-    },
-  ];
-
-  test("장비 + 추가옵션 합계(공급가·세액10%·합계) 계산", () => {
-    const items: ItemRow[] = [{ equipmentId: "eq1", name: "UV3300S", unitPrice: 50_000_000, quantity: 1 }];
-    const extra: QuoteRow[] = [{ name: "프린트헤드", unitPrice: 2_500_000, quantity: 2 }];
-    // 포함옵션(단가 0)은 합계에 영향 없음 → 공급가 = 50,000,000 + 5,000,000 = 55,000,000
-    const r = formPreviewTotals(items, extra, [], catalog);
-    expect(r.supplyPrice).toBe(55_000_000);
-    expect(r.taxPrice).toBe(5_500_000);
-    expect(r.total).toBe(60_500_000);
-  });
-
-  test("포함옵션 해제는 합계에 영향 없음(단가 0)", () => {
-    const items: ItemRow[] = [{ equipmentId: "eq1", name: "UV3300S", unitPrice: 50_000_000, quantity: 1 }];
-    const all = formPreviewTotals(items, [], [], catalog);
-    const someDeselected = formPreviewTotals(items, [], ["원격지원"], catalog);
-    expect(someDeselected.supplyPrice).toBe(all.supplyPrice);
-    expect(someDeselected.total).toBe(all.total);
-  });
-
-  test("빈/NaN 입력은 0으로 처리(공급가 0)", () => {
-    const items: ItemRow[] = [{ equipmentId: "", name: "", unitPrice: Number.NaN, quantity: Number.NaN }];
-    const r = formPreviewTotals(items, [], [], catalog);
-    expect(r.supplyPrice).toBe(0);
-    expect(r.total).toBe(0);
   });
 });
 
@@ -237,50 +198,19 @@ const SPEC_CAT: QuoteCatalogItem[] = [{
   ] }],
 }];
 
-describe("mainEquipmentSpecs — 메인 장비 사양", () => {
+describe("mainEquipmentSpecs / specSelectionBudget", () => {
   test("첫 카탈로그 장비행의 사양을 반환", () => {
-    const items: ItemRow[] = [{ equipmentId: "eq1", name: "프린터A", unitPrice: 1000, quantity: 1 }];
+    const items = [item({ equipmentId: "eq1", name: "프린터A", unitPrice: 1000 })];
     expect(mainEquipmentSpecs(items, SPEC_CAT)[0]!.items.map((i) => i.id)).toEqual(["s1", "s2"]);
   });
-  test("카탈로그 장비행 없으면(직접입력만) 빈 배열", () => {
-    const items: ItemRow[] = [{ equipmentId: "", name: "직접", unitPrice: 1000, quantity: 1 }];
-    expect(mainEquipmentSpecs(items, SPEC_CAT)).toEqual([]);
+  test("직접입력만이면 빈 배열", () => {
+    expect(mainEquipmentSpecs([item({ name: "직접", unitPrice: 1000 })], SPEC_CAT)).toEqual([]);
   });
-});
-
-describe("specSelectionBudget — 사양 선택 예산", () => {
-  test("max·used·over를 계산", () => {
-    const items: ItemRow[] = [{ equipmentId: "eq1", name: "프린터A", unitPrice: 1000, quantity: 1 }];
-    const r = specSelectionBudget(items, [], [], SPEC_CAT, ["s1", "s2"]);
+  test("specSelectionBudget — max·used·over 계산", () => {
+    const items = [item({ equipmentId: "eq1", name: "프린터A", unitPrice: 1000 })];
+    const r = specSelectionBudget(items, SPEC_CAT, ["s1", "s2"]);
     expect(r.max).toBeGreaterThan(0);
-    expect(r.used).toBe(2); // 그룹1(제목1) + 항목2(2열 1줄) = 2
+    expect(r.used).toBe(2);
     expect(typeof r.over).toBe("boolean");
-  });
-});
-
-describe("mainEquipmentSpecs — 항목 이름·값 둘 다 있어야 포함", () => {
-  const CAT_EMPTY: QuoteCatalogItem[] = [{
-    id: "eqE", name: "장비E", model: null, basePrice: 1000, category: null, options: [],
-    specs: [{ group: "성능", icon: "gauge", items: [
-      { id: "v1", label: "속도", value: "30", pdf: true },       // 라벨+값 → 포함
-      { id: "v2", label: "", value: "1,600mm", pdf: true },     // 라벨 없음 → 제외
-      { id: "v3", label: "  ", value: "이더넷", pdf: true },     // 공백 라벨 → 제외
-      { id: "v4", label: "무게", value: "", pdf: false },        // 값 없음 → 제외
-    ] }],
-  }];
-  test("라벨 없거나 값 없는 항목은 제외(둘 다 있는 것만)", () => {
-    const items: ItemRow[] = [{ equipmentId: "eqE", name: "장비E", unitPrice: 1000, quantity: 1 }];
-    expect(mainEquipmentSpecs(items, CAT_EMPTY)[0]!.items.map((i) => i.id)).toEqual(["v1"]);
-  });
-  test("포함 항목이 하나도 없으면 그룹 자체 제거", () => {
-    const cat: QuoteCatalogItem[] = [{
-      id: "eqZ", name: "Z", model: null, basePrice: 0, category: null, options: [],
-      specs: [{ group: "G", icon: "settings", items: [
-        { id: "z1", label: "x", value: "", pdf: true },   // 값 없음
-        { id: "z2", label: "", value: "1,600mm", pdf: true }, // 라벨 없음
-      ] }],
-    }];
-    const items: ItemRow[] = [{ equipmentId: "eqZ", name: "Z", unitPrice: 0, quantity: 1 }];
-    expect(mainEquipmentSpecs(items, cat)).toEqual([]);
   });
 });

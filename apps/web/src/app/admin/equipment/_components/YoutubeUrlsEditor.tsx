@@ -2,6 +2,7 @@
 import { useFieldArray, type Control, type UseFormRegister } from "react-hook-form";
 import type { equipmentFormSchema } from "@/lib/equipment/schema";
 import type { z } from "zod";
+import { DeleteButton } from "./Card";
 
 type FormInput = z.input<typeof equipmentFormSchema>;
 
@@ -20,8 +21,8 @@ export function YoutubeUrlsEditor({ control, register }: { control: Control<Form
         <ul className="flex flex-col gap-2">
           {fields.map((field, index) => (
             <li key={field.id} className="flex items-center gap-2">
-              <input {...register(`youtube_urls.${index}` as const)} placeholder="https://youtu.be/..." className="flex-1 rounded-sm border border-border bg-surface px-2 py-1 text-body text-text" />
-              <button type="button" onClick={() => remove(index)} className="text-small text-danger hover:underline">삭제</button>
+              <input {...register(`youtube_urls.${index}` as const)} placeholder="https://youtu.be/..." className="flex-1 rounded-[5px] border border-border bg-surface px-2.5 py-1.5 font-mono text-body text-text" />
+              <DeleteButton onClick={() => remove(index)} />
             </li>
           ))}
         </ul>
