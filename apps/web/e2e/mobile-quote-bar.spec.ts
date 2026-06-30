@@ -29,7 +29,7 @@ test.describe.serial("모바일 견적 하단 고정 바", () => {
     await expect(bar.getByRole("button", { name: "발행하기" })).toBeVisible();
 
     // 장비 단가 입력 → 바의 공급가 숫자에 반영
-    await page.getByLabel("장비 단가").fill("1000000");
+    await page.getByLabel("장비 가격").fill("1000000");
     await page.getByLabel("장비 수량").fill("1");
     await expect(bar).toContainText("1,000,000");
 
