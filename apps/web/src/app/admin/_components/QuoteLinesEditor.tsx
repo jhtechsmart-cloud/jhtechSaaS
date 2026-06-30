@@ -5,6 +5,7 @@ import {
   type IncludedRow,
   type ItemRow,
   type QuoteCatalogItem,
+  type QuoteRow,
 } from "@/lib/quotes/form";
 
 // 견적 라인 에디터 — 장비는 카탈로그에서 선택(직접입력 폴백). 장비마다 '장비 가격(기본가)' 입력 +
@@ -14,15 +15,21 @@ const won = (n: number) => `${n.toLocaleString("ko-KR")}원`;
 const numOrNaN = (s: string) => (s.trim() === "" ? Number.NaN : Number(s));
 const emptyItem = (): ItemRow => ({ equipmentId: "", name: "", unitPrice: 0, quantity: 1, included: [] });
 
+const emptyExtra = (): QuoteRow => ({ name: "", unitPrice: 0, quantity: 1 });
+
 export function QuoteLinesEditor({
   catalog,
   items,
   setItems,
+  options,
+  setOptions,
   disabled,
 }: {
   catalog: QuoteCatalogItem[];
   items: ItemRow[];
   setItems: (r: ItemRow[]) => void;
+  options: QuoteRow[]; // 추가옵션(별도 과금) — 포함옵션과 별개
+  setOptions: (r: QuoteRow[]) => void;
   disabled: boolean;
 }) {
   function updateItem(i: number, patch: Partial<ItemRow>) {
@@ -40,6 +47,7 @@ export function QuoteLinesEditor({
   }
 
   return (
+    <div className="flex flex-col gap-6">
     <section className="rounded-md border border-border border-l-4 border-l-accent bg-surface p-4">
       <h2 className="mb-2 text-h2 font-medium text-text">장비 · 포함옵션</h2>
       <div className="flex flex-col gap-4">
@@ -135,6 +143,35 @@ export function QuoteLinesEditor({
         </button>
       </div>
     </section>
+
+    {/* 추가 옵션 — 별도 과금(자유 입력). 포함옵션과 별개로 견적서에 단가×수량 표시. */}
+    <section className="rounded-md border border-border border-l-4 border-l-accent bg-surface p-4">
+      <h2 className="mb-2 text-h2 font-medium text-text">추가 옵션</h2>
+      <div className="flex flex-col gap-2">
+        {options.map((r, i) => {
+          const lineTotal = (Number.isFinite(r.unitPrice) ? r.unitPrice : 0) * (Number.isFinite(r.quantity) ? r.quantity : 0);
+          const update = (patch: Partial<QuoteRow>) => setOptions(options.map((o, idx) => (idx === i ? { ...o, ...patch } : o)));
+          return (
+            <div key={i} className="flex flex-wrap items-center gap-2">
+              <input aria-label="추가 옵션 이름" value={r.name} onChange={(e) => update({ name: e.target.value })} disabled={disabled} placeholder="옵션명"
+                className="min-w-0 flex-1 rounded-md border border-border bg-surface px-2 py-1 text-body text-text" />
+              <input aria-label="추가 옵션 단가" type="number" value={Number.isFinite(r.unitPrice) ? r.unitPrice : ""} onChange={(e) => update({ unitPrice: numOrNaN(e.target.value) })} disabled={disabled} placeholder="단가"
+                className="w-32 rounded-md border border-border bg-surface px-2 py-1 text-right font-mono tabular-nums text-body text-text" />
+              <input aria-label="추가 옵션 수량" type="number" value={Number.isFinite(r.quantity) ? r.quantity : ""} onChange={(e) => update({ quantity: numOrNaN(e.target.value) })} disabled={disabled} placeholder="수량"
+                className="w-16 rounded-md border border-border bg-surface px-2 py-1 text-right font-mono tabular-nums text-body text-text" />
+              <span className="w-32 shrink-0 text-right font-mono tabular-nums text-small text-muted">{won(lineTotal)}</span>
+              <button type="button" aria-label="추가 옵션 행 삭제" onClick={() => setOptions(options.filter((_, idx) => idx !== i))} disabled={disabled}
+                className="px-2 text-muted hover:text-danger">×</button>
+              <input aria-label="추가 옵션 비고" value={r.remark ?? ""} onChange={(e) => update({ remark: e.target.value })} disabled={disabled} placeholder="비고 (선택)"
+                className="basis-full rounded-md border border-border bg-surface px-2 py-1 text-small text-text" />
+            </div>
+          );
+        })}
+        <button type="button" onClick={() => setOptions([...options, emptyExtra()])} disabled={disabled}
+          className="self-start text-small font-medium text-accent hover:underline">+ 추가 옵션</button>
+      </div>
+    </section>
+    </div>
   );
 }
 

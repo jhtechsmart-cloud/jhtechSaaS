@@ -2,7 +2,9 @@
 import { describe, expect, test } from "vitest";
 import { calculateQuote } from "@jhtechsaas/shared";
 import {
+  buildExtraOptions,
   buildInitialItemRows,
+  buildQuoteOptions,
   catalogIncluded,
   cleanRows,
   formPreviewTotals,
@@ -107,21 +109,40 @@ describe("itemsToIncludedOptions — 포함옵션 → 저장용 옵션 줄", () 
 describe("포함옵션 가격이 공급가에 합산(핵심)", () => {
   test("공급가 = 기본가 + 포함옵션 가격", () => {
     const items = [item({ equipmentId: "uv", name: "UV3300S", unitPrice: 50_000_000, quantity: 1, included: [{ name: "집진 장치", price: 800_000 }] })];
-    const r = formPreviewTotals(items);
+    const r = formPreviewTotals(items, []);
     expect(r.supplyPrice).toBe(50_800_000); // 50,000,000 + 800,000
     expect(r.taxPrice).toBe(5_080_000);
     expect(r.total).toBe(55_880_000);
   });
   test("수량 2면 (기본가+포함옵션)×2", () => {
     const items = [item({ equipmentId: "uv", name: "UV3300S", unitPrice: 50_000_000, quantity: 2, included: [{ name: "집진 장치", price: 800_000 }] })];
-    expect(formPreviewTotals(items).supplyPrice).toBe(101_600_000); // (50,000,000 + 800,000) × 2
+    expect(formPreviewTotals(items, []).supplyPrice).toBe(101_600_000); // (50,000,000 + 800,000) × 2
   });
   test("포함옵션 없으면 기본가만", () => {
     const items = [item({ equipmentId: "uv", name: "UV3300S", unitPrice: 50_000_000, quantity: 1, included: [] })];
-    expect(formPreviewTotals(items).supplyPrice).toBe(50_000_000);
+    expect(formPreviewTotals(items, []).supplyPrice).toBe(50_000_000);
   });
   test("빈/NaN 입력은 0으로 처리(공급가 0)", () => {
-    expect(formPreviewTotals([item({ unitPrice: Number.NaN, quantity: Number.NaN })]).supplyPrice).toBe(0);
+    expect(formPreviewTotals([item({ unitPrice: Number.NaN, quantity: Number.NaN })], []).supplyPrice).toBe(0);
+  });
+});
+
+describe("추가옵션(extra) — 포함옵션과 별개 과금", () => {
+  test("buildExtraOptions: 빈 행 제거 + kind=extra 태깅 + 비고 보존", () => {
+    expect(buildExtraOptions([{ name: "연장 보증", unitPrice: 1_500_000, quantity: 1, remark: "2년" }, { name: "", unitPrice: 0, quantity: 1 }])).toEqual([
+      { name: "연장 보증", unitPrice: 1_500_000, quantity: 1, kind: "extra", remark: "2년" },
+    ]);
+  });
+  test("buildQuoteOptions: 포함옵션(included) 먼저, 추가옵션(extra) 뒤", () => {
+    const items = [item({ equipmentId: "uv", name: "UV", unitPrice: 50_000_000, quantity: 1, included: [{ name: "집진", price: 800_000 }] })];
+    const opts = buildQuoteOptions(items, [{ name: "연장 보증", unitPrice: 1_500_000, quantity: 1 }]);
+    expect(opts[0]).toMatchObject({ name: "집진", kind: "included", equipmentId: "uv" });
+    expect(opts[1]).toMatchObject({ name: "연장 보증", kind: "extra", unitPrice: 1_500_000 });
+  });
+  test("공급가 = 기본가 + 포함옵션 + 추가옵션", () => {
+    const items = [item({ equipmentId: "uv", name: "UV", unitPrice: 50_000_000, quantity: 1, included: [{ name: "집진", price: 800_000 }] })];
+    const extra: QuoteRow[] = [{ name: "연장 보증", unitPrice: 1_500_000, quantity: 1 }];
+    expect(formPreviewTotals(items, extra).supplyPrice).toBe(52_300_000); // 50,000,000 + 800,000 + 1,500,000
   });
 });
 
@@ -208,7 +229,7 @@ describe("mainEquipmentSpecs / specSelectionBudget", () => {
   });
   test("specSelectionBudget — max·used·over 계산", () => {
     const items = [item({ equipmentId: "eq1", name: "프린터A", unitPrice: 1000 })];
-    const r = specSelectionBudget(items, SPEC_CAT, ["s1", "s2"]);
+    const r = specSelectionBudget(items, [], SPEC_CAT, ["s1", "s2"]);
     expect(r.max).toBeGreaterThan(0);
     expect(r.used).toBe(2);
     expect(typeof r.over).toBe("boolean");

@@ -90,6 +90,19 @@ export function itemsToIncludedOptions(items: ItemRow[]): QuoteRow[] {
   return out;
 }
 
+// 추가옵션(별도 과금, 포함옵션과 별개) → 저장용 옵션 줄(kind=extra). 빈 행 제거·비고 보존.
+export function buildExtraOptions(extra: QuoteRow[]): QuoteRow[] {
+  return cleanRows(extra).map((r) => {
+    const { remark, ...rest } = r;
+    return { ...rest, kind: "extra" as const, ...(remark && remark.trim() ? { remark: remark.trim() } : {}) };
+  });
+}
+
+// 폼 상태(장비별 포함옵션 + 추가옵션) → 저장용 옵션 배열(included 먼저, extra 뒤).
+export function buildQuoteOptions(items: ItemRow[], extra: QuoteRow[]): QuoteRow[] {
+  return [...itemsToIncludedOptions(items), ...buildExtraOptions(extra)];
+}
+
 // 미완성(빈) 행 = 이름이 비어있고 단가도 0/빈. 저장·검증에서 제외한다.
 function isEmptyRow(r: QuoteRow): boolean {
   return r.name.trim() === "" && (!Number.isFinite(r.unitPrice) || r.unitPrice === 0);
@@ -117,9 +130,10 @@ export function previewTotals(items: QuoteRow[], options: QuoteRow[]): QuoteResu
   return calculateQuote({ items: items.map(coerce), options: options.map(coerce) });
 }
 
-// 폼 상태(장비행+포함옵션)에서 실시간 합계 계산. 공급가 = Σ(기본가+포함옵션)×수량.
-export function formPreviewTotals(items: ItemRow[]): QuoteResult {
-  return previewTotals(itemRowsToLines(items), itemsToIncludedOptions(items));
+// 폼 상태(장비행+포함옵션+추가옵션)에서 실시간 합계 계산.
+// 공급가 = Σ(기본가+포함옵션)×수량 + Σ추가옵션.
+export function formPreviewTotals(items: ItemRow[], extra: QuoteRow[]): QuoteResult {
+  return previewTotals(itemRowsToLines(items), buildQuoteOptions(items, extra));
 }
 
 // 저장된 견적 줄(jsonb) → 폼 행. 재발행 프리필용. 깨진 값은 안전 기본으로 코어스(방어).
@@ -215,12 +229,13 @@ export function mainEquipmentSpecs(items: ItemRow[], catalog: QuoteCatalogItem[]
 // 사양 선택 예산 — 현재 품목·옵션 기준 max 줄, 선택(specSelection)이 차지하는 used 줄, 초과 여부.
 export function specSelectionBudget(
   items: ItemRow[],
+  extra: QuoteRow[],
   catalog: QuoteCatalogItem[],
   specSelection: string[],
 ): { max: number; used: number; over: boolean } {
   const includedCount = items.reduce((s, it) => s + cleanIncluded(it.included).length, 0);
   const itemCount = items.filter((i) => i.name.trim() !== "" || i.equipmentId).length;
-  const max = specBudget({ itemCount, includedCount, extraCount: 0 });
+  const max = specBudget({ itemCount, includedCount, extraCount: cleanRows(extra).length });
   const selectedGroups = selectPdfSpecItems(mainEquipmentSpecs(items, catalog), specSelection);
   const used = countSpecLines(selectedGroups);
   return { max, used, over: used > max };
