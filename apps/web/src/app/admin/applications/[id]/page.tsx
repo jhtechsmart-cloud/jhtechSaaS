@@ -24,6 +24,8 @@ import { VersionHistory } from "./_components/quote-frame/VersionHistory";
 import { VersionDiff } from "./_components/quote-frame/VersionDiff";
 import { VersionInfoModal } from "./_components/quote-frame/VersionInfoModal";
 import { DeleteQuoteButton } from "./_components/quote-frame/DeleteQuoteButton";
+import { DeleteApplicationButton } from "./_components/DeleteApplicationButton";
+import { countReleaseOrdersForApplication } from "@/lib/applications/admin-queries";
 import { diffQuoteVersions } from "@/lib/quotes/diff";
 import { buildVersionChip } from "@/lib/quotes/version-chip";
 import { ApplicantInfo } from "./_components/quote-frame/ApplicantInfo";
@@ -92,6 +94,9 @@ export default async function ApplicationDetailPage({
   const quotes = await listQuotesForApplication(id);
   // 출고의뢰서는 발행 견적이 전제(I1) — 발행 견적이 있을 때만 진입 노출.
   const hasIssuedQuote = quotes.some((q) => q.status === "issued");
+  // 의뢰 삭제 경고용 — 발행 견적·출고의뢰서 건수(관리자만 쓰임).
+  const issuedQuoteCount = quotes.filter((q) => q.status === "issued").length;
+  const releaseOrderCount = canDeleteQuote ? await countReleaseOrdersForApplication(id) : 0;
 
   // 표시 견적 선택: ?v=<quoteId>가 유효하면 그 id, 아니면 대표 견적(최신 발행본)
   const vParam = typeof sp.v === "string" ? sp.v : null;
@@ -315,6 +320,14 @@ export default async function ApplicationDetailPage({
                 hasAssignee={r.assignee_id != null}
               />
             </div>
+          )}
+          {/* 의뢰 통째 삭제 — 관리자 전용. 우측 끝 위험 동작(견적·출고의뢰서·PDF·사진 함께 삭제). */}
+          {canDeleteQuote && (
+            <DeleteApplicationButton
+              applicationId={id}
+              issuedQuoteCount={issuedQuoteCount}
+              releaseOrderCount={releaseOrderCount}
+            />
           )}
         </div>
       </div>

@@ -5,6 +5,16 @@ import { ACTIVE_APPLICATION_STATUSES, DONE_APPLICATION_STATUSES } from "@/lib/ap
 import { buildSearchOr, splitOverflow, normalizeBizNo } from "./admin-search";
 import { applicationStatusSchema } from "./status-schema";
 
+// 의뢰의 출고의뢰서 건수 — 의뢰 삭제 시 '함께 사라지는 출고의뢰서' 경고용.
+export async function countReleaseOrdersForApplication(applicationId: string): Promise<number> {
+  const supabase = await createSupabaseServerClient();
+  const { count } = await supabase
+    .from("release_orders")
+    .select("id", { count: "exact", head: true })
+    .eq("application_id", applicationId);
+  return count ?? 0;
+}
+
 export interface ApplicationListRow {
   id: string;
   seq_no: string;

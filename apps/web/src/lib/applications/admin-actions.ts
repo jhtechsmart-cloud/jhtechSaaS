@@ -1,5 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requirePermission, requireApplicationsConsole } from "@/lib/auth/guard";
 import {
@@ -109,6 +111,50 @@ export async function updateApplicationStatus(
   revalidatePath(`/admin/applications/${id}`);
   revalidatePath("/admin/applications");
   return { ok: true };
+}
+
+// 의뢰 통째 삭제 — 관리자(users.manage) 전용. 의뢰 행 삭제 시 견적·출고의뢰서는 FK CASCADE로
+// 함께 제거되며, storage(신청사진·견적PDF·출고의뢰서PDF)는 행이 사라지기 전에 경로를 모아 정리한다.
+// ⚠️ 비가역. 발행 견적/출고의뢰서가 있어도 삭제(UI에서 건수 경고 후 진행).
+export async function deleteApplicationAction(id: string): Promise<ApplicationActionResult> {
+  const access = await requirePermission("users.manage");
+  if (access.status === "forbidden") return { error: "의뢰 삭제 권한이 없습니다." };
+  if (!z.guid().safeParse(id).success) return { error: "잘못된 요청입니다." };
+
+  const supabase = await createSupabaseServerClient();
+
+  // 삭제 전 storage 경로 수집(행이 cascade로 사라지기 전에).
+  const { data: app } = await supabase.from("applications").select("fields").eq("id", id).maybeSingle();
+  if (!app) return { error: "의뢰를 찾을 수 없습니다." };
+
+  // ① 신청 사진(customer-uploads) — fields.photos 값들.
+  const photos = (app.fields as { photos?: Record<string, unknown> } | null)?.photos ?? {};
+  const photoPaths = Object.values(photos).filter((p): p is string => typeof p === "string" && p.length > 0);
+  // ② 견적 PDF(quote-pdfs) — 전 버전.
+  const { data: quotes } = await supabase.from("quotes").select("pdf_url").eq("application_id", id);
+  const quotePdfs = (quotes ?? [])
+    .map((q) => (q as { pdf_url?: string | null }).pdf_url)
+    .filter((p): p is string => typeof p === "string" && p.length > 0);
+  // ③ 출고의뢰서 PDF(release-orders) — 전 버전.
+  const { data: ros } = await supabase.from("release_orders").select("pdf_url").eq("application_id", id);
+  const roPdfs = (ros ?? [])
+    .map((r) => (r as { pdf_url?: string | null }).pdf_url)
+    .filter((p): p is string => typeof p === "string" && p.length > 0);
+
+  // storage 정리(best-effort — 실패해도 행 삭제는 진행, 고아 파일만 남음).
+  if (photoPaths.length > 0) await supabase.storage.from("customer-uploads").remove(photoPaths).catch(() => {});
+  if (quotePdfs.length > 0) await supabase.storage.from("quote-pdfs").remove(quotePdfs).catch(() => {});
+  if (roPdfs.length > 0) await supabase.storage.from("release-orders").remove(roPdfs).catch(() => {});
+
+  // 의뢰 행 삭제 → quotes·release_orders는 ON DELETE CASCADE로 함께 제거. 0행이면 권한·동시삭제로 실패.
+  const { data, error } = await supabase.from("applications").delete().eq("id", id).select("id");
+  if (error || !data || data.length === 0) {
+    console.error("[applications.delete]", error);
+    return { error: "의뢰를 삭제하지 못했습니다." };
+  }
+
+  revalidatePath("/admin/applications", "layout");
+  redirect("/admin/applications");
 }
 
 // 클라 목록 패널이 더보기·탭·검색 시 호출. 권한 가드 + 파라미터 검증 후 페이지 반환.
