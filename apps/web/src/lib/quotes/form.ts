@@ -30,6 +30,7 @@ export type QuoteCatalogItem = {
   model: string | null;
   basePrice: number;
   category: string | null;
+  image: string | null; // 대표 사진(storage 경로) — 선택 장비 카드 미리보기용. 없으면 null.
   options: { name: string; price: number }[];
   specs: SpecGroup[]; // 견적서 사양 선택 UI용(id·pdf 포함)
 };

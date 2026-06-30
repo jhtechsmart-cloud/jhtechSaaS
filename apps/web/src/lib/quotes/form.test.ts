@@ -26,9 +26,9 @@ const row = (name: string, unitPrice: number, quantity: number): QuoteRow => ({ 
 const item = (over: Partial<ItemRow> = {}): ItemRow => ({ equipmentId: "", name: "", unitPrice: 0, quantity: 1, included: [], ...over });
 
 const catalog: QuoteCatalogItem[] = [
-  { id: "jp", name: "JP1113", model: "JP1113", basePrice: 48_000_000, category: "평판커팅기", specs: [],
+  { id: "jp", name: "JP1113", model: "JP1113", basePrice: 48_000_000, category: "평판커팅기", image: null, specs: [],
     options: [{ name: "자동 급지", price: 1_200_000 }, { name: "안전 센서", price: 0 }] },
-  { id: "uv", name: "UV3300S", model: "UV-3300S", basePrice: 50_000_000, category: "평판커팅기", specs: [],
+  { id: "uv", name: "UV3300S", model: "UV-3300S", basePrice: 50_000_000, category: "평판커팅기", image: null, specs: [],
     options: [{ name: "집진 장치", price: 800_000 }] },
 ];
 
@@ -212,7 +212,7 @@ describe("validateQuoteForm — 저장 전 검증", () => {
 });
 
 const SPEC_CAT: QuoteCatalogItem[] = [{
-  id: "eq1", name: "프린터A", model: null, basePrice: 1000, category: null, options: [],
+  id: "eq1", name: "프린터A", model: null, basePrice: 1000, category: null, image: null, options: [],
   specs: [{ group: "성능", icon: "gauge", items: [
     { id: "s1", label: "속도", value: "30", pdf: true },
     { id: "s2", label: "해상도", value: "1200", pdf: true },
