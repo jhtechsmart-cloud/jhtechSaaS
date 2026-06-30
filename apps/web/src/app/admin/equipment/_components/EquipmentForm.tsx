@@ -148,7 +148,7 @@ export function EquipmentForm(props: Props) {
       // cleanupRef.current는 startTransition 내부(비동기)에서만 읽힘 — 렌더 중 읽기 아님.
       // eslint-disable-next-line react-hooks/refs
       onSubmit={handleSubmit(onSubmit)}
-      className="form-square flex w-full max-w-[940px] flex-col gap-4"
+      className="flex w-full max-w-[940px] flex-col gap-4"
     >
       {/* 상단 2열 — 좌: 기본 정보(한 줄에 하나씩) / 우: 포함옵션(동일 높이·내부 스크롤).
           고정 높이라 옵션이 많아지면 카드가 안 늘고 목록만 스크롤된다. */}
