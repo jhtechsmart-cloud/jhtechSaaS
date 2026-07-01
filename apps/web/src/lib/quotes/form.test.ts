@@ -7,6 +7,7 @@ import {
   buildQuoteOptions,
   catalogIncluded,
   cleanRows,
+  formBreakdown,
   formPreviewTotals,
   itemFinalUnit,
   itemRowsToLines,
@@ -124,6 +125,31 @@ describe("포함옵션 가격이 공급가에 합산(핵심)", () => {
   });
   test("빈/NaN 입력은 0으로 처리(공급가 0)", () => {
     expect(formPreviewTotals([item({ unitPrice: Number.NaN, quantity: Number.NaN })], []).supplyPrice).toBe(0);
+  });
+});
+
+describe("formBreakdown — 우측 합계 박스 소계 분해(상세와 동일)", () => {
+  test("장비 소계 = Σ(기본가+포함옵션)×수량, 옵션 소계 = Σ추가옵션, 합계 = 둘의 합", () => {
+    const items: ItemRow[] = [item({ equipmentId: "uv", name: "UV3300S", unitPrice: 50_000_000, quantity: 2, included: [{ name: "집진 장치", price: 800_000 }] })];
+    const extra: QuoteRow[] = [row("추가 헤드", 1_500_000, 1)];
+    const b = formBreakdown(items, extra);
+    expect(b.equipmentSubtotal).toBe(101_600_000); // (50,000,000 + 800,000) × 2
+    expect(b.optionSubtotal).toBe(1_500_000);
+    expect(b.equipmentSubtotal + b.optionSubtotal).toBe(formPreviewTotals(items, extra).supplyPrice);
+  });
+  test("라인 목록 단가는 기본가(포함옵션 미합산) — 상세 표기와 동일", () => {
+    const items: ItemRow[] = [item({ equipmentId: "uv", name: "UV3300S", unitPrice: 50_000_000, quantity: 1, included: [{ name: "집진 장치", price: 800_000 }] })];
+    const b = formBreakdown(items, []);
+    expect(b.itemLines).toEqual([{ name: "UV3300S", unitPrice: 50_000_000, quantity: 1 }]);
+    expect(b.optionLines).toEqual([]);
+  });
+  test("이름·id 없는 편집 중 빈 장비행과 빈 추가옵션은 라인에서 제외", () => {
+    const items: ItemRow[] = [item({ name: "", unitPrice: 0, quantity: 1 })];
+    const b = formBreakdown(items, [row("", 0, 1)]);
+    expect(b.itemLines).toEqual([]);
+    expect(b.optionLines).toEqual([]);
+    expect(b.equipmentSubtotal).toBe(0);
+    expect(b.optionSubtotal).toBe(0);
   });
 });
 

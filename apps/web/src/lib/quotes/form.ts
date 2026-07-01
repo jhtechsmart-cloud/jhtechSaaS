@@ -137,6 +137,26 @@ export function formPreviewTotals(items: ItemRow[], extra: QuoteRow[]): QuoteRes
   return previewTotals(itemRowsToLines(items), buildQuoteOptions(items, extra));
 }
 
+// 우측 합계 박스용 소계 분해 — 견적 상세(QuoteSummaryPanel)와 동일한 표시.
+// 장비 소계 = Σ(장비 최종단가[기본가+포함옵션]×수량), 옵션 소계 = Σ(추가옵션 단가×수량).
+// 라인 목록의 단가는 상세와 동일하게 '기본가'(포함옵션 미합산) — 소계 값만 포함옵션을 반영.
+export function formBreakdown(items: ItemRow[], extra: QuoteRow[]): {
+  equipmentSubtotal: number;
+  optionSubtotal: number;
+  itemLines: { name: string; unitPrice: number; quantity: number }[];
+  optionLines: { name: string; unitPrice: number; quantity: number }[];
+} {
+  const fin = (n: number) => (Number.isFinite(n) ? n : 0);
+  const equipmentSubtotal = items.reduce((s, it) => s + itemFinalUnit(it) * fin(it.quantity), 0);
+  const cleanExtra = cleanRows(extra);
+  const optionSubtotal = cleanExtra.reduce((s, r) => s + fin(r.unitPrice) * fin(r.quantity), 0);
+  const itemLines = items
+    .filter((it) => it.name.trim() !== "" || it.equipmentId)
+    .map((it) => ({ name: it.name, unitPrice: fin(it.unitPrice), quantity: fin(it.quantity) }));
+  const optionLines = cleanExtra.map((r) => ({ name: r.name, unitPrice: fin(r.unitPrice), quantity: fin(r.quantity) }));
+  return { equipmentSubtotal, optionSubtotal, itemLines, optionLines };
+}
+
 // 저장된 견적 줄(jsonb) → 폼 행. 재발행 프리필용. 깨진 값은 안전 기본으로 코어스(방어).
 export function parseQuoteLines(value: unknown): QuoteRow[] {
   if (!Array.isArray(value)) return [];

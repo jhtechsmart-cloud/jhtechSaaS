@@ -5,7 +5,7 @@ import { DEFAULT_QUOTE_NOTES, defaultSpecSelection, normalizeQuoteNotes } from "
 import {
   buildInitialItemRows,
   buildQuoteOptions,
-  formPreviewTotals,
+  formBreakdown,
   itemRowsToLines,
   mainEquipmentSpecs,
   rowsToQuoteInput,
@@ -68,8 +68,9 @@ export function QuoteForm({
     }
   }, [mainEqId, catalog]);
 
-  // 실시간 합계 미리보기(폼 상태 기반, 표시 전용 — 저장 권위는 서버 RPC).
-  const totals = formPreviewTotals(items, options);
+  // 실시간 소계 분해(폼 상태 기반, 표시 전용 — 저장 권위는 서버 RPC). 상세 요약과 동일 표기.
+  const breakdown = formBreakdown(items, options);
+  const supplyPrice = breakdown.equipmentSubtotal + breakdown.optionSubtotal;
 
   function submit(status: "draft" | "issued") {
     const { items: cItems, options: cOptions } = rowsToQuoteInput(
@@ -111,7 +112,14 @@ export function QuoteForm({
         />
         <QuoteNotesEditor notes={notes} setNotes={setNotes} disabled={pending} />
       </div>
-      <QuoteTotalsAside totals={totals} below={salesLog}>
+      <QuoteTotalsAside
+        equipmentSubtotal={breakdown.equipmentSubtotal}
+        optionSubtotal={breakdown.optionSubtotal}
+        itemLines={breakdown.itemLines}
+        optionLines={breakdown.optionLines}
+        total={supplyPrice}
+        below={salesLog}
+      >
         {error && <p className="text-small text-danger">{error}</p>}
         <Link href={`/admin/applications/${applicationId}`}
           className="rounded-md border border-border px-4 py-2 text-center text-small font-medium text-muted hover:text-text">취소</Link>
@@ -123,7 +131,7 @@ export function QuoteForm({
       </div>
       {/* lg 미만: 하단 고정 합계 바(데스크톱은 우측 sticky 요약) — 같은 totals·submit 재사용 */}
       <QuoteBottomBar
-        supplyPrice={totals.supplyPrice}
+        supplyPrice={supplyPrice}
         pending={pending}
         onSave={() => submit("draft")}
         onIssue={() => submit("issued")}
