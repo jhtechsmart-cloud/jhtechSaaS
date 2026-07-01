@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { DEFAULT_QUOTE_NOTES, defaultSpecSelection, normalizeQuoteNotes } from "@jhtechsaas/shared";
 import {
   buildQuoteOptions,
-  formPreviewTotals,
+  formBreakdown,
   itemRowsToLines,
   mainEquipmentSpecs,
   rowsToQuoteInput,
@@ -65,8 +65,9 @@ export function ManualQuoteForm({
     }
   }, [mainEqId, catalog]);
 
-  // 실시간 합계 미리보기(폼 상태 기반, 표시 전용 — 저장 권위는 서버 RPC).
-  const totals = formPreviewTotals(items, options);
+  // 실시간 소계 분해(폼 상태 기반, 표시 전용 — 저장 권위는 서버 RPC). 상세 요약과 동일 표기.
+  const breakdown = formBreakdown(items, options);
+  const supplyPrice = breakdown.equipmentSubtotal + breakdown.optionSubtotal;
 
   function submit(status: "draft" | "issued") {
     if (company.trim() === "") {
@@ -164,7 +165,11 @@ export function ManualQuoteForm({
       </div>
 
       <QuoteTotalsAside
-        totals={totals}
+        equipmentSubtotal={breakdown.equipmentSubtotal}
+        optionSubtotal={breakdown.optionSubtotal}
+        itemLines={breakdown.itemLines}
+        optionLines={breakdown.optionLines}
+        total={supplyPrice}
         // 영업일지 — 우측 합계 박스 아래. 연결 고객이 있을 때만 의미(미연결이면 안내만 노출).
         below={<SalesLogPanel companyId={companyId} currentUserId={currentUserId} />}
       >
@@ -177,7 +182,7 @@ export function ManualQuoteForm({
       </div>
       {/* lg 미만: 하단 고정 합계 바(데스크톱은 우측 sticky 요약) — 같은 totals·submit 재사용 */}
       <QuoteBottomBar
-        supplyPrice={totals.supplyPrice}
+        supplyPrice={supplyPrice}
         pending={pending}
         onSave={() => submit("draft")}
         onIssue={() => submit("issued")}

@@ -76,8 +76,8 @@ test.describe.serial("E5 견적 작성 폼 E2E", () => {
     await page.getByLabel("추가 옵션 단가").fill("2500000");
     await page.getByLabel("추가 옵션 수량").fill("2");
 
-    // 4) 실시간 합계 = 공급가 55,000,000 (50M 장비 + 2.5M×2 추가옵션, VAT 별도)
-    await expect(page.getByText("55,000,000원").first()).toBeVisible();
+    // 4) 실시간 합계 = 공급가 55,000,000 (50M 장비 + 2.5M×2 추가옵션, VAT 별도). 상세와 동일 ₩ 표기.
+    await expect(page.getByText("₩55,000,000").first()).toBeVisible();
 
     // 5) 발행 → 의뢰 상세로 복귀
     await page.getByRole("button", { name: "발행하기" }).click();
@@ -127,7 +127,7 @@ test.describe.serial("E5 수기 견적 E2E", () => {
     await page.getByLabel("장비 이름").fill("UV5000");
     await page.getByLabel("장비 가격").fill("30000000");
     await page.getByLabel("장비 수량").fill("1");
-    await expect(page.getByText("30,000,000원").first()).toBeVisible(); // 합계 = 공급가 30M(VAT 별도)
+    await expect(page.getByText("₩30,000,000").first()).toBeVisible(); // 합계 = 공급가 30M(VAT 별도, 상세와 동일 ₩ 표기)
 
     // 3) 발행 → 새로 생긴 의뢰 상세로 이동
     await page.getByRole("button", { name: "발행하기" }).click();

@@ -92,7 +92,7 @@ export function QuoteLinesEditor({
                           onChange={(v) => updateItem(i, { unitPrice: v })}
                           disabled={disabled}
                           placeholder="0"
-                          className="w-40 rounded-md border border-border bg-surface px-2 py-1 text-right font-mono tabular-nums text-body text-text"
+                          className="w-32 rounded-md border border-border bg-surface px-2 py-1 text-right font-mono tabular-nums text-body text-text"
                         />
                         <span className="text-small font-normal text-muted">원 (VAT 별도)</span>
                       </SpecRow>
@@ -103,7 +103,7 @@ export function QuoteLinesEditor({
                           onChange={(v) => updateItem(i, { quantity: v })}
                           disabled={disabled}
                           placeholder="1"
-                          className="w-20 rounded-md border border-border bg-surface px-2 py-1 text-right font-mono tabular-nums text-body text-text"
+                          className="w-32 rounded-md border border-border bg-surface px-2 py-1 text-right font-mono tabular-nums text-body text-text"
                         />
                         <span className="text-small font-normal text-muted">대</span>
                       </SpecRow>
@@ -186,40 +186,38 @@ export function QuoteLinesEditor({
         {options.length === 0 ? (
           <div className="rounded-sm border border-dashed border-border py-6 text-center text-small text-muted">선택된 추가 옵션이 없습니다.</div>
         ) : (
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="border-b border-border text-micro font-semibold text-muted">
-                <th className="pb-2 text-left">옵션명</th>
-                <th className="pb-2 text-right">단가 (원)</th>
-                <th className="w-8" />
-              </tr>
-            </thead>
-            <tbody>
-              {options.map((r, i) => {
-                const update = (patch: Partial<QuoteRow>) => setOptions(options.map((o, idx) => (idx === i ? { ...o, ...patch } : o)));
-                return (
-                  <tr key={i} className="border-b border-row-line align-top">
-                    <td className="py-2 pr-3">
+          <ul className="flex flex-col divide-y divide-border">
+            {options.map((r, i) => {
+              const update = (patch: Partial<QuoteRow>) => setOptions(options.map((o, idx) => (idx === i ? { ...o, ...patch } : o)));
+              return (
+                <li key={i} className="flex flex-col gap-2 py-3 first:pt-1 last:pb-1">
+                  {/* 옵션명(넓게) · 수량 · 단가 · 삭제 — 한 줄 */}
+                  <div className="flex flex-wrap items-end gap-2 sm:flex-nowrap">
+                    <label className="flex min-w-0 flex-1 flex-col gap-1">
+                      <span className="text-micro font-semibold text-muted">옵션명</span>
                       <input aria-label="추가 옵션 이름" value={r.name} onChange={(e) => update({ name: e.target.value })} disabled={disabled} placeholder="옵션명"
                         className="w-full rounded-md border border-border bg-surface px-2 py-1 text-body text-text" />
-                      <input aria-label="추가 옵션 비고" value={r.remark ?? ""} onChange={(e) => update({ remark: e.target.value })} disabled={disabled} placeholder="비고 (선택)"
-                        className="mt-1.5 w-full rounded-md border border-border bg-surface px-2 py-1 text-small text-text" />
-                    </td>
-                    <td className="w-44 py-2">
+                    </label>
+                    <label className="flex w-24 flex-col gap-1">
+                      <span className="text-micro font-semibold text-muted">수량</span>
+                      <AmountInput aria-label="추가 옵션 수량" value={r.quantity} onChange={(v) => update({ quantity: v })} disabled={disabled} placeholder="수량"
+                        className="w-full rounded-md border border-border bg-surface px-2 py-1 text-right font-mono tabular-nums text-body text-text" />
+                    </label>
+                    <label className="flex w-36 flex-col gap-1">
+                      <span className="text-micro font-semibold text-muted">단가 (원)</span>
                       <AmountInput aria-label="추가 옵션 단가" value={r.unitPrice} onChange={(v) => update({ unitPrice: v })} disabled={disabled} placeholder="0"
                         className="w-full rounded-md border border-border bg-surface px-2 py-1 text-right font-mono tabular-nums text-body text-text" />
-                      <AmountInput aria-label="추가 옵션 수량" value={r.quantity} onChange={(v) => update({ quantity: v })} disabled={disabled} placeholder="수량"
-                        className="mt-1.5 w-full rounded-md border border-border bg-surface px-2 py-1 text-right font-mono tabular-nums text-small text-text" />
-                    </td>
-                    <td className="py-2 text-right">
-                      <button type="button" aria-label="추가 옵션 행 삭제" onClick={() => setOptions(options.filter((_, idx) => idx !== i))} disabled={disabled}
-                        className="px-2 text-muted hover:text-danger">×</button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                    </label>
+                    <button type="button" aria-label="추가 옵션 행 삭제" onClick={() => setOptions(options.filter((_, idx) => idx !== i))} disabled={disabled}
+                      className="px-1 pb-1.5 text-muted hover:text-danger">×</button>
+                  </div>
+                  {/* 비고 — 아래줄, 전체 폭 */}
+                  <input aria-label="추가 옵션 비고" value={r.remark ?? ""} onChange={(e) => update({ remark: e.target.value })} disabled={disabled} placeholder="비고 (선택)"
+                    className="w-full rounded-md border border-border bg-surface px-2 py-1 text-small text-text" />
+                </li>
+              );
+            })}
+          </ul>
         )}
         <button type="button" onClick={() => setOptions([...options, emptyExtra()])} disabled={disabled}
           className="mt-3 rounded-md border border-dashed border-border px-4 py-2 text-small font-medium text-muted hover:text-text">+ 항목 직접 추가</button>
