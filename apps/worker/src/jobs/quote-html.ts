@@ -88,13 +88,20 @@ export function renderQuoteHtml(d: QuoteHtmlData): string {
       (it) => `<tr class="main"><td class="name"><b>${esc(it.name)}</b></td><td>${esc(it.qtyLabel)}</td><td class="num">${won(it.unitPrice)}</td><td class="num">${won(it.amount)}</td><td class="remark">${esc(it.remark ?? "")}</td></tr>`,
     )
     .join("");
-  // 포함옵션 — 품목명만. 단가·공급가는 빈칸(금액은 장비 줄에 합산됨, 0/'포함' 표기 안 함).
+  // 옵션을 '포함 옵션'·'추가 옵션' 두 그룹으로 나눠 각 그룹 앞에 소제목 행을 넣는다.
+  // 포함옵션 = 이름만(단가 빈칸·공급가 '포함' 표기, 금액은 장비 줄에 이미 합산). 추가옵션 = 금액 그대로.
+  // 색: 포함=쿨(네이비 도트·옅은 파랑 배경) / 추가=웜(앰버 도트·옅은 베이지 배경)로 한눈에 구분.
   const incRows = d.includedOptions
-    .map((o) => `<tr class="sub"><td class="name"> - ${esc(o.name)}</td><td>${esc(o.qtyLabel)}</td><td class="num"></td><td class="num"></td><td></td></tr>`)
+    .map((o) => `<tr class="sub inc"><td class="name">└ ${esc(o.name)}</td><td>${esc(o.qtyLabel)}</td><td class="num"></td><td class="num"></td><td class="remark muted">포함</td></tr>`)
     .join("");
   const extraRows = d.extraOptions
-    .map((o) => `<tr class="sub"><td class="name"> - ${esc(o.name)}</td><td>${esc(o.qtyLabel)}</td><td class="num">${won(o.unitPrice)}</td><td class="num">${won(o.amount)}</td><td class="remark">${esc(o.remark ?? "")}</td></tr>`)
+    .map((o) => `<tr class="sub extra"><td class="name">└ ${esc(o.name)}</td><td>${esc(o.qtyLabel)}</td><td class="num">${won(o.unitPrice)}</td><td class="num">${won(o.amount)}</td><td class="remark">${esc(o.remark ?? "")}</td></tr>`)
     .join("");
+  // 그룹 소제목 행(해당 옵션이 하나라도 있을 때만). colspan=5로 표 전체 폭.
+  const groupHead = (cls: string, label: string, rows: string) =>
+    rows ? `<tr class="grp ${cls}"><td colspan="5" class="glabel"><span class="gdot"></span>${label}</td></tr>${rows}` : "";
+  const incGroup = groupHead("g-inc", "포함 옵션", incRows);
+  const extraGroup = groupHead("g-extra", "추가 옵션", extraRows);
   // 사양 = 항목 이름(라벨)·값이 모두 있는 항목만(둘 중 하나라도 비면 PDF 미포함). 그룹 제목 미표시.
   // 2단 CSS 다단 흐름(column-count)으로 항목을 위→아래로 채워 자동 균형 → 좌·우 행이 엮이지 않아
   // 항목 사이에 빈 공간이 생기지 않는다(이전 2열 그리드는 한쪽이 길면 반대쪽이 늘어나 여백이 생겼음).
@@ -174,7 +181,19 @@ table.items th{background:#f3f3f3;}
 table.items td.name{text-align:left;}
 table.items td.num{text-align:right;font-variant-numeric:tabular-nums;}
 table.items td.remark{text-align:left;white-space:pre-wrap;word-break:break-word;}
+table.items td.muted{color:#8a8a8a;font-weight:500;}
 table.items tr.total td{font-weight:700;}
+/* 옵션 그룹 소제목 행 — 좌측 정렬 라벨 + 색 도트. 포함=쿨/추가=웜. */
+table.items tr.grp td.glabel{text-align:left;font-weight:700;font-size:10.5px;letter-spacing:.5px;padding:3px 6px;}
+table.items tr.grp .gdot{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px;vertical-align:middle;}
+table.items tr.g-inc td.glabel{background:#e8eef4;color:#2a3f52;}
+table.items tr.g-inc .gdot{background:#3a4a5a;}
+table.items tr.g-extra td.glabel{background:#f4ecdd;color:#6a4e1e;}
+table.items tr.g-extra .gdot{background:#b5852a;}
+/* 옵션 상세 줄 — 이름 들여쓰기 + 그룹별 옅은 배경(포함=쿨/추가=웜). */
+table.items tr.sub td.name{padding-left:16px;}
+table.items tr.sub.inc{background:#f6f9fb;}
+table.items tr.sub.extra{background:#fbf8f2;}
 .band{background:#3a4a5a;color:#fff;text-align:center;letter-spacing:6px;padding:5px;margin-top:8px;}
 /* 사양 — 항목 이름·값만(그룹 제목 없음). 2단 CSS 다단 흐름(위→아래 자동 균형)으로 항목을 채워
    좌·우 행이 엮이지 않아 항목 사이 빈 공간이 안 생긴다. 항목 많아도 1페이지 유지(간격 압축). */
@@ -221,7 +240,7 @@ table.items tr.total td{font-weight:700;}
   <div class="sumband"><span class="lbl">합 계 금 액</span><div class="amt-bg"><span class="amt">일금 ${esc(d.koreanAmount)}원정(VAT별도) ( ${won(d.supplyPrice)}- )</span><span class="unit">(단위 : 원)</span></div></div>
   <table class="items">
     <thead><tr><th>품목코드 및 품목명</th><th>수 량</th><th>단 가</th><th>공급가액</th><th>비 고</th></tr></thead>
-    <tbody>${itemRows}${incRows}${extraRows}
+    <tbody>${itemRows}${incGroup}${extraGroup}
       <tr class="total"><td colspan="3">총　　계</td><td class="num">${won(d.supplyPrice)}</td><td></td></tr>
     </tbody>
   </table>

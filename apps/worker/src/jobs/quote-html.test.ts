@@ -91,16 +91,27 @@ describe("renderQuoteHtml", () => {
     expect(html).toContain("data:image/png;base64,NAME");  // 좌하단 장비 네임
     expect(html).toContain("MULTICUT ECO SG1625 Digital Cutter"); // 상단 모델명
   });
-  test("포함옵션은 이름만(단가/공급가 빈칸), 추가옵션은 금액으로 렌더", () => {
+  test("포함/추가 옵션이 그룹 소제목으로 구분되어 렌더", () => {
     const html = renderQuoteHtml({
       ...base,
       includedOptions: [{ name: "자동 급지", qtyLabel: "1ea" }],
       extraOptions: [{ name: "추가 헤드", qtyLabel: "2ea", unitPrice: 1_000_000, amount: 2_000_000 }],
     });
     expect(html).toContain("자동 급지"); // 포함옵션 이름은 표시
-    expect(html).not.toContain('class="num">포함'); // 단가/공급가 칸에 '포함' 텍스트 없음(빈칸)
+    expect(html).toContain("포함 옵션"); // 그룹 소제목
+    expect(html).toContain("추가 옵션"); // 그룹 소제목
+    expect(html).not.toContain('class="num">포함'); // 단가/공급가 칸엔 '포함' 없음(빈칸)
+    expect(html).toContain('class="remark muted">포함'); // '포함'은 비고 칸에 표기
     expect(html).toContain("추가 헤드");
     expect(html).toContain("2,000,000"); // 추가옵션 금액은 표시
+  });
+  test("포함옵션만 있으면 '추가 옵션' 소제목은 미출력(반대도 동일)", () => {
+    const incOnly = renderQuoteHtml({ ...base, includedOptions: [{ name: "자동 급지", qtyLabel: "1ea" }], extraOptions: [] });
+    expect(incOnly).toContain("포함 옵션");
+    expect(incOnly).not.toContain("추가 옵션");
+    const extraOnly = renderQuoteHtml({ ...base, includedOptions: [], extraOptions: [{ name: "추가 헤드", qtyLabel: "1ea", unitPrice: 1, amount: 1 }] });
+    expect(extraOnly).toContain("추가 옵션");
+    expect(extraOnly).not.toContain("포함 옵션");
   });
   test("항목 비고는 '비 고' 칸에 출력 — 장비·추가옵션 줄 모두", () => {
     const html = renderQuoteHtml({
