@@ -9,12 +9,12 @@ import {
 } from "@/lib/quotes/form";
 import { publicImageUrl } from "@/lib/equipment/images";
 import { SectionHeader } from "./SectionHeader";
+import { AmountInput } from "./AmountInput";
 
 // 견적 라인 에디터 — 시안(상세보기) 형태의 카드 레이아웃.
 // 선택 장비(카드: 이미지+사양표) + 포함옵션(체크박스·가격) + 추가옵션(개별 과금 표).
 // 장비는 카탈로그에서 선택(직접입력 폴백), 복수 장비 지원(+ 장비 추가). 기본가·수량은 카드에서 직접 편집.
 // QuoteForm(의뢰)·ManualQuoteForm(수기) 공유. 전체 합계는 우측 패널(QuoteTotalsAside).
-const numOrNaN = (s: string) => (s.trim() === "" ? Number.NaN : Number(s));
 const emptyItem = (): ItemRow => ({ equipmentId: "", name: "", unitPrice: 0, quantity: 1, included: [] });
 const emptyExtra = (): QuoteRow => ({ name: "", unitPrice: 0, quantity: 1 });
 const named = (rows: { name: string }[]) => rows.filter((o) => o.name.trim() !== "").length;
@@ -86,11 +86,10 @@ export function QuoteLinesEditor({
                     <dl className="mt-3 divide-y divide-border border-t border-border">
                       <SpecRow label="모델">{eq?.model ?? r.name ?? "-"}</SpecRow>
                       <SpecRow label="기본 공급가">
-                        <input
+                        <AmountInput
                           aria-label="장비 가격"
-                          type="number"
-                          value={Number.isFinite(r.unitPrice) ? r.unitPrice : ""}
-                          onChange={(e) => updateItem(i, { unitPrice: numOrNaN(e.target.value) })}
+                          value={r.unitPrice}
+                          onChange={(v) => updateItem(i, { unitPrice: v })}
                           disabled={disabled}
                           placeholder="0"
                           className="w-40 rounded-md border border-border bg-surface px-2 py-1 text-right font-mono tabular-nums text-body text-text"
@@ -98,11 +97,10 @@ export function QuoteLinesEditor({
                         <span className="text-small font-normal text-muted">원 (VAT 별도)</span>
                       </SpecRow>
                       <SpecRow label="수량">
-                        <input
+                        <AmountInput
                           aria-label="장비 수량"
-                          type="number"
-                          value={Number.isFinite(r.quantity) ? r.quantity : ""}
-                          onChange={(e) => updateItem(i, { quantity: numOrNaN(e.target.value) })}
+                          value={r.quantity}
+                          onChange={(v) => updateItem(i, { quantity: v })}
                           disabled={disabled}
                           placeholder="1"
                           className="w-20 rounded-md border border-border bg-surface px-2 py-1 text-right font-mono tabular-nums text-body text-text"
@@ -136,7 +134,7 @@ export function QuoteLinesEditor({
                   >
                     <option value="">직접 입력</option>
                     {catalog.map((c) => (
-                      <option key={c.id} value={c.id}>{c.name}{c.category ? ` · ${c.category}` : ""}</option>
+                      <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
                   </select>
                   <button
@@ -208,9 +206,9 @@ export function QuoteLinesEditor({
                         className="mt-1.5 w-full rounded-md border border-border bg-surface px-2 py-1 text-small text-text" />
                     </td>
                     <td className="w-44 py-2">
-                      <input aria-label="추가 옵션 단가" type="number" value={Number.isFinite(r.unitPrice) ? r.unitPrice : ""} onChange={(e) => update({ unitPrice: numOrNaN(e.target.value) })} disabled={disabled} placeholder="0"
+                      <AmountInput aria-label="추가 옵션 단가" value={r.unitPrice} onChange={(v) => update({ unitPrice: v })} disabled={disabled} placeholder="0"
                         className="w-full rounded-md border border-border bg-surface px-2 py-1 text-right font-mono tabular-nums text-body text-text" />
-                      <input aria-label="추가 옵션 수량" type="number" value={Number.isFinite(r.quantity) ? r.quantity : ""} onChange={(e) => update({ quantity: numOrNaN(e.target.value) })} disabled={disabled} placeholder="수량"
+                      <AmountInput aria-label="추가 옵션 수량" value={r.quantity} onChange={(v) => update({ quantity: v })} disabled={disabled} placeholder="수량"
                         className="mt-1.5 w-full rounded-md border border-border bg-surface px-2 py-1 text-right font-mono tabular-nums text-small text-text" />
                     </td>
                     <td className="py-2 text-right">
@@ -240,9 +238,11 @@ function SpecRow({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-// 한 장비의 포함옵션 — 카탈로그 옵션을 체크박스로 토글(가격은 켜진 옵션 옆에서 편집).
-// 카탈로그에 없는(구 견적·직접입력) 포함옵션은 별도 체크 항목으로 보존(끄면 제거).
-// 포함옵션 가격은 견적서엔 미표기되고 장비 최종가에 합산된다.
+// 한 장비의 포함옵션 — 이름·가격을 이 견적에서만 자유 편집.
+// 각 줄 = [이름 입력][가격 입력][삭제]. 카탈로그 옵션은 하단 칩으로 빠르게 추가.
+// ⚠️ 여기서 이름/가격을 바꿔도 장비(카탈로그) 원본 포함옵션은 안 바뀐다 —
+//    값은 견적 jsonb(kind=included)에만 저장되고, 워커가 그 이름으로 견적서 PDF를 렌더한다.
+// 가격은 견적서엔 미표기되고 장비 최종가에 합산된다.
 function IncludedOptions({
   item,
   catalog,
@@ -256,66 +256,85 @@ function IncludedOptions({
 }) {
   const cat = item.equipmentId ? catalog.find((c) => c.id === item.equipmentId) : undefined;
   const catOpts = cat?.options ?? [];
-  const catNames = new Set(catOpts.map((o) => o.name));
-  // 표시 순서: 카탈로그 옵션 → 카탈로그에 없는 보존 옵션(이름 있는 것만).
-  const display = [
-    ...catOpts.map((o) => ({ name: o.name, defPrice: o.price })),
-    ...item.included.filter((o) => !catNames.has(o.name) && o.name.trim() !== "").map((o) => ({ name: o.name, defPrice: o.price })),
-  ];
+  // 아직 견적에 없는(이름 매칭) 카탈로그 옵션 — 빠른 추가 칩.
+  const presentNames = new Set(item.included.map((o) => o.name));
+  const addable = catOpts.filter((o) => !presentNames.has(o.name));
 
-  const isOn = (name: string) => item.included.some((o) => o.name === name);
-  const priceOf = (name: string) => item.included.find((o) => o.name === name)?.price ?? 0;
-  function toggle(name: string, defPrice: number) {
-    setIncluded(
-      isOn(name)
-        ? item.included.filter((o) => o.name !== name)
-        : [...item.included, { name, price: Number.isFinite(defPrice) ? defPrice : 0 }],
-    );
+  function update(idx: number, patch: Partial<IncludedRow>) {
+    setIncluded(item.included.map((o, i) => (i === idx ? { ...o, ...patch } : o)));
   }
-  function setPrice(name: string, price: number) {
-    setIncluded(item.included.map((o) => (o.name === name ? { ...o, price } : o)));
+  function remove(idx: number) {
+    setIncluded(item.included.filter((_, i) => i !== idx));
+  }
+  function add(name: string, price: number) {
+    setIncluded([...item.included, { name, price: Number.isFinite(price) ? price : 0 }]);
   }
 
   return (
     <div className="rounded-md border border-border bg-surface-2/40 p-3">
       <div className="mb-2 flex items-center justify-between">
-        <span className="text-micro font-semibold text-muted">포함 옵션 · {named(item.included)}개 선택</span>
-        <span className="text-micro text-faint">가격은 견적서 미표기 · 장비 최종가에 합산</span>
+        <span className="text-micro font-semibold text-muted">포함 옵션 · {named(item.included)}개</span>
+        <span className="text-micro text-faint">이름·가격은 이 견적서에만 반영 · 가격은 견적서 미표기(장비 최종가 합산)</span>
       </div>
-      {display.length === 0 ? (
-        <p className="text-micro text-faint">{item.equipmentId ? "이 장비에 등록된 포함옵션이 없습니다." : "장비를 선택하면 포함옵션을 고를 수 있습니다."}</p>
+
+      {item.included.length === 0 ? (
+        <p className="text-micro text-faint">{item.equipmentId ? "포함옵션이 없습니다. 아래에서 추가하세요." : "장비를 선택하면 포함옵션을 편집할 수 있습니다."}</p>
       ) : (
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          {display.map((o) => {
-            const on = isOn(o.name);
-            return (
-              <label
-                key={o.name}
-                className={`flex items-center gap-2 rounded-md border px-3 py-2 text-small ${on ? "border-border bg-surface text-text" : "border-border bg-surface text-faint"}`}
+        <div className="flex flex-col gap-2">
+          {item.included.map((o, idx) => (
+            <div key={idx} className="flex items-center gap-2">
+              <input
+                aria-label="포함 옵션 이름"
+                value={o.name}
+                onChange={(e) => update(idx, { name: e.target.value })}
+                disabled={disabled}
+                placeholder="옵션명"
+                className="min-w-0 flex-1 rounded-md border border-border bg-surface px-2 py-1 text-small text-text"
+              />
+              <AmountInput
+                aria-label="포함 옵션 가격"
+                value={o.price}
+                onChange={(v) => update(idx, { price: v })}
+                disabled={disabled}
+                placeholder="0"
+                className="w-24 shrink-0 rounded-md border border-border bg-surface px-2 py-1 text-right font-mono tabular-nums text-small text-text"
+              />
+              <button
+                type="button"
+                aria-label="포함 옵션 삭제"
+                onClick={() => remove(idx)}
+                disabled={disabled}
+                className="px-2 text-muted hover:text-danger"
               >
-                <input
-                  type="checkbox"
-                  checked={on}
-                  onChange={() => toggle(o.name, o.defPrice)}
-                  disabled={disabled}
-                  className="h-4 w-4 shrink-0 accent-accent"
-                />
-                <span className="min-w-0 flex-1 truncate" title={o.name}>{o.name}</span>
-                {on && (
-                  <input
-                    aria-label={`${o.name} 가격`}
-                    type="number"
-                    min={0}
-                    value={Number.isFinite(priceOf(o.name)) ? priceOf(o.name) : ""}
-                    onChange={(e) => setPrice(o.name, e.target.value.trim() === "" ? 0 : Number(e.target.value))}
-                    disabled={disabled}
-                    placeholder="0"
-                    className="w-24 shrink-0 rounded-md border border-border bg-surface px-2 py-1 text-right font-mono tabular-nums text-small text-text"
-                  />
-                )}
-              </label>
-            );
-          })}
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {(addable.length > 0 || item.equipmentId) && (
+        <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-border pt-2">
+          {addable.length > 0 && <span className="text-micro text-faint">카탈로그 옵션 추가:</span>}
+          {addable.map((o) => (
+            <button
+              key={o.name}
+              type="button"
+              onClick={() => add(o.name, o.price)}
+              disabled={disabled}
+              className="rounded-full border border-border bg-surface px-2.5 py-0.5 text-micro text-muted hover:border-accent hover:text-text"
+            >
+              + {o.name}
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => add("", 0)}
+            disabled={disabled}
+            className="rounded-full border border-dashed border-border px-2.5 py-0.5 text-micro font-medium text-accent hover:underline"
+          >
+            + 직접 추가
+          </button>
         </div>
       )}
     </div>

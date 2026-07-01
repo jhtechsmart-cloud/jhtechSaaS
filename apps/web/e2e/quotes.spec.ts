@@ -181,7 +181,7 @@ test.describe.serial("E5 견적 상세+재발행 E2E", () => {
     await page.getByRole("link", { name: "수정" }).first().click();
     await page.waitForURL(/\/quote\/new\?from=/, { timeout: 20_000 });
     // 프리필 확인 — 단가는 직접입력/카탈로그선택 모드 무관하게 채워짐(장비명은 모드별로 input/select라 단가로 검증).
-    await expect(page.getByLabel("장비 가격")).toHaveValue("50000000");
+    await expect(page.getByLabel("장비 가격")).toHaveValue("50,000,000");
 
     // 수정(수량 2) 후 발행 → V2
     await page.getByLabel("장비 수량").fill("2");
