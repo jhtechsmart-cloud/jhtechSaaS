@@ -75,6 +75,13 @@ export async function resetUserPasswordAction(userId: string): Promise<ResetPass
   const id = z.string().uuid().safeParse(userId);
   if (!id.success) return { error: "잘못된 사용자입니다" };
 
+  // 본인 계정은 이 경로로 재설정 금지. admin API가 본인 세션을 무효화하면
+  // 임시 비밀번호를 화면에서 보기 전에 로그아웃돼 스스로 잠길 수 있다.
+  // 본인 비밀번호 변경은 '계정 설정'(/admin/account)의 현재-비번 검증 흐름으로.
+  if (access.userId === id.data) {
+    return { error: "본인 계정은 여기서 재설정할 수 없습니다. '계정 설정'에서 비밀번호를 변경하세요." };
+  }
+
   const admin = createSupabaseAdminClient();
   const tempPassword = generateTempPassword();
 
