@@ -18,7 +18,7 @@ export function EquipmentCard({ item }: { item: EquipmentPublic }) {
               src={publicImageUrl(cover)}
               alt={item.name}
               fill
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              sizes="(max-width: 480px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
               // 가로로 긴 프린터 사진이 잘리지 않도록 전체가 보이게 맞춤(letterbox는 bg-surface-2).
               className="object-contain"
             />
