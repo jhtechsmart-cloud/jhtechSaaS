@@ -1,8 +1,11 @@
 import type { InventoryRow } from "@/lib/inventory/queries";
 import { stockStatus, STOCK_STATUS_LABEL, type StockStatus } from "@/lib/inventory/status";
+import { ConfirmSaleButton } from "./ConfirmSaleButton";
 
-// 영업자용 읽기 전용 재고 뷰. PC = 평면 게시판 표(hidden lg:block), 모바일 = 카드 스택(lg:hidden).
-// 편집 input·저장 없음(읽기 전용). 메모(note)는 노출하지 않음.
+// 영업자용 재고 뷰. PC = 평면 게시판 표(hidden lg:block), 모바일 = 카드 스택(lg:hidden).
+// 편집은 없지만 장비별 [판매확정] 버튼만 예외(콘솔 전원, 재고 -1·판매확정 +1). 메모(note)는 미노출.
+
+const SOLD_BG = "#FCF1DC"; // 판매확정 강조(작성 페이지와 통일)
 
 const STATUS_STYLE: Record<StockStatus, { color: string; bg: string }> = {
   in_stock: { color: "#176455", bg: "#D9F3E9" }, // 재고있음 — 파인 민트
@@ -42,19 +45,23 @@ export function InventoryView({ groups }: { groups: { category: string; rows: In
                 장비 열은 가장 긴 장비명에 맞춘 고정폭. 분류 그룹마다 동일 정렬. */}
             <table className="table-fixed text-small">
               <colgroup>
-                <col className="w-96" />{/* 장비 — 가장 긴 이름 기준 고정폭 */}
+                <col className="w-80" />{/* 장비 — 가장 긴 이름 기준 고정폭 */}
                 <col className="w-24" />{/* 상태 */}
                 <col className="w-24" />{/* 재고 수량 */}
+                <col className="w-24" />{/* 판매확정 */}
                 <col className="w-32" />{/* 입고예정일 */}
                 <col className="w-44" />{/* 최종수정 */}
+                <col className="w-28" />{/* 판매확정 버튼 */}
               </colgroup>
               <thead>
                 <tr className="border-b border-border text-left text-muted">
                   <th className="py-2 pr-4 font-medium">장비</th>
                   <th className="py-2 pr-4 font-medium">상태</th>
                   <th className="py-2 pr-4 font-medium">재고 수량</th>
+                  <th className="py-2 pr-4 font-medium" style={{ backgroundColor: SOLD_BG }}>판매확정</th>
                   <th className="py-2 pr-4 font-medium">입고예정일</th>
                   <th className="py-2 pr-4 font-medium">최종수정</th>
+                  <th className="py-2 pr-4 font-medium" />
                 </tr>
               </thead>
               <tbody>
@@ -66,10 +73,14 @@ export function InventoryView({ groups }: { groups: { category: string; rows: In
                     </td>
                     <td className="py-2 pr-4"><StatusBadge qty={row.stockQty} /></td>
                     <td className="py-2 pr-4 font-mono tabular-nums text-text">{row.stockQty}</td>
+                    <td className="py-2 pr-4 font-mono tabular-nums font-semibold text-text" style={{ backgroundColor: SOLD_BG }}>{row.soldConfirmed}</td>
                     <td className="py-2 pr-4 font-mono text-text">
                       {row.stockQty === 0 && row.restockDate ? row.restockDate : <span className="text-muted/60">—</span>}
                     </td>
                     <td className="py-2 pr-4 whitespace-nowrap text-muted">{fmtUpdated(row.updatedAt, row.updatedByName)}</td>
+                    <td className="py-2 pr-4">
+                      <ConfirmSaleButton equipmentId={row.equipmentId} name={row.name} stockQty={row.stockQty} />
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -91,11 +102,17 @@ export function InventoryView({ groups }: { groups: { category: string; rows: In
                   <span className="text-muted">
                     수량 <span className="font-mono tabular-nums text-text">{row.stockQty}</span>
                   </span>
+                  <span className="rounded px-1.5 text-muted" style={{ backgroundColor: SOLD_BG }}>
+                    판매확정 <span className="font-mono tabular-nums font-semibold text-text">{row.soldConfirmed}</span>
+                  </span>
                   {row.stockQty === 0 && row.restockDate && (
                     <span className="text-muted">
                       입고예정 <span className="font-mono text-text">{row.restockDate}</span>
                     </span>
                   )}
+                </div>
+                <div className="mt-2 flex justify-end">
+                  <ConfirmSaleButton equipmentId={row.equipmentId} name={row.name} stockQty={row.stockQty} />
                 </div>
               </li>
             ))}

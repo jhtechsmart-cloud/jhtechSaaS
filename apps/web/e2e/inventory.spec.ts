@@ -70,4 +70,24 @@ test.describe.serial("재고현황", () => {
     // 수량>0 → '재고 있음' 배지.
     await expect(page.locator("tr", { hasText: EQ_NAME }).getByText("재고 있음")).toBeVisible();
   });
+
+  test("행 클릭 → 상세 모달(메모 편집·판매확정 로그) + 메모 유/무 반영", async ({ page }) => {
+    await login(page);
+    await page.getByRole("link", { name: "재고현황" }).first().click();
+    await page.waitForURL(/\/admin\/inventory/, { timeout: 20_000 });
+
+    // 장비명(비입력 셀) 클릭 → 모달. 입력칸/버튼은 stopPropagation이라 모달 안 뜸.
+    await page.getByText(EQ_NAME).click();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByText("판매확정 기록 (최근 2개월)")).toBeVisible();
+
+    // 모달에서 메모 저장 → 표의 메모 칸이 '유'로.
+    await dialog.getByPlaceholder("메모를 입력하세요").fill("E2E 재고 메모");
+    await dialog.getByRole("button", { name: "메모 저장" }).click();
+    await expect(page.getByText("메모 저장됨", { exact: false })).toBeVisible({ timeout: 20_000 });
+    // 모달 닫고 표의 메모 배지 확인.
+    await dialog.getByLabel("닫기").click();
+    await expect(page.locator("tr", { hasText: EQ_NAME }).getByText("유", { exact: true })).toBeVisible();
+  });
 });

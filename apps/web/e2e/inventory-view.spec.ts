@@ -67,6 +67,20 @@ test.describe.serial("영업자 재고 조회(읽기 전용)", () => {
     // 읽기 전용 — 편집용 수량 입력(number=spinbutton)·저장 버튼 없음.
     await expect(page.getByRole("spinbutton")).toHaveCount(0);
     await expect(page.getByRole("button", { name: "저장" })).toHaveCount(0);
+    // 단, 판매확정 버튼은 콘솔 전원 노출(유일한 쓰기 동작).
+    await expect(page.locator("tr", { hasText: EQ_NAME }).getByRole("button", { name: "판매확정" })).toBeVisible();
+  });
+
+  test("판매확정 버튼 → 재고 -1·판매확정 +1(콘솔 사용자)", async ({ page }) => {
+    page.on("dialog", (d) => d.accept()); // window.confirm 자동 수락
+    await loginSales(page);
+    await page.goto("/admin/inventory/view");
+    const row = page.locator("tr", { hasText: EQ_NAME });
+    // 시드 재고 8 → 확정 후 재고 7 / 판매확정 1
+    await row.getByRole("button", { name: "판매확정" }).click();
+    await expect(page.getByText("판매확정 처리됨", { exact: false })).toBeVisible({ timeout: 20_000 });
+    await expect(row.getByText("7", { exact: true })).toBeVisible();
+    await expect(row.getByText("1", { exact: true })).toBeVisible();
   });
 
   test("모바일 뷰포트 — 카드 렌더(PC 표 헤더 숨김)", async ({ page }) => {

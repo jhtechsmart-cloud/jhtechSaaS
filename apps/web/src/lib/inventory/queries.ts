@@ -8,6 +8,9 @@ export interface InventoryRow {
   model: string | null;
   category: string | null; // 분류명(그룹 헤더용)
   stockQty: number;
+  soldConfirmed: number; // 판매확정(대수, 읽기전용)
+  demoQty: number; // 데모장비(대수, 수기)
+  usedQty: number; // 중고장비(대수, 수기)
   restockDate: string | null;
   note: string | null;
   updatedAt: string | null;
@@ -21,7 +24,7 @@ export async function listInventory(): Promise<InventoryRow[]> {
     .from("equipment")
     .select(
       "id, name, model, equipment_category:category_id(name), " +
-        "equipment_inventory(stock_qty, restock_date, note, updated_at, profiles:updated_by(name))",
+        "equipment_inventory(stock_qty, sold_confirmed, demo_qty, used_qty, restock_date, note, updated_at, profiles:updated_by(name))",
     )
     .eq("status", "active")
     .order("name");
@@ -33,7 +36,7 @@ export async function listInventory(): Promise<InventoryRow[]> {
     const cat = row.equipment_category as { name?: string } | null;
     // equipment_inventory는 equipment_id가 PK이자 FK → PostgREST가 1:1로 감지해 객체로 반환할 수도,
     // 역참조로 배열로 반환할 수도 있다. 둘 다 안전 처리.
-    type Inv = { stock_qty: number; restock_date: string | null; note: string | null; updated_at: string | null; profiles: { name?: string } | null };
+    type Inv = { stock_qty: number; sold_confirmed: number; demo_qty: number; used_qty: number; restock_date: string | null; note: string | null; updated_at: string | null; profiles: { name?: string } | null };
     const invRaw = row.equipment_inventory as Inv | Inv[] | null;
     const inv: Inv | null = Array.isArray(invRaw) ? (invRaw[0] ?? null) : invRaw;
     return {
@@ -42,6 +45,9 @@ export async function listInventory(): Promise<InventoryRow[]> {
       model: (row.model as string | null) ?? null,
       category: cat?.name ?? null,
       stockQty: inv?.stock_qty ?? 0,
+      soldConfirmed: inv?.sold_confirmed ?? 0,
+      demoQty: inv?.demo_qty ?? 0,
+      usedQty: inv?.used_qty ?? 0,
       restockDate: inv?.restock_date ?? null,
       note: inv?.note ?? null,
       updatedAt: inv?.updated_at ?? null,
@@ -56,4 +62,32 @@ export async function listInventory(): Promise<InventoryRow[]> {
     if (ca !== cb) return ca.localeCompare(cb, "ko");
     return a.name.localeCompare(b.name, "ko");
   });
+}
+
+// 판매확정/취소 로그 1건(모달 표시용).
+export interface SaleLogEntry {
+  id: string;
+  action: "confirm" | "cancel";
+  actorName: string | null;
+  createdAt: string;
+}
+
+// 특정 장비의 판매확정 로그 — 최근 2개월만, 최신순. 모달 열 때 조회.
+export async function listSaleLog(equipmentId: string): Promise<SaleLogEntry[]> {
+  const supabase = await createSupabaseServerClient();
+  const since = new Date();
+  since.setMonth(since.getMonth() - 2); // 오늘 기준 2개월 전
+  const { data, error } = await supabase
+    .from("inventory_sale_log")
+    .select("id, action, created_at, profiles:actor_id(name)")
+    .eq("equipment_id", equipmentId)
+    .gte("created_at", since.toISOString())
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(`판매확정 로그 조회 실패: ${error.message}`);
+  return ((data ?? []) as unknown as Record<string, unknown>[]).map((r) => ({
+    id: r.id as string,
+    action: r.action as "confirm" | "cancel",
+    actorName: (r.profiles as { name?: string } | null)?.name ?? null,
+    createdAt: r.created_at as string,
+  }));
 }
