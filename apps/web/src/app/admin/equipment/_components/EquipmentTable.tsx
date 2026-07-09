@@ -1,10 +1,11 @@
 "use client";
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import type { Equipment } from "@jhtechsaas/shared";
 import { publicImageUrl } from "@/lib/equipment/images";
+import { groupByCategory } from "@/lib/equipment/group";
 
 type StatusFilter = "all" | "active" | "inactive";
 
@@ -22,6 +23,9 @@ export function EquipmentTable({ items }: { items: Equipment[] }) {
   const router = useRouter();
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<StatusFilter>("all");
+  // 사용자가 접은 분류(기본 전부 펼침). 검색 중엔 결과가 항상 보이도록 강제 펼침.
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
+  const searching = q.trim() !== "";
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -34,6 +38,17 @@ export function EquipmentTable({ items }: { items: Equipment[] }) {
       return matchesQ && matchesStatus;
     });
   }, [items, q, status]);
+
+  const groups = useMemo(() => groupByCategory(filtered), [filtered]);
+
+  function toggle(cat: string) {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(cat)) next.delete(cat);
+      else next.add(cat);
+      return next;
+    });
+  }
 
   // empty: 카탈로그 자체가 비어있음(첫 사용)
   if (items.length === 0) {
@@ -103,49 +118,76 @@ export function EquipmentTable({ items }: { items: Equipment[] }) {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((it) => {
-              const badge = STATUS_BADGE[it.status];
+            {groups.map((g) => {
+              const open = searching || !collapsed.has(g.category);
               return (
-                <tr
-                  key={it.id}
-                  className="cursor-pointer border-b border-border hover:bg-surface-2"
-                  onClick={() => router.push(`/admin/equipment/${it.id}/edit`)}
-                >
-                  <td className="py-2">
-                    {it.photos[0] ? (
-                      <Image
-                        src={publicImageUrl(it.photos[0])}
-                        alt=""
-                        width={40}
-                        height={40}
-                        className="h-10 w-10 rounded-sm object-cover"
-                        unoptimized
-                      />
-                    ) : (
-                      <div className="h-10 w-10 rounded-sm bg-surface-2" />
-                    )}
-                  </td>
-                  <td className="max-w-xs py-2">
-                    <Link
-                      href={`/admin/equipment/${it.id}/edit`}
-                      className="block max-w-xs truncate font-medium text-text hover:text-accent"
-                    >
-                      {it.name}
-                    </Link>
-                  </td>
-                  <td className="py-2 font-mono text-text">{it.model ?? "-"}</td>
-                  <td className="py-2 text-muted">{it.category ?? "-"}</td>
-                  <td className="py-2 text-right font-mono tabular-nums text-text">
-                    {formatPrice(it.base_price)}
-                  </td>
-                  <td className="py-2">
-                    <span
-                      className={`rounded-sm px-2 py-0.5 text-small font-medium ${badge.cls}`}
-                    >
-                      {badge.label}
-                    </span>
-                  </td>
-                </tr>
+                <Fragment key={g.category}>
+                  {/* 분류 헤더 행 — 클릭으로 그룹 접기/펴기. 열 정렬 유지 위해 같은 테이블 안에 둠. */}
+                  <tr
+                    className="cursor-pointer border-b border-border bg-surface-2/60 hover:bg-surface-2"
+                    onClick={() => toggle(g.category)}
+                  >
+                    <td colSpan={6} className="py-2">
+                      <span className="flex items-center gap-2 font-medium text-text">
+                        <svg
+                          viewBox="0 0 16 16"
+                          className={`h-3.5 w-3.5 shrink-0 transition-transform ${open ? "rotate-90" : ""}`}
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        >
+                          <path d="M6 4l4 4-4 4" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        {g.category}
+                        <span className="text-small font-normal text-muted">{g.items.length}</span>
+                      </span>
+                    </td>
+                  </tr>
+                  {open &&
+                    g.items.map((it) => {
+                      const badge = STATUS_BADGE[it.status];
+                      return (
+                        <tr
+                          key={it.id}
+                          className="cursor-pointer border-b border-border hover:bg-surface-2"
+                          onClick={() => router.push(`/admin/equipment/${it.id}/edit`)}
+                        >
+                          <td className="py-2 pl-6">
+                            {it.photos[0] ? (
+                              <Image
+                                src={publicImageUrl(it.photos[0])}
+                                alt=""
+                                width={40}
+                                height={40}
+                                className="h-10 w-10 rounded-sm object-cover"
+                                unoptimized
+                              />
+                            ) : (
+                              <div className="h-10 w-10 rounded-sm bg-surface-2" />
+                            )}
+                          </td>
+                          <td className="max-w-xs py-2">
+                            <Link
+                              href={`/admin/equipment/${it.id}/edit`}
+                              className="block max-w-xs truncate font-medium text-text hover:text-accent"
+                            >
+                              {it.name}
+                            </Link>
+                          </td>
+                          <td className="py-2 font-mono text-text">{it.model ?? "-"}</td>
+                          <td className="py-2 text-muted">{it.category ?? "-"}</td>
+                          <td className="py-2 text-right font-mono tabular-nums text-text">
+                            {formatPrice(it.base_price)}
+                          </td>
+                          <td className="py-2">
+                            <span className={`rounded-sm px-2 py-0.5 text-small font-medium ${badge.cls}`}>
+                              {badge.label}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                </Fragment>
               );
             })}
           </tbody>
