@@ -212,6 +212,53 @@ export function calendarRangeLabel(view: CalendarView, days: CalendarDay[]): str
   return `${fy}년 ${fm}월 ${fd}일 – ${ly}년 ${lm}월 ${ld}일`;
 }
 
+/** 클라 선(先)로딩 범위 — 앵커 기준 이전 달~다음 달(3개월)을 한 번에 담아 그 안 이동은 서버 왕복 0. */
+export function calendarLoadWindow(anchorKst: string): {
+  start: string;
+  endExclusive: string;
+} {
+  const [y, m] = anchorKst.split("-").map(Number);
+  const start = new Date(Date.UTC(y, m - 2, 1)); // 이전 달 1일
+  const end = new Date(Date.UTC(y, m + 1, 1)); // 다음 달 다음 1일(= 다음 달 말일 + 1)
+  const fmt = (d: Date) =>
+    `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-01`;
+  return { start: fmt(start), endExclusive: fmt(end) };
+}
+
+/** 두 이벤트 목록 병합 — type+id로 중복 제거(뒤 목록이 최신). */
+export function mergeEventsById(a: CalendarEvent[], b: CalendarEvent[]): CalendarEvent[] {
+  const map = new Map<string, CalendarEvent>();
+  for (const e of a) map.set(`${e.type}:${e.id}`, e);
+  for (const e of b) map.set(`${e.type}:${e.id}`, e);
+  return [...map.values()];
+}
+
+/**
+ * 이미 담은 범위(loaded)에 새로 받은 범위(next)를 확장 병합.
+ * 겹치거나 맞닿으면 합쳐 넓히고, 멀리 떨어졌으면(간격) 새 범위로 대체 —
+ * 간격을 "담았다"고 오인해 그 구간 이벤트를 안 받는 버그 방지.
+ */
+export function extendCalendarWindow(
+  loaded: { start: string; endExclusive: string },
+  next: { start: string; endExclusive: string },
+): { start: string; endExclusive: string } {
+  const overlaps = next.start <= loaded.endExclusive && loaded.start <= next.endExclusive;
+  if (!overlaps) return next;
+  return {
+    start: loaded.start < next.start ? loaded.start : next.start,
+    endExclusive: loaded.endExclusive > next.endExclusive ? loaded.endExclusive : next.endExclusive,
+  };
+}
+
+/** [start,endExclusive) 범위가 loaded 안에 완전히 들어오는지(추가 조회 필요 판단). */
+export function windowCovers(
+  loaded: { start: string; endExclusive: string },
+  start: string,
+  endExclusive: string,
+): boolean {
+  return loaded.start <= start && loaded.endExclusive >= endExclusive;
+}
+
 /** 하루 안 이벤트 정렬 — 시간 있는 것 먼저(시각 오름차순), 무시간은 뒤(제목순). */
 export function sortDayEvents(events: CalendarEvent[]): CalendarEvent[] {
   return [...events].sort((a, b) => {

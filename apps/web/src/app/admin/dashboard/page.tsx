@@ -13,20 +13,18 @@ import {
   weekDemoDelivery,
 } from "@/lib/dashboard/v2-queries";
 import {
-  buildCalendarDays,
   buildTwoWeekDays,
   buildWeeklyUnits,
+  calendarLoadWindow,
   CALENDAR_HIDDEN_COOKIE,
   demoUtilization,
-  parseCalendarAnchor,
-  parseCalendarView,
   parseHiddenEventTypes,
   pipelineRows,
   type ActivityType,
 } from "@/lib/dashboard/v2-logic";
 import { cookies } from "next/headers";
 import { listUpcomingSchedules } from "@/lib/demo-reservations/queries";
-import { addDaysKst, kstDateOf, todayKst } from "@/lib/format/kst";
+import { kstDateOf, todayKst } from "@/lib/format/kst";
 import { KpiCards } from "./_components/KpiCards";
 import { ScheduleCalendar } from "./_components/ScheduleCalendar";
 import { PipelineRows } from "./_components/PipelineRows";
@@ -45,11 +43,7 @@ function val<T>(r: PromiseSettledResult<T>): T | null {
   return r.status === "fulfilled" ? r.value : null;
 }
 
-export default async function DashboardPage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
+export default async function DashboardPage() {
   const access = await requireAnyConsoleCapability();
   if (access.status === "forbidden") {
     return (
@@ -68,13 +62,8 @@ export default async function DashboardPage({
   const monthFirst = `${today.slice(0, 7)}-01`;
   const nowIso = new Date().toISOString();
 
-  // 캘린더 뷰(1주/2주/월)·기준일 — URL 쿼리로 관리(이동 시 서버가 해당 범위만 재조회).
-  const sp = await searchParams;
-  const calView = parseCalendarView(sp.calView);
-  const calAnchor = parseCalendarAnchor(sp.calAnchor, today);
-  const calDays = buildCalendarDays(calView, calAnchor, today);
-  const calStart = calDays[0].date;
-  const calEndExclusive = addDaysKst(calDays[calDays.length - 1].date, 1);
+  // 캘린더 선(先)로딩 — 오늘 기준 3개월치를 미리 받아 클라가 그 안에서 즉시 이동(A안).
+  const calWindow = calendarLoadWindow(today);
 
   // 캘린더 범례 토글로 숨긴 항목 — 쿠키에서 읽어 초기값 주입(서버·클라 일치로 hydration mismatch 방지).
   const hiddenCalTypes = parseHiddenEventTypes(
@@ -94,7 +83,7 @@ export default async function DashboardPage({
     weekDemoDelivery(weekStart, weekEndExclusive),
     customersWithNewThisMonth(monthFirst),
     staleQuoteSentCount(nowIso),
-    listCalendarEvents(calStart, calEndExclusive),
+    listCalendarEvents(calWindow.start, calWindow.endExclusive),
     listUpcomingSchedules(today, 5),
     listRecentRequests(40),
     unpaidDeliveries(),
@@ -175,11 +164,9 @@ export default async function DashboardPage({
       />
 
       <ScheduleCalendar
-        view={calView}
-        anchor={calAnchor}
         today={today}
-        days={calDays}
-        events={val(events) ?? []}
+        initialEvents={val(events) ?? []}
+        initialWindow={calWindow}
         initialHidden={hiddenCalTypes}
       />
 
