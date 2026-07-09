@@ -67,12 +67,11 @@ export interface TwoWeekDay {
   dow: number;
 }
 
-/** 해당 날짜가 속한 주의 월요일(주 시작=월요일). 한국 통용 "이번주=월~일". */
+/** 해당 날짜가 속한 주의 일요일(주 시작=일요일). */
 function weekStartKst(dateKst: string): string {
   const [y, m, d] = dateKst.split("-").map(Number);
   const jsDow = new Date(Date.UTC(y, m - 1, d)).getUTCDay(); // 0=일 … 6=토
-  const offset = (jsDow + 6) % 7; // 월=0 … 일=6
-  return addDaysKst(dateKst, -offset);
+  return addDaysKst(dateKst, -jsDow);
 }
 
 /** 요일 번호(0=일 … 6=토). */
@@ -81,11 +80,11 @@ function dowOf(dateKst: string): number {
   return new Date(Date.UTC(y, m - 1, d)).getUTCDay();
 }
 
-/** 이번 주 월요일부터 14일(이번 주 + 다음 주). 주 시작=월요일. */
+/** 이번 주 일요일부터 14일(이번 주 + 다음 주). 주 시작=일요일. */
 export function buildTwoWeekDays(todayKst: string): TwoWeekDay[] {
-  const monday = weekStartKst(todayKst);
+  const sunday = weekStartKst(todayKst);
   return Array.from({ length: 14 }, (_, i) => {
-    const date = addDaysKst(monday, i);
+    const date = addDaysKst(sunday, i);
     return {
       date,
       week: i < 7 ? ("this" as const) : ("next" as const),
@@ -148,10 +147,10 @@ function diffDaysKst(a: string, b: string): number {
 }
 
 /**
- * 뷰·앵커 기준 캘린더 그리드 날짜 배열(항상 월요일 시작, 7의 배수 길이).
- * - week: 앵커가 속한 주 7일(월~일)
+ * 뷰·앵커 기준 캘린더 그리드 날짜 배열(항상 일요일 시작, 7의 배수 길이).
+ * - week: 앵커가 속한 주 7일(일~토)
  * - twoweek: 앵커가 속한 주 + 다음 주 14일
- * - month: 앵커 달을 감싸는 온전한 주들(월~일, 5~6주)
+ * - month: 앵커 달을 감싸는 온전한 주들(일~토, 5~6주)
  */
 export function buildCalendarDays(
   view: CalendarView,

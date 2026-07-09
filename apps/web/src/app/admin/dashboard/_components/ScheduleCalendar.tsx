@@ -25,8 +25,8 @@ import { fetchCalendarEventsAction } from "../actions";
 // A안(클라 즉시 이동): 뷰(1주/2주/월) 전환·이전/오늘/다음은 전부 브라우저 상태로 즉시 처리(서버 왕복 0).
 // 일정은 처음에 3개월치(선로딩)를 받아두고, 담은 범위를 벗어날 때만 Server Action으로 조용히 추가 조회·누적.
 
-// 주 시작 = 월요일(한국 통용 "이번주=월~일"). 주말(토·일)은 마지막 두 칸.
-const DOW_LABELS = ["월", "화", "수", "목", "금", "토", "일"];
+// 주 시작 = 일요일. 주말(일·토)은 양끝 칸.
+const DOW_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
 
 type CalWindow = { start: string; endExclusive: string };
 
@@ -222,7 +222,7 @@ export function ScheduleCalendar({
             <div
               key={w}
               className={`bg-surface-2 py-1.5 text-center text-micro font-medium ${
-                i === 5 || i === 6 ? "text-muted-foreground" : "text-muted"
+                i === 0 || i === 6 ? "text-muted-foreground" : "text-muted"
               }`}
             >
               {w}
