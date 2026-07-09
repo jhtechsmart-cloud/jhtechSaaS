@@ -11,11 +11,13 @@ export function AccountMenu({
   imageUrl,
   name,
   email,
+  position,
   isAdmin,
 }: {
   imageUrl: string | null;
   name: string | null;
   email: string | null;
+  position: string | null;
   isAdmin: boolean;
 }) {
   const [open, setOpen] = useState(false);
@@ -61,7 +63,8 @@ export function AccountMenu({
             <UserAvatar imageUrl={imageUrl} name={name} fallback={isAdmin ? "관" : "영"} variant="soft" size={64} />
             <div className="text-center">
               <p className="text-body font-semibold text-text">{name ?? "사용자"}</p>
-              <p className="text-small text-muted">{roleLabel(isAdmin)}</p>
+              {/* 직책(profiles.position) — 미설정이면 역할 라벨로 폴백 */}
+              <p className="text-small text-muted">{position ?? roleLabel(isAdmin)}</p>
             </div>
           </div>
           <div className="mt-4 flex flex-col gap-2">

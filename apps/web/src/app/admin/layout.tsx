@@ -126,7 +126,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
                 </span>
               )}
             </span>
-            <AccountMenu imageUrl={avatarUrl} name={userName} email={userEmail} isAdmin={isAdmin} />
+            <AccountMenu imageUrl={avatarUrl} name={userName} email={userEmail} position={userPosition} isAdmin={isAdmin} />
           </div>
         </header>
 
