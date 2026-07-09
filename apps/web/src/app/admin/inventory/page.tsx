@@ -37,6 +37,10 @@ export default async function InventoryPage() {
         <h1 className="text-h1 font-semibold text-text">재고현황</h1>
         <p className="text-small text-muted">장비별 재고를 수기로 관리합니다. 품절 장비는 입고예정일을 입력하세요.</p>
       </div>
+      {/* 전체재고 = 재고수량 + 판매확정. 재고수량 수기 수정 시 판매확정 확인 안내(요청). 판매확정 강조색(앰버)과 통일. */}
+      <div className="rounded-lg border px-4 py-3 text-small" style={{ backgroundColor: "#FCF1DC", borderColor: "#EBD9A8", color: "#7A5410" }}>
+        신규제품의 전체재고는 재고수량과 판매확정 수량의 합으로 계산됩니다. 재고수량을 수기로 수정하는 경우에는 판매확정 수량을 꼭 확인 후 수정하시기 바랍니다.
+      </div>
       {rows.length === 0 ? (
         <p className="rounded-md border border-border bg-surface px-4 py-8 text-center text-small text-muted">
           등록된 활성 장비가 없습니다.

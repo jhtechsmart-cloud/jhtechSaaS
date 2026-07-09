@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Toaster } from "@/components/ui/sonner";
 import { requireAnyConsoleCapability } from "@/lib/auth/guard";
 import { listInventory, type InventoryRow } from "@/lib/inventory/queries";
 import { InventoryView } from "./_components/InventoryView";
@@ -44,6 +45,7 @@ export default async function InventoryViewPage() {
       ) : (
         <InventoryView groups={groups} />
       )}
+      <Toaster position="bottom-center" />
     </section>
   );
 }
