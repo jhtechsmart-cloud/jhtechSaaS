@@ -28,7 +28,8 @@ export function WeeklyUnitChart({ days }: { days: WeeklyUnitDay[] }) {
         {days.map((d, di) => {
           // "6/7 (일)" → 날짜 위·요일 아래 두 줄(라벨이 열 단위로 묶여 하루 구분이 명확)
           const [md, dow] = (formatMonthDayWeekday(d.date) ?? d.date).split(" ");
-          const isWeekend = di === 0 || di === 6;
+          // 주 시작=월요일 → 주말(토·일)은 마지막 두 칸(5·6)
+          const isWeekend = di === 5 || di === 6;
           return (
             <div key={d.date} className="flex flex-col items-center gap-1.5 px-1.5">
               <span className="text-small font-semibold text-text tabular-nums">{d.total}</span>
