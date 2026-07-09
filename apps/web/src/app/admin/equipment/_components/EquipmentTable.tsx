@@ -152,7 +152,7 @@ export function EquipmentTable({ items }: { items: Equipment[] }) {
                           className="cursor-pointer border-b border-border hover:bg-surface-2"
                           onClick={() => router.push(`/admin/equipment/${it.id}/edit`)}
                         >
-                          <td className="py-2 pl-6">
+                          <td className="py-2 pr-3">
                             {it.photos[0] ? (
                               <Image
                                 src={publicImageUrl(it.photos[0])}
