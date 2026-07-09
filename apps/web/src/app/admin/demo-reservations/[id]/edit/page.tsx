@@ -57,7 +57,6 @@ export default async function EditDemoReservationPage({
     customerName: reservation.customerName,
     equipmentIds: reservation.equipmentIds,
     assigneeId: reservation.assigneeId,
-    visitorName: reservation.visitorName ?? "",
     visitorPhone: reservation.visitorPhone ?? "",
     startTime: reservation.start,
     durationMin,

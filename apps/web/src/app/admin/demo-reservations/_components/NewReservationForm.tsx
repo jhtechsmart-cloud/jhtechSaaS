@@ -92,7 +92,6 @@ export interface ReservationFormInitial {
   customerName: string;
   equipmentIds: string[];
   assigneeId: string | null;
-  visitorName: string;
   visitorPhone: string;
   startTime: string;
   durationMin: DurationOption;
@@ -130,7 +129,6 @@ export function NewReservationForm({
   });
   const [equipmentIds, setEquipmentIds] = useState<string[]>(initial?.equipmentIds ?? []);
   const [assigneeId, setAssigneeId] = useState(initial?.assigneeId ?? "");
-  const [visitorName, setVisitorName] = useState(initial?.visitorName ?? "");
   const [visitorPhone, setVisitorPhone] = useState(initial?.visitorPhone ?? "");
   const [memo, setMemo] = useState(initial?.memo ?? "");
   const [durationMin, setDurationMin] = useState<DurationOption>(initial?.durationMin ?? 60);
@@ -185,7 +183,6 @@ export function NewReservationForm({
       customerName: customer.customerName,
       equipmentIds,
       assigneeId: assigneeId || null,
-      visitorName,
       visitorPhone,
       date,
       startTime,
@@ -227,7 +224,15 @@ export function NewReservationForm({
         <Field label="고객 *">
           <CustomerCombobox value={customer} onChange={setCustomer} />
         </Field>
-        <Field label="담당자">
+        <Field label="연락처">
+          <input
+            value={visitorPhone}
+            onChange={(e) => setVisitorPhone(e.target.value)}
+            placeholder="010-0000-0000"
+            className={`${INPUT_CLS} tabular-nums`}
+          />
+        </Field>
+        <Field label="영업담당자">
           <select
             value={assigneeId}
             onChange={(e) => setAssigneeId(e.target.value)}
@@ -240,22 +245,6 @@ export function NewReservationForm({
               </option>
             ))}
           </select>
-        </Field>
-        <Field label="방문자">
-          <input
-            value={visitorName}
-            onChange={(e) => setVisitorName(e.target.value)}
-            placeholder="방문자 이름"
-            className={INPUT_CLS}
-          />
-        </Field>
-        <Field label="연락처">
-          <input
-            value={visitorPhone}
-            onChange={(e) => setVisitorPhone(e.target.value)}
-            placeholder="010-0000-0000"
-            className={`${INPUT_CLS} tabular-nums`}
-          />
         </Field>
         <Field label="날짜 *">
           <input

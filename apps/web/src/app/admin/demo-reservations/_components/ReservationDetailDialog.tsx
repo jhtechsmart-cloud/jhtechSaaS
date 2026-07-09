@@ -81,9 +81,8 @@ export function ReservationDetailDialog({
 
         <div className="mt-4 divide-y divide-row-line border-y border-row-line">
           <Row label="고객" value={r.customerName} />
-          <Row label="방문자" value={r.visitorName} />
           <Row label="연락처" value={r.visitorPhone} />
-          <Row label="담당자" value={r.assigneeName} />
+          <Row label="영업담당자" value={r.assigneeName} />
           <Row label="등록자" value={r.createdByName} />
           <Row label="메모" value={r.memo} />
         </div>
