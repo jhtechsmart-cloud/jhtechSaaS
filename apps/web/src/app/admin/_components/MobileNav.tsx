@@ -9,7 +9,17 @@ import { SidebarNav, type NavItem } from "./SidebarNav";
 // 모바일(lg 미만) 전용 네비게이션 — 상단바 ☰ 버튼 + 왼쪽에서 슬라이드되는 오버레이 드로어.
 // 데스크톱 고정 사이드바(AdminSidebar)는 lg 미만에서 hidden 처리되므로 그 자리를 대신한다.
 // 열림 상태는 전환용(영속 불필요) → 매 로드 닫힘으로 시작, 쿠키 안 씀(hydration 안전).
-export function MobileNav({ items, isAdmin }: { items: NavItem[]; isAdmin: boolean }) {
+export function MobileNav({
+  items,
+  isAdmin,
+  userName,
+  userPosition,
+}: {
+  items: NavItem[];
+  isAdmin: boolean;
+  userName: string | null;
+  userPosition: string | null;
+}) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
@@ -79,7 +89,7 @@ export function MobileNav({ items, isAdmin }: { items: NavItem[]; isAdmin: boole
               </span>
               <span className="flex min-w-0 flex-1 flex-col leading-tight">
                 <span className="truncate text-body font-extrabold tracking-tight text-accent-2">재현테크</span>
-                <span className="truncate text-micro text-sidebar-text">견적관리 콘솔</span>
+                <span className="truncate text-micro text-sidebar-text">관리 콘솔</span>
               </span>
             </div>
 
@@ -105,8 +115,9 @@ export function MobileNav({ items, isAdmin }: { items: NavItem[]; isAdmin: boole
                 {isAdmin ? "관" : "영"}
               </span>
               <span className="flex min-w-0 flex-1 flex-col leading-tight">
-                <span className="truncate text-small font-semibold text-text">{isAdmin ? "관리자" : "영업담당"}</span>
-                <span className="truncate text-micro text-sidebar-text">재현테크</span>
+                <span className="truncate text-small font-semibold text-text">{userName ?? "사용자"}</span>
+                {/* 직책(profiles.position) — 미설정이면 역할 라벨로 폴백 */}
+                <span className="truncate text-micro text-sidebar-text">{userPosition ?? (isAdmin ? "관리자" : "영업담당")}</span>
               </span>
               <form action={signOut} className="shrink-0">
                 <button type="submit" className="text-sidebar-text transition-colors hover:text-danger" aria-label="로그아웃" title="로그아웃">
