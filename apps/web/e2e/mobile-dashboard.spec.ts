@@ -20,7 +20,7 @@ test.describe.serial("모바일 대시보드 가로 스크롤", () => {
     await login(page);
     await page.goto("/admin/dashboard");
 
-    await expect(page.getByText("2주 일정", { exact: true })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("일정", { exact: true })).toBeVisible({ timeout: 15_000 });
     await expect(page.getByText("주간 활동")).toBeVisible();
 
     // 캘린더: 내용(min-width 680)이 컨테이너보다 넓어 스크롤 가능 + 컨테이너는 뷰포트 안에 들어옴.

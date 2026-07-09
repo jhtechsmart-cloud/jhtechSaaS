@@ -13,10 +13,13 @@ import {
   weekDemoDelivery,
 } from "@/lib/dashboard/v2-queries";
 import {
+  buildCalendarDays,
   buildTwoWeekDays,
   buildWeeklyUnits,
   CALENDAR_HIDDEN_COOKIE,
   demoUtilization,
+  parseCalendarAnchor,
+  parseCalendarView,
   parseHiddenEventTypes,
   pipelineRows,
   type ActivityType,
@@ -25,7 +28,7 @@ import { cookies } from "next/headers";
 import { listUpcomingSchedules } from "@/lib/demo-reservations/queries";
 import { addDaysKst, kstDateOf, todayKst } from "@/lib/format/kst";
 import { KpiCards } from "./_components/KpiCards";
-import { TwoWeekCalendar } from "./_components/TwoWeekCalendar";
+import { ScheduleCalendar } from "./_components/ScheduleCalendar";
 import { PipelineRows } from "./_components/PipelineRows";
 import { WeeklyUnitChart } from "./_components/WeeklyUnitChart";
 import { DashboardRightRail } from "./_components/DashboardRightRail";
@@ -34,15 +37,19 @@ import { UnpaidDeliveries } from "./_components/UnpaidDeliveries";
 import Link from "next/link";
 import { Icon } from "@/app/admin/_components/Icon";
 
-// 대시보드 v2 — "현황 + 2주 일정" 중심: KPI 4장 / 2주 캘린더(전체 폭) / 파이프라인 세로 행 /
-// 주간 단위블록 / 우측 일정 레일 / 최근 활동. 역할 분기는 RLS 행 스코프가 자동 적용
+// 대시보드 v2 — "현황 + 일정" 중심: KPI 4장 / 일정 캘린더(전체 폭, 1주·2주·월 뷰 전환+이동) /
+// 파이프라인 세로 행 / 주간 단위블록 / 우측 일정 레일 / 최근 활동. 역할 분기는 RLS 행 스코프가 자동 적용
 // (영업 = 본인 배정+미배정, 관리자 = 전체) — 라벨도 가시 범위에 정직하게.
 
 function val<T>(r: PromiseSettledResult<T>): T | null {
   return r.status === "fulfilled" ? r.value : null;
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const access = await requireAnyConsoleCapability();
   if (access.status === "forbidden") {
     return (
@@ -54,12 +61,20 @@ export default async function DashboardPage() {
   }
 
   const today = todayKst();
-  const days = buildTwoWeekDays(today);
-  const weekStart = days[0].date; // 이번 주 일요일
-  const weekEndExclusive = days[7].date; // 다음 주 일요일(미포함 경계)
-  const twoWeekEndExclusive = addDaysKst(days[13].date, 1);
+  // 주간 위젯(가동률·주간 활동)은 캘린더 뷰와 무관하게 항상 "이번 주" 고정.
+  const weekDays = buildTwoWeekDays(today);
+  const weekStart = weekDays[0].date; // 이번 주 일요일
+  const weekEndExclusive = weekDays[7].date; // 다음 주 일요일(미포함 경계)
   const monthFirst = `${today.slice(0, 7)}-01`;
   const nowIso = new Date().toISOString();
+
+  // 캘린더 뷰(1주/2주/월)·기준일 — URL 쿼리로 관리(이동 시 서버가 해당 범위만 재조회).
+  const sp = await searchParams;
+  const calView = parseCalendarView(sp.calView);
+  const calAnchor = parseCalendarAnchor(sp.calAnchor, today);
+  const calDays = buildCalendarDays(calView, calAnchor, today);
+  const calStart = calDays[0].date;
+  const calEndExclusive = addDaysKst(calDays[calDays.length - 1].date, 1);
 
   // 캘린더 범례 토글로 숨긴 항목 — 쿠키에서 읽어 초기값 주입(서버·클라 일치로 hydration mismatch 방지).
   const hiddenCalTypes = parseHiddenEventTypes(
@@ -79,7 +94,7 @@ export default async function DashboardPage() {
     weekDemoDelivery(weekStart, weekEndExclusive),
     customersWithNewThisMonth(monthFirst),
     staleQuoteSentCount(nowIso),
-    listCalendarEvents(weekStart, twoWeekEndExclusive),
+    listCalendarEvents(calStart, calEndExclusive),
     listUpcomingSchedules(today, 5),
     listRecentRequests(40),
     unpaidDeliveries(),
@@ -121,7 +136,7 @@ export default async function DashboardPage() {
     .filter((i) => i.date >= weekStart && i.date < weekEndExclusive);
   const weeklyUnits = buildWeeklyUnits(
     weekItems,
-    days.slice(0, 7).map((d) => d.date),
+    weekDays.slice(0, 7).map((d) => d.date),
   );
 
   // 이번 달 신청(우측 레일) — recent에서 월초 이후만 5건
@@ -140,7 +155,7 @@ export default async function DashboardPage() {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-h1 font-semibold text-text">대시보드</h1>
-          <p className="text-small text-muted">{scopeLabel} 현황과 2주 일정을 한눈에</p>
+          <p className="text-small text-muted">{scopeLabel} 현황과 일정을 한눈에</p>
         </div>
         {/* 영업자가 현재 장비 재고를 바로 볼 수 있는 읽기 전용 진입(콘솔 전원) */}
         <Link
@@ -159,7 +174,14 @@ export default async function DashboardPage() {
         customers={val(customers)}
       />
 
-      <TwoWeekCalendar days={days} events={val(events) ?? []} initialHidden={hiddenCalTypes} />
+      <ScheduleCalendar
+        view={calView}
+        anchor={calAnchor}
+        today={today}
+        days={calDays}
+        events={val(events) ?? []}
+        initialHidden={hiddenCalTypes}
+      />
 
       <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[1fr_330px]">
         <div className="flex min-w-0 flex-col gap-5">
