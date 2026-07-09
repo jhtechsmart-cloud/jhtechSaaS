@@ -32,10 +32,10 @@ test.describe.serial("대시보드 v2 E2E", () => {
     await expect(page.getByText("이번 주 데모·납품")).toBeVisible();
     await expect(page.getByText("전체 고객")).toBeVisible();
     await expect(page.getByText("일정", { exact: true })).toBeVisible();
-    // 뷰 토글(1주/2주/월) + 이전/오늘/다음 이동 컨트롤
+    // 뷰 토글(1주/2주/월) + 이전/오늘/다음 이동 컨트롤(클라 버튼)
     await expect(page.getByRole("group", { name: "캘린더 표시 단위" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "이전" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "다음" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "이전" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "다음" })).toBeVisible();
     // 일반 달력 형태 — 범위 라벨("2026년 6월…" 등) + 요일 헤더
     await expect(page.getByText(/^\d{4}년 \d{1,2}월/)).toBeVisible();
     await expect(page.getByText("수", { exact: true })).toBeVisible();
@@ -58,17 +58,18 @@ test.describe.serial("대시보드 v2 E2E", () => {
     await expect(page.getByText("내 담당 현황과 일정을 한눈에")).toBeVisible({ timeout: 15_000 });
   });
 
-  test("캘린더 뷰 전환·이동 — 월 뷰 + 다음 이동", async ({ page }) => {
+  test("캘린더 뷰 전환·이동 — 월 뷰 + 다음 이동(클라 즉시)", async ({ page }) => {
     await login(page);
     await page.goto("/admin/dashboard");
     await expect(page.getByText("일정", { exact: true })).toBeVisible({ timeout: 15_000 });
-    // 월 뷰 전환 → URL 반영 + 라벨이 "YYYY년 M월"
-    await page.getByRole("link", { name: "월", exact: true }).click();
-    await expect(page).toHaveURL(/calView=month/);
-    await expect(page.getByText(/^\d{4}년 \d{1,2}월$/)).toBeVisible();
-    // 다음(달) 이동 → 앵커 쿼리 반영
-    await page.getByRole("link", { name: "다음" }).click();
-    await expect(page).toHaveURL(/calView=month&calAnchor=\d{4}-\d{2}-\d{2}/);
+    // 월 뷰 전환 → 범위 라벨이 "YYYY년 M월"(서버 왕복 없이 즉시)
+    await page.getByRole("button", { name: "월", exact: true }).click();
+    const monthLabel = page.getByText(/^\d{4}년 \d{1,2}월$/);
+    await expect(monthLabel).toBeVisible();
+    const before = await monthLabel.textContent();
+    // 다음(달) 이동 → 라벨이 다른 달로 바뀜
+    await page.getByRole("button", { name: "다음" }).click();
+    await expect(page.getByText(/^\d{4}년 \d{1,2}월$/)).not.toHaveText(before ?? "");
   });
 
   test("캘린더 범례 토글 — 항목 숨김 + 새로고침 후 유지(쿠키)", async ({ page }) => {

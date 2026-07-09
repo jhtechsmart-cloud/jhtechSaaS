@@ -1,25 +1,33 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import type { CalendarDay, CalendarEvent, CalendarEventType, CalendarView } from "@/lib/dashboard/v2-logic";
 import {
+  buildCalendarDays,
   CALENDAR_EVENT_TYPES,
   CALENDAR_HIDDEN_COOKIE,
   CALENDAR_VIEW_LABELS,
   CALENDAR_VIEWS,
+  calendarLoadWindow,
   calendarRangeLabel,
+  DEFAULT_CALENDAR_VIEW,
+  extendCalendarWindow,
   groupEventsByDay,
+  mergeEventsById,
   serializeHiddenEventTypes,
   shiftCalendarAnchor,
+  windowCovers,
 } from "@/lib/dashboard/v2-logic";
 import { EVENT_META } from "@/lib/dashboard/v2-meta";
+import { fetchCalendarEventsAction } from "../actions";
 
 // 일정 캘린더(전체 폭) — 일반 달력처럼 연속 셀 그리드(hairline 구분).
-// 뷰(1주/2주/월) 전환 + 이전/오늘/다음 이동은 URL 쿼리(calView·calAnchor)로 서버 재조회.
-// 이벤트 칩 5색, 지난 날 opacity .55, 오늘 민트 하이라이트, 월 뷰의 타 달 날짜는 흐리게.
+// A안(클라 즉시 이동): 뷰(1주/2주/월) 전환·이전/오늘/다음은 전부 브라우저 상태로 즉시 처리(서버 왕복 0).
+// 일정은 처음에 3개월치(선로딩)를 받아두고, 담은 범위를 벗어날 때만 Server Action으로 조용히 추가 조회·누적.
 
 const DOW_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
+
+type CalWindow = { start: string; endExclusive: string };
 
 function DayCell({ day, events }: { day: CalendarDay; events: CalendarEvent[] }) {
   const [, mm, dd] = day.date.split("-").map(Number);
@@ -65,23 +73,50 @@ function DayCell({ day, events }: { day: CalendarDay; events: CalendarEvent[] })
 }
 
 export function ScheduleCalendar({
-  view,
-  anchor,
   today,
-  days,
-  events,
+  initialEvents,
+  initialWindow,
   initialHidden = [],
 }: {
-  view: CalendarView;
-  anchor: string;
   today: string;
-  days: CalendarDay[];
-  events: CalendarEvent[];
+  initialEvents: CalendarEvent[];
+  initialWindow: CalWindow;
   initialHidden?: CalendarEventType[];
 }) {
-  const pathname = usePathname();
+  // 뷰·기준일은 클라 상태 — 이동은 즉시(리렌더만). 초기값 = 기본 2주 + 오늘.
+  const [view, setView] = useState<CalendarView>(DEFAULT_CALENDAR_VIEW);
+  const [anchor, setAnchor] = useState(today);
+
+  // 담아둔 일정 + 그 범위(선로딩). 범위를 벗어나면 추가 조회해 누적(캐시).
+  const [events, setEvents] = useState<CalendarEvent[]>(initialEvents);
+  const [loaded, setLoaded] = useState<CalWindow>(initialWindow);
+  const [loading, setLoading] = useState(false);
+
   // 범례 클릭으로 종류별 표시/숨김. 선택은 쿠키에 영속(서버가 다음 렌더에서 initialHidden으로 주입).
   const [hidden, setHidden] = useState<Set<CalendarEventType>>(() => new Set(initialHidden));
+
+  const days = buildCalendarDays(view, anchor, today);
+
+  // 앵커가 담아둔 범위(선로딩 3개월)를 벗어나면 그 앵커 기준 3개월을 추가 조회·누적.
+  useEffect(() => {
+    const need = calendarLoadWindow(anchor);
+    if (windowCovers(loaded, need.start, need.endExclusive)) return;
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const fetched = await fetchCalendarEventsAction(need.start, need.endExclusive);
+        if (cancelled) return;
+        setEvents((prev) => mergeEventsById(prev, fetched));
+        setLoaded((prev) => extendCalendarWindow(prev, need));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [anchor, loaded]);
 
   function toggle(type: CalendarEventType) {
     setHidden((prev) => {
@@ -91,12 +126,6 @@ export function ScheduleCalendar({
       document.cookie = `${CALENDAR_HIDDEN_COOKIE}=${serializeHiddenEventTypes(next)};path=/;max-age=31536000;samesite=lax`;
       return next;
     });
-  }
-
-  // 뷰·앵커를 담은 캘린더 링크(다른 쿼리는 없음 — 숨김항목은 쿠키). scroll=false로 위치 유지.
-  function calHref(nextView: CalendarView, nextAnchor: string): string {
-    const p = new URLSearchParams({ calView: nextView, calAnchor: nextAnchor });
-    return `${pathname}?${p.toString()}`;
   }
 
   const byDay = groupEventsByDay(events.filter((e) => !hidden.has(e.type)));
@@ -109,54 +138,55 @@ export function ScheduleCalendar({
           <p className="text-body font-medium text-muted tabular-nums">
             {calendarRangeLabel(view, days)}
           </p>
+          {loading && <span className="text-micro text-faint">불러오는 중…</span>}
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {/* 뷰 전환(1주/2주/월) — 세그먼트 버튼. 현재 앵커 유지. */}
+          {/* 뷰 전환(1주/2주/월) — 클라 즉시 전환. 현재 앵커 유지. */}
           <div className="flex rounded-lg border border-border bg-surface-2 p-0.5" role="group" aria-label="캘린더 표시 단위">
             {CALENDAR_VIEWS.map((v) => {
               const active = v === view;
               return (
-                <Link
+                <button
                   key={v}
-                  href={calHref(v, anchor)}
-                  scroll={false}
-                  aria-current={active ? "true" : undefined}
+                  type="button"
+                  onClick={() => setView(v)}
+                  aria-pressed={active}
                   className={`rounded-md px-3 py-1 text-small font-medium transition-colors ${
                     active ? "bg-surface text-text shadow-card" : "text-muted hover:text-text"
                   }`}
                 >
                   {CALENDAR_VIEW_LABELS[v]}
-                </Link>
+                </button>
               );
             })}
           </div>
 
-          {/* 이전 / 오늘 / 다음 이동 */}
+          {/* 이전 / 오늘 / 다음 — 클라 즉시 이동. */}
           <div className="flex items-center gap-1">
-            <Link
-              href={calHref(view, shiftCalendarAnchor(view, anchor, -1))}
-              scroll={false}
+            <button
+              type="button"
+              onClick={() => setAnchor((a) => shiftCalendarAnchor(view, a, -1))}
               aria-label="이전"
               className="flex size-8 items-center justify-center rounded-lg border border-border bg-surface text-muted transition-colors hover:bg-surface-2 hover:text-text"
             >
               ‹
-            </Link>
-            <Link
-              href={calHref(view, today)}
-              scroll={false}
+            </button>
+            <button
+              type="button"
+              onClick={() => setAnchor(today)}
               className="rounded-lg border border-border bg-surface px-3 py-1.5 text-small font-medium text-text transition-colors hover:bg-surface-2"
             >
               오늘
-            </Link>
-            <Link
-              href={calHref(view, shiftCalendarAnchor(view, anchor, 1))}
-              scroll={false}
+            </button>
+            <button
+              type="button"
+              onClick={() => setAnchor((a) => shiftCalendarAnchor(view, a, 1))}
               aria-label="다음"
               className="flex size-8 items-center justify-center rounded-lg border border-border bg-surface text-muted transition-colors hover:bg-surface-2 hover:text-text"
             >
               ›
-            </Link>
+            </button>
           </div>
         </div>
       </div>

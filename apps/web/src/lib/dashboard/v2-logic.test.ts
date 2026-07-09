@@ -3,8 +3,11 @@ import {
   buildCalendarDays,
   buildTwoWeekDays,
   buildWeeklyUnits,
+  calendarLoadWindow,
   calendarRangeLabel,
   demoUtilization,
+  extendCalendarWindow,
+  mergeEventsById,
   parseCalendarAnchor,
   parseCalendarView,
   parseHiddenEventTypes,
@@ -12,6 +15,7 @@ import {
   serializeHiddenEventTypes,
   shiftCalendarAnchor,
   sortDayEvents,
+  windowCovers,
   type CalendarEvent,
 } from "./v2-logic";
 
@@ -196,6 +200,81 @@ describe("shiftCalendarAnchor — 이전/다음 이동", () => {
     expect(shiftCalendarAnchor("month", "2026-07-20", -1)).toBe("2026-06-01");
     expect(shiftCalendarAnchor("month", "2026-12-15", 1)).toBe("2027-01-01"); // 연 넘김
     expect(shiftCalendarAnchor("month", "2026-01-10", -1)).toBe("2025-12-01");
+  });
+});
+
+describe("calendarLoadWindow — 선로딩 3개월 범위", () => {
+  test("앵커 기준 이전 달 1일 ~ 다음 달 다음 1일", () => {
+    expect(calendarLoadWindow("2026-07-20")).toEqual({
+      start: "2026-06-01",
+      endExclusive: "2026-09-01",
+    });
+  });
+  test("연 경계 처리", () => {
+    expect(calendarLoadWindow("2026-01-10")).toEqual({
+      start: "2025-12-01",
+      endExclusive: "2026-03-01",
+    });
+    expect(calendarLoadWindow("2026-12-10")).toEqual({
+      start: "2026-11-01",
+      endExclusive: "2027-02-01",
+    });
+  });
+});
+
+describe("windowCovers — 범위 포함 판정", () => {
+  const loaded = { start: "2026-06-01", endExclusive: "2026-09-01" };
+  test("안에 들면 true, 벗어나면 false", () => {
+    expect(windowCovers(loaded, "2026-07-05", "2026-07-19")).toBe(true);
+    expect(windowCovers(loaded, "2026-06-01", "2026-09-01")).toBe(true); // 경계 포함
+    expect(windowCovers(loaded, "2026-05-28", "2026-06-10")).toBe(false); // 왼쪽 초과
+    expect(windowCovers(loaded, "2026-08-20", "2026-09-05")).toBe(false); // 오른쪽 초과
+  });
+});
+
+describe("extendCalendarWindow — 담은 범위 확장", () => {
+  test("겹치면 합쳐 넓힘", () => {
+    expect(
+      extendCalendarWindow(
+        { start: "2026-06-01", endExclusive: "2026-09-01" },
+        { start: "2026-07-01", endExclusive: "2026-10-01" },
+      ),
+    ).toEqual({ start: "2026-06-01", endExclusive: "2026-10-01" });
+  });
+  test("맞닿으면 병합", () => {
+    expect(
+      extendCalendarWindow(
+        { start: "2026-06-01", endExclusive: "2026-09-01" },
+        { start: "2026-09-01", endExclusive: "2026-12-01" },
+      ),
+    ).toEqual({ start: "2026-06-01", endExclusive: "2026-12-01" });
+  });
+  test("멀리 떨어지면 새 범위로 대체(간격 오인 방지)", () => {
+    expect(
+      extendCalendarWindow(
+        { start: "2026-06-01", endExclusive: "2026-09-01" },
+        { start: "2027-01-01", endExclusive: "2027-04-01" },
+      ),
+    ).toEqual({ start: "2027-01-01", endExclusive: "2027-04-01" });
+  });
+});
+
+describe("mergeEventsById — 중복 제거 병합", () => {
+  const ev = (type: CalendarEvent["type"], id: string, title: string): CalendarEvent => ({
+    type,
+    id,
+    title,
+    date: "2026-07-10",
+    hm: null,
+    href: "#",
+  });
+  test("type+id 같으면 뒤 목록으로 덮어씀, 다르면 합침", () => {
+    const a = [ev("quote", "1", "old"), ev("demo", "1", "demo")];
+    const b = [ev("quote", "1", "new"), ev("service", "2", "svc")];
+    const merged = mergeEventsById(a, b);
+    expect(merged).toHaveLength(3); // quote:1(덮어씀)·demo:1·service:2
+    expect(merged.find((e) => e.type === "quote" && e.id === "1")?.title).toBe("new");
+    expect(merged.some((e) => e.type === "demo" && e.id === "1")).toBe(true);
   });
 });
 
