@@ -25,9 +25,11 @@ export default async function EditEquipmentPage({
 
   const { data: optionRows } = await supabase
     .from("equipment_option")
-    .select("kind, name, price")
+    .select("kind, name, price, sort_order")
     .eq("equipment_id", id)
-    .order("id", { ascending: true });
+    // 작성 순서 유지 = sort_order 우선(동률·구데이터는 name으로 안정 정렬)
+    .order("sort_order", { ascending: true })
+    .order("name", { ascending: true });
 
   const categories = await listCategoryTree();
 

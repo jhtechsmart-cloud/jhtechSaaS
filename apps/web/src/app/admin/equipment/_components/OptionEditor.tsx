@@ -25,7 +25,7 @@ export function OptionEditor({
 
   return (
     <Card
-      title="포함옵션"
+      title="장비옵션"
       action={<AddButton onClick={() => append({ kind: "included", name: "", price: 0 })}>+ 옵션 추가</AddButton>}
       // 기본정보 카드와 동일 높이로 늘어나고, 옵션이 많아지면 목록만 내부 스크롤.
       // 본문 패딩은 스크롤 ul이 직접 가짐(포커스 링이 overflow 경계에서 잘리지 않게 안쪽 여백 확보).

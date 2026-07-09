@@ -14,7 +14,7 @@ export async function listEquipmentForMatch(): Promise<MatchableEquipmentWithOpt
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("equipment")
-    .select("id, name, model, base_price, photos, specs, equipment_category:category_id(name), equipment_option(kind, name, price)")
+    .select("id, name, model, base_price, photos, specs, equipment_category:category_id(name), equipment_option(kind, name, price, sort_order)")
     .eq("status", "active");
   if (error) {
     console.error("[equipment-match] 장비 조회 실패", error);
@@ -22,7 +22,10 @@ export async function listEquipmentForMatch(): Promise<MatchableEquipmentWithOpt
   }
   return (data ?? []).map((row: Record<string, unknown>) => {
     const cat = row.equipment_category as { name?: string } | null;
-    const opts = (row.equipment_option as Array<Record<string, unknown>> | null) ?? [];
+    // 옵션은 sort_order(작성 순서)로 정렬 — 견적 카탈로그도 장비폼과 동일 순서.
+    const opts = ((row.equipment_option as Array<Record<string, unknown>> | null) ?? [])
+      .slice()
+      .sort((a, b) => Number(a.sort_order ?? 0) - Number(b.sort_order ?? 0));
     return {
       id: row.id as string,
       name: row.name as string,

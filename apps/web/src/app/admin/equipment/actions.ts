@@ -41,11 +41,13 @@ async function replaceOptions(
     .eq("equipment_id", equipmentId);
   if (delErr) return delErr.message;
 
-  const rows = serializeOptions(values.options).map((o) => ({
+  // 폼에 배열된 순서(index)를 sort_order로 보존 → 로드 시 작성 순서 유지.
+  const rows = serializeOptions(values.options).map((o, i) => ({
     equipment_id: equipmentId,
     kind: o.kind,
     name: o.name,
     price: o.price,
+    sort_order: i,
   }));
   if (rows.length === 0) return null;
   const { error: insErr } = await supabase.from("equipment_option").insert(rows);
