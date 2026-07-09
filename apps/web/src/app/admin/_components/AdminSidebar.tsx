@@ -20,12 +20,14 @@ export function AdminSidebar({
   isAdmin,
   initialOverride,
   userName,
+  userPosition,
   avatarUrl,
 }: {
   items: NavItem[];
   isAdmin: boolean;
   initialOverride: boolean | null;
   userName: string | null;
+  userPosition: string | null;
   avatarUrl: string | null;
 }) {
   const pathname = usePathname();
@@ -60,7 +62,7 @@ export function AdminSidebar({
         </span>
         <span className={`flex min-w-0 flex-1 flex-col leading-tight ${fade(expanded)}`}>
           <span className="truncate text-body font-extrabold tracking-tight text-accent-2">재현테크</span>
-          <span className="truncate text-micro text-sidebar-text">견적관리 콘솔</span>
+          <span className="truncate text-micro text-sidebar-text">관리 콘솔</span>
         </span>
         <button
           onClick={toggle}
@@ -100,7 +102,8 @@ export function AdminSidebar({
         <UserAvatar imageUrl={avatarUrl} name={userName} fallback={isAdmin ? "관" : "영"} variant="soft" size={36} />
         <span className={`flex min-w-0 flex-col overflow-hidden leading-tight ${expanded ? "flex-1" : "w-0"} ${fade(expanded)}`}>
           <span className="truncate text-small font-semibold text-text">{userName ?? "사용자"}</span>
-          <span className="truncate text-micro text-sidebar-text">{roleLabel(isAdmin)}</span>
+          {/* 직책(profiles.position) — 미설정이면 역할 라벨로 폴백 */}
+          <span className="truncate text-micro text-sidebar-text">{userPosition ?? roleLabel(isAdmin)}</span>
         </span>
         <form action={signOut} className={`overflow-hidden ${expanded ? "shrink-0" : "w-0"} ${fade(expanded)}`}>
           <button className="text-sidebar-text transition-colors hover:text-danger" aria-label="로그아웃" title="로그아웃">
