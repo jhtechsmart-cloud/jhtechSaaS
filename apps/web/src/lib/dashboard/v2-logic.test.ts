@@ -1,11 +1,16 @@
 import { describe, expect, test } from "vitest";
 import {
+  buildCalendarDays,
   buildTwoWeekDays,
   buildWeeklyUnits,
+  calendarRangeLabel,
   demoUtilization,
+  parseCalendarAnchor,
+  parseCalendarView,
   parseHiddenEventTypes,
   pipelineRows,
   serializeHiddenEventTypes,
+  shiftCalendarAnchor,
   sortDayEvents,
   type CalendarEvent,
 } from "./v2-logic";
@@ -123,5 +128,89 @@ describe("pipelineRows — 단계별 비율(최대값 기준 바 길이)", () =>
   test("전부 0이면 pct 0", () => {
     const rows = pipelineRows({ new: 0, assigned: 0, quoted: 0, quote_sent: 0, closed: 0 });
     expect(rows.every((r) => r.pct === 0)).toBe(true);
+  });
+});
+
+describe("parseCalendarView — 뷰 쿼리 파싱", () => {
+  test("유효 값은 그대로, 그 외는 기본 2주", () => {
+    expect(parseCalendarView("week")).toBe("week");
+    expect(parseCalendarView("twoweek")).toBe("twoweek");
+    expect(parseCalendarView("month")).toBe("month");
+    expect(parseCalendarView(undefined)).toBe("twoweek");
+    expect(parseCalendarView("bogus")).toBe("twoweek");
+    expect(parseCalendarView(["week"])).toBe("twoweek"); // 배열은 무시
+  });
+});
+
+describe("parseCalendarAnchor — 기준일 쿼리 파싱", () => {
+  test("YYYY-MM-DD만 허용, 아니면 오늘", () => {
+    expect(parseCalendarAnchor("2026-07-09", "2026-07-01")).toBe("2026-07-09");
+    expect(parseCalendarAnchor(undefined, "2026-07-01")).toBe("2026-07-01");
+    expect(parseCalendarAnchor("2026/07/09", "2026-07-01")).toBe("2026-07-01");
+    expect(parseCalendarAnchor(["2026-07-09"], "2026-07-01")).toBe("2026-07-01");
+  });
+});
+
+describe("buildCalendarDays — 뷰별 그리드", () => {
+  // 2026-07-09 = 목요일. 그 주 일요일 = 2026-07-05.
+  test("week: 앵커 주 일요일부터 7일", () => {
+    const days = buildCalendarDays("week", "2026-07-09", "2026-07-09");
+    expect(days).toHaveLength(7);
+    expect(days[0].date).toBe("2026-07-05");
+    expect(days[6].date).toBe("2026-07-11");
+    expect(days.every((d) => d.inCurrentMonth)).toBe(true);
+    expect(days.find((d) => d.date === "2026-07-09")?.isToday).toBe(true);
+  });
+
+  test("twoweek: 14일", () => {
+    const days = buildCalendarDays("twoweek", "2026-07-09", "2026-07-09");
+    expect(days).toHaveLength(14);
+    expect(days[0].date).toBe("2026-07-05");
+    expect(days[13].date).toBe("2026-07-18");
+  });
+
+  test("month: 그 달을 감싸는 온전한 주(일 시작·토 끝·7 배수)", () => {
+    // 2026-07: 1일=수, 31일=금. 그리드 = 6/28(일)~8/1(토) = 35일.
+    const days = buildCalendarDays("month", "2026-07-20", "2026-07-09");
+    expect(days.length % 7).toBe(0);
+    expect(days[0].dow).toBe(0); // 일요일 시작
+    expect(days[0].date).toBe("2026-06-28");
+    expect(days[days.length - 1].date).toBe("2026-08-01");
+    // 앵커 달(7월) 밖의 날은 흐리게 표시용 플래그
+    expect(days.find((d) => d.date === "2026-06-28")?.inCurrentMonth).toBe(false);
+    expect(days.find((d) => d.date === "2026-07-15")?.inCurrentMonth).toBe(true);
+    expect(days.find((d) => d.date === "2026-08-01")?.inCurrentMonth).toBe(false);
+  });
+});
+
+describe("shiftCalendarAnchor — 이전/다음 이동", () => {
+  test("week=±7일, twoweek=±14일", () => {
+    expect(shiftCalendarAnchor("week", "2026-07-09", 1)).toBe("2026-07-16");
+    expect(shiftCalendarAnchor("week", "2026-07-09", -1)).toBe("2026-07-02");
+    expect(shiftCalendarAnchor("twoweek", "2026-07-09", 1)).toBe("2026-07-23");
+    expect(shiftCalendarAnchor("twoweek", "2026-07-09", -1)).toBe("2026-06-25");
+  });
+
+  test("month=한 달 이동, 그 달 1일로 정규화", () => {
+    expect(shiftCalendarAnchor("month", "2026-07-20", 1)).toBe("2026-08-01");
+    expect(shiftCalendarAnchor("month", "2026-07-20", -1)).toBe("2026-06-01");
+    expect(shiftCalendarAnchor("month", "2026-12-15", 1)).toBe("2027-01-01"); // 연 넘김
+    expect(shiftCalendarAnchor("month", "2026-01-10", -1)).toBe("2025-12-01");
+  });
+});
+
+describe("calendarRangeLabel — 범위 라벨", () => {
+  test("month = YYYY년 M월", () => {
+    const days = buildCalendarDays("month", "2026-07-20", "2026-07-09");
+    expect(calendarRangeLabel("month", days)).toBe("2026년 7월");
+  });
+  test("week = 같은 달 날짜 범위", () => {
+    const days = buildCalendarDays("week", "2026-07-09", "2026-07-09");
+    expect(calendarRangeLabel("week", days)).toBe("2026년 7월 5–11일");
+  });
+  test("twoweek = 달 걸치면 월도 표기", () => {
+    const days = buildCalendarDays("twoweek", "2026-06-29", "2026-06-29");
+    // 6/28(일)~7/11(토)
+    expect(calendarRangeLabel("twoweek", days)).toBe("2026년 6월 28일 – 7월 11일");
   });
 });

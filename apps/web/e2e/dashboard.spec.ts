@@ -31,12 +31,15 @@ test.describe.serial("대시보드 v2 E2E", () => {
     await expect(page.getByText("진행 중 견적")).toBeVisible();
     await expect(page.getByText("이번 주 데모·납품")).toBeVisible();
     await expect(page.getByText("전체 고객")).toBeVisible();
-    await expect(page.getByText("2주 일정", { exact: true })).toBeVisible();
-    // 일반 달력 형태 — 연·월 라벨("2026년 6월" 등) + 요일 헤더 + 오늘 마커
+    await expect(page.getByText("일정", { exact: true })).toBeVisible();
+    // 뷰 토글(1주/2주/월) + 이전/오늘/다음 이동 컨트롤
+    await expect(page.getByRole("group", { name: "캘린더 표시 단위" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "이전" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "다음" })).toBeVisible();
+    // 일반 달력 형태 — 범위 라벨("2026년 6월…" 등) + 요일 헤더
     await expect(page.getByText(/^\d{4}년 \d{1,2}월/)).toBeVisible();
-    await expect(page.getByText("월", { exact: true })).toBeVisible();
+    await expect(page.getByText("수", { exact: true })).toBeVisible();
     await expect(page.getByText("일", { exact: true })).toBeVisible();
-    await expect(page.getByText("오늘", { exact: true })).toBeVisible();
     await expect(page.getByText("견적 파이프라인")).toBeVisible();
     await expect(page.getByText("주간 활동")).toBeVisible();
     await expect(page.getByText("데모 및 납품 일정")).toBeVisible();
@@ -52,7 +55,20 @@ test.describe.serial("대시보드 v2 E2E", () => {
   test("영업 계정 → 본인 스코프 라벨('내 담당') 표시", async ({ page }) => {
     await login(page, SALES_EMAIL, SALES_PASSWORD);
     await page.goto("/admin/dashboard");
-    await expect(page.getByText("내 담당 현황과 2주 일정을 한눈에")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("내 담당 현황과 일정을 한눈에")).toBeVisible({ timeout: 15_000 });
+  });
+
+  test("캘린더 뷰 전환·이동 — 월 뷰 + 다음 이동", async ({ page }) => {
+    await login(page);
+    await page.goto("/admin/dashboard");
+    await expect(page.getByText("일정", { exact: true })).toBeVisible({ timeout: 15_000 });
+    // 월 뷰 전환 → URL 반영 + 라벨이 "YYYY년 M월"
+    await page.getByRole("link", { name: "월", exact: true }).click();
+    await expect(page).toHaveURL(/calView=month/);
+    await expect(page.getByText(/^\d{4}년 \d{1,2}월$/)).toBeVisible();
+    // 다음(달) 이동 → 앵커 쿼리 반영
+    await page.getByRole("link", { name: "다음" }).click();
+    await expect(page).toHaveURL(/calView=month&calAnchor=\d{4}-\d{2}-\d{2}/);
   });
 
   test("캘린더 범례 토글 — 항목 숨김 + 새로고침 후 유지(쿠키)", async ({ page }) => {
