@@ -20,6 +20,7 @@ import type {
   EquipmentOptionRow,
 } from "@/lib/demo-reservations/queries";
 import type { CategoryNode } from "@/lib/equipment/category-tree";
+import { maskPhoneTyping } from "@/lib/customers/input-mask";
 import { CustomerCombobox } from "./CustomerCombobox";
 import { TimeSlotPicker } from "./TimeSlotPicker";
 
@@ -129,7 +130,10 @@ export function NewReservationForm({
   });
   const [equipmentIds, setEquipmentIds] = useState<string[]>(initial?.equipmentIds ?? []);
   const [assigneeId, setAssigneeId] = useState(initial?.assigneeId ?? "");
-  const [visitorPhone, setVisitorPhone] = useState(initial?.visitorPhone ?? "");
+  // 저장된 값도 하이픈 마스킹해 표시(수정 모드 프리필)
+  const [visitorPhone, setVisitorPhone] = useState(
+    initial?.visitorPhone ? maskPhoneTyping(initial.visitorPhone) : "",
+  );
   const [memo, setMemo] = useState(initial?.memo ?? "");
   const [durationMin, setDurationMin] = useState<DurationOption>(initial?.durationMin ?? 60);
   const [startTime, setStartTime] = useState<string | null>(initial?.startTime ?? null);
@@ -227,7 +231,8 @@ export function NewReservationForm({
         <Field label="연락처">
           <input
             value={visitorPhone}
-            onChange={(e) => setVisitorPhone(e.target.value)}
+            onChange={(e) => setVisitorPhone(maskPhoneTyping(e.target.value))}
+            inputMode="numeric"
             placeholder="010-0000-0000"
             className={`${INPUT_CLS} tabular-nums`}
           />

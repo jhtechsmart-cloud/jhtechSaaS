@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
+import { formatPhone } from "@jhtechsaas/shared";
 import { Button } from "@/components/ui/button";
 import type { DemoReservationRow } from "@/lib/demo-reservations/queries";
 import { cancelDemoReservation } from "@/lib/demo-reservations/actions";
@@ -81,7 +82,7 @@ export function ReservationDetailDialog({
 
         <div className="mt-4 divide-y divide-row-line border-y border-row-line">
           <Row label="고객" value={r.customerName} />
-          <Row label="연락처" value={r.visitorPhone} />
+          <Row label="연락처" value={r.visitorPhone ? formatPhone(r.visitorPhone) : null} />
           <Row label="영업담당자" value={r.assigneeName} />
           <Row label="등록자" value={r.createdByName} />
           <Row label="메모" value={r.memo} />
