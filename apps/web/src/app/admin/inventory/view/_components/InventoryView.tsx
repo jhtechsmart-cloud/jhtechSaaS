@@ -4,8 +4,7 @@ import { ConfirmSaleButton } from "./ConfirmSaleButton";
 
 // 영업자용 재고 뷰. PC = 평면 게시판 표(hidden lg:block), 모바일 = 카드 스택(lg:hidden).
 // 편집은 없지만 장비별 [판매확정] 버튼만 예외(콘솔 전원, 재고 -1·판매확정 +1). 메모(note)는 미노출.
-
-const SOLD_BG = "#FCF1DC"; // 판매확정 강조(작성 페이지와 통일)
+// 상태·재고수·판매확정·입고예정일은 중앙 정렬(읽기전용 뷰만 — 작성 페이지는 강조색 유지).
 
 const STATUS_STYLE: Record<StockStatus, { color: string; bg: string }> = {
   in_stock: { color: "#176455", bg: "#D9F3E9" }, // 재고있음 — 파인 민트
@@ -56,10 +55,10 @@ export function InventoryView({ groups }: { groups: { category: string; rows: In
               <thead>
                 <tr className="border-b border-border text-left text-muted">
                   <th className="py-2 pr-4 font-medium">장비</th>
-                  <th className="py-2 pr-4 font-medium">상태</th>
-                  <th className="py-2 pr-4 font-medium">재고 수량</th>
-                  <th className="py-2 pr-4 font-medium" style={{ backgroundColor: SOLD_BG }}>판매확정</th>
-                  <th className="py-2 pr-4 font-medium">입고예정일</th>
+                  <th className="py-2 px-2 text-center font-medium">상태</th>
+                  <th className="py-2 px-2 text-center font-medium">재고 수량</th>
+                  <th className="py-2 px-2 text-center font-medium">판매확정</th>
+                  <th className="py-2 px-2 text-center font-medium">입고예정일</th>
                   <th className="py-2 pr-4 font-medium">최종수정</th>
                   <th className="py-2 pr-4 font-medium" />
                 </tr>
@@ -71,10 +70,10 @@ export function InventoryView({ groups }: { groups: { category: string; rows: In
                       <div className="font-medium text-text">{row.name}</div>
                       {row.model && <div className="font-mono text-micro text-muted">{row.model}</div>}
                     </td>
-                    <td className="py-2 pr-4"><StatusBadge qty={row.stockQty} /></td>
-                    <td className="py-2 pr-4 font-mono tabular-nums text-text">{row.stockQty}</td>
-                    <td className="py-2 pr-4 font-mono tabular-nums font-semibold text-text" style={{ backgroundColor: SOLD_BG }}>{row.soldConfirmed}</td>
-                    <td className="py-2 pr-4 font-mono text-text">
+                    <td className="py-2 px-2 text-center"><StatusBadge qty={row.stockQty} /></td>
+                    <td className="py-2 px-2 text-center font-mono tabular-nums text-text">{row.stockQty}</td>
+                    <td className="py-2 px-2 text-center font-mono tabular-nums font-semibold text-text">{row.soldConfirmed}</td>
+                    <td className="py-2 px-2 text-center font-mono text-text">
                       {row.stockQty === 0 && row.restockDate ? row.restockDate : <span className="text-muted/60">—</span>}
                     </td>
                     <td className="py-2 pr-4 whitespace-nowrap text-muted">{fmtUpdated(row.updatedAt, row.updatedByName)}</td>
@@ -102,7 +101,7 @@ export function InventoryView({ groups }: { groups: { category: string; rows: In
                   <span className="text-muted">
                     수량 <span className="font-mono tabular-nums text-text">{row.stockQty}</span>
                   </span>
-                  <span className="rounded px-1.5 text-muted" style={{ backgroundColor: SOLD_BG }}>
+                  <span className="text-muted">
                     판매확정 <span className="font-mono tabular-nums font-semibold text-text">{row.soldConfirmed}</span>
                   </span>
                   {row.stockQty === 0 && row.restockDate && (
