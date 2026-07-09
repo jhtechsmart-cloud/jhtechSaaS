@@ -67,19 +67,31 @@ export interface TwoWeekDay {
   dow: number;
 }
 
-/** 이번 주 일요일부터 14일(이번 주 + 다음 주). 주 시작=일요일. */
+/** 해당 날짜가 속한 주의 월요일(주 시작=월요일). 한국 통용 "이번주=월~일". */
+function weekStartKst(dateKst: string): string {
+  const [y, m, d] = dateKst.split("-").map(Number);
+  const jsDow = new Date(Date.UTC(y, m - 1, d)).getUTCDay(); // 0=일 … 6=토
+  const offset = (jsDow + 6) % 7; // 월=0 … 일=6
+  return addDaysKst(dateKst, -offset);
+}
+
+/** 요일 번호(0=일 … 6=토). */
+function dowOf(dateKst: string): number {
+  const [y, m, d] = dateKst.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+}
+
+/** 이번 주 월요일부터 14일(이번 주 + 다음 주). 주 시작=월요일. */
 export function buildTwoWeekDays(todayKst: string): TwoWeekDay[] {
-  const [y, m, d] = todayKst.split("-").map(Number);
-  const jsDow = new Date(Date.UTC(y, m - 1, d)).getUTCDay(); // 0=일
-  const sunday = addDaysKst(todayKst, -jsDow);
+  const monday = weekStartKst(todayKst);
   return Array.from({ length: 14 }, (_, i) => {
-    const date = addDaysKst(sunday, i);
+    const date = addDaysKst(monday, i);
     return {
       date,
       week: i < 7 ? ("this" as const) : ("next" as const),
       isToday: date === todayKst,
       isPast: date < todayKst,
-      dow: i % 7,
+      dow: dowOf(date),
     };
   });
 }
@@ -135,18 +147,11 @@ function diffDaysKst(a: string, b: string): number {
   return Math.round((Date.UTC(by, bm - 1, bd) - Date.UTC(ay, am - 1, ad)) / 86_400_000);
 }
 
-/** 해당 날짜가 속한 주의 일요일(주 시작). */
-function sundayOf(dateKst: string): string {
-  const [y, m, d] = dateKst.split("-").map(Number);
-  const jsDow = new Date(Date.UTC(y, m - 1, d)).getUTCDay(); // 0=일
-  return addDaysKst(dateKst, -jsDow);
-}
-
 /**
- * 뷰·앵커 기준 캘린더 그리드 날짜 배열(항상 일요일 시작, 7의 배수 길이).
- * - week: 앵커가 속한 주 7일
+ * 뷰·앵커 기준 캘린더 그리드 날짜 배열(항상 월요일 시작, 7의 배수 길이).
+ * - week: 앵커가 속한 주 7일(월~일)
  * - twoweek: 앵커가 속한 주 + 다음 주 14일
- * - month: 앵커 달을 감싸는 온전한 주들(일~토, 5~6주)
+ * - month: 앵커 달을 감싸는 온전한 주들(월~일, 5~6주)
  */
 export function buildCalendarDays(
   view: CalendarView,
@@ -158,10 +163,10 @@ export function buildCalendarDays(
   let length: number;
 
   if (view === "week") {
-    start = sundayOf(anchorKst);
+    start = weekStartKst(anchorKst);
     length = 7;
   } else if (view === "twoweek") {
-    start = sundayOf(anchorKst);
+    start = weekStartKst(anchorKst);
     length = 14;
   } else {
     const ym = anchorKst.slice(0, 7);
@@ -169,7 +174,7 @@ export function buildCalendarDays(
     const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate(); // 그 달 말일
     const first = `${ym}-01`;
     const last = `${ym}-${String(lastDay).padStart(2, "0")}`;
-    start = sundayOf(first);
+    start = weekStartKst(first);
     length = Math.ceil((diffDaysKst(start, last) + 1) / 7) * 7; // 말일 주까지 온전히 채움
   }
 
@@ -179,7 +184,7 @@ export function buildCalendarDays(
       date,
       isToday: date === todayKst,
       isPast: date < todayKst,
-      dow: i % 7,
+      dow: dowOf(date),
       inCurrentMonth: view === "month" ? Number(date.split("-")[1]) === anchorMonth : true,
     };
   });
