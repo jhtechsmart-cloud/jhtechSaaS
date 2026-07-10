@@ -27,16 +27,28 @@ function swap<T>(arr: T[], i: number, j: number): T[] {
   return next;
 }
 
-// 위/아래 이동 버튼(세로 스택) — 옵션 줄 순서 조정.
+// 얇은 갈매기(chevron) 아이콘 — 위/아래.
+function Chevron({ dir }: { dir: "up" | "down" }) {
+  return (
+    <svg width="13" height="12" viewBox="0 0 13 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d={dir === "up" ? "M3 7.5 L6.5 4 L10 7.5" : "M3 4.5 L6.5 8 L10 4.5"} />
+    </svg>
+  );
+}
+
+// 위/아래 이동 버튼(세로 아이콘 버튼) — 옵션 줄 순서 조정. 평소 조용, 호버 시 민트 배경+파인 틸.
 function MoveButtons({ onUp, onDown, canUp, canDown, disabled }: {
   onUp: () => void; onDown: () => void; canUp: boolean; canDown: boolean; disabled: boolean;
 }) {
+  const btn = "flex h-[15px] w-5 items-center justify-center rounded text-faint transition-colors hover:bg-mint hover:text-accent disabled:opacity-25 disabled:hover:bg-transparent disabled:hover:text-faint";
   return (
-    <span className="flex shrink-0 flex-col leading-none">
-      <button type="button" aria-label="위로 이동" onClick={onUp} disabled={disabled || !canUp}
-        className="px-1 text-micro text-muted hover:text-text disabled:opacity-20">▲</button>
-      <button type="button" aria-label="아래로 이동" onClick={onDown} disabled={disabled || !canDown}
-        className="px-1 text-micro text-muted hover:text-text disabled:opacity-20">▼</button>
+    <span className="flex shrink-0 flex-col gap-0.5">
+      <button type="button" aria-label="위로 이동" onClick={onUp} disabled={disabled || !canUp} className={btn}>
+        <Chevron dir="up" />
+      </button>
+      <button type="button" aria-label="아래로 이동" onClick={onDown} disabled={disabled || !canDown} className={btn}>
+        <Chevron dir="down" />
+      </button>
     </span>
   );
 }
