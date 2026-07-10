@@ -1,15 +1,28 @@
 import { describe, expect, test } from "vitest";
 import { buildItemTable, renderQuoteHtml, type QuoteHtmlData } from "./quote-html";
 
-describe("buildItemTable — 포함옵션 금액을 장비 줄에 흡수", () => {
-  test("장비 단가=기본가+포함옵션, 포함옵션 줄은 이름만(금액 없음)", () => {
+describe("buildItemTable — 포함옵션 수량은 '헤드'만 표시 · 가격 미반영", () => {
+  test("신규 모델(unitPrice=0): 장비 줄=기본공급가, 비-헤드 포함옵션은 수량 미표시", () => {
     const { htmlItems, includedOptions } = buildItemTable(
+      [{ name: "UV3300S", unitPrice: 50_000_000, quantity: 1, equipmentId: "uv" }],
+      [{ name: "집진 장치", unitPrice: 0, quantity: 1, kind: "included", equipmentId: "uv" }],
+    );
+    expect(htmlItems[0].amount).toBe(50_000_000); // 포함옵션 가격 흡수 없음(unitPrice 0)
+    expect(includedOptions).toEqual([{ name: "집진 장치", qtyLabel: "" }]); // 비-헤드 → 수량 미표시
+  });
+  test("'헤드' 포함옵션은 수량(ea) 표시", () => {
+    const { includedOptions } = buildItemTable(
+      [{ name: "UV3300S", unitPrice: 50_000_000, quantity: 1, equipmentId: "uv" }],
+      [{ name: "프린트헤드", unitPrice: 0, quantity: 4, kind: "included", equipmentId: "uv" }],
+    );
+    expect(includedOptions).toEqual([{ name: "프린트헤드", qtyLabel: "4ea" }]);
+  });
+  test("구 견적(포함옵션 가격 있음)은 흡수 유지(발행본 불변)", () => {
+    const { htmlItems } = buildItemTable(
       [{ name: "UV3300S", unitPrice: 50_000_000, quantity: 1, equipmentId: "uv" }],
       [{ name: "집진 장치", unitPrice: 800_000, quantity: 1, kind: "included", equipmentId: "uv" }],
     );
-    expect(htmlItems[0].amount).toBe(50_800_000); // 기본가 + 포함옵션
-    expect(htmlItems[0].unitPrice).toBe(50_800_000); // 최종 단가 = 공급가/수량
-    expect(includedOptions).toEqual([{ name: "집진 장치", qtyLabel: "1ea" }]); // 이름만
+    expect(htmlItems[0].amount).toBe(50_800_000); // 옛 데이터는 기존대로 흡수
   });
   test("수량 2 — (기본가+포함옵션)×2, 단가는 최종 단가", () => {
     const { htmlItems } = buildItemTable(

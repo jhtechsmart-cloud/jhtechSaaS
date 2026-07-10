@@ -140,7 +140,7 @@ export default async function ApplicationDetailPage({
     matched = items.map((it) => matchEquipmentName(it.name, catalog));
   } else {
     // 미발행 — 요청 장비(equipment_id 우선, 없으면 equipment_name 매칭) 1줄을 기본공급가로 미리보기.
-    // 포함옵션은 요청 장비의 카탈로그 옵션 전부(가격 포함 — 빌더와 동일하게 전부 포함옵션).
+    // 포함옵션 이름만 참고 표시(가격은 합계 미반영 — 새 모델). 실제 금액은 작성 폼서 기본공급가로.
     const reqEq =
       (typeof r.equipment_id === "string" ? catalog.find((e) => e.id === r.equipment_id) : undefined) ??
       (fields.equipment_name ? matchEquipmentName(fields.equipment_name, catalog) : null) ??
@@ -148,7 +148,7 @@ export default async function ApplicationDetailPage({
     items = reqEq ? [{ name: reqEq.name, unitPrice: reqEq.basePrice, quantity: 1 }] : [];
     optionRows = [];
     includedNames = reqEq ? reqEq.options.map((o) => o.name) : [];
-    includedSubtotal = reqEq ? reqEq.options.reduce((s, o) => s + Number(o.price || 0), 0) : 0;
+    includedSubtotal = 0; // 포함옵션 가격은 합계에 미반영(새 모델)
     matched = reqEq ? [reqEq] : [];
   }
   // 중복 제거 후 표시용 {name}

@@ -1,7 +1,6 @@
 "use client";
 import type { ReactNode } from "react";
 import {
-  catalogIncluded,
   type IncludedRow,
   type ItemRow,
   type QuoteCatalogItem,
@@ -12,12 +11,28 @@ import { SectionHeader } from "./SectionHeader";
 import { AmountInput } from "./AmountInput";
 
 // 견적 라인 에디터 — 시안(상세보기) 형태의 카드 레이아웃.
-// 선택 장비(카드: 이미지+사양표) + 포함옵션(체크박스·가격) + 추가옵션(개별 과금 표).
-// 장비는 카탈로그에서 선택(직접입력 폴백), 복수 장비 지원(+ 장비 추가). 기본가·수량은 카드에서 직접 편집.
+// 선택 장비(카드: 이미지+사양표) + 포함옵션(이름·수량·참고단가) + 추가옵션(개별 과금).
+// 장비 등록옵션은 포함/추가 공용 풀 → 두 박스 모두 '등록 옵션 칩'으로 골라 담는다(자동 프리필 없음).
+// 포함옵션 단가는 참고용(합계·PDF 미반영). 실제 금액은 장비 기본공급가에 직접 입력.
 // QuoteForm(의뢰)·ManualQuoteForm(수기) 공유. 전체 합계는 우측 패널(QuoteTotalsAside).
 const emptyItem = (): ItemRow => ({ equipmentId: "", name: "", unitPrice: 0, quantity: 1, included: [] });
 const emptyExtra = (): QuoteRow => ({ name: "", unitPrice: 0, quantity: 1 });
 const named = (rows: { name: string }[]) => rows.filter((o) => o.name.trim() !== "").length;
+
+// 선택된 장비들의 등록 옵션 합집합(이름 기준 중복 제거) — 추가옵션 칩 출처.
+function unionCatalogOptions(catalog: QuoteCatalogItem[], items: ItemRow[]): { name: string; price: number }[] {
+  const seen = new Set<string>();
+  const out: { name: string; price: number }[] = [];
+  for (const it of items) {
+    const eq = it.equipmentId ? catalog.find((c) => c.id === it.equipmentId) : undefined;
+    for (const o of eq?.options ?? []) {
+      if (o.name.trim() === "" || seen.has(o.name)) continue;
+      seen.add(o.name);
+      out.push({ name: o.name, price: Number.isFinite(o.price) ? o.price : 0 });
+    }
+  }
+  return out;
+}
 
 export function QuoteLinesEditor({
   catalog,
@@ -37,13 +52,13 @@ export function QuoteLinesEditor({
   function updateItem(i: number, patch: Partial<ItemRow>) {
     setItems(items.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
   }
-  // 장비 선택 시 표시명·기본가·포함옵션 자동 채움(이후 수정 가능). "" = 직접 입력.
+  // 장비 선택 시 표시명·기본공급가만 채움(포함옵션은 자동 프리필 X — 칩으로 담음). "" = 직접 입력.
   function selectEquipment(i: number, equipmentId: string) {
     const eq = catalog.find((c) => c.id === equipmentId);
     updateItem(
       i,
       eq
-        ? { equipmentId, name: eq.name, unitPrice: eq.basePrice, included: catalogIncluded(catalog, equipmentId) }
+        ? { equipmentId, name: eq.name, unitPrice: eq.basePrice, included: [] }
         : { equipmentId: "", name: "", unitPrice: 0, included: [] },
     );
   }
@@ -219,8 +234,30 @@ export function QuoteLinesEditor({
             })}
           </ul>
         )}
-        <button type="button" onClick={() => setOptions([...options, emptyExtra()])} disabled={disabled}
-          className="mt-3 rounded-md border border-dashed border-border px-4 py-2 text-small font-medium text-muted hover:text-text">+ 항목 직접 추가</button>
+        {/* 등록 옵션 칩(선택 장비들 옵션 합집합) + 직접 추가 */}
+        <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-border pt-3">
+          {(() => {
+            const chips = unionCatalogOptions(catalog, items);
+            return chips.length > 0 ? (
+              <>
+                <span className="text-micro text-faint">등록 옵션 추가:</span>
+                {chips.map((o) => (
+                  <button
+                    key={o.name}
+                    type="button"
+                    onClick={() => setOptions([...options, { name: o.name, unitPrice: o.price, quantity: 1 }])}
+                    disabled={disabled}
+                    className="rounded-full border border-border bg-surface px-2.5 py-0.5 text-micro text-muted hover:border-accent hover:text-text"
+                  >
+                    + {o.name}
+                  </button>
+                ))}
+              </>
+            ) : null;
+          })()}
+          <button type="button" onClick={() => setOptions([...options, emptyExtra()])} disabled={disabled}
+            className="rounded-full border border-dashed border-border px-2.5 py-0.5 text-micro font-medium text-accent hover:underline">+ 항목 직접 추가</button>
+        </div>
       </section>
     </div>
   );
@@ -236,11 +273,10 @@ function SpecRow({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-// 한 장비의 포함옵션 — 이름·가격을 이 견적에서만 자유 편집.
-// 각 줄 = [이름 입력][가격 입력][삭제]. 카탈로그 옵션은 하단 칩으로 빠르게 추가.
-// ⚠️ 여기서 이름/가격을 바꿔도 장비(카탈로그) 원본 포함옵션은 안 바뀐다 —
-//    값은 견적 jsonb(kind=included)에만 저장되고, 워커가 그 이름으로 견적서 PDF를 렌더한다.
-// 가격은 견적서엔 미표기되고 장비 최종가에 합산된다.
+// 한 장비의 포함옵션 — 이름·수량·참고단가를 이 견적에서만 자유 편집(추가옵션과 동일 3칸).
+// 각 줄 = [이름][수량][단가(참고)][삭제]. 등록 옵션은 하단 칩으로 빠르게 추가.
+// ⚠️ 여기 값을 바꿔도 장비(카탈로그) 원본 옵션은 안 바뀐다(견적 jsonb kind=included에만 저장).
+// 단가는 참고용 — 합계·견적서 PDF에 미반영(가격은 장비 기본공급가에 직접 반영). 수량은 PDF '헤드' 표시용.
 function IncludedOptions({
   item,
   catalog,
@@ -254,7 +290,7 @@ function IncludedOptions({
 }) {
   const cat = item.equipmentId ? catalog.find((c) => c.id === item.equipmentId) : undefined;
   const catOpts = cat?.options ?? [];
-  // 아직 견적에 없는(이름 매칭) 카탈로그 옵션 — 빠른 추가 칩.
+  // 아직 견적에 없는(이름 매칭) 등록 옵션 — 빠른 추가 칩.
   const presentNames = new Set(item.included.map((o) => o.name));
   const addable = catOpts.filter((o) => !presentNames.has(o.name));
 
@@ -265,44 +301,61 @@ function IncludedOptions({
     setIncluded(item.included.filter((_, i) => i !== idx));
   }
   function add(name: string, price: number) {
-    setIncluded([...item.included, { name, price: Number.isFinite(price) ? price : 0 }]);
+    setIncluded([...item.included, { name, quantity: 1, price: Number.isFinite(price) ? price : 0 }]);
   }
 
   return (
     <div className="rounded-md border border-border bg-surface-2/40 p-3">
       <div className="mb-2 flex items-center justify-between">
         <span className="text-micro font-semibold text-muted">포함 옵션 · {named(item.included)}개</span>
-        <span className="text-micro text-faint">이름·가격은 이 견적서에만 반영 · 가격은 견적서 미표기(장비 최종가 합산)</span>
+        <span className="text-micro text-faint">단가는 참고용(합계·견적서 미표기) · 수량은 &lsquo;헤드&rsquo;만 견적서 표시</span>
       </div>
 
       {item.included.length === 0 ? (
-        <p className="text-micro text-faint">{item.equipmentId ? "포함옵션이 없습니다. 아래에서 추가하세요." : "장비를 선택하면 포함옵션을 편집할 수 있습니다."}</p>
+        <p className="text-micro text-faint">{item.equipmentId ? "포함옵션이 없습니다. 아래 등록 옵션 칩 또는 직접 추가로 담으세요." : "장비를 선택하면 포함옵션을 편집할 수 있습니다."}</p>
       ) : (
         <div className="flex flex-col gap-2">
           {item.included.map((o, idx) => (
-            <div key={idx} className="flex items-center gap-2">
-              <input
-                aria-label="포함 옵션 이름"
-                value={o.name}
-                onChange={(e) => update(idx, { name: e.target.value })}
-                disabled={disabled}
-                placeholder="옵션명"
-                className="min-w-0 flex-1 rounded-md border border-border bg-surface px-2 py-1 text-small text-text"
-              />
-              <AmountInput
-                aria-label="포함 옵션 가격"
-                value={o.price}
-                onChange={(v) => update(idx, { price: v })}
-                disabled={disabled}
-                placeholder="0"
-                className="w-24 shrink-0 rounded-md border border-border bg-surface px-2 py-1 text-right font-mono tabular-nums text-small text-text"
-              />
+            <div key={idx} className="flex items-end gap-2">
+              <label className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <span className="text-micro font-semibold text-faint">옵션명</span>
+                <input
+                  aria-label="포함 옵션 이름"
+                  value={o.name}
+                  onChange={(e) => update(idx, { name: e.target.value })}
+                  disabled={disabled}
+                  placeholder="옵션명"
+                  className="min-w-0 rounded-md border border-border bg-surface px-2 py-1 text-small text-text"
+                />
+              </label>
+              <label className="flex w-16 flex-col gap-0.5">
+                <span className="text-micro font-semibold text-faint">수량</span>
+                <AmountInput
+                  aria-label="포함 옵션 수량"
+                  value={o.quantity}
+                  onChange={(v) => update(idx, { quantity: v })}
+                  disabled={disabled}
+                  placeholder="1"
+                  className="w-full rounded-md border border-border bg-surface px-2 py-1 text-right font-mono tabular-nums text-small text-text"
+                />
+              </label>
+              <label className="flex w-24 flex-col gap-0.5">
+                <span className="text-micro font-semibold text-faint">단가(참고)</span>
+                <AmountInput
+                  aria-label="포함 옵션 단가"
+                  value={o.price}
+                  onChange={(v) => update(idx, { price: v })}
+                  disabled={disabled}
+                  placeholder="0"
+                  className="w-full rounded-md border border-border bg-surface px-2 py-1 text-right font-mono tabular-nums text-small text-text"
+                />
+              </label>
               <button
                 type="button"
                 aria-label="포함 옵션 삭제"
                 onClick={() => remove(idx)}
                 disabled={disabled}
-                className="px-2 text-muted hover:text-danger"
+                className="px-2 pb-1.5 text-muted hover:text-danger"
               >
                 ×
               </button>
@@ -313,7 +366,7 @@ function IncludedOptions({
 
       {(addable.length > 0 || item.equipmentId) && (
         <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-border pt-2">
-          {addable.length > 0 && <span className="text-micro text-faint">카탈로그 옵션 추가:</span>}
+          {addable.length > 0 && <span className="text-micro text-faint">등록 옵션 추가:</span>}
           {addable.map((o) => (
             <button
               key={o.name}
