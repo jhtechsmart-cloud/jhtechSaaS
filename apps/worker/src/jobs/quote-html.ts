@@ -36,17 +36,21 @@ const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&l
 // 견적 줄(품목·옵션)의 최소 형태.
 export type QuoteLineLite = { name: string; unitPrice: number; quantity: number; kind?: "included" | "extra"; equipmentId?: string; remark?: string };
 
-// 품목표 행 구성(순수) — 포함옵션 가격을 같은 장비(equipmentId) 줄에 흡수한다.
-//   · 장비 줄 단가 = 기본가 + 포함옵션 합 = 공급가/수량(최종 단가). 공급가 = Σ(기본가+포함옵션)×수량과 일치.
-//   · 포함옵션 줄 = 이름만(단가/공급가 빈칸). 추가옵션(구 견적)은 금액 그대로.
-//   · equipmentId 없는 구 포함옵션(가격 0)은 첫 장비에 흡수. 같은 equipmentId 중복은 1회만 흡수.
+// 품목표 행 구성(순수) — 포함옵션 unitPrice를 같은 장비(equipmentId) 줄에 흡수한다.
+//   · 신규 견적은 포함옵션 unitPrice=0(가격 미반영) → 장비 줄 = 기본공급가×수량. 구 견적(가격 있음)은
+//     흡수해 합계 일치(발행본 불변). 포함옵션 줄 = 이름 + '헤드'만 수량 표시(가격 빈칸·'포함').
+//   · equipmentId 없는 구 포함옵션은 첫 장비에 흡수. 같은 equipmentId 중복은 1회만 흡수.
 export function buildItemTable(items: QuoteLineLite[], options: QuoteLineLite[]): {
   htmlItems: QuoteHtmlItem[];
   includedOptions: QuoteHtmlIncluded[];
   extraOptions: QuoteHtmlItem[];
 } {
   const included = options.filter((o) => o.kind === "included");
-  const includedOptions: QuoteHtmlIncluded[] = included.map((o) => ({ name: o.name, qtyLabel: `${o.quantity}ea` }));
+  // 포함옵션 수량은 이름에 '헤드'가 든 옵션만 PDF 표시(그 외는 수량 미표시). 가격은 계속 미표시.
+  const includedOptions: QuoteHtmlIncluded[] = included.map((o) => ({
+    name: o.name,
+    qtyLabel: o.name.includes("헤드") ? `${o.quantity}ea` : "",
+  }));
   const extraOptions: QuoteHtmlItem[] = options
     .filter((o) => o.kind === "extra")
     .map((o) => ({ name: o.name, qtyLabel: `${o.quantity}ea`, unitPrice: o.unitPrice, amount: o.unitPrice * o.quantity, remark: o.remark }));

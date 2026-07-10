@@ -1,9 +1,11 @@
 // 견적 작성 폼 순수 로직 — 행 정리·RPC 입력 변환·실시간 합계·검증.
-// 합계는 슬라이스1 calculateQuote를 그대로 쓴다(화면 미리보기). 저장 권위는 서버 RPC.
+// 합계는 calculateQuote를 그대로 쓴다(화면 미리보기). 저장 권위는 서버 RPC.
 //
-// [포함옵션 모델] 장비마다 포함옵션(이름+가격)을 갖는다. 저장 시 포함옵션은
-// kind='included'·equipmentId·quantity=장비수량으로 평탄화 → 공급가 = Σ(기본가+포함옵션)×수량이
-// 평탄 합산만으로 자동 성립(계산 엔진·RPC 무변경). '추가옵션(extra)'은 신규 견적에서 제거(구 견적 표시 호환).
+// [옵션 모델] 장비 등록옵션은 포함/추가 공용 풀(칩). 견적에서 골라 담는다.
+// · 포함옵션(kind='included'): unitPrice=0으로 저장 → 합계·기본가에 미반영. 수량은 PDF '헤드' 표시용,
+//   참고단가는 refPrice로 보존(합계·PDF 미반영). 실제 금액은 장비 기본공급가(unitPrice)에 직접 입력.
+// · 추가옵션(kind='extra'): 단가×수량이 공급가에 합산, 견적서 PDF에 표시.
+// 공급가 = Σ(기본공급가×수량) + Σ(추가옵션 단가×수량).
 import {
   calculateQuote,
   countSpecLines,
@@ -16,11 +18,12 @@ import {
 } from "@jhtechsaas/shared";
 
 // 폼 한 줄. 입력 중에는 단가·수량이 비거나 NaN일 수 있다.
-// kind: 옵션 줄 구분('included'=포함옵션 / 'extra'=구 견적 추가옵션). 장비 줄은 미지정.
-export type QuoteRow = { name: string; unitPrice: number; quantity: number; kind?: "included" | "extra"; equipmentId?: string; remark?: string };
+// kind: 옵션 줄 구분('included'=포함옵션 / 'extra'=추가옵션). 장비 줄은 미지정.
+// refPrice: 포함옵션 참고 단가(합계·PDF 미반영, 재열람 표시용).
+export type QuoteRow = { name: string; unitPrice: number; quantity: number; kind?: "included" | "extra"; equipmentId?: string; remark?: string; refPrice?: number };
 
-// 장비별 포함옵션 한 줄 — 이름 + 가격(원). 폼에서 직접 편집.
-export type IncludedRow = { name: string; price: number };
+// 장비별 포함옵션 한 줄 — 이름 + 수량 + 참고단가(원). 수량은 PDF '헤드' 표시용, 단가는 참고(합계·PDF 미반영).
+export type IncludedRow = { name: string; quantity: number; price: number };
 
 // 폼에 넘기는 카탈로그(클라 직렬화 안전). 서버 listEquipmentForMatch에서 가공.
 // options = 장비의 포함옵션(이름+가격). 장비 선택 시 그대로 프리필된다.
@@ -45,21 +48,14 @@ export type ItemRow = {
   included: IncludedRow[]; // 이 장비의 포함옵션
 };
 
-// 카탈로그 장비의 포함옵션(이름+가격) 프리필값.
-export function catalogIncluded(catalog: QuoteCatalogItem[], equipmentId: string): IncludedRow[] {
-  const eq = catalog.find((c) => c.id === equipmentId);
-  return eq ? eq.options.map((o) => ({ name: o.name, price: Number.isFinite(o.price) ? o.price : 0 })) : [];
-}
-
-// 빈 포함옵션(이름 비고 가격 0/NaN) 제거.
+// 빈 포함옵션(이름 없음) 제거.
 function cleanIncluded(rows: IncludedRow[]): IncludedRow[] {
   return rows.filter((r) => r.name.trim() !== "");
 }
 
-// 장비 1대의 최종 단가 = 기본가 + Σ포함옵션 가격(읽기전용 표시·PDF 장비줄 금액).
+// 장비 1대의 단가 = 기본공급가(사용자 직접 입력). 포함옵션 가격은 미반영(합계·PDF 모두).
 export function itemFinalUnit(item: ItemRow): number {
-  const base = Number.isFinite(item.unitPrice) ? item.unitPrice : 0;
-  return base + cleanIncluded(item.included).reduce((s, o) => s + (Number.isFinite(o.price) ? o.price : 0), 0);
+  return Number.isFinite(item.unitPrice) ? item.unitPrice : 0;
 }
 
 // 장비 행 → 저장용 견적 줄(기본가 스냅샷 + equipmentId 보존). 직접입력 줄(equipmentId="")도 보존.
@@ -73,17 +69,20 @@ export function itemRowsToLines(items: ItemRow[]): QuoteRow[] {
   }));
 }
 
-// 장비들의 포함옵션 → 저장용 옵션 줄(kind=included·단가=옵션가격·수량=장비수량·equipmentId).
-// 수량을 장비수량과 맞춰 평탄 합산만으로 공급가 = Σ(기본가+포함옵션)×수량이 성립한다.
+// 장비들의 포함옵션 → 저장용 옵션 줄(kind=included). 단가(unitPrice)=0으로 합계 미반영,
+// 수량=옵션별 수량(PDF '헤드' 표시용), 참고단가는 refPrice로 보존(합계·PDF 미반영).
 export function itemsToIncludedOptions(items: ItemRow[]): QuoteRow[] {
   const out: QuoteRow[] = [];
   for (const it of items) {
     for (const o of cleanIncluded(it.included)) {
+      const qty = Number.isFinite(o.quantity) && o.quantity >= 1 ? o.quantity : 1;
+      const ref = Number.isFinite(o.price) ? o.price : 0;
       out.push({
         name: o.name,
-        unitPrice: Number.isFinite(o.price) ? o.price : 0,
-        quantity: it.quantity,
+        unitPrice: 0, // 포함옵션 가격은 합계·기본가에 미반영
+        quantity: qty,
         kind: "included" as const,
+        ...(ref !== 0 ? { refPrice: ref } : {}),
         ...(it.equipmentId ? { equipmentId: it.equipmentId } : {}),
       });
     }
@@ -165,6 +164,7 @@ export function parseQuoteLines(value: unknown): QuoteRow[] {
     const kind = o.kind === "included" || o.kind === "extra" ? o.kind : undefined;
     const equipmentId = typeof o.equipmentId === "string" && o.equipmentId ? o.equipmentId : undefined;
     const remark = typeof o.remark === "string" && o.remark.trim() ? o.remark : undefined;
+    const refPrice = typeof o.refPrice === "number" && Number.isFinite(o.refPrice) ? o.refPrice : undefined;
     return {
       name: typeof o.name === "string" ? o.name : "",
       unitPrice: typeof o.unitPrice === "number" && Number.isFinite(o.unitPrice) ? o.unitPrice : 0,
@@ -172,14 +172,15 @@ export function parseQuoteLines(value: unknown): QuoteRow[] {
       ...(kind ? { kind } : {}),
       ...(equipmentId ? { equipmentId } : {}),
       ...(remark ? { remark } : {}),
+      ...(refPrice !== undefined ? { refPrice } : {}),
     };
   });
 }
 
-// 초기 장비행 구성 — 새 견적(카탈로그 기본 포함옵션 프리필)·재발행(저장된 포함옵션 복원) 공용.
-// initialOptions === undefined → 새 견적: 해석된 장비의 카탈로그 포함옵션을 채운다.
-// initialOptions 있음 → 재발행: 저장된 included 옵션을 equipmentId로 귀속(없으면 첫 장비, 구 견적 호환).
-// 구 extra 옵션은 무시(추가옵션 개념 제거). equipmentId 없으면 이름매칭으로 복원(구 견적).
+// 초기 장비행 구성 — 새 견적·재발행 공용.
+// 새 견적(initialOptions === undefined): 포함옵션 자동 프리필 안 함(빈 상태 → 사용자가 칩으로 담음).
+// 재발행(initialOptions 있음): 저장된 included 옵션을 equipmentId로 귀속(없으면 첫 장비, 구 견적 호환).
+//   포함옵션 참고단가 = refPrice(없으면 구 견적의 unitPrice 폴백), 수량 = 저장 수량.
 export function buildInitialItemRows(
   initialItems: QuoteRow[] | undefined,
   initialOptions: QuoteRow[] | undefined,
@@ -200,14 +201,17 @@ export function buildInitialItemRows(
       included: [] as IncludedRow[],
     };
   });
-  if (initialOptions === undefined) {
-    for (const r of rows) r.included = catalogIncluded(catalog, r.equipmentId);
-    return rows;
-  }
+  if (initialOptions === undefined) return rows; // 새 견적: 프리필 없음
   for (const o of initialOptions.filter((x) => x.kind === "included")) {
     const idx = o.equipmentId ? rows.findIndex((r) => r.equipmentId === o.equipmentId) : -1;
     const target = idx >= 0 ? rows[idx] : rows[0];
-    if (target) target.included.push({ name: o.name, price: o.unitPrice });
+    if (target) {
+      target.included.push({
+        name: o.name,
+        quantity: Number.isFinite(o.quantity) && o.quantity >= 1 ? o.quantity : 1,
+        price: Number.isFinite(o.refPrice) ? (o.refPrice as number) : Number.isFinite(o.unitPrice) ? o.unitPrice : 0,
+      });
+    }
   }
   return rows;
 }
