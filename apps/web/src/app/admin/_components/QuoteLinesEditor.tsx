@@ -314,48 +314,46 @@ function IncludedOptions({
       {item.included.length === 0 ? (
         <p className="text-micro text-faint">{item.equipmentId ? "포함옵션이 없습니다. 아래 등록 옵션 칩 또는 직접 추가로 담으세요." : "장비를 선택하면 포함옵션을 편집할 수 있습니다."}</p>
       ) : (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-1.5">
+          {/* 열 타이틀 — 첫 줄에만(옵션 줄들은 입력칸만 이어짐) */}
+          <div className="flex items-center gap-2 px-0.5 text-micro font-semibold text-faint">
+            <span className="min-w-0 flex-1">옵션명</span>
+            <span className="w-16 text-right">수량</span>
+            <span className="w-24 text-right">단가(참고)</span>
+            <span className="w-5 shrink-0" aria-hidden />
+          </div>
           {item.included.map((o, idx) => (
-            <div key={idx} className="flex items-end gap-2">
-              <label className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <span className="text-micro font-semibold text-faint">옵션명</span>
-                <input
-                  aria-label="포함 옵션 이름"
-                  value={o.name}
-                  onChange={(e) => update(idx, { name: e.target.value })}
-                  disabled={disabled}
-                  placeholder="옵션명"
-                  className="min-w-0 rounded-md border border-border bg-surface px-2 py-1 text-small text-text"
-                />
-              </label>
-              <label className="flex w-16 flex-col gap-0.5">
-                <span className="text-micro font-semibold text-faint">수량</span>
-                <AmountInput
-                  aria-label="포함 옵션 수량"
-                  value={o.quantity}
-                  onChange={(v) => update(idx, { quantity: v })}
-                  disabled={disabled}
-                  placeholder="1"
-                  className="w-full rounded-md border border-border bg-surface px-2 py-1 text-right font-mono tabular-nums text-small text-text"
-                />
-              </label>
-              <label className="flex w-24 flex-col gap-0.5">
-                <span className="text-micro font-semibold text-faint">단가(참고)</span>
-                <AmountInput
-                  aria-label="포함 옵션 단가"
-                  value={o.price}
-                  onChange={(v) => update(idx, { price: v })}
-                  disabled={disabled}
-                  placeholder="0"
-                  className="w-full rounded-md border border-border bg-surface px-2 py-1 text-right font-mono tabular-nums text-small text-text"
-                />
-              </label>
+            <div key={idx} className="flex items-center gap-2">
+              <input
+                aria-label="포함 옵션 이름"
+                value={o.name}
+                onChange={(e) => update(idx, { name: e.target.value })}
+                disabled={disabled}
+                placeholder="옵션명"
+                className="min-w-0 flex-1 rounded-md border border-border bg-surface px-2 py-1 text-small text-text"
+              />
+              <AmountInput
+                aria-label="포함 옵션 수량"
+                value={o.quantity}
+                onChange={(v) => update(idx, { quantity: v })}
+                disabled={disabled}
+                placeholder="1"
+                className="w-16 shrink-0 rounded-md border border-border bg-surface px-2 py-1 text-right font-mono tabular-nums text-small text-text"
+              />
+              <AmountInput
+                aria-label="포함 옵션 단가"
+                value={o.price}
+                onChange={(v) => update(idx, { price: v })}
+                disabled={disabled}
+                placeholder="0"
+                className="w-24 shrink-0 rounded-md border border-border bg-surface px-2 py-1 text-right font-mono tabular-nums text-small text-text"
+              />
               <button
                 type="button"
                 aria-label="포함 옵션 삭제"
                 onClick={() => remove(idx)}
                 disabled={disabled}
-                className="px-2 pb-1.5 text-muted hover:text-danger"
+                className="w-5 shrink-0 text-center text-muted hover:text-danger"
               >
                 ×
               </button>
