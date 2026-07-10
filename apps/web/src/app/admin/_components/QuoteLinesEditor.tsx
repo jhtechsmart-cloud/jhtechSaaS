@@ -19,6 +19,28 @@ const emptyItem = (): ItemRow => ({ equipmentId: "", name: "", unitPrice: 0, qua
 const emptyExtra = (): QuoteRow => ({ name: "", unitPrice: 0, quantity: 1 });
 const named = (rows: { name: string }[]) => rows.filter((o) => o.name.trim() !== "").length;
 
+// 배열 두 원소 교환(경계 밖이면 원본 그대로) — 옵션 줄 순서 이동에 사용.
+function swap<T>(arr: T[], i: number, j: number): T[] {
+  if (j < 0 || j >= arr.length) return arr;
+  const next = arr.slice();
+  [next[i], next[j]] = [next[j], next[i]];
+  return next;
+}
+
+// 위/아래 이동 버튼(세로 스택) — 옵션 줄 순서 조정.
+function MoveButtons({ onUp, onDown, canUp, canDown, disabled }: {
+  onUp: () => void; onDown: () => void; canUp: boolean; canDown: boolean; disabled: boolean;
+}) {
+  return (
+    <span className="flex shrink-0 flex-col leading-none">
+      <button type="button" aria-label="위로 이동" onClick={onUp} disabled={disabled || !canUp}
+        className="px-1 text-micro text-muted hover:text-text disabled:opacity-20">▲</button>
+      <button type="button" aria-label="아래로 이동" onClick={onDown} disabled={disabled || !canDown}
+        className="px-1 text-micro text-muted hover:text-text disabled:opacity-20">▼</button>
+    </span>
+  );
+}
+
 // 선택된 장비들의 등록 옵션 합집합(이름 기준 중복 제거) — 추가옵션 칩 출처.
 function unionCatalogOptions(catalog: QuoteCatalogItem[], items: ItemRow[]): { name: string; price: number }[] {
   const seen = new Set<string>();
@@ -223,6 +245,15 @@ export function QuoteLinesEditor({
                       <AmountInput aria-label="추가 옵션 단가" value={r.unitPrice} onChange={(v) => update({ unitPrice: v })} disabled={disabled} placeholder="0"
                         className="w-full rounded-md border border-border bg-surface px-2 py-1 text-right font-mono tabular-nums text-body text-text" />
                     </label>
+                    <span className="pb-1">
+                      <MoveButtons
+                        onUp={() => setOptions(swap(options, i, i - 1))}
+                        onDown={() => setOptions(swap(options, i, i + 1))}
+                        canUp={i > 0}
+                        canDown={i < options.length - 1}
+                        disabled={disabled}
+                      />
+                    </span>
                     <button type="button" aria-label="추가 옵션 행 삭제" onClick={() => setOptions(options.filter((_, idx) => idx !== i))} disabled={disabled}
                       className="px-1 pb-1.5 text-muted hover:text-danger">×</button>
                   </div>
@@ -321,6 +352,7 @@ function IncludedOptions({
             <span className="w-16 text-right">수량</span>
             <span className="w-24 text-right">단가(참고)</span>
             <span className="w-5 shrink-0" aria-hidden />
+            <span className="w-5 shrink-0" aria-hidden />
           </div>
           {item.included.map((o, idx) => (
             <div key={idx} className="flex items-center gap-2">
@@ -347,6 +379,13 @@ function IncludedOptions({
                 disabled={disabled}
                 placeholder="0"
                 className="w-24 shrink-0 rounded-md border border-border bg-surface px-2 py-1 text-right font-mono tabular-nums text-small text-text"
+              />
+              <MoveButtons
+                onUp={() => setIncluded(swap(item.included, idx, idx - 1))}
+                onDown={() => setIncluded(swap(item.included, idx, idx + 1))}
+                canUp={idx > 0}
+                canDown={idx < item.included.length - 1}
+                disabled={disabled}
               />
               <button
                 type="button"
