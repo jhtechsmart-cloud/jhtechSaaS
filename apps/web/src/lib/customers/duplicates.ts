@@ -14,13 +14,19 @@ export async function getDuplicateGroups(): Promise<DupGroup[]> {
     .from("companies")
     .select("id,name,biz_no,ceo")
     .order("name");
-  if (error || !data) return [];
+  // 신뢰 소스 페이지 — 장애를 "중복 없음"으로 위장하면 안 됨(빈 배열 반환 금지). 던져서 에러 바운더리로.
+  // (data가 null/빈 배열인 정상 빈 결과와는 구분 — 그건 그대로 빈 그룹 반환.)
+  if (error) {
+    console.error("[customers.duplicates]", error);
+    throw new Error(`중복 고객 조회 실패: ${error.message}`);
+  }
+  const rows = data ?? [];
 
   const byBiz = new Map<string, DupCompany[]>();
   const byName = new Map<string, DupCompany[]>();
   const noBiz: DupCompany[] = [];
 
-  for (const c of data) {
+  for (const c of rows) {
     if (c.biz_no) {
       const g = byBiz.get(c.biz_no) ?? [];
       g.push(c);
