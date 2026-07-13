@@ -167,41 +167,46 @@ export function QuoteLinesEditor({
                 )}
 
                 {/* 장비 선택/변경(드롭다운) + 직접입력 이름 + 삭제 — 빈 줄에도 항상 표시 */}
-                <div className={`flex flex-wrap items-center gap-2${hasEquipment ? " border-t border-border pt-3" : ""}`}>
-                  <span className="mr-auto text-small text-muted">
+                <div className={`flex flex-wrap items-center gap-x-3 gap-y-2${hasEquipment ? " border-t border-border pt-3" : ""}`}>
+                  <span className="text-small text-muted">
                     {hasEquipment ? "다른 장비로 변경하려면 우측 드롭다운에서 선택하세요." : "견적에 넣을 장비를 선택하거나 이름을 직접 입력하세요."}
                   </span>
-                  {r.equipmentId === "" && (
-                    <input
-                      aria-label="장비 이름"
-                      value={r.name}
-                      onChange={(e) => updateItem(i, { name: e.target.value })}
-                      disabled={disabled}
-                      placeholder="장비명 직접 입력"
-                      className="min-w-0 flex-1 rounded-md border border-border bg-surface px-2 py-1 text-body text-text sm:flex-none sm:basis-48"
-                    />
-                  )}
-                  <select
-                    aria-label="장비 선택"
-                    value={r.equipmentId}
-                    onChange={(e) => selectEquipment(i, e.target.value)}
-                    disabled={disabled}
-                    className="rounded-md border border-border bg-surface px-2 py-1 text-body text-text"
-                  >
-                    <option value="">직접 입력</option>
-                    {catalog.map((c) => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    aria-label="장비 행 삭제"
-                    onClick={() => setItems(items.filter((_, idx) => idx !== i))}
-                    disabled={disabled}
-                    className="px-2 text-muted hover:text-danger"
-                  >
-                    ×
-                  </button>
+                  {/* 이름칸 + [드롭다운·삭제] — 오른쪽 정렬 그룹. 삭제(×)는 드롭다운과 한 덩어리로 붙어 줄바꿈돼도 분리되지 않음 */}
+                  <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+                    {r.equipmentId === "" && (
+                      <input
+                        aria-label="장비 이름"
+                        value={r.name}
+                        onChange={(e) => updateItem(i, { name: e.target.value })}
+                        disabled={disabled}
+                        placeholder="장비명 직접 입력"
+                        className="w-full min-w-0 rounded-md border border-border bg-surface px-2 py-1 text-body text-text sm:w-48"
+                      />
+                    )}
+                    <span className="flex shrink-0 items-center gap-1">
+                      <select
+                        aria-label="장비 선택"
+                        value={r.equipmentId}
+                        onChange={(e) => selectEquipment(i, e.target.value)}
+                        disabled={disabled}
+                        className="rounded-md border border-border bg-surface px-2 py-1 text-body text-text"
+                      >
+                        <option value="">직접 입력</option>
+                        {catalog.map((c) => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        aria-label="장비 행 삭제"
+                        onClick={() => setItems(items.filter((_, idx) => idx !== i))}
+                        disabled={disabled}
+                        className="px-1.5 text-muted hover:text-danger"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  </div>
                 </div>
 
                 {/* 장비 비고 · 포함 옵션 — 장비 선택/직접입력 후에만 표시 */}
