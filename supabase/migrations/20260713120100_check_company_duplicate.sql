@@ -33,6 +33,7 @@ begin
           regexp_replace(coalesce(phone, ''), '\D', '', 'g') = v_phone
         )
         and (p_exclude_id is null or id <> p_exclude_id)
+      order by id
       limit 1;
     if found then
       return jsonb_build_object('company_id', v_row.id, 'name', v_row.name, 'ceo', v_row.ceo, 'match', 'name_phone');

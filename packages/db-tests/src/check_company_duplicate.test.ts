@@ -3,7 +3,7 @@
 // authenticated만 실행(anon 차단). E1 하니스(helpers.ts) 재사용.
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import type { Client } from "pg";
-import { asAnon, asPostgres, asUser, inRollbackTx, makeClient, UID } from "./helpers";
+import { asPostgres, asUser, inRollbackTx, makeClient, UID } from "./helpers";
 
 let c: Client;
 beforeAll(async () => {
@@ -123,18 +123,19 @@ describe("check_company_duplicate RPC", () => {
     });
   });
 
-  test("anon은 실행 불가(권한 없음)", async () => {
-    await inRollbackTx(c, async () => {
-      await seed();
-      await asAnon(c);
-      await expect(
-        c.query("select public.check_company_duplicate($1,$2,$3,$4)", [
-          "2208162517",
-          "",
-          "",
-          null,
-        ]),
-      ).rejects.toThrow();
-    });
+  test("anon EXECUTE 권한 없음 / authenticated 있음", async () => {
+    // 함수를 실제 호출하지 않고 정적 ACL만 검사한다.
+    // (이 로컬 Docker 이미지에서는 role-switch 후 함수를 호출하는 경로가
+    // "Connection terminated unexpectedly"로 크래시해 실제 권한거부와 구분이 안 된다 —
+    // 무관한 RPC에서도 재현되는 환경 버그. has_function_privilege는 호출 없이
+    // grant/revoke 상태만 조회하므로 크래시를 우회하면서도 결정적이다.)
+    await asPostgres(c);
+    const r = await c.query(
+      `select
+         has_function_privilege('anon', 'public.check_company_duplicate(text,text,text,uuid)', 'execute') as anon_exec,
+         has_function_privilege('authenticated', 'public.check_company_duplicate(text,text,text,uuid)', 'execute') as auth_exec`,
+    );
+    expect(r.rows[0].anon_exec).toBe(false);
+    expect(r.rows[0].auth_exec).toBe(true);
   });
 });
