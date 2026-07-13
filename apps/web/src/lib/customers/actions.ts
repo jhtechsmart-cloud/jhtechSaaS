@@ -7,7 +7,8 @@ import { normalizeBizNo, can } from "@jhtechsaas/shared";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireCustomersEdit, requireCustomersDelete, requireCustomersViewAll } from "@/lib/auth/guard";
-import { companyFormSchema, type CompanyFormValues } from "@/lib/customers/schema";
+import { companyFormSchema, makeCompanyFormSchema, type CompanyFormValues } from "@/lib/customers/schema";
+import { hasAnyContact } from "@/lib/customers/validation";
 import { getCustomers, customerKpiCounts, type CustomerListRow } from "@/lib/customers/queries";
 import { customerListParamsSchema } from "@/lib/customers/list-table";
 import { diffEquipment } from "@/lib/customers/equipment-diff";
@@ -159,7 +160,27 @@ export async function updateCustomer(id: string, values: CompanyFormValues): Pro
   const access = await requireCustomersEdit();
   if (access.status === "forbidden") return { error: "권한이 없습니다." };
   if (!z.guid().safeParse(id).success) return { error: "잘못된 요청입니다." };
-  const parsed = companyFormSchema.safeParse(values);
+
+  const supabase = await createSupabaseServerClient();
+  // 클라(그런더링 리졸버)를 신뢰하지 않으므로 서버도 원본을 조회해 동일 그런더링 규칙으로 재검증한다
+  // (사업자번호 미변경 시 체크섬 생략, 대표자·주소·연락처는 원본이 비어 있었으면 빈 값 허용).
+  const { data: orig, error: origErr } = await supabase
+    .from("companies")
+    .select("biz_no,ceo,address,mobile,phone1,phone")
+    .eq("id", id)
+    .maybeSingle();
+  if (origErr) {
+    console.error("[customers.update] 원본 조회 실패", origErr);
+    return { error: "저장하지 못했습니다." };
+  }
+  if (!orig) return { error: "이미 삭제되었거나 없는 항목입니다." };
+  const editSchema = makeCompanyFormSchema({
+    bizNo: orig.biz_no ?? "",
+    ceo: orig.ceo ?? "",
+    address: orig.address ?? "",
+    hasContact: hasAnyContact({ mobile: orig.mobile ?? "", phone1: orig.phone1 ?? "", phone: orig.phone ?? "" }),
+  });
+  const parsed = editSchema.safeParse(values);
   if (!parsed.success) return { error: "입력값을 확인하세요." };
   const v = parsed.data;
 
@@ -170,7 +191,6 @@ export async function updateCustomer(id: string, values: CompanyFormValues): Pro
     ? { ...companyRow(v), assignee_id: v.assignee_id || null }
     : companyRow(v);
 
-  const supabase = await createSupabaseServerClient();
   // 서버 최종 중복 차단(실시간 조회와 저장 사이 경합 방지). 자기 자신은 제외.
   // fail-closed: RPC 오류 시 중복 없음으로 간주하지 않고 저장을 중단(DB 백스톱은 biz_no unique뿐 — name+phone은 여기가 유일한 방어선).
   const dupRes = await runDuplicateRpc(supabase, { bizNo: v.biz_no, name: v.name, phone: representativeContact(v), excludeId: id });

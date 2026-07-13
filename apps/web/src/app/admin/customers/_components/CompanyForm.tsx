@@ -8,9 +8,11 @@ import { formatBizNo, formatPhone } from "@jhtechsaas/shared";
 import { buttonVariants } from "@/components/ui/button";
 import {
   companyFormSchema,
+  makeCompanyFormSchema,
   type CompanyFormValues,
   type CompanyEquipmentRow,
 } from "@/lib/customers/schema";
+import { hasAnyContact } from "@/lib/customers/validation";
 import { maskBizNoTyping, maskPhoneTyping } from "@/lib/customers/input-mask";
 import type { CustomerActionResult, DuplicateHit } from "@/lib/customers/actions";
 import type { Equipment } from "@jhtechsaas/shared";
@@ -119,6 +121,19 @@ export function CompanyForm(props: Props) {
           note: "", assignee_id: "", equipment: [],
         };
 
+  // edit 모드: 원본(수정 진입 시점 DB 값) 대비 그런더링 스키마 — 안 바꾼 사업자번호는 체크섬
+  // 재검증 생략, 원본이 비어 있던 대표자·주소·연락처는 빈 채로 저장 허용(이관 고객 마찰 완화).
+  // create 모드는 항상 엄격(companyFormSchema).
+  const resolverSchema =
+    props.mode === "edit"
+      ? makeCompanyFormSchema({
+          bizNo: props.company.biz_no ?? "",
+          ceo: props.company.ceo ?? "",
+          address: props.company.address ?? "",
+          hasContact: hasAnyContact(props.company),
+        })
+      : companyFormSchema;
+
   const {
     register,
     handleSubmit,
@@ -128,7 +143,7 @@ export function CompanyForm(props: Props) {
     reset,
     formState: { errors, isDirty, dirtyFields },
   } = useForm<FormInput, unknown, CompanyFormValues>({
-    resolver: zodResolver(companyFormSchema),
+    resolver: zodResolver(resolverSchema),
     defaultValues,
   });
 
