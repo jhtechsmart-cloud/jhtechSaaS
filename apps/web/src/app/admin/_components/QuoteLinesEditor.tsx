@@ -114,9 +114,13 @@ export function QuoteLinesEditor({
         <ul className="flex flex-col divide-y divide-border">
           {items.map((r, i) => {
             const eq = r.equipmentId ? catalog.find((c) => c.id === r.equipmentId) : undefined;
+            // 장비를 고르거나(카탈로그) 이름을 직접 입력하기 전에는 카드(이미지·사양·옵션)를 숨긴다.
+            // 빈 줄(수기 견적 시작·'+ 장비 추가')은 드롭다운+직접입력 칸만 보여 '장비 선택'에 집중.
+            const hasEquipment = r.equipmentId !== "" || r.name.trim() !== "";
             return (
               <li key={i} className="flex flex-col gap-4 py-5 first:pt-1 last:pb-1">
-                {/* 장비 사진(가로 넓게) + 사양표 */}
+                {/* 장비 사진(가로 넓게) + 사양표 — 장비 선택/직접입력 후에만 표시 */}
+                {hasEquipment && (
                 <div className="flex flex-col gap-5 sm:flex-row">
                   {eq?.image ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -160,10 +164,13 @@ export function QuoteLinesEditor({
                     </dl>
                   </div>
                 </div>
+                )}
 
-                {/* 장비 변경(드롭다운) + 직접입력 이름 + 삭제 */}
-                <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
-                  <span className="mr-auto text-small text-muted">다른 장비로 변경하려면 우측 드롭다운에서 선택하세요.</span>
+                {/* 장비 선택/변경(드롭다운) + 직접입력 이름 + 삭제 — 빈 줄에도 항상 표시 */}
+                <div className={`flex flex-wrap items-center gap-2${hasEquipment ? " border-t border-border pt-3" : ""}`}>
+                  <span className="mr-auto text-small text-muted">
+                    {hasEquipment ? "다른 장비로 변경하려면 우측 드롭다운에서 선택하세요." : "견적에 넣을 장비를 선택하거나 이름을 직접 입력하세요."}
+                  </span>
                   {r.equipmentId === "" && (
                     <input
                       aria-label="장비 이름"
@@ -197,23 +204,26 @@ export function QuoteLinesEditor({
                   </button>
                 </div>
 
-                {/* 장비 비고 */}
-                <input
-                  aria-label="장비 비고"
-                  value={r.remark ?? ""}
-                  onChange={(e) => updateItem(i, { remark: e.target.value })}
-                  disabled={disabled}
-                  placeholder="비고 (선택)"
-                  className="rounded-md border border-border bg-surface px-2 py-1 text-small text-text"
-                />
+                {/* 장비 비고 · 포함 옵션 — 장비 선택/직접입력 후에만 표시 */}
+                {hasEquipment && (
+                  <input
+                    aria-label="장비 비고"
+                    value={r.remark ?? ""}
+                    onChange={(e) => updateItem(i, { remark: e.target.value })}
+                    disabled={disabled}
+                    placeholder="비고 (선택)"
+                    className="rounded-md border border-border bg-surface px-2 py-1 text-small text-text"
+                  />
+                )}
 
-                {/* 포함 옵션(체크박스 + 가격) */}
-                <IncludedOptions
-                  item={r}
-                  catalog={catalog}
-                  setIncluded={(x) => updateItem(i, { included: x })}
-                  disabled={disabled}
-                />
+                {hasEquipment && (
+                  <IncludedOptions
+                    item={r}
+                    catalog={catalog}
+                    setIncluded={(x) => updateItem(i, { included: x })}
+                    disabled={disabled}
+                  />
+                )}
               </li>
             );
           })}

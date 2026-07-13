@@ -28,6 +28,11 @@ test.describe.serial("모바일 견적 하단 고정 바", () => {
     // 바 안의 발행하기 버튼 존재
     await expect(bar.getByRole("button", { name: "발행하기" })).toBeVisible();
 
+    // 장비 선택 전: 드롭다운은 보이고 가격·수량 카드는 숨겨져 있다.
+    await expect(page.getByLabel("장비 선택")).toBeVisible();
+    await expect(page.getByLabel("장비 가격")).toBeHidden();
+    // 장비명 직접 입력 → 카드가 펼쳐지며 가격·수량 칸 노출(선택 전엔 숨김)
+    await page.getByLabel("장비 이름").fill("테스트 장비");
     // 장비 단가 입력 → 바의 공급가 숫자에 반영
     await page.getByLabel("장비 가격").fill("1000000");
     await page.getByLabel("장비 수량").fill("1");
