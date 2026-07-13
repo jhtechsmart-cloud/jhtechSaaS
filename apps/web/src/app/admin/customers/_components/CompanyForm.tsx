@@ -8,11 +8,13 @@ import { formatBizNo, formatPhone } from "@jhtechsaas/shared";
 import { buttonVariants } from "@/components/ui/button";
 import {
   companyFormSchema,
+  makeCompanyFormSchema,
   type CompanyFormValues,
   type CompanyEquipmentRow,
 } from "@/lib/customers/schema";
+import { hasAnyContact } from "@/lib/customers/validation";
 import { maskBizNoTyping, maskPhoneTyping } from "@/lib/customers/input-mask";
-import type { CustomerActionResult } from "@/lib/customers/actions";
+import type { CustomerActionResult, DuplicateHit } from "@/lib/customers/actions";
 import type { Equipment } from "@jhtechsaas/shared";
 import { CompanyEquipmentEditor } from "./CompanyEquipmentEditor";
 import { FormSectionCard } from "./FormSectionCard";
@@ -61,7 +63,7 @@ const FIELD_LABELS: Record<string, string> = {
   phone: "연락처(대표)", email: "이메일", address: "주소(사업장)", biz_type: "업태",
   biz_item: "업종(종목)", ledger_name: "장부명", phone1: "전화1", phone2: "전화2",
   fax: "팩스", mobile: "휴대폰", address_actual1: "실제주소1", address_actual2: "실제주소2",
-  note: "메모", assignee_id: "담당영업", equipment: "보유장비",
+  note: "메모", assignee_id: "담당영업", equipment: "보유장비", biz_no_none: "사업자번호 없음",
 };
 
 // dirtyFields 깊은 판정(equipment는 중첩 배열).
@@ -90,6 +92,8 @@ export function CompanyForm(props: Props) {
   const defaultValues: FormInput =
     props.mode === "edit"
       ? {
+          // biz_no_none은 edit/page.tsx가 이미 파생(저장값 biz_no 공란 → true)해 company에 담아
+          // 넘긴다 — 여기서 다시 파생하면 이중 계산이라 스프레드 값을 그대로 쓴다.
           ...props.company,
           // biz_no는 표시용 대시 포맷으로 로드(목록·blur와 일관). 저장 시 actions가 normalize.
           biz_no: props.company.biz_no ? formatBizNo(props.company.biz_no) : "",
@@ -111,11 +115,24 @@ export function CompanyForm(props: Props) {
           })),
         }
       : {
-          name: "", biz_no: "", ceo: "", manager: "", manager_title: "", phone: "", email: "",
+          name: "", biz_no: "", biz_no_none: false, ceo: "", manager: "", manager_title: "", phone: "", email: "",
           address: "", biz_type: "", biz_item: "", ledger_name: "", phone1: "",
           phone2: "", fax: "", mobile: "", address_actual1: "", address_actual2: "",
           note: "", assignee_id: "", equipment: [],
         };
+
+  // edit 모드: 원본(수정 진입 시점 DB 값) 대비 그런더링 스키마 — 안 바꾼 사업자번호는 체크섬
+  // 재검증 생략, 원본이 비어 있던 대표자·주소·연락처는 빈 채로 저장 허용(이관 고객 마찰 완화).
+  // create 모드는 항상 엄격(companyFormSchema).
+  const resolverSchema =
+    props.mode === "edit"
+      ? makeCompanyFormSchema({
+          bizNo: props.company.biz_no ?? "",
+          ceo: props.company.ceo ?? "",
+          address: props.company.address ?? "",
+          hasContact: hasAnyContact(props.company),
+        })
+      : companyFormSchema;
 
   const {
     register,
@@ -126,9 +143,54 @@ export function CompanyForm(props: Props) {
     reset,
     formState: { errors, isDirty, dirtyFields },
   } = useForm<FormInput, unknown, CompanyFormValues>({
-    resolver: zodResolver(companyFormSchema),
+    resolver: zodResolver(resolverSchema),
     defaultValues,
   });
+
+  // '사업자번호 없음' 체크 상태 — biz_no 입력 비활성·필수 표시 전환에 쓰인다.
+  const bizNoNone = useWatch({ control, name: "biz_no_none" }) as boolean;
+
+  // 실시간 중복 조회(디바운스 400ms) — 사업자번호 10자리 완성, 또는(없음 모드) 회사명+연락처 입력 시
+  // 서버에 자문만 한다(fail-open, 오류·미차단 시 null). 최종 차단은 서버액션의 fail-closed 재검증.
+  const [dupHit, setDupHit] = useState<DuplicateHit | null>(null);
+  const bizNo = useWatch({ control, name: "biz_no" }) as string;
+  const nameVal = useWatch({ control, name: "name" }) as string;
+  const mobileVal = useWatch({ control, name: "mobile" }) as string;
+  const phone1Val = useWatch({ control, name: "phone1" }) as string;
+  const phoneVal = useWatch({ control, name: "phone" }) as string;
+
+  useEffect(() => {
+    // setState는 effect 본문에서 동기 호출하지 않고(react-hooks/set-state-in-effect) 아래
+    // setTimeout 콜백 안에서만 수행 — 초기화·조회 결과 반영 모두 디바운스 뒤에 일어난다.
+    // cancelled 플래그: clearTimeout은 아직 발사되지 않은 타이머만 막는다 — 이미 발사돼
+    // in-flight인 조회는 취소 못 하므로, 느린 이전 응답이 빠른 최신 응답을 덮어쓰거나
+    // 언마운트 후 setState하지 않도록 응답 적용 직전 가드한다.
+    let cancelled = false;
+    const contact = mobileVal || phone1Val || phoneVal || "";
+    const bizDigits = (bizNo ?? "").replace(/\D/g, "");
+    // 조회 트리거: 사업자번호 10자리 완성 OR (없음 모드에서 회사명+연락처 채워짐)
+    const canQuery =
+      (!bizNoNone && bizDigits.length === 10) ||
+      (bizNoNone && (nameVal ?? "").trim() !== "" && contact.trim() !== "");
+    const t = setTimeout(async () => {
+      if (!canQuery) {
+        if (!cancelled) setDupHit(null);
+        return;
+      }
+      const { checkCustomerDuplicate } = await import("@/lib/customers/actions");
+      const hit = await checkCustomerDuplicate({
+        bizNo: bizNoNone ? "" : bizNo,
+        name: nameVal,
+        phone: contact,
+        excludeId: props.mode === "edit" ? props.id : undefined,
+      });
+      if (!cancelled) setDupHit(hit);
+    }, 400);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [bizNo, bizNoNone, nameVal, mobileVal, phone1Val, phoneVal, props.mode, props.id]);
 
   // dirty 상태에서 이탈 시 경고 ① beforeunload(새로고침·창닫기).
   useEffect(() => {
@@ -170,6 +232,11 @@ export function CompanyForm(props: Props) {
   }
 
   function onSubmit(values: CompanyFormValues) {
+    // 실시간 중복 경고가 떠 있으면 저장 자체를 막는다(버튼도 잠기지만 이중 방어).
+    if (dupHit) {
+      setServerError(`이미 등록된 업체입니다: ${dupHit.name}`);
+      return;
+    }
     setServerError(null);
     // 저장 성공 시 액션이 상세로 redirect → 도착 화면에서 토스트(세션 플래그).
     if (props.mode === "edit") sessionStorage.setItem("jh-customer-saved", props.id);
@@ -265,6 +332,21 @@ export function CompanyForm(props: Props) {
         </div>
       )}
 
+      {/* 실시간 중복 경고 — 사업자번호 또는 회사명+연락처가 기존 업체와 겹치면 저장 전 안내. */}
+      {dupHit && (
+        <div className="rounded-md border border-danger/40 bg-danger/10 p-3 text-small text-text">
+          <b>이미 등록된 업체</b>: {dupHit.name}
+          {dupHit.ceo ? ` (대표 ${dupHit.ceo})` : ""} —{" "}
+          <Link href={`/admin/customers/${dupHit.company_id}`} className="underline">
+            기존 업체 열기
+          </Link>
+          <div className="mt-0.5 text-micro text-muted">
+            {dupHit.match === "biz_no" ? "같은 사업자번호" : "같은 회사명+연락처"}로 등록돼 있어
+            저장할 수 없습니다.
+          </div>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 pb-2">
         {/* 그룹 카드 4종 — 상세 페이지 그룹 구조와 1:1(2열, 860px 이하 1열) */}
         <div className="grid grid-cols-1 gap-4 min-[860px]:grid-cols-2">
@@ -276,6 +358,7 @@ export function CompanyForm(props: Props) {
               </Field>
               <Field
                 label="사업자등록번호"
+                required={!bizNoNone}
                 hint="숫자만 입력하면 자동으로 하이픈이 붙습니다"
                 error={errors.biz_no?.message}
                 dirty={!!dirtyFields.biz_no}
@@ -283,12 +366,28 @@ export function CompanyForm(props: Props) {
                 <input
                   {...masked(register("biz_no"), maskBizNoTyping)}
                   onBlur={onBizNoBlur}
+                  disabled={bizNoNone}
                   placeholder="123-45-67890"
                   className={inputCls(!!dirtyFields.biz_no, true)}
                 />
               </Field>
+              <label className="flex items-center gap-1.5 text-small text-text">
+                <input
+                  type="checkbox"
+                  {...register("biz_no_none")}
+                  onChange={(e) => {
+                    register("biz_no_none").onChange(e);
+                    // 체크 시 기존 입력값을 비워 스키마(사업자번호 공란 요구)와 일치시킨다.
+                    if (e.target.checked) {
+                      setValue("biz_no", "", { shouldDirty: true, shouldValidate: true });
+                    }
+                  }}
+                  className="h-4 w-4 accent-accent"
+                />
+                사업자번호 없음(개인·미발급)
+              </label>
               <div className="grid grid-cols-1 gap-4 min-[860px]:grid-cols-2">
-                <Field label="대표자" error={errors.ceo?.message} dirty={!!dirtyFields.ceo}>
+                <Field label="대표자" required error={errors.ceo?.message} dirty={!!dirtyFields.ceo}>
                   <input {...register("ceo")} className={inputCls(!!dirtyFields.ceo)} />
                 </Field>
                 <Field label="담당영업" error={errors.assignee_id?.message} dirty={!!dirtyFields.assignee_id}>
@@ -304,7 +403,7 @@ export function CompanyForm(props: Props) {
           </FormSectionCard>
 
           {/* 2) 연락처 */}
-          <FormSectionCard title="연락처" purpose="고객 응대에 사용">
+          <FormSectionCard title="연락처" purpose="고객 응대에 사용(하나 이상 필수)">
             <div className="grid grid-cols-1 gap-4 min-[860px]:grid-cols-2">
               <Field label="담당자" error={errors.manager?.message} dirty={!!dirtyFields.manager}>
                 <input {...register("manager")} className={inputCls(!!dirtyFields.manager)} />
@@ -361,7 +460,7 @@ export function CompanyForm(props: Props) {
           {/* 3) 사업장 — 전체 폭 */}
           <FormSectionCard title="사업장" purpose="세금계산서 · 배송에 사용" fullSpan>
             <div className="grid grid-cols-1 gap-4 min-[860px]:grid-cols-2">
-              <Field label="주소(사업장)" error={errors.address?.message} dirty={!!dirtyFields.address}>
+              <Field label="주소(사업장)" required error={errors.address?.message} dirty={!!dirtyFields.address}>
                 <input {...register("address")} className={inputCls(!!dirtyFields.address)} />
               </Field>
               <Field
@@ -436,6 +535,7 @@ export function CompanyForm(props: Props) {
           saveLabel={props.mode === "edit" ? "변경사항 저장" : "저장"}
           onCancel={() => reset()}
           alwaysEnabled={props.mode === "create"}
+          blocked={!!dupHit}
         />
       </form>
     </div>

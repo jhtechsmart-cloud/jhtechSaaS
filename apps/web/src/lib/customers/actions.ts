@@ -7,7 +7,8 @@ import { normalizeBizNo, can } from "@jhtechsaas/shared";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireCustomersEdit, requireCustomersDelete, requireCustomersViewAll } from "@/lib/auth/guard";
-import { companyFormSchema, type CompanyFormValues } from "@/lib/customers/schema";
+import { companyFormSchema, makeCompanyFormSchema, type CompanyFormValues } from "@/lib/customers/schema";
+import { hasAnyContact } from "@/lib/customers/validation";
 import { getCustomers, customerKpiCounts, type CustomerListRow } from "@/lib/customers/queries";
 import { customerListParamsSchema } from "@/lib/customers/list-table";
 import { diffEquipment } from "@/lib/customers/equipment-diff";
@@ -74,6 +75,49 @@ function isUniqueViolation(error: PostgrestError): boolean {
   return error.code === "23505";
 }
 
+export type DuplicateHit = { company_id: string; name: string; ceo: string | null; match: "biz_no" | "name_phone" };
+
+const duplicateHitSchema = z.object({
+  company_id: z.guid(),
+  name: z.string(),
+  ceo: z.string().nullable(),
+  match: z.enum(["biz_no", "name_phone"]),
+});
+
+// RPC 실행 결과 — 오류 여부와 매치를 구분(게이트는 fail-closed, 자문 조회는 fail-open에 사용).
+async function runDuplicateRpc(
+  supabase: SupabaseClient,
+  input: { bizNo: string; name: string; phone: string; excludeId?: string },
+): Promise<{ error: boolean; hit: DuplicateHit | null }> {
+  const { data, error } = await supabase.rpc("check_company_duplicate", {
+    p_biz_no: input.bizNo || "",
+    p_name: input.name || "",
+    p_phone: input.phone || "",
+    p_exclude_id: input.excludeId ?? null,
+  });
+  if (error) { console.error("[customers.checkDuplicate]", error); return { error: true, hit: null }; }
+  if (data == null) return { error: false, hit: null };
+  const parsed = duplicateHitSchema.safeParse(data);
+  return { error: false, hit: parsed.success ? parsed.data : null };
+}
+
+// 대표 연락처 하나 — 중복 조회 phone 인자로 사용(휴대폰 우선).
+function representativeContact(v: { mobile: string; phone1: string; phone: string }): string {
+  return v.mobile || v.phone1 || v.phone || "";
+}
+
+// 클라이언트(CompanyForm) 실시간 중복 조회 — fail-open(오류 시 null=미차단, 저장 게이트는 아님).
+export async function checkCustomerDuplicate(input: {
+  bizNo: string; name: string; phone: string; excludeId?: string;
+}): Promise<DuplicateHit | null> {
+  const access = await requireCustomersEdit();
+  if (access.status === "forbidden") return null;
+  if (input.excludeId !== undefined && !z.guid().safeParse(input.excludeId).success) return null;
+  const supabase = await createSupabaseServerClient();
+  const res = await runDuplicateRpc(supabase, input);
+  return res.hit;
+}
+
 // 업체 신규 등록. id는 클라에서 미리 생성한 UUID(uuid()). 장비 저장 실패 시 보상 삭제.
 export async function createCustomer(id: string, values: CompanyFormValues): Promise<CustomerActionResult> {
   const access = await requireCustomersEdit();
@@ -89,6 +133,11 @@ export async function createCustomer(id: string, values: CompanyFormValues): Pro
   const assigneeId = canViewAll && v.assignee_id ? v.assignee_id : access.userId;
 
   const supabase = await createSupabaseServerClient();
+  // 서버 최종 중복 차단(실시간 조회와 저장 사이 경합 방지). 대표 연락처 하나로 판정.
+  // fail-closed: RPC 오류 시 중복 없음으로 간주하지 않고 저장을 중단(DB 백스톱은 biz_no unique뿐 — name+phone은 여기가 유일한 방어선).
+  const dupRes = await runDuplicateRpc(supabase, { bizNo: v.biz_no, name: v.name, phone: representativeContact(v) });
+  if (dupRes.error) return { error: "중복 확인 중 오류가 발생했습니다. 잠시 후 다시 시도하세요." };
+  if (dupRes.hit) return { error: `이미 등록된 업체입니다: ${dupRes.hit.name}` };
   const { error } = await supabase.from("companies").insert({ id, ...companyRow(v), assignee_id: assigneeId });
   if (error) {
     if (isUniqueViolation(error)) return { error: "이미 등록된 사업자번호입니다." };
@@ -111,7 +160,27 @@ export async function updateCustomer(id: string, values: CompanyFormValues): Pro
   const access = await requireCustomersEdit();
   if (access.status === "forbidden") return { error: "권한이 없습니다." };
   if (!z.guid().safeParse(id).success) return { error: "잘못된 요청입니다." };
-  const parsed = companyFormSchema.safeParse(values);
+
+  const supabase = await createSupabaseServerClient();
+  // 클라(그런더링 리졸버)를 신뢰하지 않으므로 서버도 원본을 조회해 동일 그런더링 규칙으로 재검증한다
+  // (사업자번호 미변경 시 체크섬 생략, 대표자·주소·연락처는 원본이 비어 있었으면 빈 값 허용).
+  const { data: orig, error: origErr } = await supabase
+    .from("companies")
+    .select("biz_no,ceo,address,mobile,phone1,phone")
+    .eq("id", id)
+    .maybeSingle();
+  if (origErr) {
+    console.error("[customers.update] 원본 조회 실패", origErr);
+    return { error: "저장하지 못했습니다." };
+  }
+  if (!orig) return { error: "이미 삭제되었거나 없는 항목입니다." };
+  const editSchema = makeCompanyFormSchema({
+    bizNo: orig.biz_no ?? "",
+    ceo: orig.ceo ?? "",
+    address: orig.address ?? "",
+    hasContact: hasAnyContact({ mobile: orig.mobile ?? "", phone1: orig.phone1 ?? "", phone: orig.phone ?? "" }),
+  });
+  const parsed = editSchema.safeParse(values);
   if (!parsed.success) return { error: "입력값을 확인하세요." };
   const v = parsed.data;
 
@@ -122,7 +191,11 @@ export async function updateCustomer(id: string, values: CompanyFormValues): Pro
     ? { ...companyRow(v), assignee_id: v.assignee_id || null }
     : companyRow(v);
 
-  const supabase = await createSupabaseServerClient();
+  // 서버 최종 중복 차단(실시간 조회와 저장 사이 경합 방지). 자기 자신은 제외.
+  // fail-closed: RPC 오류 시 중복 없음으로 간주하지 않고 저장을 중단(DB 백스톱은 biz_no unique뿐 — name+phone은 여기가 유일한 방어선).
+  const dupRes = await runDuplicateRpc(supabase, { bizNo: v.biz_no, name: v.name, phone: representativeContact(v), excludeId: id });
+  if (dupRes.error) return { error: "중복 확인 중 오류가 발생했습니다. 잠시 후 다시 시도하세요." };
+  if (dupRes.hit) return { error: `이미 등록된 업체입니다: ${dupRes.hit.name}` };
   const { data, error } = await supabase.from("companies").update(patch).eq("id", id).select("id");
   if (error) {
     if (isUniqueViolation(error)) return { error: "이미 등록된 사업자번호입니다." };

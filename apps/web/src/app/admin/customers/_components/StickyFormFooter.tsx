@@ -5,15 +5,18 @@ export function StickyFormFooter({
   saveLabel,
   onCancel,
   alwaysEnabled,
+  blocked: forceBlocked,
 }: {
   dirtyLabels: string[];
   pending: boolean;
   saveLabel: string;
   onCancel: () => void;
   alwaysEnabled?: boolean; // 신규 등록 모드 — 변경 추적 없이 항상 저장 가능
+  blocked?: boolean; // 중복 경고 등으로 저장 강제 잠금(취소는 여전히 가능)
 }) {
   const n = dirtyLabels.length;
-  const blocked = alwaysEnabled ? pending : n === 0 || pending;
+  // 저장 버튼만 잠금 대상 — 취소는 pending 중에만 막는다(중복 경고 상태에서도 취소·수정은 가능해야 함).
+  const saveBlocked = (alwaysEnabled ? pending : n === 0 || pending) || !!forceBlocked;
   const summary =
     n === 0
       ? "변경사항 없음"
@@ -31,14 +34,14 @@ export function StickyFormFooter({
         <button
           type="button"
           onClick={onCancel}
-          disabled={blocked}
+          disabled={pending}
           className="rounded-md border border-border px-3 py-2 text-small font-medium text-text disabled:opacity-50"
         >
           취소
         </button>
         <button
           type="submit"
-          disabled={blocked}
+          disabled={saveBlocked}
           className="rounded-md bg-accent px-4 py-2 text-small font-medium text-white disabled:opacity-50"
         >
           {pending ? "저장 중…" : saveLabel}
