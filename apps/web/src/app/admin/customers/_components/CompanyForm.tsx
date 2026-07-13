@@ -61,7 +61,7 @@ const FIELD_LABELS: Record<string, string> = {
   phone: "연락처(대표)", email: "이메일", address: "주소(사업장)", biz_type: "업태",
   biz_item: "업종(종목)", ledger_name: "장부명", phone1: "전화1", phone2: "전화2",
   fax: "팩스", mobile: "휴대폰", address_actual1: "실제주소1", address_actual2: "실제주소2",
-  note: "메모", assignee_id: "담당영업", equipment: "보유장비",
+  note: "메모", assignee_id: "담당영업", equipment: "보유장비", biz_no_none: "사업자번호 없음",
 };
 
 // dirtyFields 깊은 판정(equipment는 중첩 배열).
@@ -147,6 +147,10 @@ export function CompanyForm(props: Props) {
   useEffect(() => {
     // setState는 effect 본문에서 동기 호출하지 않고(react-hooks/set-state-in-effect) 아래
     // setTimeout 콜백 안에서만 수행 — 초기화·조회 결과 반영 모두 디바운스 뒤에 일어난다.
+    // cancelled 플래그: clearTimeout은 아직 발사되지 않은 타이머만 막는다 — 이미 발사돼
+    // in-flight인 조회는 취소 못 하므로, 느린 이전 응답이 빠른 최신 응답을 덮어쓰거나
+    // 언마운트 후 setState하지 않도록 응답 적용 직전 가드한다.
+    let cancelled = false;
     const contact = mobileVal || phone1Val || phoneVal || "";
     const bizDigits = (bizNo ?? "").replace(/\D/g, "");
     // 조회 트리거: 사업자번호 10자리 완성 OR (없음 모드에서 회사명+연락처 채워짐)
@@ -155,7 +159,7 @@ export function CompanyForm(props: Props) {
       (bizNoNone && (nameVal ?? "").trim() !== "" && contact.trim() !== "");
     const t = setTimeout(async () => {
       if (!canQuery) {
-        setDupHit(null);
+        if (!cancelled) setDupHit(null);
         return;
       }
       const { checkCustomerDuplicate } = await import("@/lib/customers/actions");
@@ -165,9 +169,12 @@ export function CompanyForm(props: Props) {
         phone: contact,
         excludeId: props.mode === "edit" ? props.id : undefined,
       });
-      setDupHit(hit);
+      if (!cancelled) setDupHit(hit);
     }, 400);
-    return () => clearTimeout(t);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
   }, [bizNo, bizNoNone, nameVal, mobileVal, phone1Val, phoneVal, props.mode, props.id]);
 
   // dirty 상태에서 이탈 시 경고 ① beforeunload(새로고침·창닫기).
