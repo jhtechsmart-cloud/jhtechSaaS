@@ -88,6 +88,8 @@ type PrefillInput = {
     address?: string | null;
     fields?: { install_survey?: Record<string, unknown> } | null;
   };
+  // 연결 고객 주소(본사·설치) — 있으면 프리필 우선. 없으면 의뢰 주소 폴백.
+  company?: { address?: string | null; address_actual1?: string | null } | null;
   quote: { items?: unknown; delivery_date?: string | null; delivery_time?: string | null } | null;
   deviceKind: "printer" | "cutter" | null;
 };
@@ -96,7 +98,8 @@ export type ReleaseOrderPrefill = {
   device_kind: "printer" | "cutter";
   company: string;
   contact_phone: string;
-  install_address: string;
+  hq_address: string; // 본사주소(신규)
+  install_address: string; // 설치주소
   install_at: string | null;
   device_name: string;
   details: ReleaseOrderDetails;
@@ -137,11 +140,18 @@ export function buildReleaseOrderPrefill(input: PrefillInput): ReleaseOrderPrefi
     },
   });
 
+  // 주소 프리필: 연결 고객 우선, 없으면 의뢰주소 폴백
+  const appAddr = input.application.address ?? "";
+  const hq_address = (input.company?.address ?? "") || appAddr;
+  // 설치주소: 고객 설치주소(있고 공백 아님) → 고객 본사주소 → 의뢰주소
+  const install_address = (input.company?.address_actual1?.trim() ?? "") || hq_address;
+
   return {
     device_kind: deviceKind ?? "printer",
     company: application.company ?? "",
     contact_phone: application.phone ?? "",
-    install_address: application.address ?? "",
+    hq_address,
+    install_address,
     install_at,
     device_name: deviceName,
     details,
