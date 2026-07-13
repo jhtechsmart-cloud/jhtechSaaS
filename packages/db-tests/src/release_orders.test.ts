@@ -395,14 +395,62 @@ describe("issue_release_order — 발행 + PDF 잡 enqueue", () => {
     await asPostgres(c);
     const r = await c.query(
       `select
-         has_function_privilege('anon','public.upsert_release_order(uuid,text,jsonb,text,text,text,text,text,text)','execute') anon_upsert,
+         has_function_privilege('anon','public.upsert_release_order(uuid,text,jsonb,text,text,text,text,text,text,text)','execute') anon_upsert,
          has_function_privilege('anon','public.issue_release_order(uuid)','execute') anon_issue,
-         has_function_privilege('authenticated','public.upsert_release_order(uuid,text,jsonb,text,text,text,text,text,text)','execute') auth_upsert,
+         has_function_privilege('authenticated','public.upsert_release_order(uuid,text,jsonb,text,text,text,text,text,text,text)','execute') auth_upsert,
          has_function_privilege('authenticated','public.issue_release_order(uuid)','execute') auth_issue`,
     );
     expect(r.rows[0].anon_upsert).toBe(false);
     expect(r.rows[0].anon_issue).toBe(false);
     expect(r.rows[0].auth_upsert).toBe(true);
     expect(r.rows[0].auth_issue).toBe(true);
+  });
+});
+
+// ── 본사주소(hq_address) — 설치주소와 별개 스냅샷 저장·폴백·발행 동결 ──
+// named-arg 호출(p_hq_address는 시그니처 맨끝) — positional 하위호환 유지 확인.
+describe("upsert_release_order — 본사주소(hq_address)", () => {
+  test("본사주소 저장 + 설치주소와 별개 보존", async () => {
+    await inRollbackTx(c, async () => {
+      const { appId } = await seedAppWithIssuedQuote(UID.sales1);
+      await asUser(c, UID.sales1);
+      const r = await c.query(
+        "select public.upsert_release_order(p_application_id => $1, p_device_kind => $2, p_details => $3::jsonb, p_hq_address => $4, p_install_address => $5) as out",
+        [appId, "printer", "{}", "본사서울", "설치부산"],
+      );
+      const out = r.rows[0].out as { id: string };
+      await asPostgres(c);
+      const row = await c.query("select hq_address, install_address from public.release_orders where id=$1", [out.id]);
+      expect(row.rows[0].hq_address).toBe("본사서울");
+      expect(row.rows[0].install_address).toBe("설치부산");
+    });
+  });
+
+  test("본사주소 빈 값이면 application 주소로 폴백", async () => {
+    await inRollbackTx(c, async () => {
+      const { appId } = await seedAppWithIssuedQuote(UID.sales1); // app.address = 서울시 강남구 1
+      await asUser(c, UID.sales1);
+      const r = await c.query(
+        "select public.upsert_release_order(p_application_id => $1, p_device_kind => $2, p_details => $3::jsonb, p_hq_address => $4) as out",
+        [appId, "printer", "{}", "  "],
+      );
+      const out = r.rows[0].out as { id: string };
+      await asPostgres(c);
+      const row = await c.query("select hq_address from public.release_orders where id=$1", [out.id]);
+      expect(row.rows[0].hq_address).toBe("서울시 강남구 1");
+    });
+  });
+
+  test("발행본 hq_address 동결(수정 시도 거부)", async () => {
+    await inRollbackTx(c, async () => {
+      const { appId } = await seedAppWithIssuedQuote(UID.sales1);
+      await asUser(c, UID.sales1);
+      const out = await upsert(appId, "printer");
+      await c.query("select public.issue_release_order($1)", [out.id]);
+      await asService(c);
+      await expect(
+        c.query("update public.release_orders set hq_address='변경' where id=$1", [out.id]),
+      ).rejects.toThrow();
+    });
   });
 });
