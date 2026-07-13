@@ -83,31 +83,38 @@ const duplicateHitSchema = z.object({
   match: z.enum(["biz_no", "name_phone"]),
 });
 
-// 중복 조회 — 실시간 경고(클라)와 서버 재검증(create/update)이 공유하는 내부 헬퍼.
-async function lookupDuplicate(
+// RPC 실행 결과 — 오류 여부와 매치를 구분(게이트는 fail-closed, 자문 조회는 fail-open에 사용).
+async function runDuplicateRpc(
   supabase: SupabaseClient,
   input: { bizNo: string; name: string; phone: string; excludeId?: string },
-): Promise<DuplicateHit | null> {
+): Promise<{ error: boolean; hit: DuplicateHit | null }> {
   const { data, error } = await supabase.rpc("check_company_duplicate", {
     p_biz_no: input.bizNo || "",
     p_name: input.name || "",
     p_phone: input.phone || "",
     p_exclude_id: input.excludeId ?? null,
   });
-  if (error) { console.error("[customers.checkDuplicate]", error); return null; }
-  if (data == null) return null;
+  if (error) { console.error("[customers.checkDuplicate]", error); return { error: true, hit: null }; }
+  if (data == null) return { error: false, hit: null };
   const parsed = duplicateHitSchema.safeParse(data);
-  return parsed.success ? parsed.data : null;
+  return { error: false, hit: parsed.success ? parsed.data : null };
 }
 
-// 클라이언트(CompanyForm) 실시간 중복 조회.
+// 대표 연락처 하나 — 중복 조회 phone 인자로 사용(휴대폰 우선).
+function representativeContact(v: { mobile: string; phone1: string; phone: string }): string {
+  return v.mobile || v.phone1 || v.phone || "";
+}
+
+// 클라이언트(CompanyForm) 실시간 중복 조회 — fail-open(오류 시 null=미차단, 저장 게이트는 아님).
 export async function checkCustomerDuplicate(input: {
   bizNo: string; name: string; phone: string; excludeId?: string;
 }): Promise<DuplicateHit | null> {
   const access = await requireCustomersEdit();
   if (access.status === "forbidden") return null;
+  if (input.excludeId !== undefined && !z.guid().safeParse(input.excludeId).success) return null;
   const supabase = await createSupabaseServerClient();
-  return lookupDuplicate(supabase, input);
+  const res = await runDuplicateRpc(supabase, input);
+  return res.hit;
 }
 
 // 업체 신규 등록. id는 클라에서 미리 생성한 UUID(uuid()). 장비 저장 실패 시 보상 삭제.
@@ -126,9 +133,10 @@ export async function createCustomer(id: string, values: CompanyFormValues): Pro
 
   const supabase = await createSupabaseServerClient();
   // 서버 최종 중복 차단(실시간 조회와 저장 사이 경합 방지). 대표 연락처 하나로 판정.
-  const contact = v.mobile || v.phone1 || v.phone || "";
-  const dup = await lookupDuplicate(supabase, { bizNo: v.biz_no, name: v.name, phone: contact });
-  if (dup) return { error: `이미 등록된 업체입니다: ${dup.name}` };
+  // fail-closed: RPC 오류 시 중복 없음으로 간주하지 않고 저장을 중단(DB 백스톱은 biz_no unique뿐 — name+phone은 여기가 유일한 방어선).
+  const dupRes = await runDuplicateRpc(supabase, { bizNo: v.biz_no, name: v.name, phone: representativeContact(v) });
+  if (dupRes.error) return { error: "중복 확인 중 오류가 발생했습니다. 잠시 후 다시 시도하세요." };
+  if (dupRes.hit) return { error: `이미 등록된 업체입니다: ${dupRes.hit.name}` };
   const { error } = await supabase.from("companies").insert({ id, ...companyRow(v), assignee_id: assigneeId });
   if (error) {
     if (isUniqueViolation(error)) return { error: "이미 등록된 사업자번호입니다." };
@@ -164,9 +172,10 @@ export async function updateCustomer(id: string, values: CompanyFormValues): Pro
 
   const supabase = await createSupabaseServerClient();
   // 서버 최종 중복 차단(실시간 조회와 저장 사이 경합 방지). 자기 자신은 제외.
-  const contact = v.mobile || v.phone1 || v.phone || "";
-  const dup = await lookupDuplicate(supabase, { bizNo: v.biz_no, name: v.name, phone: contact, excludeId: id });
-  if (dup) return { error: `이미 등록된 업체입니다: ${dup.name}` };
+  // fail-closed: RPC 오류 시 중복 없음으로 간주하지 않고 저장을 중단(DB 백스톱은 biz_no unique뿐 — name+phone은 여기가 유일한 방어선).
+  const dupRes = await runDuplicateRpc(supabase, { bizNo: v.biz_no, name: v.name, phone: representativeContact(v), excludeId: id });
+  if (dupRes.error) return { error: "중복 확인 중 오류가 발생했습니다. 잠시 후 다시 시도하세요." };
+  if (dupRes.hit) return { error: `이미 등록된 업체입니다: ${dupRes.hit.name}` };
   const { data, error } = await supabase.from("companies").update(patch).eq("id", id).select("id");
   if (error) {
     if (isUniqueViolation(error)) return { error: "이미 등록된 사업자번호입니다." };
