@@ -2,6 +2,7 @@
 import { useState, useTransition } from "react";
 import type { ReleaseOrderDetails } from "@jhtechsaas/shared";
 import { RELEASE_OPTIONS, normalizeDetailsForKind, toggleArrayValue } from "@/lib/release-orders/form";
+import { deriveSameAsHq } from "@/lib/customers/install-address";
 import { getReleaseOrderVersionPdfUrl, issueReleaseOrderAction, saveReleaseOrderAction } from "@/lib/release-orders/actions";
 import type { ReleaseOrderVersion } from "@/lib/release-orders/queries";
 import { formatDateMask, parseDeliveryDate } from "@/lib/quotes/delivery-date";
@@ -14,6 +15,7 @@ type Initial = {
   company: string;
   deviceName: string;
   contactPhone: string;
+  hqAddress: string;
   installAddress: string;
   installDate: string; // 'YYYY-MM-DD' (없으면 빈칸)
   installTime: string; // 'HH:mm' (없으면 빈칸)
@@ -126,7 +128,19 @@ export function ReleaseOrderForm({
   const [company, setCompany] = useState(initial.company);
   const [deviceName, setDeviceName] = useState(initial.deviceName);
   const [contactPhone, setContactPhone] = useState(initial.contactPhone);
+  const [hqAddress, setHqAddress] = useState(initial.hqAddress);
   const [installAddress, setInstallAddress] = useState(initial.installAddress);
+  // 설치주소 "본사와 동일" — 체크 중이면 본사주소를 설치주소에 동기화(설치 입력 비활성).
+  // effect 대신 핸들러에서 동기화(set-state-in-effect 회피).
+  const [sameAsHq, setSameAsHq] = useState(deriveSameAsHq(initial.hqAddress, initial.installAddress));
+  function changeHq(v: string) {
+    setHqAddress(v);
+    if (sameAsHq) setInstallAddress(v);
+  }
+  function toggleSameAsHq(on: boolean) {
+    setSameAsHq(on);
+    if (on) setInstallAddress(hqAddress);
+  }
   // 설치 일시 — 날짜는 한 칸 마스크 입력(YYYY-MM-DD 자동 포맷), 시각은 time 입력.
   const [installDate, setInstallDate] = useState(formatDateMask(initial.installDate));
   const [installTime, setInstallTime] = useState(initial.installTime);
@@ -170,6 +184,7 @@ export function ReleaseOrderForm({
       {
         company,
         contactPhone,
+        hqAddress,
         installAddress,
         deviceName,
         installDate: installDateIso, // 검증된 ISO(YYYY-MM-DD) 또는 null
@@ -257,7 +272,14 @@ export function ReleaseOrderForm({
             {showInstallError && <p className="mt-1 text-micro text-coral-text">{installDateError}</p>}
           </div>
           <div className="sm:col-span-2">
-            <TextField label="설치 주소" value={installAddress} onChange={setInstallAddress} disabled={locked} placeholder="설치 주소" />
+            <TextField label="본사주소" value={hqAddress} onChange={changeHq} disabled={locked} placeholder="본사주소" />
+          </div>
+          <div className="flex flex-col gap-1.5 sm:col-span-2">
+            <TextField label="설치 주소" value={installAddress} onChange={setInstallAddress} disabled={locked || sameAsHq} placeholder="설치 주소" />
+            <label className="flex items-center gap-2 text-small text-text">
+              <input type="checkbox" checked={sameAsHq} onChange={(e) => toggleSameAsHq(e.target.checked)} disabled={locked} className="size-4 accent-accent" />
+              <span>설치주소가 본사주소와 동일</span>
+            </label>
           </div>
           <label className="flex items-center gap-2 self-end pb-2 text-small text-text sm:col-span-1">
             <input type="checkbox" checked={reflectToCustomer} onChange={(e) => setReflectToCustomer(e.target.checked)} disabled={locked} className="size-4 accent-accent" />

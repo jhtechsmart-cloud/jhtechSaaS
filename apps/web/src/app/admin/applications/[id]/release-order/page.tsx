@@ -43,6 +43,7 @@ export default async function ReleaseOrderPage({ params }: { params: Promise<{ i
           company: data.company,
           deviceName: data.deviceName,
           contactPhone: data.contactPhone,
+          hqAddress: data.hqAddress,
           installAddress: data.installAddress,
           // install_at(KST ISO) → 날짜·시각 입력 초기값. 미정이면 빈칸.
           installDate: data.installAt ? (kstDateOf(data.installAt) ?? "") : "",
