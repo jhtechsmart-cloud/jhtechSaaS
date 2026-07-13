@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
+import { can } from "@jhtechsaas/shared";
 import { requireCustomersEdit } from "@/lib/auth/guard";
 import { listCustomerRegions, listAssignableStaff, customerKpiCounts } from "@/lib/customers/queries";
 import { buttonVariants } from "@/components/ui/button";
@@ -45,6 +46,11 @@ export default async function CustomersListPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {can(access.permissions, "customers.view_all") && (
+            <Link href="/admin/customers/duplicates" className="text-small text-muted hover:text-text hover:underline">
+              중복 의심 목록
+            </Link>
+          )}
           <Suspense fallback={null}>
             <ExportCsvButton />
           </Suspense>
