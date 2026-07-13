@@ -441,6 +441,25 @@ describe("upsert_release_order — 본사주소(hq_address)", () => {
     });
   });
 
+  test("draft 재-upsert 시 hq_address 갱신(update 경로)", async () => {
+    await inRollbackTx(c, async () => {
+      const { appId } = await seedAppWithIssuedQuote(UID.sales1);
+      await asUser(c, UID.sales1);
+      await c.query(
+        "select public.upsert_release_order(p_application_id => $1, p_device_kind => $2, p_details => $3::jsonb, p_hq_address => $4)",
+        [appId, "printer", "{}", "본사v1"],
+      );
+      await c.query(
+        "select public.upsert_release_order(p_application_id => $1, p_device_kind => $2, p_details => $3::jsonb, p_hq_address => $4)",
+        [appId, "printer", "{}", "본사v2"],
+      );
+      await asPostgres(c);
+      const row = await c.query("select hq_address, count(*) over() n from public.release_orders where application_id=$1", [appId]);
+      expect(row.rows[0].n).toBe("1"); // 제자리 갱신(버전 안 늘어남)
+      expect(row.rows[0].hq_address).toBe("본사v2");
+    });
+  });
+
   test("발행본 hq_address 동결(수정 시도 거부)", async () => {
     await inRollbackTx(c, async () => {
       const { appId } = await seedAppWithIssuedQuote(UID.sales1);
