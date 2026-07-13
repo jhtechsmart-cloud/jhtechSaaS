@@ -128,7 +128,7 @@ export function CustomerInfoCards({ c }: { c: CompanyDetailFields }) {
       </InfoCard>
 
       <InfoCard title="사업장">
-        <FieldRow label="주소(사업장)" value={c.address} wrap />
+        <FieldRow label="본사주소" value={c.address} wrap />
         <div className="flex items-baseline justify-between gap-3 border-b border-dashed border-border py-2">
           <span className="w-24 shrink-0 text-small text-muted">업태</span>
           {chips.length > 0 ? (
@@ -144,12 +144,12 @@ export function CustomerInfoCards({ c }: { c: CompanyDetailFields }) {
         <FieldRow label="업종(종목)" value={c.biz_item} wrap />
         {actual1 || actual2 ? (
           <>
-            <FieldRow label="실제주소1" value={actual1} wrap />
-            <FieldRow label="실제주소2" value={actual2} wrap />
+            <FieldRow label="설치주소" value={actual1} wrap />
+            <FieldRow label="주소2" value={actual2} wrap />
           </>
         ) : (
           // 둘 다 비었으면 1행으로 합침(스펙)
-          <FieldRow label="실제주소" value={null} />
+          <FieldRow label="설치주소" value={null} />
         )}
       </InfoCard>
 
