@@ -162,18 +162,22 @@ export function CompanyForm(props: Props) {
 
   // 설치주소 "본사와 동일" — 체크 중이면 본사주소를 설치주소에 라이브 동기화(설치 입력 비활성).
   const hqAddr = useWatch({ control, name: "address" }) as string;
-  const [sameAsHq, setSameAsHq] = useState(
-    props.mode === "edit" ? deriveSameAsHq(props.company.address ?? "", props.company.address_actual1 ?? "") : true,
-  );
-  const sameSyncedRef = useRef(false);
-  // 동일 체크 중 본사주소 변경을 설치주소에 반영. 마운트 첫 실행은 dirty로 표시하지 않는다
-  // (이관 고객을 열기만 해도 '변경됨'으로 오인하지 않도록). 이후 사용자 변경·재체크는 dirty.
+  const initialSameAsHq =
+    props.mode === "edit" ? deriveSameAsHq(props.company.address ?? "", props.company.address_actual1 ?? "") : true;
+  const [sameAsHq, setSameAsHq] = useState(initialSameAsHq);
+  const mountedRef = useRef(false);
+  // 동일 체크 중 본사주소 변경을 설치주소에 라이브 반영. 마운트 직후 1회 동기화는 dirty 제외
+  // (이관 고객 열람만으로 '변경됨' 오인 방지) — 이 시점 mountedRef는 아직 false. 이후 사용자의
+  // 체크 토글·본사주소 편집으로 인한 동기화는 정상적으로 dirty가 된다(이탈 경고·저장바 반영).
   useEffect(() => {
     if (!sameAsHq) return;
-    const shouldDirty = sameSyncedRef.current;
-    setValue("address_actual1", hqAddr ?? "", { shouldDirty });
-    sameSyncedRef.current = true;
+    setValue("address_actual1", hqAddr ?? "", { shouldDirty: mountedRef.current });
   }, [sameAsHq, hqAddr, setValue]);
+  // 마운트 완료 표시 — 위 동기화 effect '다음에' 선언해야 마운트 첫 실행이 dirty에서 제외된다
+  // (effect는 선언 순서대로 실행: 마운트 시 동기화(false)→여기서 true).
+  useEffect(() => {
+    mountedRef.current = true;
+  }, []);
 
   useEffect(() => {
     // setState는 effect 본문에서 동기 호출하지 않고(react-hooks/set-state-in-effect) 아래
@@ -564,7 +568,7 @@ export function CompanyForm(props: Props) {
           dirtyLabels={dirtyLabels}
           pending={pending}
           saveLabel={props.mode === "edit" ? "변경사항 저장" : "저장"}
-          onCancel={() => reset()}
+          onCancel={() => { reset(); setSameAsHq(initialSameAsHq); }}
           alwaysEnabled={props.mode === "create"}
           blocked={!!dupHit}
         />
