@@ -74,6 +74,42 @@ function isUniqueViolation(error: PostgrestError): boolean {
   return error.code === "23505";
 }
 
+export type DuplicateHit = { company_id: string; name: string; ceo: string | null; match: "biz_no" | "name_phone" };
+
+const duplicateHitSchema = z.object({
+  company_id: z.guid(),
+  name: z.string(),
+  ceo: z.string().nullable(),
+  match: z.enum(["biz_no", "name_phone"]),
+});
+
+// 중복 조회 — 실시간 경고(클라)와 서버 재검증(create/update)이 공유하는 내부 헬퍼.
+async function lookupDuplicate(
+  supabase: SupabaseClient,
+  input: { bizNo: string; name: string; phone: string; excludeId?: string },
+): Promise<DuplicateHit | null> {
+  const { data, error } = await supabase.rpc("check_company_duplicate", {
+    p_biz_no: input.bizNo || "",
+    p_name: input.name || "",
+    p_phone: input.phone || "",
+    p_exclude_id: input.excludeId ?? null,
+  });
+  if (error) { console.error("[customers.checkDuplicate]", error); return null; }
+  if (data == null) return null;
+  const parsed = duplicateHitSchema.safeParse(data);
+  return parsed.success ? parsed.data : null;
+}
+
+// 클라이언트(CompanyForm) 실시간 중복 조회.
+export async function checkCustomerDuplicate(input: {
+  bizNo: string; name: string; phone: string; excludeId?: string;
+}): Promise<DuplicateHit | null> {
+  const access = await requireCustomersEdit();
+  if (access.status === "forbidden") return null;
+  const supabase = await createSupabaseServerClient();
+  return lookupDuplicate(supabase, input);
+}
+
 // 업체 신규 등록. id는 클라에서 미리 생성한 UUID(uuid()). 장비 저장 실패 시 보상 삭제.
 export async function createCustomer(id: string, values: CompanyFormValues): Promise<CustomerActionResult> {
   const access = await requireCustomersEdit();
@@ -89,6 +125,10 @@ export async function createCustomer(id: string, values: CompanyFormValues): Pro
   const assigneeId = canViewAll && v.assignee_id ? v.assignee_id : access.userId;
 
   const supabase = await createSupabaseServerClient();
+  // 서버 최종 중복 차단(실시간 조회와 저장 사이 경합 방지). 대표 연락처 하나로 판정.
+  const contact = v.mobile || v.phone1 || v.phone || "";
+  const dup = await lookupDuplicate(supabase, { bizNo: v.biz_no, name: v.name, phone: contact });
+  if (dup) return { error: `이미 등록된 업체입니다: ${dup.name}` };
   const { error } = await supabase.from("companies").insert({ id, ...companyRow(v), assignee_id: assigneeId });
   if (error) {
     if (isUniqueViolation(error)) return { error: "이미 등록된 사업자번호입니다." };
@@ -123,6 +163,10 @@ export async function updateCustomer(id: string, values: CompanyFormValues): Pro
     : companyRow(v);
 
   const supabase = await createSupabaseServerClient();
+  // 서버 최종 중복 차단(실시간 조회와 저장 사이 경합 방지). 자기 자신은 제외.
+  const contact = v.mobile || v.phone1 || v.phone || "";
+  const dup = await lookupDuplicate(supabase, { bizNo: v.biz_no, name: v.name, phone: contact, excludeId: id });
+  if (dup) return { error: `이미 등록된 업체입니다: ${dup.name}` };
   const { data, error } = await supabase.from("companies").update(patch).eq("id", id).select("id");
   if (error) {
     if (isUniqueViolation(error)) return { error: "이미 등록된 사업자번호입니다." };
