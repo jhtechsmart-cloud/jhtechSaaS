@@ -68,6 +68,8 @@ export default async function EditCustomerPage({
   const companyValues: CompanyFormValues = {
     name: (company as { name: string }).name,
     biz_no: cs("biz_no"),
+    // 기존 저장값에 사업자번호가 없으면 '없음' 예외로 간주(회귀 방지 — 저장 시점엔 없었으므로 재제출 시 재검증 통과).
+    biz_no_none: cs("biz_no").trim() === "",
     ceo: cs("ceo"),
     manager: cs("manager"),
     manager_title: cs("manager_title"),
