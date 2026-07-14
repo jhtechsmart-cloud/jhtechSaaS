@@ -33,7 +33,7 @@ export type ServiceRequestFormInputRaw = z.input<typeof serviceRequestFormSchema
 export const AS_PHOTO_SLOTS = ["as_photo_1", "as_photo_2", "as_photo_3"] as const;
 export type AsPhotoSlot = (typeof AS_PHOTO_SLOTS)[number];
 
-export const PRIVACY_VERSION = "v1.0";
+export const PRIVACY_VERSION = "v1.1";
 
 // lookup_company_by_biz_no RPC 응답 — 외부응답 직접신뢰 금지(CLAUDE.md): Zod 검증.
 export const lookupEquipmentSchema = z.object({
