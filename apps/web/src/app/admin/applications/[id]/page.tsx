@@ -29,6 +29,8 @@ import { countReleaseOrdersForApplication } from "@/lib/applications/admin-queri
 import { diffQuoteVersions } from "@/lib/quotes/diff";
 import { buildVersionChip } from "@/lib/quotes/version-chip";
 import { ApplicantInfo } from "./_components/quote-frame/ApplicantInfo";
+import { CustomerMatchPanel } from "./_components/CustomerMatchPanel";
+import { diffCustomerFields, type CompanyMatchKind } from "@/lib/applications/company-match";
 import { InstallSurvey } from "./_components/quote-frame/InstallSurvey";
 import { SitePhotos } from "./_components/quote-frame/SitePhotos";
 import { SelectedEquipment } from "./_components/quote-frame/SelectedEquipment";
@@ -176,6 +178,32 @@ export default async function ApplicationDetailPage({
   // ⚠️ anon이 RPC 우회 직접 INSERT로 photos 경로를 주입할 수 있어,
   // RPC와 동일한 경로 정규식(버킷-상대 `<uuid>/<slot>.ext`)을 admin 렌더 전에도 강제.
   const supabase = await createSupabaseServerClient();
+
+  // 기존 고객 매칭 패널 — 미연결 biz_no 일치(연결 제안) 또는 name_only(오타 확인) 시,
+  // 후보 고객 전체 필드를 조회해 값 차이(diffs)와 함께 클라 패널로 내려준다.
+  const matchKind = r.match_kind as CompanyMatchKind;
+  const matchedCompanyId = r.matched_company_id as string | null;
+  let matchPanel: React.ReactNode = null;
+  if (canManageCustomers && matchedCompanyId && (matchKind === "biz_no" || matchKind === "name_only")) {
+    const { data: cand } = await supabase
+      .from("companies")
+      .select("id,name,ceo,biz_no,phone,email,address")
+      .eq("id", matchedCompanyId)
+      .maybeSingle();
+    if (cand) {
+      const candidate = cand as { id: string; name: string; ceo: string | null; biz_no: string | null };
+      const diffs = diffCustomerFields(
+        {
+          company: str(r.company), ceo: str(r.ceo), biz_no: str(r.biz_no),
+          phone: str(r.phone), email: str(r.email), address: str(r.address),
+        },
+        cand as Record<string, string | null>,
+      );
+      matchPanel = (
+        <CustomerMatchPanel applicationId={id} matchKind={matchKind} candidate={candidate} diffs={diffs} />
+      );
+    }
+  }
 
   // 현재 견적의 최신 메일 발송 상태/대상(배지·재발송 모달용). 발행본만 의미 있음.
   let emailStatus: string | null = null;
@@ -337,6 +365,7 @@ export default async function ApplicationDetailPage({
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
         {/* 좌측 본문 — 신청기업·신청장비가 먼저 보이게(버전이력·변경내역은 처리바 '버전정보' 모달로 이동). */}
         <div className="flex flex-col gap-6">
+          {matchPanel}
           <ApplicantInfo
             companyId={companyId}
             basic={basicFields}

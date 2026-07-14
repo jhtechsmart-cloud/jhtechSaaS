@@ -41,7 +41,7 @@ describe("buildSupplyRequestPayload — biz 정규화·items·메모 선택", ()
     expect(p.biz_no).toBe("1234567891");
     expect(p.items).toEqual([{ consumable_id: "c1", qty: 3 }]);
     expect(p.privacy_consent).toBe(true);
-    expect(p.privacy_consent_version).toBe("v1.0");
+    expect(p.privacy_consent_version).toBe("v1.1");
     expect("note" in p).toBe(false); // 빈 메모는 payload에서 제외
   });
 

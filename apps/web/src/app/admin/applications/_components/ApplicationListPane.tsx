@@ -155,6 +155,13 @@ export function ApplicationListPane({
                       <span className="flex items-center gap-1.5 truncate text-small font-semibold text-text">
                         {it.is_new && <span className="inline-block size-1.5 shrink-0 rounded-full bg-accent" aria-label="미처리" />}
                         {it.company}
+                        {/* 고객 마스터 대조 칩 — biz_no=기존 고객(미연결), name_only=확인 필요(오타 의심). 연결됨(linked)은 조용히. */}
+                        {it.match_kind === "biz_no" && (
+                          <span className="shrink-0 rounded-full bg-mint px-1.5 py-0.5 text-micro font-medium text-accent">기존 고객</span>
+                        )}
+                        {it.match_kind === "name_only" && (
+                          <span className="shrink-0 rounded-full bg-coral-soft px-1.5 py-0.5 text-micro font-semibold text-coral-text">확인 필요</span>
+                        )}
                       </span>
                       <ApplicationStatusBadge status={it.status} testId={null} />
                     </div>

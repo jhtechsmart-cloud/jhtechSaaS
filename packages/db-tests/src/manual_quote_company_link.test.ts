@@ -79,7 +79,8 @@ describe("create_manual_quote — company_id 연결", () => {
     });
   });
 
-  test("company_id는 생성 후 UPDATE 불변(트리거)", async () => {
+  // 20260714121000: company_id 동결 해제 — '연결된 고객' 가변 링크로 의미 변경(연결·재연결·해제 허용).
+  test("company_id는 UPDATE로 변경 가능(동결 해제 — 연결 링크)", async () => {
     await inRollbackTx(c, async () => {
       await seed();
       await asUser(c, UID.sales1);
@@ -87,7 +88,90 @@ describe("create_manual_quote — company_id 연결", () => {
       await asPostgres(c);
       await c.query("update public.applications set company_id=null where id=$1", [res.application_id]);
       const app = await c.query("select company_id from public.applications where id=$1", [res.application_id]);
-      expect(app.rows[0].company_id).toBe(COMPANY); // OLD 보존
+      expect(app.rows[0].company_id).toBeNull(); // 해제 반영
+      // 재연결도 가능
+      await c.query("update public.applications set company_id=$2 where id=$1", [res.application_id, COMPANY]);
+      const app2 = await c.query("select company_id from public.applications where id=$1", [res.application_id]);
+      expect(app2.rows[0].company_id).toBe(COMPANY);
+    });
+  });
+
+  test("seq_no·created_at·source 동결은 유지(회귀)", async () => {
+    await inRollbackTx(c, async () => {
+      await seed();
+      await asUser(c, UID.sales1);
+      const res = await createManualQuote("연결고객", COMPANY);
+      await asPostgres(c);
+      const before = await c.query("select seq_no, created_at, source from public.applications where id=$1", [res.application_id]);
+      await c.query(
+        "update public.applications set created_at=now()+interval '1 day', source='public' where id=$1",
+        [res.application_id],
+      );
+      const after = await c.query("select seq_no, created_at, source from public.applications where id=$1", [res.application_id]);
+      expect(after.rows[0].seq_no).toBe(before.rows[0].seq_no);
+      expect(after.rows[0].created_at).toEqual(before.rows[0].created_at);
+      expect(after.rows[0].source).toBe(before.rows[0].source);
+    });
+  });
+
+  test("assignee(RLS)로도 자기 의뢰 company_id 연결 가능", async () => {
+    await inRollbackTx(c, async () => {
+      await seed();
+      await asUser(c, UID.sales1);
+      // 수기 견적은 sales1이 생성(assignee 본인) → RLS applications_update 통과 확인.
+      const res = await createManualQuote("연결고객", null);
+      const upd = await c.query(
+        "update public.applications set company_id=$2 where id=$1 returning company_id",
+        [res.application_id, COMPANY],
+      );
+      expect(upd.rows[0].company_id).toBe(COMPANY);
+    });
+  });
+});
+
+describe("upsert_company_from_application — 의뢰 연결 기록", () => {
+  test("고객 등록 시 applications.company_id도 세팅", async () => {
+    await inRollbackTx(c, async () => {
+      await asPostgres(c);
+      await seedAuthUser(c, UID.sales1, "s1@jhtech.test");
+      await c.query("update public.profiles set permissions='{customers.edit,customers.view_all}' where id=$1", [UID.sales1]);
+      // 공개폼 유사 의뢰를 직접 시드(사업자번호 보유).
+      const app = await c.query(
+        `insert into public.applications (company, biz_no, ceo, phone, status, source, assignee_id)
+         values ('업서트고객', '2208162517', '조선제', '01011112222', 'new', 'public', $1) returning id`,
+        [UID.sales1],
+      );
+      const appId = app.rows[0].id as string;
+      await asUser(c, UID.sales1);
+      const r = await c.query("select public.upsert_company_from_application($1) as u", [appId]);
+      const u = r.rows[0].u as { company_id: string; created: boolean };
+      expect(u.created).toBe(true);
+      await asPostgres(c);
+      const linked = await c.query("select company_id from public.applications where id=$1", [appId]);
+      expect(linked.rows[0].company_id).toBe(u.company_id);
+    });
+  });
+
+  test("기존 고객(biz_no 일치)이어도 company_id 연결 기록", async () => {
+    await inRollbackTx(c, async () => {
+      await asPostgres(c);
+      await seedAuthUser(c, UID.sales1, "s1@jhtech.test");
+      await c.query("update public.profiles set permissions='{customers.edit,customers.view_all}' where id=$1", [UID.sales1]);
+      await c.query("insert into public.companies (id, name, biz_no) values ($1,'기존고객','2208162517')", [COMPANY]);
+      const app = await c.query(
+        `insert into public.applications (company, biz_no, status, source, assignee_id)
+         values ('기존고객', '220-81-62517', 'new', 'public', $1) returning id`,
+        [UID.sales1],
+      );
+      const appId = app.rows[0].id as string;
+      await asUser(c, UID.sales1);
+      const r = await c.query("select public.upsert_company_from_application($1) as u", [appId]);
+      const u = r.rows[0].u as { company_id: string; created: boolean };
+      expect(u.created).toBe(false);
+      expect(u.company_id).toBe(COMPANY);
+      await asPostgres(c);
+      const linked = await c.query("select company_id from public.applications where id=$1", [appId]);
+      expect(linked.rows[0].company_id).toBe(COMPANY);
     });
   });
 });

@@ -27,7 +27,7 @@ export type LookupEquipment = z.infer<typeof lookupEquipmentSchema>;
 const bizNoRegex = /^\d{10}$|^\d{3}-\d{2}-\d{5}$/;
 const phoneRegex = /^(?=(?:[^0-9]*[0-9]){8,})[0-9+\-\s]{9,20}$/;
 
-export const PRIVACY_VERSION = "v1.0";
+export const PRIVACY_VERSION = "v1.1";
 export const QTY_MAX = 9999;
 
 // RHF로 검증하는 필드(소모품 수량은 별도 state). biz_no·신청자·메모·동의.

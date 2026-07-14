@@ -50,7 +50,7 @@ export const PHOTO_SLOTS = ["ext_entrance", "ext_building", "int_entrance", "int
 export type PhotoSlot = (typeof PHOTO_SLOTS)[number];
 
 // 개인정보 동의 버전 — 약관 개정 시 숫자만 올린다.
-export const PRIVACY_VERSION = "v1.0";
+export const PRIVACY_VERSION = "v1.1";
 
 export interface SubmitPayload {
   company: string;

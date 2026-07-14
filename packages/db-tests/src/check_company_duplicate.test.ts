@@ -1,5 +1,6 @@
 // check_company_duplicate RPC 통합 테스트 — RLS 우회(SECURITY DEFINER) 전 고객 대상 중복 조회.
-// ① 사업자번호 정확일치 ② 회사명(공백제거·소문자, 전각공백 포함)+전화(숫자) 동시일치.
+// ① 사업자번호 정확일치 ② 회사명(공백제거·소문자, 전각공백 포함)+전화(숫자) 동시일치
+// ③ 회사명 단독일치(name_only — 저장 차단이 아닌 '확인 후 진행' 경고용, 배너 표시용 추가 필드 포함).
 // authenticated만 실행(anon 차단). E1 하니스(helpers.ts) 재사용.
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import type { Client } from "pg";
@@ -17,7 +18,11 @@ type DupResult = {
   company_id: string;
   name: string;
   ceo: string | null;
-  match: "biz_no" | "name_phone";
+  match: "biz_no" | "name_phone" | "name_only";
+  // name_only 매치에만 포함 — 경고 배너에 기존 고객 정보 표시용.
+  biz_no?: string | null;
+  manager?: string | null;
+  address?: string | null;
 } | null;
 
 async function callDup(
@@ -96,11 +101,47 @@ describe("check_company_duplicate RPC", () => {
     });
   });
 
-  test("이름은 같으나 전화가 다르면 매치 없음(null)", async () => {
+  test("이름은 같으나 전화가 다르면 name_only 매치(경고용) + 배너 필드 포함", async () => {
     await inRollbackTx(c, async () => {
-      await seed();
+      const { companyAId } = await seed();
       await asUser(c, UID.sales1);
       const r = await callDup(c, "", "재현테크", "01099998888", null);
+      expect(r?.match).toBe("name_only");
+      expect(r?.company_id).toBe(companyAId);
+      // 경고 배너 표시용 추가 필드 — 기존 고객의 사업자번호·담당자·주소.
+      expect(r?.biz_no).toBe("2208162517");
+      expect(r).toHaveProperty("manager");
+      expect(r).toHaveProperty("address");
+    });
+  });
+
+  test("사업자번호가 다르고 이름만 같아도 name_only 매치(전화 미입력)", async () => {
+    await inRollbackTx(c, async () => {
+      const { companyAId } = await seed();
+      await asUser(c, UID.sales1);
+      // 사업자번호는 10자리이지만 미등록 번호 → ①불발, 전화 없음 → ②불발, 이름 일치 → ③.
+      const r = await callDup(c, "9999999999", "재현　테크", "", null);
+      expect(r?.match).toBe("name_only");
+      expect(r?.company_id).toBe(companyAId);
+    });
+  });
+
+  test("사업자번호 일치가 name_only보다 우선", async () => {
+    await inRollbackTx(c, async () => {
+      const { companyAId } = await seed();
+      await asUser(c, UID.sales1);
+      // 이름도 같고 사업자번호도 같음 → ① biz_no 매치가 우선.
+      const r = await callDup(c, "2208162517", "재현테크", "", null);
+      expect(r?.match).toBe("biz_no");
+      expect(r?.company_id).toBe(companyAId);
+    });
+  });
+
+  test("name_only도 exclude_id로 자기 자신 제외 → null", async () => {
+    await inRollbackTx(c, async () => {
+      const { companyAId } = await seed();
+      await asUser(c, UID.sales1);
+      const r = await callDup(c, "", "재현테크", "", companyAId);
       expect(r).toBeNull();
     });
   });

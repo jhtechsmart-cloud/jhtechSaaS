@@ -144,3 +144,17 @@ describe("makeCompanyFormSchema edit 그런더링", () => {
     expect(companyFormSchema.safeParse({ ...base, biz_no: "123-45-67890" }).success).toBe(false);
   });
 });
+
+// 동명(name_only) 확인 플래그 — 폼 전용(DB 미저장), 서버 액션 fail-closed 게이트가 사용.
+describe("name_only_confirmed(동명 확인 플래그)", () => {
+  it("미전달 시 기본 false", () => {
+    const r = companyFormSchema.safeParse({ ...base, biz_no: validBiz });
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.name_only_confirmed).toBe(false);
+  });
+  it("true 전달 시 보존", () => {
+    const r = companyFormSchema.safeParse({ ...base, biz_no: validBiz, name_only_confirmed: true });
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.name_only_confirmed).toBe(true);
+  });
+});

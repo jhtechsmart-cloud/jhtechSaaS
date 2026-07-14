@@ -127,7 +127,7 @@ describe("buildSubmitPayload (P-A2)", () => {
     const input = requestFormSchema.parse({ ...base, handling: ["ladder"] });
     const payload = buildSubmitPayload(input, "XTRA 5000", { ext_entrance: "uuid1/ext_entrance.jpg" });
     expect(payload.privacy_consent).toBe(true);
-    expect(payload.privacy_consent_version).toBe("v1.0");
+    expect(payload.privacy_consent_version).toBe("v1.1");
     expect(payload.fields.install_survey.handling).toEqual(["ladder"]);
     expect(payload.fields.photos.ext_entrance).toBe("uuid1/ext_entrance.jpg");
     expect(payload.fields.equipment_name).toBe("XTRA 5000");

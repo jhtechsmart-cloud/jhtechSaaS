@@ -75,13 +75,26 @@ function isUniqueViolation(error: PostgrestError): boolean {
   return error.code === "23505";
 }
 
-export type DuplicateHit = { company_id: string; name: string; ceo: string | null; match: "biz_no" | "name_phone" };
+// name_only(회사명 단독 일치)는 차단이 아닌 확인 게이트 — 배너 표시용으로 기존 고객의
+// 사업자번호·담당자·주소가 추가로 담긴다(biz_no/name_phone 매치엔 없음).
+export type DuplicateHit = {
+  company_id: string;
+  name: string;
+  ceo: string | null;
+  match: "biz_no" | "name_phone" | "name_only";
+  biz_no?: string | null;
+  manager?: string | null;
+  address?: string | null;
+};
 
 const duplicateHitSchema = z.object({
   company_id: z.guid(),
   name: z.string(),
   ceo: z.string().nullable(),
-  match: z.enum(["biz_no", "name_phone"]),
+  match: z.enum(["biz_no", "name_phone", "name_only"]),
+  biz_no: z.string().nullable().optional(),
+  manager: z.string().nullable().optional(),
+  address: z.string().nullable().optional(),
 });
 
 // RPC 실행 결과 — 오류 여부와 매치를 구분(게이트는 fail-closed, 자문 조회는 fail-open에 사용).
@@ -137,7 +150,11 @@ export async function createCustomer(id: string, values: CompanyFormValues): Pro
   // fail-closed: RPC 오류 시 중복 없음으로 간주하지 않고 저장을 중단(DB 백스톱은 biz_no unique뿐 — name+phone은 여기가 유일한 방어선).
   const dupRes = await runDuplicateRpc(supabase, { bizNo: v.biz_no, name: v.name, phone: representativeContact(v) });
   if (dupRes.error) return { error: "중복 확인 중 오류가 발생했습니다. 잠시 후 다시 시도하세요." };
-  if (dupRes.hit) return { error: `이미 등록된 업체입니다: ${dupRes.hit.name}` };
+  if (dupRes.hit && dupRes.hit.match !== "name_only") return { error: `이미 등록된 업체입니다: ${dupRes.hit.name}` };
+  // 동명(name_only)은 차단이 아닌 확인 게이트 — 확인 플래그 없으면 거부(화면 우회 방지, fail-closed).
+  if (dupRes.hit && !v.name_only_confirmed) {
+    return { error: `동일한 업체명이 이미 등록돼 있습니다: ${dupRes.hit.name}. 동명의 다른 회사가 맞으면 확인 체크 후 다시 저장하세요.` };
+  }
   const { error } = await supabase.from("companies").insert({ id, ...companyRow(v), assignee_id: assigneeId });
   if (error) {
     if (isUniqueViolation(error)) return { error: "이미 등록된 사업자번호입니다." };
@@ -195,7 +212,11 @@ export async function updateCustomer(id: string, values: CompanyFormValues): Pro
   // fail-closed: RPC 오류 시 중복 없음으로 간주하지 않고 저장을 중단(DB 백스톱은 biz_no unique뿐 — name+phone은 여기가 유일한 방어선).
   const dupRes = await runDuplicateRpc(supabase, { bizNo: v.biz_no, name: v.name, phone: representativeContact(v), excludeId: id });
   if (dupRes.error) return { error: "중복 확인 중 오류가 발생했습니다. 잠시 후 다시 시도하세요." };
-  if (dupRes.hit) return { error: `이미 등록된 업체입니다: ${dupRes.hit.name}` };
+  if (dupRes.hit && dupRes.hit.match !== "name_only") return { error: `이미 등록된 업체입니다: ${dupRes.hit.name}` };
+  // 동명(name_only)은 차단이 아닌 확인 게이트 — 확인 플래그 없으면 거부(화면 우회 방지, fail-closed).
+  if (dupRes.hit && !v.name_only_confirmed) {
+    return { error: `동일한 업체명이 이미 등록돼 있습니다: ${dupRes.hit.name}. 동명의 다른 회사가 맞으면 확인 체크 후 다시 저장하세요.` };
+  }
   const { data, error } = await supabase.from("companies").update(patch).eq("id", id).select("id");
   if (error) {
     if (isUniqueViolation(error)) return { error: "이미 등록된 사업자번호입니다." };

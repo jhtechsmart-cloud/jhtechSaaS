@@ -12,6 +12,7 @@ import {
 import { applicationStatusSchema } from "./status-schema";
 import { pageParamsSchema } from "./page-params";
 import { nextStatusOnAssign } from "./assign-logic";
+import { RESOLVABLE_FIELDS, type ResolvableField } from "./company-match";
 import type { ApplicationStatus } from "@/lib/customers/history";
 
 export type ApplicationActionResult = { error: string } | { ok: true; companyId?: string };
@@ -188,5 +189,95 @@ export async function registerCustomerFromApplication(
   }
   const companyId = (data as { company_id?: string } | null)?.company_id;
   revalidatePath(`/admin/applications/${id}`);
+  return { ok: true, companyId };
+}
+
+// ── 견적요청 ↔ 기존 고객 연결 + 필드별 선택 교정 ──────────────────────────────
+// use='application' → 요청값을 고객DB에 반영 / use='company' → 고객DB값으로 요청 교정.
+export type FieldResolution = { field: ResolvableField; use: "application" | "company" };
+
+const resolutionSchema = z.object({
+  field: z.enum(RESOLVABLE_FIELDS),
+  use: z.enum(["application", "company"]),
+});
+
+// 요청 필드 ↔ companies 컬럼 매핑(이름만 다름).
+const COMPANY_COLUMN: Record<ResolvableField, string> = {
+  company: "name", ceo: "ceo", biz_no: "biz_no", phone: "phone", email: "email", address: "address",
+};
+
+// 연결 + 선택 교정 — customers.edit 필요. 자동 덮어쓰기 없음(전달된 resolutions만 적용).
+// 고객 측 스코프: 남의 담당 고객에 연결 금지(무담당·본인 담당·customers.view_all만 허용,
+// create_manual_quote RPC의 스코프 규칙과 동일). 의뢰 측은 RLS applications_update가 보호.
+export async function linkApplicationToCompany(
+  applicationId: string,
+  companyId: string,
+  resolutions: FieldResolution[],
+): Promise<ApplicationActionResult> {
+  const access = await requirePermission("customers.edit");
+  if (access.status === "forbidden") return { error: "권한이 없습니다" };
+  if (!z.guid().safeParse(applicationId).success || !z.guid().safeParse(companyId).success) {
+    return { error: "잘못된 요청입니다" };
+  }
+  const parsedRes = z.array(resolutionSchema).max(RESOLVABLE_FIELDS.length).safeParse(resolutions ?? []);
+  if (!parsedRes.success) return { error: "잘못된 요청입니다" };
+
+  const supabase = await createSupabaseServerClient();
+  const [{ data: app }, { data: company }] = await Promise.all([
+    supabase.from("applications").select("id,company,ceo,biz_no,phone,email,address").eq("id", applicationId).maybeSingle(),
+    supabase.from("companies").select("id,name,ceo,biz_no,phone,email,address,assignee_id").eq("id", companyId).maybeSingle(),
+  ]);
+  if (!app) return { error: "의뢰를 찾을 수 없습니다" };
+  if (!company) return { error: "고객을 찾을 수 없습니다" };
+
+  const { can } = await import("@jhtechsaas/shared");
+  const assignee = (company as { assignee_id: string | null }).assignee_id;
+  if (assignee && assignee !== access.userId && !can(access.permissions, "customers.view_all")) {
+    return { error: "다른 담당자의 고객입니다(연결 권한 없음)" };
+  }
+
+  const appRow = app as Record<string, string | null>;
+  const companyRow = company as Record<string, string | null>;
+
+  // 교정 패치 구성 — 빈 원본값은 적용하지 않는다(반대편 데이터를 실수로 비우는 것 방지).
+  const companyPatch: Record<string, string> = {};
+  const appPatch: Record<string, string> = {};
+  const { normalizeBizNo } = await import("@jhtechsaas/shared");
+  for (const r of parsedRes.data) {
+    if (r.use === "application") {
+      const raw = (appRow[r.field] ?? "").trim();
+      if (!raw) continue;
+      companyPatch[COMPANY_COLUMN[r.field]] = r.field === "biz_no" ? normalizeBizNo(raw) : raw;
+    } else {
+      const raw = (companyRow[COMPANY_COLUMN[r.field]] ?? "").trim();
+      if (!raw) continue;
+      appPatch[r.field] = raw;
+    }
+  }
+
+  // 고객DB 반영(있을 때만) — biz_no unique 충돌은 한국어 안내.
+  if (Object.keys(companyPatch).length > 0) {
+    const { error } = await supabase.from("companies").update(companyPatch).eq("id", companyId);
+    if (error) {
+      if (error.code === "23505") return { error: "이미 다른 고객이 쓰는 사업자번호입니다" };
+      console.error("[applications.linkCompany] companies update", error);
+      return { error: "고객 정보 반영에 실패했습니다" };
+    }
+  }
+
+  // 의뢰 교정 + 연결(company_id) — 한 번의 UPDATE. RLS(자기 배정 또는 applications.assign) 통과 필요.
+  const { data: updated, error: appErr } = await supabase
+    .from("applications")
+    .update({ ...appPatch, company_id: companyId })
+    .eq("id", applicationId)
+    .select("id");
+  if (appErr || !updated || updated.length === 0) {
+    if (appErr) console.error("[applications.linkCompany] applications update", appErr);
+    return { error: "의뢰 연결에 실패했습니다(권한이 없거나 대상이 없습니다)" };
+  }
+
+  revalidatePath(`/admin/applications/${applicationId}`);
+  revalidatePath("/admin/applications", "layout");
+  revalidatePath(`/admin/customers/${companyId}`);
   return { ok: true, companyId };
 }
