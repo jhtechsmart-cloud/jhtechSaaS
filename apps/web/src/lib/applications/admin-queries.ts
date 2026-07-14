@@ -2,8 +2,21 @@ import "server-only";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { ApplicationStatus } from "@/lib/customers/history";
 import { ACTIVE_APPLICATION_STATUSES, DONE_APPLICATION_STATUSES } from "@/lib/application-status";
-import { buildSearchOr, splitOverflow, normalizeBizNo } from "./admin-search";
+import { buildSearchOr, splitOverflow } from "./admin-search";
 import { applicationStatusSchema } from "./status-schema";
+import { matchCompany, type CompanyLite, type CompanyMatchKind } from "./company-match";
+
+// 고객 마스터 경량 목록(id·이름·사업자번호) — 견적요청 매칭 대조용 1회 조회.
+// 이관 데이터 규모(~1,600행)에서 3컬럼 select는 가볍다. RLS: companies SELECT는 authenticated 전원.
+async function loadCompanyLites(): Promise<CompanyLite[]> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.from("companies").select("id,name,biz_no");
+  if (error) {
+    console.error("[applications.companyLites]", error);
+    return [];
+  }
+  return (data ?? []) as CompanyLite[];
+}
 
 // 의뢰의 출고의뢰서 건수 — 의뢰 삭제 시 '함께 사라지는 출고의뢰서' 경고용.
 export async function countReleaseOrdersForApplication(applicationId: string): Promise<number> {
@@ -25,6 +38,8 @@ export interface ApplicationListRow {
   assignee_name: string | null;
   is_new: boolean; // status==='new' (미배정 강조)
   created_at: string;
+  // 고객 마스터 대조 — biz_no=기존 고객(미연결) / name_only=확인 필요(오타 의심) / linked=연결됨.
+  match_kind: CompanyMatchKind;
 }
 
 const LIST_LIMIT = 100;
@@ -68,6 +83,7 @@ export async function listApplications(
       assignee_name: profiles?.name ?? null,
       is_new: r.status === "new",
       created_at: r.created_at as string,
+      match_kind: null, // 레거시(비페이지) 경로 — 고객 대조 미수행(목록 배지는 listApplicationsPage 사용)
     };
   });
   return splitOverflow(mapped, LIST_LIMIT);
@@ -106,7 +122,7 @@ export async function listApplicationsPage(opts: {
   const supabase = await createSupabaseServerClient();
   let query = supabase
     .from("applications")
-    .select("id,seq_no,status,company,assignee_id,created_at,fields,profiles:assignee_id(name)")
+    .select("id,seq_no,status,company,biz_no,company_id,assignee_id,created_at,fields,profiles:assignee_id(name)")
     .order("created_at", { ascending: false })
     .order("seq_no", { ascending: false })
     .range(opts.offset, opts.offset + opts.limit); // +1 행으로 hasMore 감지
@@ -128,10 +144,20 @@ export async function listApplicationsPage(opts: {
   const all = (data ?? []) as Record<string, unknown>[];
   const hasMore = all.length > opts.limit;
   const sliced = hasMore ? all.slice(0, opts.limit) : all;
+  // 고객 마스터 대조는 페이지당 1회 조회로 일괄 계산(행별 추가 쿼리 금지).
+  const companyLites = await loadCompanyLites();
   const rows: ApplicationListRow[] = sliced.map((r) => {
     const profiles = r.profiles as { name?: string } | null;
     const fields = (r.fields as { equipment_name?: string; requirements?: string } | null) ?? {};
     const summary = fields.equipment_name ?? (fields.requirements ?? "").slice(0, 40);
+    const match = matchCompany(
+      {
+        company: (r.company as string | null) ?? null,
+        biz_no: (r.biz_no as string | null) ?? null,
+        company_id: (r.company_id as string | null) ?? null,
+      },
+      companyLites,
+    );
     return {
       id: r.id as string,
       seq_no: r.seq_no as string,
@@ -142,6 +168,7 @@ export async function listApplicationsPage(opts: {
       assignee_name: profiles?.name ?? null,
       is_new: r.status === "new",
       created_at: r.created_at as string,
+      match_kind: match.kind,
     };
   });
   return { rows, hasMore };
@@ -161,7 +188,10 @@ export async function countApplicationsByGroup(): Promise<{ active: number; clos
   return { active: activeRes.count ?? 0, closed: closedRes.count ?? 0 };
 }
 
-// 견적 단건(admin 상세) — profiles 조인 + biz_no→companies 매칭(application쪽 JS 정규화).
+// 견적 단건(admin 상세) — profiles 조인 + 고객 마스터 대조(matchCompany).
+// 반환 company_id = 화면 배지용 "확실한 고객"(DB 연결 링크 우선, 없으면 사업자번호 일치) —
+// 기존 소비처(등록 고객 배지·통합 이력 링크) 동작 유지. name_only(회사명만 일치)는
+// 불확실 매치라 company_id에 싣지 않고 match_kind/matched_company_id로만 노출(매칭 패널용).
 export async function getApplicationForAdmin(id: string) {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
@@ -173,16 +203,21 @@ export async function getApplicationForAdmin(id: string) {
   if (error) console.error("[applications.getForAdmin]", error);
   if (!data) return null;
 
-  // companies.biz_no는 upsert RPC가 숫자정규화 저장 → application쪽만 정규화해 단순조회.
-  let companyId: string | null = null;
-  const digits = normalizeBizNo(data.biz_no as string | null);
-  if (digits) {
-    const { data: co } = await supabase
-      .from("companies")
-      .select("id")
-      .eq("biz_no", digits)
-      .maybeSingle();
-    companyId = (co?.id as string | undefined) ?? null;
-  }
-  return { ...(data as Record<string, unknown>), company_id: companyId };
+  const row = data as Record<string, unknown>;
+  const match = matchCompany(
+    {
+      company: (row.company as string | null) ?? null,
+      biz_no: (row.biz_no as string | null) ?? null,
+      company_id: (row.company_id as string | null) ?? null,
+    },
+    await loadCompanyLites(),
+  );
+  const effectiveCompanyId =
+    match.kind === "linked" || match.kind === "biz_no" ? match.companyId : null;
+  return {
+    ...row,
+    company_id: effectiveCompanyId,
+    match_kind: match.kind,
+    matched_company_id: match.companyId,
+  };
 }
