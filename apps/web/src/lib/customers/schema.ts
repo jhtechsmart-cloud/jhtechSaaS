@@ -31,6 +31,9 @@ export function makeCompanyFormSchema(edit?: CompanyEditOriginal) {
       name: z.string().trim().min(1, "업체명을 입력하세요").max(200, "200자 이내"),
       biz_no: z.string().trim().max(20),
       biz_no_none: z.boolean().default(false), // 폼 전용 — DB 미저장(사업자번호 없는 고객 예외)
+      // 폼 전용 — DB 미저장. 동명(name_only) 경고에서 "동명의 다른 회사가 맞습니다" 확인 체크.
+      // 서버 액션이 name_only 매치 시 이 플래그 없으면 저장 거부(fail-closed).
+      name_only_confirmed: z.boolean().default(false),
       // 필수 강제는 아래 object-level refine으로(그런더링을 위해 field-level .min 제거).
       ceo: z.string().trim().max(200),
       // 담당자(고객 측)·업태 — 기본 정보(견적 신청기업 정보와 1:1).
