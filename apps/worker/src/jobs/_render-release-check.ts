@@ -20,7 +20,17 @@ async function main() {
     details: ReleaseOrderDetailsSchema.parse({
       printer: { rip: "토파즈", headType: "리코 G5i 헤드", headCount: "3개", colors: ["CMYK", "화이트(W)"], inkType: "G5i용 잉크", inkQty: "색상별 1리터 + 솔루션" },
       common: { testMaterial: "정렬용 H&M용지 10장", computerPrep: true, dobi: false, disassemble: false },
-      prep: { transport: ["1톤 리프트 화물차", "윙바디"], electrical: ["케이블", "예비 멀티탭 10m"], otherPrep: ["회사명판·로고·안전표시"] },
+      prep: {
+        transport: ["1톤 리프트 화물차", "윙바디"],
+        electrical: ["케이블", "예비 멀티탭 10m"],
+        inboundItems: ["도비바퀴", "자키", "랩핑테이프"],
+        otherPrep: ["회사명판·로고·안전표시"],
+        // 특이사항 4종 전부 채운 최악 케이스 — 1장 유지 확인용
+        transportNote: "지게차 필요 — 현장에 하역장비 없음",
+        electricalNote: "삼상 380V 분전반 위치 사전 확인 필요",
+        inboundNote: "2층 계단 이동 — 인력 2명 추가 필요",
+        otherPrepNote: "고객사 로고 파일 미수령 — 출고 전 확인",
+      },
       site: { inboundPlan: "1층 하차 → 14층 설치(화물승강기)", doorType: "도어", doorSize: "충분함", power: "벽면콘센트 (단상 220V)", parking: "아파트형공장 — 지하주차장", blower: { install: true, note: "장비 기본장착형" }, compressor: { install: false, note: "" } },
     }),
     fontDataUri: await getFontDataUri(),

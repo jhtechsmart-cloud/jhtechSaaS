@@ -46,6 +46,11 @@ const PrepDetail = z.object({
   inboundItems: z.array(z.string()).default([]), // 입고 준비물
   electrical: z.array(z.string()).default([]), // 전기 사전준비
   otherPrep: z.array(z.string()).default([]), // 기타 준비물
+  // 박스별 특이사항(관리자 자유입력) — 폼 각 박스 하단 한 줄, PDF는 값 있을 때만 체크칩 아래 출력.
+  transportNote: z.string().max(500).default(""),
+  electricalNote: z.string().max(500).default(""),
+  inboundNote: z.string().max(500).default(""),
+  otherPrepNote: z.string().max(500).default(""),
 });
 
 const InstallToggle = z.object({
