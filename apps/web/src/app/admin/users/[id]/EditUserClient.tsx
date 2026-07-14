@@ -192,13 +192,24 @@ export function EditUserClient({
         </div>
         <div className="flex items-center justify-between gap-2">
           <span className="text-small text-muted">비밀번호</span>
-          <button
-            onClick={resetPassword}
-            disabled={resetPending}
-            className="text-small text-accent underline disabled:opacity-40 disabled:no-underline"
-          >
-            {resetPending ? "재설정 중…" : "임시 비밀번호로 재설정"}
-          </button>
+          {/* 본인 계정은 임시 비번 재설정 금지 — admin API가 본인 세션을 무효화해
+              임시 비번을 보기 전에 로그아웃돼 잠기기 때문. 계정 설정에서 직접 변경. */}
+          {isSelf ? (
+            <button
+              onClick={() => router.push("/admin/account")}
+              className="text-small text-accent underline"
+            >
+              계정 설정에서 변경
+            </button>
+          ) : (
+            <button
+              onClick={resetPassword}
+              disabled={resetPending}
+              className="text-small text-accent underline disabled:opacity-40 disabled:no-underline"
+            >
+              {resetPending ? "재설정 중…" : "임시 비밀번호로 재설정"}
+            </button>
+          )}
         </div>
       </div>
 
