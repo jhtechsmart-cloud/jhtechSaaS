@@ -65,6 +65,7 @@ const FIELD_LABELS: Record<string, string> = {
   biz_item: "업종(종목)", ledger_name: "장부명", phone1: "전화1", phone2: "전화2",
   fax: "팩스", mobile: "휴대폰", address_actual1: "설치주소", address_actual2: "주소2",
   note: "메모", assignee_id: "담당영업", equipment: "보유장비", biz_no_none: "사업자번호 없음",
+  name_only_confirmed: "동명 확인",
 };
 
 // dirtyFields 깊은 판정(equipment는 중첩 배열).
@@ -116,7 +117,7 @@ export function CompanyForm(props: Props) {
           })),
         }
       : {
-          name: "", biz_no: "", biz_no_none: false, ceo: "", manager: "", manager_title: "", phone: "", email: "",
+          name: "", biz_no: "", biz_no_none: false, name_only_confirmed: false, ceo: "", manager: "", manager_title: "", phone: "", email: "",
           address: "", biz_type: "", biz_item: "", ledger_name: "", phone1: "",
           phone2: "", fax: "", mobile: "", address_actual1: "", address_actual2: "",
           note: "", assignee_id: "", equipment: [],
@@ -150,6 +151,8 @@ export function CompanyForm(props: Props) {
 
   // '사업자번호 없음' 체크 상태 — biz_no 입력 비활성·필수 표시 전환에 쓰인다.
   const bizNoNone = useWatch({ control, name: "biz_no_none" }) as boolean;
+  // 동명(name_only) 경고의 "동명의 다른 회사가 맞습니다" 확인 — 체크해야 저장 가능.
+  const nameOnlyConfirmed = useWatch({ control, name: "name_only_confirmed" }) as boolean;
 
   // 실시간 중복 조회(디바운스 400ms) — 사업자번호 10자리 완성, 또는(없음 모드) 회사명+연락처 입력 시
   // 서버에 자문만 한다(fail-open, 오류·미차단 시 null). 최종 차단은 서버액션의 fail-closed 재검증.
@@ -189,9 +192,11 @@ export function CompanyForm(props: Props) {
     const contact = mobileVal || phone1Val || phoneVal || "";
     const bizDigits = (bizNo ?? "").replace(/\D/g, "");
     // 조회 트리거: 사업자번호 10자리 완성 OR (없음 모드에서 회사명+연락처 채워짐)
+    // OR 회사명 단독 입력(동명 name_only 경고 — 사업자번호·연락처 없이도 자문 조회).
     const canQuery =
       (!bizNoNone && bizDigits.length === 10) ||
-      (bizNoNone && (nameVal ?? "").trim() !== "" && contact.trim() !== "");
+      (bizNoNone && (nameVal ?? "").trim() !== "" && contact.trim() !== "") ||
+      (nameVal ?? "").trim() !== "";
     const t = setTimeout(async () => {
       if (!canQuery) {
         if (!cancelled) setDupHit(null);
@@ -251,10 +256,17 @@ export function CompanyForm(props: Props) {
     if (raw) setValue(name, formatPhone(raw), { shouldDirty: true });
   }
 
+  // 저장 잠금: 차단 매치(biz_no·name_phone)는 무조건, 동명(name_only)은 확인 체크 전까지.
+  const saveBlocked = !!dupHit && (dupHit.match !== "name_only" || !nameOnlyConfirmed);
+
   function onSubmit(values: CompanyFormValues) {
     // 실시간 중복 경고가 떠 있으면 저장 자체를 막는다(버튼도 잠기지만 이중 방어).
-    if (dupHit) {
-      setServerError(`이미 등록된 업체입니다: ${dupHit.name}`);
+    if (saveBlocked && dupHit) {
+      setServerError(
+        dupHit.match === "name_only"
+          ? `동일한 업체명이 이미 등록돼 있습니다: ${dupHit.name}. 동명의 다른 회사가 맞으면 확인 체크 후 저장하세요.`
+          : `이미 등록된 업체입니다: ${dupHit.name}`,
+      );
       return;
     }
     setServerError(null);
@@ -352,8 +364,8 @@ export function CompanyForm(props: Props) {
         </div>
       )}
 
-      {/* 실시간 중복 경고 — 사업자번호 또는 회사명+연락처가 기존 업체와 겹치면 저장 전 안내. */}
-      {dupHit && (
+      {/* 실시간 중복 경고(차단) — 사업자번호 또는 회사명+연락처가 기존 업체와 겹치면 저장 불가. */}
+      {dupHit && dupHit.match !== "name_only" && (
         <div className="rounded-md border border-danger/40 bg-danger/10 p-3 text-small text-text">
           <b>이미 등록된 업체</b>: {dupHit.name}
           {dupHit.ceo ? ` (대표 ${dupHit.ceo})` : ""} —{" "}
@@ -364,6 +376,25 @@ export function CompanyForm(props: Props) {
             {dupHit.match === "biz_no" ? "같은 사업자번호" : "같은 회사명+연락처"}로 등록돼 있어
             저장할 수 없습니다.
           </div>
+        </div>
+      )}
+
+      {/* 동명 경고(확인 게이트) — 회사명만 같은 기존 업체. 오타 중복은 막고 진짜 동명 회사는 확인 후 허용. */}
+      {dupHit?.match === "name_only" && (
+        <div className="rounded-md border border-coral/40 bg-coral-soft p-3 text-small text-text">
+          <b>동일한 업체명이 이미 등록돼 있습니다</b>: {dupHit.name}
+          {dupHit.ceo ? ` (대표 ${dupHit.ceo})` : ""} —{" "}
+          <Link href={`/admin/customers/${dupHit.company_id}`} className="underline">
+            기존 업체 열기
+          </Link>
+          <div className="mt-0.5 text-micro text-coral-text">
+            사업자번호 {dupHit.biz_no ? formatBizNo(dupHit.biz_no) : "미등록"} · 담당자{" "}
+            {dupHit.manager || "-"} · {dupHit.address || "주소 미등록"}
+          </div>
+          <label className="mt-2 flex items-center gap-1.5 text-small text-text">
+            <input type="checkbox" {...register("name_only_confirmed")} className="h-4 w-4 accent-accent" />
+            동명의 다른 회사가 맞습니다(중복 아님 확인)
+          </label>
         </div>
       )}
 
@@ -570,7 +601,7 @@ export function CompanyForm(props: Props) {
           saveLabel={props.mode === "edit" ? "변경사항 저장" : "저장"}
           onCancel={() => { reset(); setSameAsHq(initialSameAsHq); }}
           alwaysEnabled={props.mode === "create"}
-          blocked={!!dupHit}
+          blocked={saveBlocked}
         />
       </form>
     </div>
