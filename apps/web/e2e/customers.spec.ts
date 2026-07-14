@@ -140,7 +140,7 @@ test.describe.serial("시나리오 1 — CRUD (직접입력)", () => {
     await page.getByLabel("사업자등록번호").fill(CRUD_BIZ_NO);
     // 필수 강화(대표자·주소·연락처 최소1) — 채우지 않으면 저장이 client validation에 막힌다.
     await page.getByLabel("대표자").fill("김대표");
-    await page.getByLabel("주소(사업장)").fill("서울시 강남구 테스트로 1");
+    await page.getByRole("textbox", { name: "본사주소" }).fill("서울시 강남구 테스트로 1");
     await page.getByLabel("휴대폰").fill("010-1111-2222");
 
     // 보유장비 추가: 직접입력 모드(기본값)에서 장비명 입력
@@ -379,7 +379,7 @@ test.describe.serial("시나리오 4 — 편집 시 보유장비 id 보존(diff-
     await page.getByLabel("사업자등록번호").fill(DIFF_BIZ_NO);
     // 필수 강화(대표자·주소·연락처 최소1) — 채우지 않으면 저장이 client validation에 막힌다.
     await page.getByLabel("대표자").fill("이대표");
-    await page.getByLabel("주소(사업장)").fill("서울시 마포구 테스트로 2");
+    await page.getByRole("textbox", { name: "본사주소" }).fill("서울시 마포구 테스트로 2");
     await page.getByLabel("휴대폰").fill("010-3333-4444");
 
     // 보유장비 1행 추가 — 직접입력 모드(기본)로 장비명 입력
@@ -711,7 +711,7 @@ test.describe.serial("시나리오 6 — 고객 등록 필수 검증(Task 7)", (
     await nameInput.fill(DUP_LIVE_COMPANY_NAME);
     await page.getByLabel("사업자등록번호").fill(DUP_LIVE_BIZ_NO);
     await page.getByLabel("대표자").fill("박대표");
-    await page.getByLabel("주소(사업장)").fill("서울시 종로구 테스트로 3");
+    await page.getByRole("textbox", { name: "본사주소" }).fill("서울시 종로구 테스트로 3");
     await page.getByLabel("휴대폰").fill("010-5555-6666");
     await page.getByRole("button", { name: "저장" }).click();
     await page.waitForURL(/\/admin\/customers\/[0-9a-f-]+\/edit$/, { timeout: 20_000 });
@@ -734,7 +734,7 @@ test.describe.serial("시나리오 6 — 고객 등록 필수 검증(Task 7)", (
     await expect(nameInput).toBeEnabled({ timeout: 15_000 });
     await nameInput.fill(NO_BIZNO_COMPANY_NAME);
     await page.getByLabel("대표자").fill("김개인");
-    await page.getByLabel("주소(사업장)").fill("부산시 해운대구 테스트로 4");
+    await page.getByRole("textbox", { name: "본사주소" }).fill("부산시 해운대구 테스트로 4");
     await page.getByLabel("휴대폰").fill("010-9999-8888");
     await page.getByLabel("사업자번호 없음(개인·미발급)").check();
     await page.getByRole("button", { name: "저장" }).click();
