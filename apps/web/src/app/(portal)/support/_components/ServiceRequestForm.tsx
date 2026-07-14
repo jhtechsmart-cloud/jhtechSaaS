@@ -18,7 +18,7 @@ import { FormErrorSummary } from "@/components/FormErrorSummary";
 
 const FIELD = "rounded-md border border-border bg-surface px-3 py-2 text-body text-text";
 // TODO: 재현테크 대표 A/S 직통번호로 교체.
-const SUPPORT_PHONE = "1577-0000";
+const SUPPORT_PHONE = "02-839-7723";
 
 type LookupStatus = "idle" | "loading" | "found" | "notfound";
 

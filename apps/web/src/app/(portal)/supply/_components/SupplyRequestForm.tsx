@@ -23,8 +23,8 @@ import {
 
 const FIELD = "rounded-md border border-border bg-surface px-3 py-2 text-body text-text";
 // TODO: 재현테크 대표 소모품 주문 직통번호로 교체(운영 이월).
-const SUPPORT_PHONE = "1577-0000";
-const SUPPORT_EMAIL = "cs@jhtech.co.kr";
+const SUPPORT_PHONE = "02-839-7723";
+const SUPPORT_EMAIL = "support@jhtech.co.kr";
 
 type LookupStatus = "idle" | "loading" | "found" | "notfound" | "error";
 
