@@ -34,6 +34,10 @@ const chk = (label: string, on: boolean): string =>
 const chips = (options: readonly string[], selected: string[]): string =>
   `<span class="chips">${options.map((o) => chk(o, selected.includes(o))).join("")}</span>`;
 
+// 준비사항 박스별 특이사항 — 값 있을 때만 체크칩 아래 한 줄(빈 값이면 기존과 동일 = 1장 여백 보존).
+const prepNote = (note: string): string =>
+  note?.trim() ? `<div class="prepnote"><b>특이사항</b>${esc(note)}</div>` : "";
+
 // 선택된 장비(프린터/커팅기) 상세 표 행들. 직접입력값은 있을 때만 줄 추가.
 function deviceRows(d: ReleaseOrderDetails, isPrinter: boolean): string {
   if (isPrinter) {
@@ -78,7 +82,8 @@ export function renderReleaseHtml(d: ReleaseHtmlData): string {
   .topbar{ background:var(--pine); color:#fff; padding:12px 18px; border-radius:10px; display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
   .topbar h1{ font-size:19px; letter-spacing:.5px; }
   .topbar .meta{ font-size:11px; color:#cde7dd; text-align:right; line-height:1.5; }
-  .section{ margin-top:18px; }
+  /* 섹션 간격·표 패딩·메모 높이는 특이사항 4줄이 다 채워져도 A4 1장에 들어가도록 압축 조정됨 */
+  .section{ margin-top:14px; }
   /* 섹션 타이틀 — 하단 파인 밑줄로 본문과 구분 */
   .sec-head{ display:flex; align-items:center; gap:7px; padding-bottom:6px; margin-bottom:10px; border-bottom:2px solid var(--pine); }
   .sec-head .bar{ width:4px; height:15px; background:var(--pine); border-radius:2px; }
@@ -89,8 +94,8 @@ export function renderReleaseHtml(d: ReleaseHtmlData): string {
   .subhead.off{ color:#9aa8a3; }
   /* 표(2열) — 항목 박스 대신 라벨/값 격자 정렬 */
   table{ width:100%; border-collapse:collapse; }
-  th{ text-align:left; width:108px; background:#f4f7f6; color:var(--muted); font-weight:600; font-size:11px; padding:6px 9px; border:1px solid #e7edea; vertical-align:top; }
-  td{ font-size:12px; padding:6px 9px; border:1px solid #e7edea; vertical-align:top; }
+  th{ text-align:left; width:108px; background:#f4f7f6; color:var(--muted); font-weight:600; font-size:11px; padding:5px 9px; border:1px solid #e7edea; vertical-align:top; }
+  td{ font-size:12px; padding:5px 9px; border:1px solid #e7edea; vertical-align:top; }
   .chips{ display:flex; flex-wrap:wrap; gap:4px 12px; }
   .chk{ display:inline-flex; align-items:center; gap:4px; font-size:11px; }
   .chk .box{ width:13px; height:13px; border:1.3px solid #b6c4be; border-radius:3px; display:inline-flex; align-items:center; justify-content:center; font-size:9px; color:#fff; }
@@ -98,7 +103,11 @@ export function renderReleaseHtml(d: ReleaseHtmlData): string {
   .chk.on{ font-weight:600; }
   .empty{ color:#c8d8d2; }
   /* 메모 — 현장 작성 공간(항상 표시, 빈 칸도 유지) */
-  .memo{ border:1px dashed #c3d2cc; border-radius:7px; padding:8px 10px; font-size:11px; line-height:1.6; min-height:80px; white-space:pre-wrap; word-break:break-word; }
+  .memo{ border:1px dashed #c3d2cc; border-radius:7px; padding:8px 10px; font-size:11px; line-height:1.6; min-height:60px; white-space:pre-wrap; word-break:break-word; }
+  /* 기본 준비사항 — 제목·내용 세로 중앙정렬 + 박스별 특이사항(값 있을 때만 한 줄, 1장 여백 보존) */
+  .prep th, .prep td{ vertical-align:middle; }
+  .prepnote{ margin-top:3px; padding-top:3px; border-top:1px dashed #dbe5e1; font-size:10.5px; line-height:1.35; word-break:break-word; }
+  .prepnote b{ color:var(--pine); font-weight:700; margin-right:4px; }
   </style></head><body><div class="page">
 
   <div class="topbar">
@@ -128,11 +137,11 @@ export function renderReleaseHtml(d: ReleaseHtmlData): string {
 
   <div class="section">
     <div class="sec-head"><span class="bar"></span><h2>기본 준비사항 체크</h2></div>
-    <table>
-      <tr><th>운송차량</th><td colspan="3">${chips(RELEASE_OPTIONS.transport, prep.transport)}</td></tr>
-      <tr><th>전기 관련 사전준비</th><td colspan="3">${chips(RELEASE_OPTIONS.electrical, prep.electrical)}</td></tr>
-      <tr><th>입고 관련 준비물</th><td colspan="3">${chips(RELEASE_OPTIONS.inboundItems, prep.inboundItems)}</td></tr>
-      <tr><th>기타 준비물</th><td colspan="3">${chips(RELEASE_OPTIONS.otherPrep, prep.otherPrep)}</td></tr>
+    <table class="prep">
+      <tr><th>운송차량</th><td colspan="3">${chips(RELEASE_OPTIONS.transport, prep.transport)}${prepNote(prep.transportNote)}</td></tr>
+      <tr><th>전기 관련 사전준비</th><td colspan="3">${chips(RELEASE_OPTIONS.electrical, prep.electrical)}${prepNote(prep.electricalNote)}</td></tr>
+      <tr><th>입고 관련 준비물</th><td colspan="3">${chips(RELEASE_OPTIONS.inboundItems, prep.inboundItems)}${prepNote(prep.inboundNote)}</td></tr>
+      <tr><th>기타 준비물</th><td colspan="3">${chips(RELEASE_OPTIONS.otherPrep, prep.otherPrep)}${prepNote(prep.otherPrepNote)}</td></tr>
     </table>
   </div>
 

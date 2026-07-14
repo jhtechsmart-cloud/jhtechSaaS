@@ -108,6 +108,39 @@ describe("renderReleaseHtml", () => {
     expect(html).toMatch(/chk on[\s\S]*윙바디/);
   });
 
+  it("준비사항 박스별 특이사항 — 값 있을 때만 체크칩 아래 출력", () => {
+    const withNotes = renderReleaseHtml(
+      make({
+        details: ReleaseOrderDetailsSchema.parse({
+          prep: {
+            transport: ["카고"],
+            transportNote: "지게차 필요",
+            electricalNote: "380V 분전반 확인",
+            inboundNote: "계단 이동 인력 2명",
+            otherPrepNote: "로고 파일 미수령",
+          },
+        }),
+      }),
+    );
+    expect(withNotes).toContain("지게차 필요");
+    expect(withNotes).toContain("380V 분전반 확인");
+    expect(withNotes).toContain("계단 이동 인력 2명");
+    expect(withNotes).toContain("로고 파일 미수령");
+    expect(withNotes).toContain('<div class="prepnote">'); // 특이사항 줄
+    // 특이사항이 없으면 prepnote 줄 자체가 없다(기존 PDF와 동일 — 1장 여백 보존)
+    expect(renderReleaseHtml(make())).not.toContain('<div class="prepnote">');
+  });
+
+  it("준비사항 특이사항도 이스케이프", () => {
+    const html = renderReleaseHtml(
+      make({
+        details: ReleaseOrderDetailsSchema.parse({ prep: { transportNote: '<img src=x onerror="1">' } }),
+      }),
+    );
+    expect(html).not.toContain("<img src=x");
+    expect(html).toContain("&lt;img");
+  });
+
   it("메모/특이사항 — 항상 섹션 표시(빈 칸 유지), 있으면 내용·줄바꿈→br 렌더", () => {
     const withMemo = renderReleaseHtml(
       make({ details: ReleaseOrderDetailsSchema.parse({ memo: "분해 입고 필요\n사다리차 예약" }) }),

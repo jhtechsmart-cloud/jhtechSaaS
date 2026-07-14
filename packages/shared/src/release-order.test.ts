@@ -22,6 +22,25 @@ describe("ReleaseOrderDetailsSchema", () => {
     expect((r as Record<string, unknown>).hacker).toBeUndefined();
     expect(r.site.power).toBe("단상 220V");
   });
+  it("준비사항 박스별 특이사항 — 기본 빈 문자열, 값 보존", () => {
+    const empty = ReleaseOrderDetailsSchema.parse({});
+    expect(empty.prep.transportNote).toBe("");
+    expect(empty.prep.electricalNote).toBe("");
+    expect(empty.prep.inboundNote).toBe("");
+    expect(empty.prep.otherPrepNote).toBe("");
+    const r = ReleaseOrderDetailsSchema.parse({
+      prep: { transport: ["카고"], transportNote: "지게차 필요", electricalNote: "380V 확인", inboundNote: "계단 이동", otherPrepNote: "로고 미수령" },
+    });
+    expect(r.prep.transportNote).toBe("지게차 필요");
+    expect(r.prep.electricalNote).toBe("380V 확인");
+    expect(r.prep.inboundNote).toBe("계단 이동");
+    expect(r.prep.otherPrepNote).toBe("로고 미수령");
+    expect(r.prep.transport).toEqual(["카고"]);
+  });
+  it("특이사항 500자 초과는 거부", () => {
+    const r = ReleaseOrderDetailsSchema.safeParse({ prep: { transportNote: "가".repeat(501) } });
+    expect(r.success).toBe(false);
+  });
 });
 
 describe("buildReleaseOrderPrefill", () => {

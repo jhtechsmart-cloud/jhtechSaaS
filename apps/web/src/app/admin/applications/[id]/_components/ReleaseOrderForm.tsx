@@ -41,6 +41,8 @@ function Check({ on, label, onClick, disabled }: { on: boolean; label: string; o
 }
 
 // 체크박스 그룹(고정 항목 → details 배열 토글).
+// note를 주면 박스 맨 아래에 특이사항 한 줄 입력이 붙는다(mt-auto로 하단 고정 —
+// 부모 grid의 auto-rows-fr과 함께 4박스 등높이 + 특이사항 줄맞춤).
 function CheckGroup({
   label,
   options,
@@ -48,6 +50,7 @@ function CheckGroup({
   onToggle,
   disabled,
   auto,
+  note,
 }: {
   label: string;
   options: readonly string[];
@@ -55,9 +58,10 @@ function CheckGroup({
   onToggle: (v: string) => void;
   disabled?: boolean;
   auto?: boolean;
+  note?: { value: string; onChange: (v: string) => void };
 }) {
   return (
-    <div className={`rounded-xl border border-border p-3 ${auto ? "bg-mint/40" : "bg-surface"}`}>
+    <div className={`flex h-full flex-col rounded-xl border border-border p-3 ${auto ? "bg-mint/40" : "bg-surface"}`}>
       <div className="mb-2 text-small font-semibold text-text">
         {label}
         {auto && <span className="ml-1.5 rounded-full bg-mint px-1.5 py-0.5 text-micro font-semibold text-accent">설문 연동</span>}
@@ -67,6 +71,20 @@ function CheckGroup({
           <Check key={o} on={selected.includes(o)} label={o} onClick={() => onToggle(o)} disabled={disabled} />
         ))}
       </div>
+      {note && (
+        <div className="mt-auto flex items-center gap-1.5 pt-2.5">
+          <span className="shrink-0 text-micro font-semibold text-muted">특이사항</span>
+          <input
+            aria-label={`${label} 특이사항`}
+            value={note.value}
+            onChange={(e) => note.onChange(e.target.value)}
+            disabled={disabled}
+            maxLength={500}
+            placeholder="특이사항 입력"
+            className="w-full rounded-full border border-border bg-surface px-3 py-1.5 text-small text-text outline-none focus:border-accent-ring disabled:opacity-50"
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -338,14 +356,14 @@ export function ReleaseOrderForm({
         </div>
       </section>
 
-      {/* ③ 기본 준비사항 체크 */}
+      {/* ③ 기본 준비사항 체크 — auto-rows-fr로 4박스 등높이(가장 높은 박스 기준), 특이사항은 각 박스 하단 고정 */}
       <section>
         <SectionHead title="기본 준비사항 체크" />
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <CheckGroup label="운송차량" options={RELEASE_OPTIONS.transport} selected={details.prep.transport} disabled={locked} onToggle={(v) => setPrep({ transport: toggleArrayValue(details.prep.transport, v) })} />
-          <CheckGroup label="전기 관련 사전준비" auto options={RELEASE_OPTIONS.electrical} selected={details.prep.electrical} disabled={locked} onToggle={(v) => setPrep({ electrical: toggleArrayValue(details.prep.electrical, v) })} />
-          <CheckGroup label="입고 관련 준비물" options={RELEASE_OPTIONS.inboundItems} selected={details.prep.inboundItems} disabled={locked} onToggle={(v) => setPrep({ inboundItems: toggleArrayValue(details.prep.inboundItems, v) })} />
-          <CheckGroup label="기타 준비물" options={RELEASE_OPTIONS.otherPrep} selected={details.prep.otherPrep} disabled={locked} onToggle={(v) => setPrep({ otherPrep: toggleArrayValue(details.prep.otherPrep, v) })} />
+        <div className="grid grid-cols-1 gap-3 sm:auto-rows-fr sm:grid-cols-2">
+          <CheckGroup label="운송차량" options={RELEASE_OPTIONS.transport} selected={details.prep.transport} disabled={locked} onToggle={(v) => setPrep({ transport: toggleArrayValue(details.prep.transport, v) })} note={{ value: details.prep.transportNote, onChange: (v) => setPrep({ transportNote: v }) }} />
+          <CheckGroup label="전기 관련 사전준비" auto options={RELEASE_OPTIONS.electrical} selected={details.prep.electrical} disabled={locked} onToggle={(v) => setPrep({ electrical: toggleArrayValue(details.prep.electrical, v) })} note={{ value: details.prep.electricalNote, onChange: (v) => setPrep({ electricalNote: v }) }} />
+          <CheckGroup label="입고 관련 준비물" options={RELEASE_OPTIONS.inboundItems} selected={details.prep.inboundItems} disabled={locked} onToggle={(v) => setPrep({ inboundItems: toggleArrayValue(details.prep.inboundItems, v) })} note={{ value: details.prep.inboundNote, onChange: (v) => setPrep({ inboundNote: v }) }} />
+          <CheckGroup label="기타 준비물" options={RELEASE_OPTIONS.otherPrep} selected={details.prep.otherPrep} disabled={locked} onToggle={(v) => setPrep({ otherPrep: toggleArrayValue(details.prep.otherPrep, v) })} note={{ value: details.prep.otherPrepNote, onChange: (v) => setPrep({ otherPrepNote: v }) }} />
         </div>
       </section>
 

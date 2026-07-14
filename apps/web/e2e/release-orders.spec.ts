@@ -115,9 +115,18 @@ test.describe.serial("출고의뢰서 작성 E2E", () => {
     // 3) 프린터 칼라 체크박스 토글
     await page.getByRole("button", { name: "CMYK" }).click();
 
+    // 3-b) 기본 준비사항 — 박스별 특이사항 입력(운송차량·전기)
+    await page.getByLabel("운송차량 특이사항").fill("지게차 필요");
+    await page.getByLabel("전기 관련 사전준비 특이사항").fill("380V 분전반 확인");
+
     // 4) 임시저장 → 안내(버튼 옆 피드백)
     await page.getByTestId("release-save").click();
     await expect(page.getByTestId("release-feedback")).toContainText("임시저장", { timeout: 15_000 });
+
+    // 4-b) 재진입 시 특이사항 복원(저장 반영 확인)
+    await page.goto(`/admin/applications/${appId}/release-order`);
+    await expect(page.getByLabel("운송차량 특이사항")).toHaveValue("지게차 필요");
+    await expect(page.getByLabel("전기 관련 사전준비 특이사항")).toHaveValue("380V 분전반 확인");
 
     // 5) 발행 + PDF 생성 → 의뢰 상세로 복귀
     await page.getByTestId("release-issue").click();
