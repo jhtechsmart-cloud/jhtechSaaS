@@ -9,6 +9,7 @@ export type ReleaseOrderFormData = {
   // 자동채움 표시값(서버 권위 — 폼은 읽기전용으로 보여줌, 저장 시 RPC가 다시 채움).
   company: string;
   contactPhone: string;
+  hqAddress: string;
   installAddress: string;
   deviceName: string;
   installAt: string | null;
@@ -69,10 +70,22 @@ export async function loadReleaseOrderForForm(applicationId: string): Promise<Re
   const supabase = await createSupabaseServerClient();
   const { data: app } = await supabase
     .from("applications")
-    .select("company, phone, address, fields")
+    .select("company, phone, address, fields, company_id")
     .eq("id", applicationId)
     .single();
   if (!app) return null;
+
+  // 연결 고객이 있으면 본사(address)·설치(address_actual1) 주소를 프리필 출처로 조회.
+  const companyId = (app as { company_id?: string | null }).company_id ?? null;
+  let companyAddr: { address: string | null; address_actual1: string | null } | null = null;
+  if (companyId) {
+    const { data: co } = await supabase
+      .from("companies")
+      .select("address, address_actual1")
+      .eq("id", companyId)
+      .maybeSingle();
+    companyAddr = (co as { address: string | null; address_actual1: string | null } | null) ?? null;
+  }
 
   const { data: quote } = await supabase
     .from("quotes")
@@ -86,7 +99,7 @@ export async function loadReleaseOrderForForm(applicationId: string): Promise<Re
   // 모든 버전(최신순). 최신 버전 = 편집 대상, 나머지는 이력.
   const { data: rows } = await supabase
     .from("release_orders")
-    .select("id, version, status, device_kind, details, pdf_url, company, contact_phone, install_address, install_at, device_name, issued_at, created_at")
+    .select("id, version, status, device_kind, details, pdf_url, company, contact_phone, hq_address, install_address, install_at, device_name, issued_at, created_at")
     .eq("application_id", applicationId)
     .order("version", { ascending: false });
   const allRows = (rows ?? []) as {
@@ -98,6 +111,7 @@ export async function loadReleaseOrderForForm(applicationId: string): Promise<Re
     pdf_url: string | null;
     company: string | null;
     contact_phone: string | null;
+    hq_address: string | null;
     install_address: string | null;
     install_at: string | null;
     device_name: string | null;
@@ -129,6 +143,7 @@ export async function loadReleaseOrderForForm(applicationId: string): Promise<Re
       address: app.address as string | null,
       fields: app.fields as { install_survey?: Record<string, unknown> } | null,
     },
+    company: companyAddr,
     quote: (quote as { items?: unknown; delivery_date?: string | null; delivery_time?: string | null } | null) ?? null,
     deviceKind,
   });
@@ -142,6 +157,7 @@ export async function loadReleaseOrderForForm(applicationId: string): Promise<Re
     applicationId,
     company: ro?.company ?? prefill.company,
     contactPhone: ro?.contact_phone ?? prefill.contact_phone,
+    hqAddress: ro?.hq_address ?? prefill.hq_address,
     installAddress: ro?.install_address ?? prefill.install_address,
     deviceName: ro?.device_name ?? prefill.device_name,
     installAt: ro?.install_at ?? prefill.install_at,

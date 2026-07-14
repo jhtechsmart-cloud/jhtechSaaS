@@ -13,6 +13,7 @@ import {
   type CompanyEquipmentRow,
 } from "@/lib/customers/schema";
 import { hasAnyContact } from "@/lib/customers/validation";
+import { deriveSameAsHq } from "@/lib/customers/install-address";
 import { maskBizNoTyping, maskPhoneTyping } from "@/lib/customers/input-mask";
 import type { CustomerActionResult, DuplicateHit } from "@/lib/customers/actions";
 import type { Equipment } from "@jhtechsaas/shared";
@@ -60,9 +61,9 @@ type FormInput = z.input<typeof companyFormSchema>;
 // 변경 요약(저장 바)·헤더에 쓰는 필드 라벨.
 const FIELD_LABELS: Record<string, string> = {
   name: "업체명", biz_no: "사업자등록번호", ceo: "대표자", manager: "담당자", manager_title: "직책",
-  phone: "연락처(대표)", email: "이메일", address: "주소(사업장)", biz_type: "업태",
+  phone: "연락처(대표)", email: "이메일", address: "본사주소", biz_type: "업태",
   biz_item: "업종(종목)", ledger_name: "장부명", phone1: "전화1", phone2: "전화2",
-  fax: "팩스", mobile: "휴대폰", address_actual1: "실제주소1", address_actual2: "실제주소2",
+  fax: "팩스", mobile: "휴대폰", address_actual1: "설치주소", address_actual2: "주소2",
   note: "메모", assignee_id: "담당영업", equipment: "보유장비", biz_no_none: "사업자번호 없음",
 };
 
@@ -158,6 +159,25 @@ export function CompanyForm(props: Props) {
   const mobileVal = useWatch({ control, name: "mobile" }) as string;
   const phone1Val = useWatch({ control, name: "phone1" }) as string;
   const phoneVal = useWatch({ control, name: "phone" }) as string;
+
+  // 설치주소 "본사와 동일" — 체크 중이면 본사주소를 설치주소에 라이브 동기화(설치 입력 비활성).
+  const hqAddr = useWatch({ control, name: "address" }) as string;
+  const initialSameAsHq =
+    props.mode === "edit" ? deriveSameAsHq(props.company.address ?? "", props.company.address_actual1 ?? "") : true;
+  const [sameAsHq, setSameAsHq] = useState(initialSameAsHq);
+  const mountedRef = useRef(false);
+  // 동일 체크 중 본사주소 변경을 설치주소에 라이브 반영. 마운트 직후 1회 동기화는 dirty 제외
+  // (이관 고객 열람만으로 '변경됨' 오인 방지) — 이 시점 mountedRef는 아직 false. 이후 사용자의
+  // 체크 토글·본사주소 편집으로 인한 동기화는 정상적으로 dirty가 된다(이탈 경고·저장바 반영).
+  useEffect(() => {
+    if (!sameAsHq) return;
+    setValue("address_actual1", hqAddr ?? "", { shouldDirty: mountedRef.current });
+  }, [sameAsHq, hqAddr, setValue]);
+  // 마운트 완료 표시 — 위 동기화 effect '다음에' 선언해야 마운트 첫 실행이 dirty에서 제외된다
+  // (effect는 선언 순서대로 실행: 마운트 시 동기화(false)→여기서 true).
+  useEffect(() => {
+    mountedRef.current = true;
+  }, []);
 
   useEffect(() => {
     // setState는 effect 본문에서 동기 호출하지 않고(react-hooks/set-state-in-effect) 아래
@@ -460,18 +480,33 @@ export function CompanyForm(props: Props) {
           {/* 3) 사업장 — 전체 폭 */}
           <FormSectionCard title="사업장" purpose="세금계산서 · 배송에 사용" fullSpan>
             <div className="grid grid-cols-1 gap-4 min-[860px]:grid-cols-2">
-              <Field label="주소(사업장)" required error={errors.address?.message} dirty={!!dirtyFields.address}>
+              <Field label="본사주소" required error={errors.address?.message} dirty={!!dirtyFields.address}>
                 <input {...register("address")} className={inputCls(!!dirtyFields.address)} />
               </Field>
-              <Field
-                label="실제주소1"
-                hint="사업장과 다를 때만"
-                error={errors.address_actual1?.message}
-                dirty={!!dirtyFields.address_actual1}
-              >
-                <input {...register("address_actual1")} className={inputCls(!!dirtyFields.address_actual1)} />
-              </Field>
-              <Field label="실제주소2" error={errors.address_actual2?.message} dirty={!!dirtyFields.address_actual2}>
+              <div className="flex flex-col gap-1.5">
+                <Field
+                  label="설치주소"
+                  hint="장비를 설치·운영하는 주소(본사와 다르면 입력)"
+                  error={errors.address_actual1?.message}
+                  dirty={!!dirtyFields.address_actual1}
+                >
+                  <input
+                    {...register("address_actual1")}
+                    disabled={sameAsHq}
+                    className={`${inputCls(!!dirtyFields.address_actual1)} disabled:opacity-60`}
+                  />
+                </Field>
+                <label className="flex items-center gap-1.5 text-small text-muted">
+                  <input
+                    type="checkbox"
+                    checked={sameAsHq}
+                    onChange={(e) => setSameAsHq(e.target.checked)}
+                    className="h-4 w-4 accent-accent"
+                  />
+                  설치주소가 본사주소와 동일
+                </label>
+              </div>
+              <Field label="주소2" error={errors.address_actual2?.message} dirty={!!dirtyFields.address_actual2}>
                 <input {...register("address_actual2")} className={inputCls(!!dirtyFields.address_actual2)} />
               </Field>
               <div className="grid grid-cols-1 gap-4 min-[860px]:grid-cols-2">
@@ -533,7 +568,7 @@ export function CompanyForm(props: Props) {
           dirtyLabels={dirtyLabels}
           pending={pending}
           saveLabel={props.mode === "edit" ? "변경사항 저장" : "저장"}
-          onCancel={() => reset()}
+          onCancel={() => { reset(); setSameAsHq(initialSameAsHq); }}
           alwaysEnabled={props.mode === "create"}
           blocked={!!dupHit}
         />

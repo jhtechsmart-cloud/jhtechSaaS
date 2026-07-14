@@ -63,3 +63,37 @@ describe("buildReleaseOrderPrefill", () => {
     expect(out.details.site.power).toBe("");
   });
 });
+
+describe("buildReleaseOrderPrefill 본사/설치 주소", () => {
+  const base = { quote: null, deviceKind: "printer" as const };
+
+  it("연결 고객 있으면 본사=address·설치=address_actual1", () => {
+    const r = buildReleaseOrderPrefill({
+      ...base,
+      application: { company: "A", phone: "", address: "의뢰주소" },
+      company: { address: "본사주소", address_actual1: "설치주소" },
+    });
+    expect(r.hq_address).toBe("본사주소");
+    expect(r.install_address).toBe("설치주소");
+  });
+
+  it("고객 설치주소 없으면 설치=본사(폴백)", () => {
+    const r = buildReleaseOrderPrefill({
+      ...base,
+      application: { company: "A", phone: "", address: "의뢰주소" },
+      company: { address: "본사주소", address_actual1: "" },
+    });
+    expect(r.hq_address).toBe("본사주소");
+    expect(r.install_address).toBe("본사주소");
+  });
+
+  it("연결 고객 없으면 본사·설치 모두 의뢰주소 폴백", () => {
+    const r = buildReleaseOrderPrefill({
+      ...base,
+      application: { company: "A", phone: "", address: "의뢰주소" },
+      company: null,
+    });
+    expect(r.hq_address).toBe("의뢰주소");
+    expect(r.install_address).toBe("의뢰주소");
+  });
+});

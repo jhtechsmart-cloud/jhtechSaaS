@@ -101,6 +101,17 @@ test.describe.serial("출고의뢰서 작성 E2E", () => {
     await expect(page.getByLabel("설치일")).toHaveValue("2026-07-01");
     await expect(page.getByLabel("설치 시각")).toHaveValue("13:30");
 
+    // 2-b) 본사/설치 주소 — 연결 고객 없으면 의뢰주소 프리필, '동일' 기본 체크(설치 비활성)
+    await expect(page.getByLabel("본사주소", { exact: true })).toHaveValue("서울시 강남구 1");
+    await expect(page.getByLabel("설치 주소")).toBeDisabled();
+    // 본사주소 변경 → 동일 체크 중이라 설치주소 자동 동기화
+    await page.getByLabel("본사주소", { exact: true }).fill("서울 본사테스트");
+    await expect(page.getByLabel("설치 주소")).toHaveValue("서울 본사테스트");
+    // 동일 해제 → 설치주소 독립 입력(별개 주소)
+    await page.getByLabel("설치주소가 본사주소와 동일").uncheck();
+    await expect(page.getByLabel("설치 주소")).toBeEnabled();
+    await page.getByLabel("설치 주소").fill("부산 설치현장");
+
     // 3) 프린터 칼라 체크박스 토글
     await page.getByRole("button", { name: "CMYK" }).click();
 

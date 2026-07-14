@@ -14,6 +14,7 @@ export type ReleaseOrderActionResult = { error: string } | null;
 export type ReleaseOrderFields = {
   company: string;
   contactPhone: string;
+  hqAddress: string;
   installAddress: string;
   deviceName: string;
   installDate: string | null; // 'YYYY-MM-DD' (없으면 미정)
@@ -83,7 +84,8 @@ export async function saveReleaseOrderAction(
     .object({
       company: z.string().trim().min(1, "회사/고객명을 입력하세요.").max(200, "회사명은 200자 이내"),
       contactPhone: z.string().trim().max(50, "연락처는 50자 이내").default(""),
-      installAddress: z.string().trim().max(1000, "주소는 1000자 이내").default(""),
+      hqAddress: z.string().trim().max(1000, "본사주소는 1000자 이내").default(""),
+      installAddress: z.string().trim().max(1000, "설치주소는 1000자 이내").default(""),
       deviceName: z.string().trim().max(200, "장비명은 200자 이내").default(""),
       installDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "설치일 형식을 확인하세요.").nullable().default(null),
       installTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "설치 시각 형식을 확인하세요.").nullable().default(null),
@@ -101,6 +103,7 @@ export async function saveReleaseOrderAction(
     p_details: parsed.data,
     p_company: f.company,
     p_contact_phone: f.contactPhone,
+    p_hq_address: f.hqAddress,
     p_install_address: f.installAddress,
     p_device_name: f.deviceName,
     p_install_date: f.installDate,
@@ -128,7 +131,13 @@ export async function saveReleaseOrderAction(
     }
     const { error: upErr } = await supabase
       .from("companies")
-      .update({ name: f.company, phone: f.contactPhone || null, address: f.installAddress || null })
+      // 본사주소 → address, 설치주소 → address_actual1 (본사/설치 분리 매핑).
+      .update({
+        name: f.company,
+        phone: f.contactPhone || null,
+        address: f.hqAddress || null,
+        address_actual1: f.installAddress || null,
+      })
       .eq("id", companyId);
     if (upErr) {
       console.error("[release-orders.reflectCustomer] 고객 반영 실패", upErr);
