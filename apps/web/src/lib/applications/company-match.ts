@@ -27,3 +27,40 @@ export function matchCompany(
   }
   return { kind: null, companyId: null };
 }
+
+// ── 필드별 선택 교정용 값 비교 ────────────────────────────────────────────────
+// 교정 대상 필드(요청 컬럼명 기준) — 액션의 zod 화이트리스트와 단일 출처 공유.
+export const RESOLVABLE_FIELDS = ["company", "ceo", "biz_no", "phone", "email", "address"] as const;
+export type ResolvableField = (typeof RESOLVABLE_FIELDS)[number];
+export type CustomerFieldDiff = {
+  field: ResolvableField;
+  label: string;
+  appValue: string; // 요청(의뢰) 입력값
+  companyValue: string; // 고객DB 값
+};
+
+const FIELD_DEFS: { field: ResolvableField; label: string; companyKey: string; normalize: (v: string) => string }[] = [
+  { field: "company", label: "회사명", companyKey: "name", normalize: normalizeCompanyName },
+  { field: "ceo", label: "대표자", companyKey: "ceo", normalize: (v) => v.trim() },
+  { field: "biz_no", label: "사업자번호", companyKey: "biz_no", normalize: (v) => normalizeBizNo(v) },
+  { field: "phone", label: "연락처", companyKey: "phone", normalize: (v) => v.replace(/\D/g, "") },
+  { field: "email", label: "이메일", companyKey: "email", normalize: (v) => v.trim().toLowerCase() },
+  { field: "address", label: "주소", companyKey: "address", normalize: (v) => v.trim() },
+];
+
+// 요청 입력값과 고객DB 값이 (정규화 후) 다른 필드만 나열 — 연결 모달의 교정 행.
+// 양쪽 다 빈 필드는 차이가 아니다. 한쪽만 빈 경우는 차이로 포함(채울지 선택하게).
+export function diffCustomerFields(
+  app: Record<ResolvableField, string | null>,
+  company: Record<string, string | null>,
+): CustomerFieldDiff[] {
+  const out: CustomerFieldDiff[] = [];
+  for (const def of FIELD_DEFS) {
+    const a = (app[def.field] ?? "").trim();
+    const c = (company[def.companyKey] ?? "").trim();
+    if (a === "" && c === "") continue;
+    if (def.normalize(a) === def.normalize(c)) continue;
+    out.push({ field: def.field, label: def.label, appValue: a, companyValue: c });
+  }
+  return out;
+}

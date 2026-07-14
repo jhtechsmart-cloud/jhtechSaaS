@@ -37,3 +37,23 @@ describe("matchCompany — 견적요청 ↔ 고객 마스터 대조", () => {
     expect(r).toEqual({ kind: null, companyId: null });
   });
 });
+
+import { diffCustomerFields } from "./company-match";
+
+describe("diffCustomerFields — 요청 vs 고객DB 값 차이", () => {
+  const app = { company: "재현테크", ceo: "조선제", biz_no: "220-81-62517", phone: "010-1111-2222", email: "a@b.kr", address: "서울" };
+  it("정규화 후 같은 값(사업자번호 하이픈·전화 하이픈)은 차이 아님", () => {
+    const co = { name: "재현테크", ceo: "조선제", biz_no: "2208162517", phone: "01011112222", email: "a@b.kr", address: "서울" };
+    expect(diffCustomerFields(app, co)).toEqual([]);
+  });
+  it("다른 필드만 나열(빈 쪽 값도 차이로 포함)", () => {
+    const co = { name: "재현태크", ceo: "조선제", biz_no: "2208162517", phone: "01011112222", email: null, address: "서울" };
+    const d = diffCustomerFields(app, co);
+    expect(d.map((x) => x.field)).toEqual(["company", "email"]);
+    expect(d[0]).toEqual({ field: "company", label: "회사명", appValue: "재현테크", companyValue: "재현태크" });
+  });
+  it("양쪽 다 비면 차이 아님", () => {
+    const co = { name: "재현테크", ceo: "조선제", biz_no: "2208162517", phone: "01011112222", email: null, address: "서울" };
+    expect(diffCustomerFields({ ...app, email: "" }, co)).toEqual([]);
+  });
+});
