@@ -200,3 +200,58 @@ export function composeQuoteEmailHtml(p: {
     `</table></td></tr></table></div>`,
   ].join("");
 }
+
+// 서비스 리포트 발송 메일 — 견적 메일과 동일 브랜드 셸(테이블 기반·인라인 스타일).
+// 링크는 7일 서명URL(서명·개인정보 문서라 견적 30일보다 짧게 — autoplan 결정#4).
+export function defaultServiceReportEmail(p: { customerName: string; seqNo: string }): {
+  subject: string;
+  body: string;
+} {
+  const name = p.customerName.trim() || "고객";
+  return {
+    subject: `[${SUPPLIER_NAME}] 서비스 리포트 - ${p.seqNo}`,
+    body: `${name} 담당자님,\n\n금일 진행된 장비 점검·수리 결과 리포트를 보내드립니다.\n아래 링크에서 서비스 리포트(PDF)를 확인하실 수 있습니다.\n\n문의사항은 회신 부탁드립니다.\n감사합니다.`,
+  };
+}
+
+export function composeServiceReportEmailHtml(p: {
+  body: string;
+  downloadUrl: string;
+  seqNo: string;
+  deviceName: string;
+}): string {
+  const bodyHtml = escapeHtml(p.body).replace(/\r?\n/g, "<br>");
+  const url = escapeHtml(p.downloadUrl);
+  const seqNo = escapeHtml(p.seqNo);
+  const deviceName = escapeHtml(p.deviceName);
+  const font = "font-family:'Apple SD Gothic Neo','Malgun Gothic',Helvetica,Arial,sans-serif";
+  return [
+    `<div style="margin:0;padding:24px 12px;background:#f4f6f5;${font}">`,
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f5"><tr><td align="center">`,
+    `<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;background:#ffffff;border:1px solid #e3e8e6;border-radius:12px;overflow:hidden">`,
+    `<tr><td style="background:${PINE};padding:22px 28px">`,
+    `<div style="color:#ffffff;font-size:19px;font-weight:700;letter-spacing:.3px">${escapeHtml(SUPPLIER.name)}</div>`,
+    `<div style="color:#cde7dd;font-size:13px;margin-top:5px">서비스 리포트를 보내드립니다</div>`,
+    `</td></tr>`,
+    `<tr><td style="padding:26px 28px">`,
+    `<div style="color:#1a1a1a;font-size:15px;line-height:1.7">${bodyHtml}</div>`,
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:22px 0;background:${PINE_SOFT};border-left:4px solid ${PINE};border-radius:6px"><tr><td style="padding:14px 16px">`,
+    `<div style="color:#5b6f69;font-size:12px;margin-bottom:3px">리포트 번호</div>`,
+    `<div style="color:${PINE};font-size:16px;font-weight:700;font-family:'Courier New',monospace">${seqNo}</div>`,
+    `<div style="color:#5b6f69;font-size:12px;margin-top:8px">대상 장비</div>`,
+    `<div style="color:#1a2a25;font-size:14px;font-weight:600">${deviceName}</div>`,
+    `</td></tr></table>`,
+    `<table role="presentation" cellpadding="0" cellspacing="0" align="center" style="margin:6px auto 14px"><tr>`,
+    `<td align="center" style="border-radius:8px;background:${PINE}">`,
+    `<a href="${url}" style="display:inline-block;padding:15px 38px;color:#ffffff;font-size:16px;font-weight:700;text-decoration:none;letter-spacing:.3px">🧾&nbsp;&nbsp;서비스 리포트(PDF) 확인</a>`,
+    `</td></tr></table>`,
+    `<div style="text-align:center;color:#8a9b95;font-size:12px;line-height:1.6">버튼이 보이지 않으면 <a href="${url}" style="color:${PINE}">여기</a>를 눌러 주세요.<br>보안을 위해 링크는 7일 후 만료됩니다.</div>`,
+    `</td></tr>`,
+    `<tr><td style="background:#f4f6f5;border-top:1px solid #e3e8e6;padding:18px 28px">`,
+    `<div style="color:#3a4a45;font-size:13px;font-weight:700;margin-bottom:4px">${escapeHtml(SUPPLIER.name)}</div>`,
+    `<div style="color:#5b6f69;font-size:12px;line-height:1.7">${escapeHtml(SUPPLIER.address)}<br>본사 ${escapeHtml(SUPPLIER.phoneHQ)} · 대구 ${escapeHtml(SUPPLIER.phoneDaegu)}</div>`,
+    `<div style="color:#a8b5b0;font-size:11px;margin-top:10px">본 메일은 A/S 담당 엔지니어가 발송했습니다.</div>`,
+    `</td></tr>`,
+    `</table></td></tr></table></div>`,
+  ].join("");
+}
