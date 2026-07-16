@@ -50,6 +50,15 @@ export async function processServiceReportEmailJob(
     const fromUserId = str(r.sender_hiworks_user_id);
     if (!pdfPath) throw new Error("pdf_url 없음(PDF 미생성)");
     if (!to || !fromUserId) throw new Error("수신처/발신자 스냅샷 누락"); // 트리거 조건상 도달 불가(방어)
+    if (str(r.status) !== "issued") {
+      // enqueue~발송 사이 무효화(voided) — 무효 문서를 고객에게 보내지 않고 종단.
+      await supabase
+        .from("email_log")
+        .update({ status: "failed", error_msg: "발송 전 리포트가 무효화됨" })
+        .eq("id", logId);
+      console.warn(`[worker] service_report_email 중단 — 리포트 상태 ${str(r.status)} log=${logId}`);
+      return;
+    }
 
     const signed = await supabase.storage
       .from("service-reports")
