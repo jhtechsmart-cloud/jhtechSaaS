@@ -44,6 +44,17 @@ export default async function ServiceRequestDetailPage({
     if (data?.signedUrl) signedPhotos.push(data.signedUrl);
   }
 
+  // 이 신청에서 작성된 서비스 리포트(발행/무효) — 리포트 조회 권한이 없으면 RLS로 빈 결과.
+  const { data: linkedReports } = await supabase
+    .from("service_reports")
+    .select("id, seq_no, status, issued_at, charge_type, total, follow_needed, follow_resolved_at")
+    .eq("service_request_id", id)
+    .order("created_at", { ascending: false });
+  const reports = (linkedReports ?? []) as {
+    id: string; seq_no: string; status: string; issued_at: string | null;
+    charge_type: string; total: number; follow_needed: boolean; follow_resolved_at: string | null;
+  }[];
+
   const canStatus = can(access.permissions, "service_requests.status");
   const canClaim = can(access.permissions, "service_requests.claim");
   const assigneeId = r.assignee_id as string | null;
@@ -100,6 +111,39 @@ export default async function ServiceRequestDetailPage({
           </div>
         )}
       </Section>
+
+      {reports.length > 0 && (
+        <Section title="서비스 리포트">
+          <div className="flex flex-col gap-2">
+            {reports.map((rep) => (
+              <Link
+                key={rep.id}
+                href="/admin/service-reports"
+                className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-2 hover:bg-surface-2"
+              >
+                <span className="font-mono text-small tabular-nums text-text">{rep.seq_no}</span>
+                <span className="text-small text-muted">
+                  {rep.issued_at ? rep.issued_at.slice(0, 10) : "작성중"}
+                  {" · "}
+                  {rep.charge_type === "free" ? "무상" : `${rep.total.toLocaleString("ko-KR")}원`}
+                  {rep.follow_needed && !rep.follow_resolved_at ? " · 후속 대기" : ""}
+                </span>
+                <span
+                  className={`rounded-full px-2.5 py-0.5 text-micro font-bold ${
+                    rep.status === "voided"
+                      ? "bg-danger/10 text-danger"
+                      : rep.status === "issued"
+                        ? "bg-accent-soft text-accent"
+                        : "bg-surface-2 text-muted"
+                  }`}
+                >
+                  {rep.status === "voided" ? "무효" : rep.status === "issued" ? "발행" : "작성중"}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </Section>
+      )}
 
       <Section title="처리">
         <div className="flex flex-col gap-3">
