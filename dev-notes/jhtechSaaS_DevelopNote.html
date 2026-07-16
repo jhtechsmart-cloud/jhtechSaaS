@@ -1041,6 +1041,288 @@
   "project": "jhtechSaaS",
   "entries": [
     {
+      "tldr": "서비스 리포트(#228)를 하루에 완주: 목업 분석 → /spec(이슈 #227·#228) → /autoplan 3-phase 리뷰(65건 결정) → 4파트 구현(DB·워커·현장 /field·admin) → prod db push·배포 라이브. 선행으로 권한 피커 프리셋 편집화(#227)도 머지. PR 5건(#229~#233), 테스트 신규 40+, e2e로 서명 드로잉→확정까지 실검증.",
+      "tags": [
+        "service-reports",
+        "field-console",
+        "signature",
+        "worker-pdf",
+        "rls",
+        "autoplan",
+        "mobile"
+      ],
+      "features": [
+        {
+          "title": "사용자 권한 피커 개편 — 프리셋을 편집 가능한 시드로 (#227/PR#229)",
+          "type": "feat",
+          "scope": "admin/users",
+          "status": "completed",
+          "filesChanged": [
+            "apps/web/src/app/admin/users/_components/PermissionPicker.tsx",
+            "apps/web/src/lib/users/permissions-ui.ts",
+            "apps/web/e2e/users-permission-picker.spec.ts"
+          ],
+          "context": "영업담당/관리자 프리셋 선택 시 권한 목록이 숨겨져 프리셋±α 계정을 만들 수 없었음. 서비스 리포트 권한(service_reports.write) 도입으로 필요해짐.",
+          "implementation": "체크박스 그리드 상시 렌더 + 라디오는 프리셋 시드 주입. 하이라이트는 로컬 state 대신 detectPermissionMode(value) 파생값 — 편집으로 프리셋과 달라지면 자동으로 '직접설정' 이동.",
+          "codeSnippets": [
+            {
+              "file": "apps/web/src/lib/users/permissions-ui.ts",
+              "lang": "typescript",
+              "code": "export function detectPermissionMode(value: readonly string[]): PermissionMode {\n  if (sameSet(value, SALES_PRESET)) return \"sales\";\n  if (sameSet(value, ADMIN_PRESET)) return \"admin\";\n  return \"custom\";\n}",
+              "caption": "라디오 하이라이트 = 파생값(상태 동기화 버그 원천 차단)"
+            }
+          ],
+          "decisions": [
+            {
+              "title": "프리셋 = 편집 가능한 시작값(시드)으로 의미 재정의"
+            },
+            {
+              "title": "mode 로컬 state 제거 — value에서 매 렌더 유도"
+            }
+          ],
+          "problems": [],
+          "learnings": [
+            "파생 가능한 UI 상태는 useState 대신 렌더 시 계산이 동기화 버그를 없앤다"
+          ],
+          "id": "사용자-권한-피커-개편-프리셋을-편집-가능한-시드로-227-pr-229"
+        },
+        {
+          "title": "서비스 리포트 DB 기반 (#228 Part 1/PR#230)",
+          "type": "feat",
+          "scope": "supabase",
+          "status": "completed",
+          "filesChanged": [
+            "supabase/migrations/20260716170000_service_reports.sql",
+            "supabase/migrations/20260716170100_service_reports_rpc.sql",
+            "packages/shared/src/service-report.ts",
+            "packages/db-tests/src/service_reports.test.ts"
+          ],
+          "context": "release_orders 패턴 4회째 재사용: 채번(SR-)·발행 동결·capability RLS·비공개 버킷. autoplan 리뷰가 스펙의 구멍(RLS 홀·email 하드코딩·오버플로)을 착수 전에 잡음.",
+          "implementation": "service_reports 테이블 + RPC 5종(upsert=금액 서버재계산 VAT round / issue=FOR UPDATE 직렬화+서명 storage.objects 실존검증+신규 고객·장비 생성+신청 전이 / void / resolve_follow / list_open_service_requests[기사용 신청 조회 DEFINER]). 메일은 pdf_url 기록 AFTER 트리거가 enqueue(unique_violation 흡수 멱등).",
+          "codeSnippets": [
+            {
+              "file": "supabase/migrations/20260716170000_service_reports.sql",
+              "lang": "sql",
+              "code": "-- 발행 동결: 블록리스트(31컬럼 열거) 대신 화이트리스트 — 새 컬럼이 기본 동결(fail-safe)\nif (to_jsonb(new) - v_allowed) is distinct from (to_jsonb(old) - v_allowed) then\n  raise exception '발행된 리포트는 수정할 수 없습니다';\nend if;",
+              "caption": "동결 화이트리스트化 — release_orders의 컬럼 누락 함정 해소"
+            },
+            {
+              "file": "supabase/migrations/20260716170000_service_reports.sql",
+              "lang": "sql",
+              "code": "if new.status is distinct from old.status then\n  if coalesce(current_setting('app.service_reports_status_change', true), '') <> '1' then\n    raise exception '리포트 상태 변경은 전용 RPC로만 가능합니다';\n  end if;",
+              "caption": "tx-local 플래그로 직접 UPDATE 발행(서명 검증 우회) 차단"
+            }
+          ],
+          "decisions": [
+            {
+              "title": "voided 상태 채택(관리자·사유 필수 — 내용 수정은 여전히 불가)"
+            },
+            {
+              "title": "VAT=round 유지: 견적 엔진 실코드(quote-calc.ts:83 Math.round) 기준 — CLAUDE.md의 'floor' 기재는 드리프트"
+            },
+            {
+              "title": "채번은 next_service_request_seq_no 템플릿(비잘림) — release_orders의 lpad 잘림 버그 미복제"
+            }
+          ],
+          "problems": [
+            {
+              "description": "plpgsql 복합 변수 `v_company is not null`은 모든 필드 non-null이어야 true — email null 고객이면 false로 오판 → `v_company.id is not null`로 정정"
+            },
+            {
+              "description": "미할당 record 변수는 CASE 미도달 분기여도 참조 시점에 에러 → 스칼라 변수로 분해"
+            }
+          ],
+          "learnings": [
+            "부분 유니크 + BEGIN/EXCEPTION unique_violation 흡수 = 트리거 enqueue 멱등의 정석(42P10 회피)"
+          ],
+          "id": "서비스-리포트-db-기반-228-part-1-pr-230"
+        },
+        {
+          "title": "워커 PDF·메일 프로세서 (#228 Part 2/PR#231)",
+          "type": "feat",
+          "scope": "worker",
+          "status": "completed",
+          "filesChanged": [
+            "apps/worker/src/jobs/service-report-html.ts",
+            "apps/worker/src/jobs/service-report-pdf.ts",
+            "apps/worker/src/jobs/service-report-email.ts",
+            "apps/worker/src/jobs/runner.ts",
+            "packages/shared/src/mail.ts"
+          ],
+          "context": "기존 email 잡은 quotes 하드코딩(조회·버킷·본문)이라 '재사용' 불가 — 신규 잡 타입 2종. PDF는 목업 #reportSheet 7섹션 이식.",
+          "implementation": "service_report_pdf: 리포트+장비 이력 3건+사진·서명 base64 인라인 → Puppeteer A4(섹션 break-inside:avoid, 고객확인 통짜). service_report_email: email_log CAS 상태기계(견적 패턴)·7일 서명URL·발신자=리포트 스냅샷. 시각검증 하니스로 유상 최대부하·무상 2종 렌더→Read 대조.",
+          "codeSnippets": [],
+          "decisions": [
+            {
+              "title": "메일 링크 7일(견적 30일보다 짧게 — 서명·개인정보 문서)"
+            },
+            {
+              "title": "발송 직전 status 재확인 — enqueue~발송 사이 voided면 중단(리뷰 발견)"
+            }
+          ],
+          "problems": [],
+          "learnings": [
+            "PDF 시각검증은 tsx 하니스 렌더 → Read 도구 대조(관행 재사용) — 더미 사진은 SVG data URI로 충분"
+          ],
+          "id": "워커-pdf-메일-프로세서-228-part-2-pr-231"
+        },
+        {
+          "title": "현장 모바일 콘솔 /field — 8단계 마법사·서명 잠금 뷰 (#228 Part 3/PR#232)",
+          "type": "feat",
+          "scope": "web/field",
+          "status": "completed",
+          "filesChanged": [
+            "apps/web/src/app/field/",
+            "apps/web/src/lib/service-reports/",
+            "apps/web/src/lib/auth/next-path.ts",
+            "apps/web/src/lib/routing/host-routing.ts",
+            "apps/web/src/proxy.ts",
+            "apps/web/e2e/field-service-report.spec.ts"
+          ],
+          "context": "as.jhtech.co.kr(같은 앱 호스트 분기) 모바일 전용. autoplan CRITICAL 2건 반영: 서명 잠금 뷰(고객 핸드오프)·파인 그린 토큰(폐기된 인디고 지시 정정).",
+          "implementation": "단계=URL 쿼리(뒤로가기=이전 단계)·draft upsert(저장 상태 마이크로 표시)·SignaturePad(DPR·유효 스트로크 100px·회전 리셋 안내)·PhotoCapture(canvas 압축 1600px JPEG — HEIC/EXIF 해소·슬롯 6장·실패 탭 재시도)·완료 화면 PDF 폴링+메일 정직 표시. login next 파라미터+sanitizeNextPath(open-redirect 가드)+field 전용 착지.",
+          "codeSnippets": [
+            {
+              "file": "apps/web/src/app/field/_components/ReportWizard.tsx",
+              "lang": "typescript",
+              "code": "// 서명 후 내용이 바뀌면 서명 무효화 — 고객이 서명한 내용과 다른 문서로 확정 불가\nif (!(\"signature_path\" in p) && d.signature_path) next.signature_path = \"\";",
+              "caption": "리뷰 발견: 요약 점프로 서명 뒤 금액 수정 가능하던 무결성 구멍 차단"
+            }
+          ],
+          "decisions": [
+            {
+              "title": "서명은 잠금 뷰(총액·요약·캔버스만) → 고객 서명 → 기사 최종 확정 2단 책임 분리"
+            },
+            {
+              "title": "사진은 첫 임시저장(id 획득) 후 첨부 — 스토리지 정책이 리포트 폴더 소유를 조인 검증"
+            }
+          ],
+          "problems": [
+            {
+              "description": "e2e 연속 '다음' 클릭이 URL 전환과 레이스 → 단계 헤딩(level:1) 대기 필수"
+            },
+            {
+              "description": "h1과 카드 h3가 같은 이름이면 getByRole heading strict 위반 → level 지정"
+            },
+            {
+              "description": "2번째 db reset 후 seed-local 미실행 → sales 로그인 invalid_credentials(테스트가 아니라 시드 문제)"
+            }
+          ],
+          "learnings": [
+            "Next 서버 액션 redirect는 soft navigation — waitForURL은 동작하지만 로그인 실패는 URL이 안 바뀌므로 자격 증명부터 의심"
+          ],
+          "id": "현장-모바일-콘솔-field-8단계-마법사-서명-잠금-뷰-228-part-3-pr-232"
+        },
+        {
+          "title": "admin 연동 — 조회·후속조치·무효화 (#228 Part 4/PR#233) + prod 배포",
+          "type": "feat",
+          "scope": "admin",
+          "status": "completed",
+          "filesChanged": [
+            "apps/web/src/app/admin/service-reports/",
+            "apps/web/src/lib/service-reports/admin-actions.ts",
+            "apps/web/src/app/admin/layout.tsx",
+            "apps/web/src/app/admin/service-requests/[id]/page.tsx"
+          ],
+          "context": "읽기 전용 콘솔(작성은 현장 전용). 후속조치 대기 = follow_needed && !follow_resolved_at && issued.",
+          "implementation": "필터 탭(전체/후속대기/무효)+행 액션(PDF·후속완료 RPC·무효화 RPC[관리자]). 신청 상세에 연결 리포트 카드. prod db push(마이그 3건)+Vercel/Railway 라이브+/field 200 검증+이슈 #228 닫음.",
+          "codeSnippets": [],
+          "decisions": [
+            {
+              "title": "리포트 상세 페이지 대신 목록+행 액션으로 v1 충분(읽기 전용)"
+            }
+          ],
+          "problems": [],
+          "learnings": [],
+          "id": "admin-연동-조회-후속조치-무효화-228-part-4-pr-233-prod-배포"
+        }
+      ],
+      "prompts": [
+        {
+          "label": "목업 → 기능 분석 의뢰",
+          "prompt": "일단 내가 만든 목업 페이지를 보여줄테니 분석을 하고 어떤 섹션과 연결하고 어느 데이터베이스와 연결해서 사용해야 하는지 분석해봐.",
+          "verdict": "good",
+          "lesson": "구체적 HTML 목업 + '어디에 연결할지' 프레임이 최고의 스펙 입력 — 코드베이스 연결 지도가 바로 나옴"
+        },
+        {
+          "label": "결정 일괄 회신",
+          "prompt": "1. 기본 유상 + 수동 변경으로 일단 진행 2. 니가 말한대로 진행. 3. 메일발송 + PDF다운로드로 진행 4. …미완료 A/S… 5. …모바일 전용… 별도의 도메인 주소를 사용할 예정임.",
+          "verdict": "good",
+          "lesson": "번호 붙은 질문에 번호로 일괄 답하면 왕복 없이 스펙이 굳는다"
+        }
+      ],
+      "references": [
+        {
+          "title": "autoplan 플랜 파일(리뷰 65건 결정 전체)",
+          "url": "file://~/.gstack/projects/jhtechSaaS/main-service-report-plan-20260716-161005.md",
+          "note": "3-phase 리뷰·Decision Audit Trail·테스트플랜 40",
+          "tags": [
+            "autoplan",
+            "service-reports"
+          ]
+        },
+        {
+          "title": "이슈 #228 (autoplan 확정 수정사항 코멘트 = 스펙 오버라이드)",
+          "url": "https://github.com/jhtechsmart-cloud/jhtechSaaS/issues/228",
+          "note": "운영 체크리스트 4건 포함",
+          "tags": [
+            "spec"
+          ]
+        }
+      ],
+      "changelog": {
+        "added": [
+          "service_reports 테이블·RPC 5종·service-reports 버킷·권한 키 2종",
+          "워커 잡 service_report_pdf/service_report_email",
+          "/field 현장 콘솔(8단계 마법사·SignaturePad·PhotoCapture)",
+          "/admin/service-reports 조회 콘솔·사이드바 메뉴",
+          "login next 파라미터·as.jhtech.co.kr 호스트 분기",
+          "email_log.service_report_id + 부분 유니크"
+        ],
+        "changed": [
+          "PermissionPicker: 프리셋을 편집 가능한 시드로",
+          "landingPathFor: field 전용 계정은 /field 착지",
+          "email_log SELECT 정책에 service_reports 권한 분기"
+        ],
+        "fixed": [
+          "발행 동결 블록리스트→화이트리스트(신규 컬럼 fail-safe)",
+          "서명 후 내용 변경 시 서명 무효화"
+        ],
+        "removed": []
+      },
+      "nextSteps": [
+        "Seonje 운영 4건: Vercel 도메인 as.jhtech.co.kr+DNS / 기사 계정 생성+현장 파일럿 / Railway HIWORKS_OFFICE_TOKEN 확인 / 알림톡 심사에 서비스리포트 템플릿 동승",
+        "CLAUDE.md 'VAT=floor' 기재를 round로 정정(+서브도메인 세션 분리 문서화)",
+        "이월: 감사후속(공개 lookup 레이트리밋 등)·수금원장"
+      ],
+      "claudeHints": "서비스 리포트 도메인은 release_orders 패턴 5회째 재사용 지점이다 — 채번은 next_service_request_seq_no 템플릿(비잘림), 발행 동결은 to_jsonb 화이트리스트, 상태 전환은 tx-local 플래그(app.service_reports_status_change) 방식만 쓸 것. VAT는 round(견적 엔진 기준)이며 CLAUDE.md의 floor 기재는 낡았다. /field 컴포넌트는 파인 그린 토큰만(인디고 금지).",
+      "reusablePatterns": [
+        {
+          "name": "발행 동결 화이트리스트",
+          "description": "(to_jsonb(new) - allowed[]) IS DISTINCT FROM (to_jsonb(old) - allowed[]) — 컬럼 추가 시 기본 동결(fail-safe). 블록리스트 열거의 누락 함정 해소.",
+          "file": "supabase/migrations/20260716170000_service_reports.sql"
+        },
+        {
+          "name": "tx-local 상태전환 잠금",
+          "description": "BEFORE UPDATE 트리거가 current_setting('app.x', true)='1'을 요구, RPC만 set_config 후 전환 — RLS UPDATE 권한자의 검증 우회 발행 차단.",
+          "file": "supabase/migrations/20260716170000_service_reports.sql"
+        },
+        {
+          "name": "서명 무효화 patch 가드",
+          "description": "draft patch에 signature_path가 없는데 기존 서명이 있으면 자동 클리어 — 서명 문서 무결성.",
+          "file": "apps/web/src/app/field/_components/ReportWizard.tsx"
+        },
+        {
+          "name": "모바일 사진 캡처",
+          "description": "createImageBitmap→canvas 1600px JPEG 압축(HEIC/EXIF 해소), 슬롯 번호 재사용, 실패 탭 재시도.",
+          "file": "apps/web/src/app/field/_components/PhotoCapture.tsx"
+        }
+      ],
+      "date": "2026-07-16",
+      "mainTask": "서비스리포트-현장콘솔-4파트-완성",
+      "codeDiagram": "flowchart LR\n    N0[\"MEMORY.md\"]\n    N1[\"kakao-alimtalk-plan.md\"]\n    N2[\"admin-service-reports.spec.ts\"]\n    N3[\"field-service-report.spec.ts\"]\n    N4[\"users-permission-picker.spec.ts\"]\n    N5[\"layout.tsx\"]\n    N6[\"ReportTable.tsx\"]\n    N7[\"page.tsx\"]\n    N8[\"PermissionPicker.tsx\"]\n    N9[\"PhotoCapture.tsx\"]\n    N10[\"ReportWizard.tsx\"]\n    N11[\"SignaturePad.tsx\"]\n    N12[\"steps-basic.tsx\"]\n    N13[\"steps-confirm.tsx\"]\n    N14[\"steps-detail.tsx\"]\n    N15[\"layout.tsx\"]\n    N16[\"page.tsx\"]\n    N17[\"next-path.test.ts\"]\n    N18[\"next-path.ts\"]\n    N19[\"actions.ts\"]\n    N20[\"admin-actions.ts\"]\n    N21[\"types.ts\"]\n    N22[\"permissions-ui.test.ts\"]\n    N23[\"permissions-ui.ts\"]\n    N24[\"_render-service-report-check.ts\"]\n    N25[\"render-service-report-pdf.ts\"]\n    N26[\"runner.ts\"]\n    N27[\"service-report-email.ts\"]\n    N28[\"service-report-html.test.ts\"]\n    N29[\"service-report-html.ts\"]\n    N30[\"service-report-pdf.ts\"]\n    N31[\"service_reports.test.ts\"]\n    N32[\"permissions.ts\"]\n    N33[\"service-report.test.ts\"]\n    N34[\"service-report.ts\"]\n    N35[\"20260716170000_service_reports.sql\"]\n    N36[\"20260716170100_service_reports_rpc.sql\"]\n    N37[\"20260716200000_service_report_pdf_status.sql\"]\n    N38[\"issue-a-permission-picker.md\"]\n    N39[\"issue-b-service-report.md\"]\n    N40[\"devnote_data.json\"]\n    N41[\"field-service-report.spec.ts\"]\n    N42[\"users-permission-picker.spec.ts\"]\n    N43[\"AccountMenu.tsx\"]\n    N44[\"AdminSidebar.tsx\"]\n    N45[\"BadgePoller.tsx\"]\n    N46[\"ConsoleMain.tsx\"]\n    N47[\"ForcedPasswordChange.tsx\"]\n    N48[\"Icon.tsx\"]\n    N49[\"MobileNav.tsx\"]\n    N50[\"layout.tsx\"]\n    N51[\"service-reports\"]\n    N52[\"ReportTable.tsx\"]\n    N53[\"MarkReadOnView.tsx\"]\n    N54[\"StatusControl.tsx\"]\n    N55[\"page.tsx\"]\n    N56[\"StatusBadge.tsx\"]\n    N57[\"PermissionPicker.tsx\"]\n    N58[\"field\"]\n    N59[\"DoneScreen.tsx\"]\n    N60[\"PhotoCapture.tsx\"]\n    N61[\"ReportWizard.tsx\"]\n    N62[\"SignaturePad.tsx\"]\n    N63[\"steps-basic.tsx\"]\n    N64[\"steps-confirm.tsx\"]\n    N65[\"steps-detail.tsx\"]\n    N66[\"next-path.ts\"]\n    N67[\"host-routing.ts\"]\n    N68[\"service-reports\"]\n    N69[\"admin-actions.ts\"]\n    N70[\"permissions-ui.ts\"]\n    N71[\"proxy.ts\"]\n    N72[\"assets.ts\"]\n    N73[\"browser.ts\"]\n    N74[\"email.ts\"]\n    N75[\"queue.ts\"]\n    N76[\"quote-pdf.ts\"]\n    N77[\"release-pdf.ts\"]\n    N78[\"render-service-report-pdf.ts\"]\n    N79[\"runner.ts\"]\n    N80[\"service-report-email.ts\"]\n    N81[\"service-report-html.ts\"]\n    N82[\"service-report-pdf.ts\"]\n    N83[\"helpers.ts\"]\n    N84[\"service_reports.test.ts\"]\n    N85[\"company.ts\"]\n    N86[\"mail.ts\"]\n    N87[\"service-report.ts\"]\n    N88[\"20260716170000_service_reports.sql\"]\n    N89[\"20260716170100_service_reports_rpc.sql\"]\n    N84 --> N83\n    N82 --> N72\n    N82 --> N78\n    N82 --> N81\n    N80 --> N75\n    N79 --> N75\n    N79 --> N76\n    N79 --> N77\n    N79 --> N74\n    N79 --> N82\n    N79 --> N80\n    N86 --> N85\n    N50 --> N48\n    N50 --> N44\n    N50 --> N43\n    N50 --> N49\n    N50 --> N47\n    N50 --> N45\n    N50 --> N46\n    N55 --> N56\n    N55 --> N54\n    N55 --> N53\n    N31 --> N83\n    N25 --> N73\n    N25 --> N81\n    N30 --> N72\n    N30 --> N78\n    N30 --> N81\n    N27 --> N75\n    N26 --> N75\n    N26 --> N76\n    N26 --> N77\n    N26 --> N74\n    N26 --> N82\n    N26 --> N80\n    N28 --> N81\n    N24 --> N78\n    N24 --> N72\n    N24 --> N81\n    N17 --> N66\n    N10 --> N63\n    N10 --> N65\n    N10 --> N64\n    N10 --> N59\n    N12 --> N61\n    N14 --> N60\n    N13 --> N62\n    N7 --> N52\n    N5 --> N48\n    N5 --> N44\n    N5 --> N43\n    N5 --> N49\n    N5 --> N47\n    N5 --> N45\n    N5 --> N46\n    style N86 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N15 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N25 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N13 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N8 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N24 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N40 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N55 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N66 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N88 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N41 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N34 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N22 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N70 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N82 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N3 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N17 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N16 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N81 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N0 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N28 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N36 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N6 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N7 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N84 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N58 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N51 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N27 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N9 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N79 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N4 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N26 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N1 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N29 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N71 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N12 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N37 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N30 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N38 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N42 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N14 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N2 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N11 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N39 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N35 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N20 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N68 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N50 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N19 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N89 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N32 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N33 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N57 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N80 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N87 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N69 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N31 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N21 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N5 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N18 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N10 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N23 fill:#dbeafe,stroke:#2563eb,stroke-width:2px\n    style N67 fill:#dbeafe,stroke:#2563eb,stroke-width:2px"
+    },
+    {
       "tldr": "고객관리 3종(동명 경고 게이트·견적요청-고객 매칭/연결/선택교정·개인정보 동의 전문 v1.1)을 PR#222로, 포털 연락처 통일을 PR#223·224로, 출고의뢰서 기본준비사항 박스별 특이사항(폼+PDF 1장 유지)을 PR#225로 구현·머지·prod 배포 완료. 카카오 알림톡 3종은 조사·템플릿 문안까지(채널 개설 대기).",
       "tags": [
         "customers",
@@ -8275,8 +8557,8 @@
 <!-- BEGIN_FUNCTIONS_CATALOG -->
 <script type="application/json" id="functions-catalog">
 {
-  "generated_at": "2026-07-15T09:01:28",
-  "project_root": "/Users/seonjecho/Projects/jhtechSaaS/.claude/worktrees/feat+hq-install-address",
+  "generated_at": "2026-07-16T20:20:23",
+  "project_root": "/Users/seonjecho/Projects/jhtechSaaS",
   "total_functions": 0,
   "categories": {},
   "functions": []
