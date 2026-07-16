@@ -110,6 +110,18 @@ const PERMISSION_REGISTRY_RAW = [
     description: "미배정 A/S를 본인 담당으로 가져오기",
     group: "A/S",
   },
+  {
+    key: "service_reports.write",
+    label: "서비스 리포트 작성",
+    description: "현장 서비스 리포트 작성·확정 (as.jhtech.co.kr 현장 콘솔)",
+    group: "A/S",
+  },
+  {
+    key: "service_reports.view_all",
+    label: "서비스 리포트 전체조회",
+    description: "담당 무관 모든 서비스 리포트 조회 (없으면 본인 작성 draft + 발행본만)",
+    group: "A/S",
+  },
   // ── 소모품신청 (supply_requests) ──
   {
     key: "supply_requests.view_all",

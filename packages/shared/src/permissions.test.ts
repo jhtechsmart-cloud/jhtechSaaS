@@ -9,7 +9,7 @@ import {
 
 describe("permission registry", () => {
   // E5a: capability registry. *.manage 3키는 step6에서 분해·삭제됨. 새 기능마다 키 추가, 스키마 변경 0.
-  test("registry는 20개 capability 키를 정의한다", () => {
+  test("registry는 22개 capability 키를 정의한다", () => {
     expect([...PERMISSIONS].sort()).toEqual(
       [
         "demo_reservations.write",
@@ -26,6 +26,8 @@ describe("permission registry", () => {
         "service_requests.view_all",
         "service_requests.status",
         "service_requests.claim",
+        "service_reports.write",
+        "service_reports.view_all",
         "supply_requests.view_all",
         "supply_requests.status",
         "supply_requests.claim",
