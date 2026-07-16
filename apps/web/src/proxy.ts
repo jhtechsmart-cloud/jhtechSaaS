@@ -48,6 +48,13 @@ export async function proxy(request: NextRequest) {
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
+  // 현장 콘솔(/field)은 로그인 후 원래 화면으로 복귀(next) — 현장 작성 중 세션 만료 대비.
+  if (!user && request.nextUrl.pathname.startsWith("/field")) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    url.search = "?next=" + encodeURIComponent(request.nextUrl.pathname + request.nextUrl.search);
+    return NextResponse.redirect(url);
+  }
 
   // 세션 갱신 응답은 Set-Cookie를 실으므로 CDN/엣지(Vercel)에서 캐시되면 안 됨.
   response.headers.set("Cache-Control", "private, no-store");

@@ -36,3 +36,14 @@ describe("resolveHostRedirect", () => {
     expect(resolveHostRedirect(null, "/")).toBeNull();
   });
 });
+
+describe("field 호스트 분기 (#228)", () => {
+  it("as.jhtech.co.kr 루트는 /field로", () => {
+    expect(resolveHostRedirect("as.jhtech.co.kr", "/")).toBe("/field");
+    expect(resolveHostRedirect("AS.JHTECH.CO.KR:443", "/")).toBe("/field");
+  });
+  it("as 호스트라도 루트 외 경로는 통과(딥링크 유지)", () => {
+    expect(resolveHostRedirect("as.jhtech.co.kr", "/field/report")).toBeNull();
+    expect(resolveHostRedirect("as.jhtech.co.kr", "/login")).toBeNull();
+  });
+});

@@ -53,8 +53,11 @@ const LANDING_RULES: { keys: PermissionKey[]; path: string }[] = [
   { keys: ["users.manage"], path: "/admin/users" },
 ];
 
-// 로그인 후 첫 화면 — E5b: 콘솔 자격자는 전원 대시보드. (LANDING_RULES는 보존: 향후 카드/메뉴 우선순위 힌트)
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- 호출부 시그니처 유지용 인자(현재 권한 무관 dashboard 고정)
-export function landingPathFor(_permissions: readonly string[]): string {
+// 로그인 후 첫 화면 — E5b: 콘솔 자격자는 전원 대시보드.
+// #228: 콘솔 자격 없이 service_reports.write만 있는 현장 기사 계정은 /field로.
+export function landingPathFor(permissions: readonly string[]): string {
+  if (!hasAnyConsoleCapability(permissions) && can(permissions, "service_reports.write")) {
+    return "/field";
+  }
   return "/admin/dashboard";
 }

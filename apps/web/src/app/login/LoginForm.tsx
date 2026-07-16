@@ -3,7 +3,13 @@ import { useActionState, useState } from "react";
 import { signIn, type SignInState } from "./actions";
 import { buildSavedEmailCookie } from "@/lib/auth/saved-email";
 
-export default function LoginForm({ savedEmail = "" }: { savedEmail?: string }) {
+export default function LoginForm({
+  savedEmail = "",
+  next = null,
+}: {
+  savedEmail?: string;
+  next?: string | null;
+}) {
   const [state, action, pending] = useActionState<SignInState, FormData>(
     signIn,
     null,
@@ -24,6 +30,7 @@ export default function LoginForm({ savedEmail = "" }: { savedEmail?: string }) 
     <main className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center gap-6 p-6">
       <h1 className="text-h1 font-semibold text-text">재현테크 견적관리</h1>
       <form action={action} onSubmit={rememberOnSubmit} className="flex flex-col gap-4">
+        {next ? <input type="hidden" name="next" value={next} /> : null}
         <label className="flex flex-col gap-1 text-small text-muted">
           이메일
           <input
