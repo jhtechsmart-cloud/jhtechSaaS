@@ -124,7 +124,12 @@ export function ReportWizard({ initial }: { initial: ServiceReportRow | null }) 
   }, [reportId]);
 
   const patch = useCallback((p: Partial<ReportPayload>) => {
-    setDraft((d) => ({ ...d, ...p }));
+    setDraft((d) => {
+      const next = { ...d, ...p };
+      // 서명 후 내용이 바뀌면 서명 무효화 — 고객이 서명한 내용과 다른 문서로 확정 불가(재서명 요구).
+      if (!("signature_path" in p) && d.signature_path) next.signature_path = "";
+      return next;
+    });
   }, []);
 
   // draft 저장 — 신규면 id 획득 후 URL에 반영(새로고침·이어쓰기 성립).
