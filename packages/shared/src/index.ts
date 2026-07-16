@@ -19,3 +19,4 @@ export * from "./equipment-match";
 export * from "./mail";
 export * from "./password";
 export * from "./release-order";
+export * from "./service-report";
