@@ -81,6 +81,11 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       badge: unread,
     },
     {
+      // 서비스 리포트(현장 A/S 결과 보고서) — 조회 전용. 작성은 현장 콘솔(/field).
+      href: "/admin/service-reports", label: "서비스 리포트", icon: "service", section: "업무",
+      show: anyOf(["service_reports.write", "service_reports.view_all"]),
+    },
+    {
       href: "/admin/supply-requests", label: "소모품신청", icon: "supply", section: "업무",
       show: anyOf(["supply_requests.view_all", "supply_requests.status", "supply_requests.claim"]),
       badge: supplyUnread,
