@@ -1,6 +1,24 @@
 import { describe, expect, test } from "vitest";
-import { buildPermissionGroups, sanitizePermissions } from "./permissions-ui";
-import { SALES_PRESET } from "@jhtechsaas/shared";
+import {
+  buildPermissionGroups,
+  detectPermissionMode,
+  sanitizePermissions,
+} from "./permissions-ui";
+import { ADMIN_PRESET, SALES_PRESET } from "@jhtechsaas/shared";
+
+describe("detectPermissionMode — 프리셋 시드 상태 판별", () => {
+  test("프리셋과 정확히 일치하면 해당 모드(순서 무관)", () => {
+    expect(detectPermissionMode([...SALES_PRESET])).toBe("sales");
+    expect(detectPermissionMode([...SALES_PRESET].reverse())).toBe("sales");
+    expect(detectPermissionMode([...ADMIN_PRESET])).toBe("admin");
+  });
+
+  test("프리셋에서 하나라도 빼거나 더하면 custom으로 이탈", () => {
+    expect(detectPermissionMode(SALES_PRESET.slice(1))).toBe("custom");
+    expect(detectPermissionMode([...SALES_PRESET, "users.manage"])).toBe("custom");
+    expect(detectPermissionMode([])).toBe("custom");
+  });
+});
 
 describe("sanitizePermissions — 배정 가능한 유효 키만", () => {
   test("미지의 키·중복 제거", () => {
