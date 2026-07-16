@@ -11,6 +11,21 @@ create unique index if not exists email_log_active_service_report
   on public.email_log (service_report_id)
   where status in ('pending', 'sending', 'sent');
 
+-- 기존 SELECT 정책은 견적 권한만 커버 — 서비스 리포트 발송 행은 리포트 권한자도 열람 가능해야
+-- 완료 화면·admin이 발송 상태를 보여줄 수 있다.
+drop policy if exists email_log_select on public.email_log;
+create policy email_log_select on public.email_log
+  for select to authenticated
+  using (
+    (select public.has_permission((select auth.uid()), 'applications.view_all'))
+    or (select public.has_permission((select auth.uid()), 'email.send'))
+    or (
+      service_report_id is not null
+      and ((select public.has_permission((select auth.uid()), 'service_reports.write'))
+           or (select public.has_permission((select auth.uid()), 'service_reports.view_all')))
+    )
+  );
+
 -- 1. upsert_service_report — draft 생성/수정. 금액은 서버 재계산(VAT=round, 견적 엔진 동일 규칙).
 -- 사진·서명 경로는 "이 리포트 폴더" 소속만 허용(첫 저장 전엔 리포트 id가 없어 사진·서명 불가 — 빈 배열 강제).
 create or replace function public.upsert_service_report(p_id uuid, p jsonb)
@@ -37,13 +52,15 @@ declare
   v_signature text;
   v_charge text := coalesce(p ->> 'charge_type', 'paid');
   v_free_reason text := nullif(btrim(coalesce(p ->> 'free_reason', '')), '');
-  v_visit int; v_ot int; v_parts_total int := 0; v_supply int; v_vat int;
+  v_visit int; v_ot int; v_parts_total bigint := 0; v_supply int; v_vat int;
   v_company_id uuid := nullif(p ->> 'company_id', '')::uuid;
   v_equipment_id uuid := nullif(p ->> 'company_equipment_id', '')::uuid;
   v_request_id uuid := nullif(p ->> 'service_request_id', '')::uuid;
   v_recipient text := nullif(btrim(coalesce(p ->> 'recipient_email', '')), '');
   v_prefix text;
   v_path text;
+  v_cust_name text; v_cust_biz text; v_cust_tel text; v_cust_addr text; v_recip_final text;
+  v_dev_name text; v_dev_serial text; v_dev_purch date; v_total int;
 begin
   if not public.has_permission(v_uid, 'service_reports.write') then
     raise exception '서비스 리포트 작성 권한이 없습니다' using errcode = 'insufficient_privilege';
@@ -83,13 +100,16 @@ begin
     if jsonb_typeof(v_part) is distinct from 'object'
        or char_length(btrim(coalesce(v_part ->> 'name', ''))) not between 1 and 100
        or coalesce((v_part ->> 'qty')::numeric % 1, 1) <> 0
-       or (v_part ->> 'qty')::int not between 0 and 999
+       or (v_part ->> 'qty')::int not between 1 and 999
        or coalesce((v_part ->> 'price')::numeric % 1, 1) <> 0
        or (v_part ->> 'price')::int not between 0 and 100000000 then
-      raise exception '부품 행이 올바르지 않습니다(name 1~100자, qty 0~999, price 0~1억)';
+      raise exception '부품 행이 올바르지 않습니다(name 1~100자, qty 1~999, price 0~1억)';
     end if;
-    v_parts_total := v_parts_total + (v_part ->> 'qty')::int * (v_part ->> 'price')::int;
+    v_parts_total := v_parts_total + (v_part ->> 'qty')::bigint * (v_part ->> 'price')::bigint;
   end loop;
+  if v_parts_total > 100000000 then
+    raise exception '부품 합계가 너무 큽니다(최대 1억)';
+  end if;
   -- 정규화: name/qty/price만 보존(임의 키 제거)
   select coalesce(jsonb_agg(jsonb_build_object(
            'name', btrim(x ->> 'name'), 'qty', (x ->> 'qty')::int, 'price', (x ->> 'price')::int)), '[]'::jsonb)
@@ -109,11 +129,6 @@ begin
     v_supply := v_visit + v_ot + v_parts_total;
     v_vat := round(v_supply * 0.1);
   end if;
-  if v_free_reason is not null
-     and v_free_reason not in ('보증기간 내', '재방문 (동일 증상)', '영업 판단', '계약 포함') then
-    raise exception '무상 사유가 올바르지 않습니다';
-  end if;
-
   -- 수신 이메일 형식(있을 때만 — 없으면 발송 생략)
   if v_recipient is not null and v_recipient !~ v_email_re then
     raise exception '수신 이메일 형식이 올바르지 않습니다';
@@ -165,6 +180,31 @@ begin
     end if;
   end if;
 
+  -- 스냅샷 값 1회 계산(INSERT/UPDATE 공용 — 분기 간 조용한 발산 방지)
+  if v_company.id is not null then
+    v_cust_name := v_company.name;
+    v_cust_biz := v_company.biz_no;
+    v_cust_tel := coalesce(v_company.phone, left(coalesce(p ->> 'customer_tel', ''), 30));
+    v_cust_addr := coalesce(v_company.address, left(coalesce(p ->> 'customer_addr', ''), 500));
+    v_recip_final := coalesce(v_recipient, v_company.email);
+  else
+    v_cust_name := left(btrim(coalesce(p ->> 'customer_name', '')), 200);
+    v_cust_biz := nullif(regexp_replace(coalesce(p ->> 'customer_biz_no', ''), '\D', '', 'g'), '');
+    v_cust_tel := left(coalesce(p ->> 'customer_tel', ''), 30);
+    v_cust_addr := left(coalesce(p ->> 'customer_addr', ''), 500);
+    v_recip_final := v_recipient;
+  end if;
+  if v_equipment_id is not null then
+    v_dev_name := coalesce(v_equip_name, '');
+    v_dev_serial := v_equip_serial;
+    v_dev_purch := v_equip_purchased;
+  else
+    v_dev_name := left(btrim(coalesce(p ->> 'device_name', '')), 200);
+    v_dev_serial := left(coalesce(p ->> 'device_serial', ''), 100);
+    v_dev_purch := nullif(p ->> 'purchased_at', '')::date;
+  end if;
+  v_total := case when v_charge = 'free' then 0 else v_visit + v_ot + v_parts_total::int + v_vat end;
+
   if p_id is null then
     insert into public.service_reports (
       service_request_id, company_id, company_equipment_id,
@@ -176,27 +216,12 @@ begin
       created_by
     ) values (
       v_request_id, v_company_id, v_equipment_id,
-      case when v_company.id is not null then v_company.name
-           else left(btrim(coalesce(p ->> 'customer_name', '')), 200) end,
-      case when v_company.id is not null then v_company.biz_no
-           else nullif(regexp_replace(coalesce(p ->> 'customer_biz_no', ''), '\D', '', 'g'), '') end,
-      case when v_company.id is not null then coalesce(v_company.phone, left(coalesce(p ->> 'customer_tel', ''), 30))
-           else left(coalesce(p ->> 'customer_tel', ''), 30) end,
-      case when v_company.id is not null then coalesce(v_company.address, left(coalesce(p ->> 'customer_addr', ''), 500))
-           else left(coalesce(p ->> 'customer_addr', ''), 500) end,
-      coalesce(v_recipient, case when v_company.id is not null then v_company.email end),
-      case when v_equipment_id is not null
-           then coalesce(v_equip_name, '')
-           else left(btrim(coalesce(p ->> 'device_name', '')), 200) end,
-      case when v_equipment_id is not null then v_equip_serial
-           else left(coalesce(p ->> 'device_serial', ''), 100) end,
-      case when v_equipment_id is not null then v_equip_purchased
-           else nullif(p ->> 'purchased_at', '')::date end,
+      v_cust_name, v_cust_biz, v_cust_tel, v_cust_addr, v_recip_final,
+      v_dev_name, v_dev_serial, v_dev_purch,
       v_faults, left(coalesce(p ->> 'diagnosis', ''), 4000), left(coalesce(p ->> 'action_text', ''), 4000),
       coalesce((p ->> 'follow_needed')::boolean, false),
       left(coalesce(p ->> 'follow_memo', ''), 500), nullif(p ->> 'follow_date', '')::date,
-      v_parts, v_charge, v_free_reason, v_visit, v_ot, v_parts_total, v_vat,
-      case when v_charge = 'free' then 0 else v_visit + v_ot + v_parts_total + v_vat end,
+      v_parts, v_charge, v_free_reason, v_visit, v_ot, v_parts_total, v_vat, v_total,
       v_uid
     ) returning * into v_row;
   else
@@ -204,22 +229,14 @@ begin
       service_request_id = v_request_id,
       company_id = v_company_id,
       company_equipment_id = v_equipment_id,
-      customer_name = case when v_company.id is not null then v_company.name
-                           else left(btrim(coalesce(p ->> 'customer_name', '')), 200) end,
-      customer_biz_no = case when v_company.id is not null then v_company.biz_no
-                             else nullif(regexp_replace(coalesce(p ->> 'customer_biz_no', ''), '\D', '', 'g'), '') end,
-      customer_tel = case when v_company.id is not null then coalesce(v_company.phone, left(coalesce(p ->> 'customer_tel', ''), 30))
-                          else left(coalesce(p ->> 'customer_tel', ''), 30) end,
-      customer_addr = case when v_company.id is not null then coalesce(v_company.address, left(coalesce(p ->> 'customer_addr', ''), 500))
-                           else left(coalesce(p ->> 'customer_addr', ''), 500) end,
-      recipient_email = coalesce(v_recipient, case when v_company.id is not null then v_company.email end),
-      device_name = case when v_equipment_id is not null
-                         then coalesce(v_equip_name, '')
-                         else left(btrim(coalesce(p ->> 'device_name', '')), 200) end,
-      device_serial = case when v_equipment_id is not null then v_equip_serial
-                           else left(coalesce(p ->> 'device_serial', ''), 100) end,
-      purchased_at = case when v_equipment_id is not null then v_equip_purchased
-                          else nullif(p ->> 'purchased_at', '')::date end,
+      customer_name = v_cust_name,
+      customer_biz_no = v_cust_biz,
+      customer_tel = v_cust_tel,
+      customer_addr = v_cust_addr,
+      recipient_email = v_recip_final,
+      device_name = v_dev_name,
+      device_serial = v_dev_serial,
+      purchased_at = v_dev_purch,
       faults = v_faults,
       diagnosis = left(coalesce(p ->> 'diagnosis', ''), 4000),
       action_text = left(coalesce(p ->> 'action_text', ''), 4000),
@@ -236,7 +253,7 @@ begin
       overtime_fee = v_ot,
       parts_total = v_parts_total,
       vat = v_vat,
-      total = case when v_charge = 'free' then 0 else v_visit + v_ot + v_parts_total + v_vat end
+      total = v_total
     where id = p_id
     returning * into v_row;
   end if;
@@ -331,12 +348,13 @@ begin
   -- 엔지니어·발신자 스냅샷(발행 후 프로필이 바뀌어도 문서 불변)
   select * into v_profile from public.profiles where id = v_row.created_by;
 
+  perform set_config('app.service_reports_status_change', '1', true);
   update public.service_reports set
     status = 'issued',
     issued_at = now(),
     company_id = v_company_id,
     company_equipment_id = v_equipment_id,
-    engineer_name = coalesce(v_profile.name, ''),
+    engineer_name = left(coalesce(v_profile.name, ''), 60),
     engineer_title = v_profile.position,
     sender_hiworks_user_id = v_profile.hiworks_user_id
   where id = p_id
@@ -366,6 +384,7 @@ begin
     raise exception '무효화 사유가 필요합니다';
   end if;
 
+  perform set_config('app.service_reports_status_change', '1', true);
   update public.service_reports
     set status = 'voided', void_reason = left(btrim(p_reason), 500), voided_by = v_uid
     where id = p_id and status = 'issued'

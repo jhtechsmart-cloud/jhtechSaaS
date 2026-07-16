@@ -147,6 +147,33 @@ describe("service_reports — 권한·채번·서버값 강제", () => {
     });
   });
 
+  test("상태 전환은 RPC 전용 — 직접 UPDATE로 draft→issued(서명 우회) 차단", async () => {
+    await inRollbackTx(c, async () => {
+      const s = await seed();
+      const row = await createDraft(s);
+      await asUser(c, ENG1);
+      await expectReject(
+        () => c.query("update public.service_reports set status='issued' where id=$1", [row.id]),
+        /전용 RPC/,
+      );
+    });
+  });
+
+  test("부품 오버플로 가드: 합계 1억 초과·qty 0 거부", async () => {
+    await inRollbackTx(c, async () => {
+      const s = await seed();
+      await asUser(c, ENG1);
+      await expectReject(
+        () => createDraft(s, { parts: [{ name: "고가부품", qty: 999, price: 100000000 }] }),
+        /합계가 너무 큽니다/,
+      );
+      await expectReject(
+        () => createDraft(s, { parts: [{ name: "수량0", qty: 0, price: 100 }] }),
+        /올바르지 않습니다/,
+      );
+    });
+  });
+
   test("교차 링크 위조: 타 고객의 신청/장비 연결 거부", async () => {
     await inRollbackTx(c, async () => {
       const s = await seed();

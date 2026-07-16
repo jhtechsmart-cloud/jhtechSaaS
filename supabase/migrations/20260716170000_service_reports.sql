@@ -106,13 +106,20 @@ end; $$;
 create trigger service_reports_bi before insert on public.service_reports
   for each row execute function public.service_reports_before_insert();
 
--- 3. BEFORE UPDATE — 동결 규칙.
+-- 3. BEFORE UPDATE — 동결·상태 전환 규칙.
 --   상시: seq_no·created_at·created_by 불변.
---   issued: 허용 예외 = pdf_url(워커) / follow_resolved_at·by(후속 처리) /
---           voided 전환(status+void_reason+voided_at·by 동시 — RPC가 사유 검증). 그 외 전부 동결.
+--   상태 전환(draft→issued, issued→voided)은 전용 RPC만(tx-local 플래그) — 클라 직접 UPDATE로
+--   서명 검증을 우회한 발행·비관리자 무효화 차단(#208 tx-local 플래그 선례).
+--   issued: 화이트리스트(pdf_url·후속처리·void 필드) 외 전부 동결 — 컬럼을 나중에 추가해도
+--   기본값이 '동결'이라 안전(블록리스트 열거 방식의 누락 함정 회피).
 --   voided: 종단 — 아무것도 수정 불가.
 create or replace function public.service_reports_before_update()
 returns trigger language plpgsql security definer set search_path = '' as $$
+declare
+  v_allowed constant text[] := array[
+    'pdf_url', 'follow_resolved_at', 'follow_resolved_by',
+    'status', 'void_reason', 'voided_at', 'voided_by'
+  ];
 begin
   new.seq_no := old.seq_no;
   new.created_at := old.created_at;
@@ -122,49 +129,24 @@ begin
     raise exception '무효화된 리포트는 수정할 수 없습니다';
   end if;
 
-  if old.status = 'issued' then
-    if new.status = 'voided' then
-      -- 무효화 전환: void 필드 외 내용 변경 동반 금지
-      new.voided_at := now();
+  if new.status is distinct from old.status then
+    if coalesce(current_setting('app.service_reports_status_change', true), '') <> '1' then
+      raise exception '리포트 상태 변경은 전용 RPC로만 가능합니다';
+    end if;
+    if old.status = 'draft' and new.status = 'issued' then
+      null; -- issue RPC 경유(서명 실존 등 검증 완료)
+    elsif old.status = 'issued' and new.status = 'voided' then
       if new.void_reason is null or btrim(new.void_reason) = '' then
         raise exception '무효화 사유(void_reason)가 필요합니다';
       end if;
-    elsif new.status is distinct from old.status then
-      raise exception '발행된 리포트는 draft로 되돌릴 수 없습니다';
+      new.voided_at := now();
+    else
+      raise exception '허용되지 않는 상태 전환입니다(% → %)', old.status, new.status;
     end if;
+  end if;
 
-    if new.service_request_id is distinct from old.service_request_id
-       or new.company_id is distinct from old.company_id
-       or new.company_equipment_id is distinct from old.company_equipment_id
-       or new.customer_name is distinct from old.customer_name
-       or new.customer_biz_no is distinct from old.customer_biz_no
-       or new.customer_tel is distinct from old.customer_tel
-       or new.customer_addr is distinct from old.customer_addr
-       or new.recipient_email is distinct from old.recipient_email
-       or new.device_name is distinct from old.device_name
-       or new.device_serial is distinct from old.device_serial
-       or new.purchased_at is distinct from old.purchased_at
-       or new.engineer_name is distinct from old.engineer_name
-       or new.engineer_title is distinct from old.engineer_title
-       or new.sender_hiworks_user_id is distinct from old.sender_hiworks_user_id
-       or new.faults is distinct from old.faults
-       or new.diagnosis is distinct from old.diagnosis
-       or new.action_text is distinct from old.action_text
-       or new.photos_before is distinct from old.photos_before
-       or new.photos_after is distinct from old.photos_after
-       or new.follow_needed is distinct from old.follow_needed
-       or new.follow_memo is distinct from old.follow_memo
-       or new.follow_date is distinct from old.follow_date
-       or new.parts is distinct from old.parts
-       or new.charge_type is distinct from old.charge_type
-       or new.free_reason is distinct from old.free_reason
-       or new.visit_fee is distinct from old.visit_fee
-       or new.overtime_fee is distinct from old.overtime_fee
-       or new.parts_total is distinct from old.parts_total
-       or new.vat is distinct from old.vat
-       or new.total is distinct from old.total
-       or new.signature_path is distinct from old.signature_path
-       or new.issued_at is distinct from old.issued_at then
+  if old.status = 'issued' then
+    if (to_jsonb(new) - v_allowed) is distinct from (to_jsonb(old) - v_allowed) then
       raise exception '발행된 리포트는 수정할 수 없습니다(무효화 또는 새 리포트로 정정)';
     end if;
   end if;
@@ -220,7 +202,7 @@ create policy service_reports_objects_insert on storage.objects
     )
     and exists (
       select 1 from public.service_reports r
-      where r.id::text = split_part(name, '/', 1)
+      where r.id = split_part(name, '/', 1)::uuid
         and r.created_by = (select auth.uid())
         and r.status = 'draft'
     )
@@ -241,7 +223,7 @@ create policy service_reports_objects_delete on storage.objects
     bucket_id = 'service-reports'
     and exists (
       select 1 from public.service_reports r
-      where r.id::text = split_part(name, '/', 1)
+      where r.id = split_part(name, '/', 1)::uuid
         and r.created_by = (select auth.uid())
         and r.status = 'draft'
     )
