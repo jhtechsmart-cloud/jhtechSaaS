@@ -7,6 +7,8 @@
 
 // 관리자 콘솔로 보낼 호스트(소문자·포트 제거 기준). 스테이징 admin 호스트가 생기면 여기 추가.
 const ADMIN_HOSTS = new Set(["admin.jhtech.co.kr"]);
+// 현장 콘솔(서비스 리포트) 호스트 — as.jhtech.co.kr 루트(/) 진입 시 /field로. (#228)
+const FIELD_HOSTS = new Set(["as.jhtech.co.kr"]);
 
 /**
  * @param host  요청 Host 헤더(포트·대소문자 포함 가능, 없으면 null)
@@ -19,6 +21,9 @@ export function resolveHostRedirect(host: string | null, pathname: string): stri
   const normalized = host.split(":")[0].toLowerCase();
   if (ADMIN_HOSTS.has(normalized) && pathname === "/") {
     return "/admin";
+  }
+  if (FIELD_HOSTS.has(normalized) && pathname === "/") {
+    return "/field";
   }
   return null;
 }
