@@ -3,6 +3,7 @@
 // (Server Action은 직접 POST 가능 — 가드 규약). 쓰기·검증은 전부 SECURITY DEFINER RPC가 수행.
 import { requireServiceReportsWrite } from "@/lib/auth/guard";
 import { groupByCategory } from "@/lib/equipment/group";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type {
   CatalogGroup,
@@ -111,6 +112,54 @@ export async function loadCompanyContextAction(
   } catch (e) {
     return fail(e, "고객 정보를 불러오지 못했습니다");
   }
+}
+
+// 작성 중(draft) 리포트 삭제 — 본인 것만. 첨부(사진·서명)는 사용자 세션(본인 draft 폴더 정책)으로
+// 삭제하고, 행 삭제는 RLS DELETE가 관리자 전용이라 admin 클라이언트로 수행하되
+// 본인·draft 조건을 쿼리에 이중 강제한다(코드 검증 + 조건절).
+export async function deleteDraftAction(id: string): Promise<Result<null>> {
+  const g = await guarded();
+  if (!g.ok) return g;
+  const supabase = await createSupabaseServerClient();
+  const { data: userRes } = await supabase.auth.getUser();
+  const uid = userRes?.user?.id;
+  if (!uid) return { ok: false, error: "로그인이 필요합니다" };
+
+  const { data: row, error } = await supabase
+    .from("service_reports")
+    .select("id, status, created_by, photos_before, photos_after, signature_path")
+    .eq("id", id)
+    .maybeSingle();
+  if (error || !row) return { ok: false, error: "리포트를 찾을 수 없습니다" };
+  const r = row as {
+    status: string;
+    created_by: string;
+    photos_before: string[] | null;
+    photos_after: string[] | null;
+    signature_path: string | null;
+  };
+  if (r.created_by !== uid) return { ok: false, error: "본인 리포트만 삭제할 수 있습니다" };
+  if (r.status !== "draft") return { ok: false, error: "작성 중 리포트만 삭제할 수 있습니다" };
+
+  const paths = [...(r.photos_before ?? []), ...(r.photos_after ?? [])];
+  if (r.signature_path) paths.push(r.signature_path);
+  if (paths.length > 0) {
+    const { error: stErr } = await supabase.storage.from("service-reports").remove(paths);
+    if (stErr) console.error("[serviceReports.deleteDraft] 첨부 삭제 실패(행은 계속 삭제)", stErr);
+  }
+
+  const admin = createSupabaseAdminClient();
+  const { error: delErr } = await admin
+    .from("service_reports")
+    .delete()
+    .eq("id", id)
+    .eq("created_by", uid)
+    .eq("status", "draft");
+  if (delErr) {
+    console.error("[serviceReports.deleteDraft] 행 삭제 실패", delErr);
+    return { ok: false, error: "삭제하지 못했습니다 — 다시 시도해 주세요" };
+  }
+  return { ok: true, data: null };
 }
 
 // 장비 카탈로그(분류별 그룹) — 미등록 장비 입력 시 자유 타이핑 대신 등록 장비에서 선택.
