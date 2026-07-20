@@ -282,25 +282,24 @@ export function Step6Parts({ draft, patch }: StepProps) {
       <div className="flex flex-col gap-3">
         {draft.parts.map((p, i) => (
           <div key={i} className="rounded-md border border-border p-3">
-            <div className="flex items-start justify-between gap-2">
-              <label className="flex flex-1 flex-col gap-1 text-small font-medium text-muted">
-                부품명
-                <input
-                  value={p.name}
-                  onChange={(e) => update(i, { name: e.target.value })}
-                  placeholder="예: SSR 모듈"
-                  className="rounded-full border border-border bg-surface px-4 py-3 text-body text-text"
-                />
-              </label>
+            <div className="mb-1 flex items-center justify-between">
+              <span className="text-small font-medium text-muted">부품명</span>
               <button
                 type="button"
                 aria-label="부품 삭제"
                 onClick={() => patch({ parts: draft.parts.filter((_, idx) => idx !== i) })}
-                className="min-h-11 px-2 text-small text-danger underline"
+                className="min-h-11 whitespace-nowrap px-2 text-small text-danger underline"
               >
                 삭제
               </button>
             </div>
+            <input
+              value={p.name}
+              onChange={(e) => update(i, { name: e.target.value })}
+              placeholder="예: SSR 모듈"
+              aria-label={`부품 ${i + 1} 부품명`}
+              className="w-full rounded-full border border-border bg-surface px-4 py-3 text-body text-text"
+            />
             <div className="mt-2 grid grid-cols-2 gap-2">
               <label className="flex flex-col gap-1 text-small font-medium text-muted">
                 수량
