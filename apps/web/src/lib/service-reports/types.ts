@@ -8,6 +8,7 @@ export interface ServiceReportRow {
   service_request_id: string | null;
   company_id: string | null;
   company_equipment_id: string | null;
+  catalog_equipment_id: string | null; // 카탈로그 링크(모델 집계 단일 원본) — 확정 시 서버가 기록
   customer_name: string;
   customer_biz_no: string | null;
   customer_tel: string | null;
@@ -43,6 +44,7 @@ export interface ServiceReportRow {
 export interface ReportPayload {
   company_id: string | null;
   company_equipment_id: string | null;
+  catalog_equipment_id: string | null; // 피커로 고른 카탈로그 장비(보유장비 선택 시 서버가 파생)
   service_request_id: string | null;
   customer_name: string;
   customer_biz_no: string;
@@ -86,9 +88,10 @@ export interface EquipmentItem {
 }
 
 // 장비 카탈로그 분류 그룹 — 미등록 장비 선택 피커용(equipmentCatalogAction).
+// name은 표시명(동명 행 구분을 위해 모델 병기된 값), model은 보조 표기용 원본.
 export interface CatalogGroup {
   category: string;
-  items: { id: string; name: string }[];
+  items: { id: string; name: string; model: string | null }[];
 }
 
 export interface OpenRequest {
