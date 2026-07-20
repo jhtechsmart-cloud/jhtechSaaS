@@ -173,3 +173,10 @@ a:focus-visible,
   outline: none;
   box-shadow: 0 0 0 3px #DEF4EF, 0 0 0 4px #34B8A5;
 }
+/* 현장 콘솔(/field) — iOS Safari는 16px 미만 입력칸 포커스 시 화면을 자동 확대한다.
+   현장 입력칸만 16px로 고정해 확대 자체를 차단(핀치 줌은 그대로 허용). admin은 영향 없음. */
+.field-shell input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]),
+.field-shell select,
+.field-shell textarea {
+  font-size: 16px;
+}

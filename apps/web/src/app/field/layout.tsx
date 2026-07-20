@@ -24,7 +24,7 @@ export default async function FieldLayout({ children }: { children: ReactNode })
     );
   }
   return (
-    <div className="mx-auto flex min-h-dvh max-w-[430px] flex-col bg-bg shadow-[0_0_40px_rgba(23,100,85,0.10)]">
+    <div className="field-shell mx-auto flex min-h-dvh max-w-[430px] flex-col bg-bg shadow-[0_0_40px_rgba(23,100,85,0.10)]">
       <header className="sticky top-0 z-20 border-b border-border bg-surface px-4 py-3">
         <div className="flex items-center justify-between">
           <Link href="/field" className="text-body font-extrabold tracking-tight text-text">
