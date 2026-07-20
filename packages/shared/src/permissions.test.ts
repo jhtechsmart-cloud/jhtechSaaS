@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, it, test } from "vitest";
 import {
   ADMIN_PRESET,
   PERMISSION_REGISTRY,
@@ -27,6 +27,7 @@ describe("permission registry", () => {
         "service_requests.status",
         "service_requests.claim",
         "service_reports.write",
+        "service_reports.view",
         "service_reports.view_all",
         "supply_requests.view_all",
         "supply_requests.status",
@@ -155,7 +156,7 @@ describe("신규 9키 — can() 동작 + users.manage 우회", () => {
 });
 
 describe("SALES_PRESET (영업담당 프리셋)", () => {
-  test("정확히 11키로 구성된다", () => {
+  test("정확히 12키로 구성된다", () => {
     expect([...SALES_PRESET].sort()).toEqual(
       [
         "applications.status",
@@ -166,6 +167,7 @@ describe("SALES_PRESET (영업담당 프리셋)", () => {
         "release_orders.write",
         "service_requests.status",
         "service_requests.claim",
+        "service_reports.view",
         "supply_requests.status",
         "supply_requests.claim",
         "demo_reservations.write",
@@ -270,5 +272,17 @@ describe("supply_requests capabilities (P-E → E5a 분해)", () => {
   test("view_all만 보유 시 view_all 통과, status 불가(분리)", () => {
     expect(can(["supply_requests.view_all"], "supply_requests.view_all")).toBe(true);
     expect(can(["supply_requests.view_all"], "supply_requests.status")).toBe(false);
+  });
+});
+
+describe("SALES_PRESET — 서비스 리포트 조회 범위(#246)", () => {
+  it("읽기전용 view를 포함하고, draft까지 보이는 view_all·작성권한 write는 제외", () => {
+    expect(SALES_PRESET).toContain("service_reports.view");
+    expect(SALES_PRESET).not.toContain("service_reports.view_all");
+    expect(SALES_PRESET).not.toContain("service_reports.write");
+  });
+
+  it("view 키가 레지스트리에 등록돼 권한 피커에 노출된다", () => {
+    expect(PERMISSION_REGISTRY.some((p) => p.key === "service_reports.view")).toBe(true);
   });
 });

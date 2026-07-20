@@ -1,5 +1,5 @@
 "use server";
-// admin 서비스 리포트 조회·운영 액션(#228 Part 4) — 조회는 read(write 또는 view_all),
+// admin 서비스 리포트 조회·운영 액션(#228 Part 4) — 조회는 read(write·view·view_all),
 // 무효화는 RPC가 users.manage를 최종 강제. 리포트 작성·수정은 admin에서 불가(현장 콘솔 전용).
 import { revalidatePath } from "next/cache";
 import { requireServiceReportsRead } from "@/lib/auth/guard";
@@ -33,7 +33,7 @@ async function guarded(): Promise<{ ok: true } | { ok: false; error: string }> {
   return { ok: true };
 }
 
-// 목록 — RLS 스코프(본인 draft + 발행/무효 전체[write] 또는 전체[view_all]) 안에서 최근순.
+// 목록 — RLS 스코프(본인 draft + 발행/무효[write·view] 또는 전체[view_all]) 안에서 최근순.
 export async function adminListReportsAction(): Promise<Result<AdminReportRow[]>> {
   const g = await guarded();
   if (!g.ok) return g;

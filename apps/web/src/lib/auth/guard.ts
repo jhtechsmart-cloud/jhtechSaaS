@@ -123,6 +123,6 @@ export const requireSupplyConsole = () =>
     "supply_requests.claim",
   ]);
 export const requireServiceReportsWrite = () => requirePermission("service_reports.write");
-// 서비스 리포트 조회(작성 또는 전체조회) — admin 조회 화면용.
+// 서비스 리포트 조회 — admin 조회 화면용. view는 발행·무효본만 보는 읽기전용 키(영업 기본).
 export const requireServiceReportsRead = () =>
-  requireAnyPermission(["service_reports.write", "service_reports.view_all"]);
+  requireAnyPermission(["service_reports.write", "service_reports.view", "service_reports.view_all"]);
