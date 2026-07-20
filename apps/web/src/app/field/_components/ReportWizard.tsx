@@ -28,6 +28,7 @@ export function emptyPayload(): ReportPayload {
   return {
     company_id: null,
     company_equipment_id: null,
+    catalog_equipment_id: null,
     service_request_id: null,
     customer_name: "",
     customer_biz_no: "",
@@ -58,6 +59,7 @@ export function rowToPayload(r: ServiceReportRow): ReportPayload {
   return {
     company_id: r.company_id,
     company_equipment_id: r.company_equipment_id,
+    catalog_equipment_id: r.catalog_equipment_id,
     service_request_id: r.service_request_id,
     customer_name: r.customer_name ?? "",
     customer_biz_no: r.customer_biz_no ?? "",

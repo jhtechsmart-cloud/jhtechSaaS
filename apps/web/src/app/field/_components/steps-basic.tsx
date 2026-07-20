@@ -55,6 +55,7 @@ export function Step1Customer({ draft, patch, ctx, setCtx }: StepProps) {
       recipient_email: hit.email ?? "",
       // 고객이 바뀌면 장비·신청 연결 초기화
       company_equipment_id: null,
+      catalog_equipment_id: null,
       service_request_id: null,
     });
     setQuery(hit.name);
@@ -274,6 +275,7 @@ export function Step2Equipment({ draft, patch, ctx, setCtx }: StepProps) {
                       setCtx((c) => ({ ...c, manualEquipment: false }));
                       patch({
                         company_equipment_id: eq.id,
+                        catalog_equipment_id: null,
                         device_name: eq.label,
                         device_serial: eq.serial_no ?? "",
                         purchased_at: eq.purchased_at ?? "",
@@ -321,7 +323,7 @@ export function Step2Equipment({ draft, patch, ctx, setCtx }: StepProps) {
           type="button"
           onClick={() => {
             setCtx((c) => ({ ...c, manualEquipment: !c.manualEquipment }));
-            patch({ company_equipment_id: null });
+            patch({ company_equipment_id: null, catalog_equipment_id: null });
           }}
           className="min-h-11 w-full rounded-full border-2 border-dashed border-border text-small font-semibold text-accent"
         >
@@ -372,7 +374,13 @@ export function Step2Equipment({ draft, patch, ctx, setCtx }: StepProps) {
                                 key={it.id}
                                 type="button"
                                 onClick={() => {
-                                  patch({ device_name: it.name, company_equipment_id: null });
+                                  // 카탈로그 id를 함께 실어야 확정 시 정확히 그 모델로 연결된다
+                                  // (이름 매칭은 동명 행에서 실패하므로 추정에 기대지 않는다).
+                                  patch({
+                                    device_name: it.name,
+                                    catalog_equipment_id: it.id,
+                                    company_equipment_id: null,
+                                  });
                                   setFreeText(false);
                                 }}
                                 className={`min-h-11 w-full border-t border-border px-4 py-2.5 text-left text-body ${
@@ -398,7 +406,7 @@ export function Step2Equipment({ draft, patch, ctx, setCtx }: StepProps) {
               {freeText && (
                 <input
                   value={draft.device_name}
-                  onChange={(e) => patch({ device_name: e.target.value })}
+                  onChange={(e) => patch({ device_name: e.target.value, catalog_equipment_id: null })}
                   placeholder="예: JU-2513UV UV 평판 프린터"
                   aria-label="장비명 직접 입력"
                   className="rounded-full border border-border bg-surface px-4 py-3 text-body text-text"

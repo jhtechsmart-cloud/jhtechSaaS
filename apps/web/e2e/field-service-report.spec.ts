@@ -99,9 +99,10 @@ test("미인증 /field → login?next → 마법사 완주 → 서명 → 확정
   await page.getByRole("button", { name: "다음" }).click();
   await expect(page.getByRole("heading", { name: "장비 정보", level: 1 })).toBeVisible();
 
-  // 2단계: 장비 직접 입력(보유장비 없음)
+  // 2단계: 장비 — 카탈로그에 없는 장비이므로 직접 입력 폴백 사용(#240에서 카탈로그 피커가 기본이 됨)
   await page.getByRole("button", { name: "+ 등록되지 않은 장비 직접 입력" }).click();
-  await page.getByLabel("장비명 *").fill("E2E UV 평판 프린터");
+  await page.getByRole("button", { name: "목록에 없는 장비 — 직접 입력" }).click();
+  await page.getByLabel("장비명 직접 입력").fill("E2E UV 평판 프린터");
   await page.getByRole("button", { name: "다음" }).click();
   await expect(page.getByRole("heading", { name: "점검·고장 내역", level: 1 })).toBeVisible();
 
@@ -165,4 +166,103 @@ test("권한 없는 계정(영업)은 /field 안내 화면", async ({ page }) =>
   await login(page, SALES_EMAIL, SALES_PASSWORD);
   await page.waitForURL(/\/field/, { timeout: 20_000 });
   await expect(page.getByText("접근 권한이 없습니다")).toBeVisible();
+});
+
+// #242 Part 1a — 카탈로그 피커로 고른 장비가 확정본에 링크되고, 같은 장비를 두 번 A/S 해도
+// 고객 보유장비 행이 늘지 않는지(이력 분할 방지) 실제 흐름으로 확인한다.
+test("카탈로그 피커 선택 → 확정 → 카탈로그 링크 기록 + 보유장비 재사용", async ({ page }) => {
+  const model = `E2E-CAT-${Date.now().toString().slice(-6)}`;
+  const catName = `E2E 카탈로그 장비 ${model}`;
+  const customer = `E2E카탈로그고객${model}`;
+
+  // 카탈로그 장비 1종 시드(자체 시드 — 게이트의 클린 규칙 유지)
+  const eqRes = await svc("/rest/v1/equipment", {
+    method: "POST",
+    body: JSON.stringify({ name: catName, model, status: "active" }),
+  });
+  const eq = (await eqRes.json()) as { id: string }[];
+  const equipmentId = eq[0].id;
+
+  try {
+    await page.goto("/field");
+    await page.waitForURL(/\/login/, { timeout: 20_000 });
+    await login(page, ENG_EMAIL, ENG_PASSWORD);
+    await page.waitForURL(/\/field$/, { timeout: 20_000 });
+    await page.getByRole("link", { name: "+ 새 리포트 작성" }).click();
+
+    // 1단계: 직접 입력 고객
+    await page.getByRole("tab", { name: "직접 입력" }).click();
+    await page.getByLabel("고객명 *").fill(customer);
+    await page.getByRole("button", { name: "다음" }).click();
+    await expect(page.getByRole("heading", { name: "장비 정보", level: 1 })).toBeVisible();
+
+    // 2단계: 카탈로그 검색 → 선택(모델명이 표시명에 병기되어 동명 행과 구분된다)
+    await page.getByRole("button", { name: "+ 등록되지 않은 장비 직접 입력" }).click();
+    await page.getByLabel("장비 카탈로그 검색").fill(model);
+    await page.getByRole("button", { name: new RegExp(model) }).last().click();
+    await expect(page.getByText("선택됨", { exact: false })).toBeVisible();
+    await page.getByRole("button", { name: "다음" }).click();
+
+    // 3~7단계 통과
+    await expect(page.getByRole("heading", { name: "점검·고장 내역", level: 1 })).toBeVisible();
+    await page.getByRole("button", { name: "전기·제어", exact: false }).first().click();
+    await page.getByRole("button", { name: "접촉불량", exact: true }).click();
+    await page.getByLabel("점검 내역").fill("[접촉불량] 카탈로그 링크 확인");
+    await page.getByRole("button", { name: "다음" }).click();
+    await page.getByLabel("조치 내역").fill("조치 완료");
+    await page.getByRole("button", { name: "다음" }).click();
+    await expect(page.getByRole("heading", { name: "향후 일정", level: 1 })).toBeVisible();
+    await page.getByRole("button", { name: "다음" }).click();
+    await expect(page.getByRole("heading", { name: "교체 부품", level: 1 })).toBeVisible();
+    await page.getByRole("button", { name: "다음" }).click();
+    await expect(page.getByRole("heading", { name: "청구 내역", level: 1 })).toBeVisible();
+    await page.getByRole("button", { name: "다음" }).click();
+
+    // 8단계: 서명 → 확정
+    await page.getByRole("button", { name: "고객 확인 요청 (서명 받기)" }).click();
+    const canvas = page.getByLabel("고객 서명 입력");
+    const box = await canvas.boundingBox();
+    if (!box) throw new Error("서명 캔버스 없음");
+    await page.mouse.move(box.x + 30, box.y + 90);
+    await page.mouse.down();
+    await page.mouse.move(box.x + 160, box.y + 60, { steps: 12 });
+    await page.mouse.move(box.x + 290, box.y + 110, { steps: 12 });
+    await page.mouse.up();
+    await page.getByRole("button", { name: "서명 완료" }).click();
+    await expect(page.getByText("✓ 고객 서명 완료")).toBeVisible({ timeout: 15_000 });
+    await page.getByRole("button", { name: "리포트 확정" }).click();
+    await expect(page.getByText("리포트가 확정되었습니다")).toBeVisible({ timeout: 20_000 });
+
+    // 검증 1: 확정본에 카탈로그 링크가 기록됐다(모델 단위 집계의 단일 원본)
+    const repRes = await svc(
+      `/rest/v1/service_reports?select=id,catalog_equipment_id,company_equipment_id,company_id&catalog_equipment_id=eq.${equipmentId}`,
+    );
+    const reports = (await repRes.json()) as {
+      id: string;
+      catalog_equipment_id: string;
+      company_equipment_id: string;
+      company_id: string;
+    }[];
+    expect(reports.length).toBe(1);
+    expect(reports[0].catalog_equipment_id).toBe(equipmentId);
+
+    // 검증 2: 보유장비가 카탈로그에 연결된 채 1행만 생성됐다
+    const ceRes = await svc(
+      `/rest/v1/company_equipment?select=id,equipment_id&company_id=eq.${reports[0].company_id}`,
+    );
+    const ces = (await ceRes.json()) as { id: string; equipment_id: string | null }[];
+    expect(ces.length).toBe(1);
+    expect(ces[0].equipment_id).toBe(equipmentId);
+    expect(reports[0].company_equipment_id).toBe(ces[0].id);
+  } finally {
+    // 시드 정리 — 리포트가 참조하면 삭제가 막히므로 리포트·보유장비부터
+    const rr = await svc(`/rest/v1/service_reports?select=id,company_id&catalog_equipment_id=eq.${equipmentId}`);
+    const rows = (await rr.json().catch(() => [])) as { id: string; company_id: string }[];
+    for (const r of rows) {
+      await svc(`/rest/v1/service_reports?id=eq.${r.id}`, { method: "DELETE" }).catch(() => {});
+      await svc(`/rest/v1/company_equipment?company_id=eq.${r.company_id}`, { method: "DELETE" }).catch(() => {});
+      await svc(`/rest/v1/companies?id=eq.${r.company_id}`, { method: "DELETE" }).catch(() => {});
+    }
+    await svc(`/rest/v1/equipment?id=eq.${equipmentId}`, { method: "DELETE" }).catch(() => {});
+  }
 });

@@ -1,6 +1,7 @@
 "use server";
 // 현장 서비스 리포트 서버 액션(#228 Part 3). 모든 액션이 requireServiceReportsWrite를 재검증
 // (Server Action은 직접 POST 가능 — 가드 규약). 쓰기·검증은 전부 SECURITY DEFINER RPC가 수행.
+import { catalogDeviceLabel } from "@jhtechsaas/shared";
 import { requireServiceReportsWrite } from "@/lib/auth/guard";
 import { groupByCategory } from "@/lib/equipment/group";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -169,23 +170,30 @@ export async function equipmentCatalogAction(): Promise<Result<CatalogGroup[]>> 
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("equipment")
-    .select("id, name, equipment_category:category_id(name)")
+    .select("id, name, model, equipment_category:category_id(name)")
     .eq("status", "active")
     .order("name");
   if (error) return { ok: false, error: error.message };
   const rows = (data ?? []) as unknown as {
     id: string;
     name: string;
+    model: string | null;
     equipment_category: { name: string | null } | null;
   }[];
   const grouped = groupByCategory(
-    rows.map((r) => ({ id: r.id, name: r.name, category: r.equipment_category?.name ?? null })),
+    rows.map((r) => ({
+      id: r.id,
+      // 이름이 같고 모델만 다른 카탈로그 행이 실재 → 표시명에 모델을 병기해 구분한다.
+      name: catalogDeviceLabel(r.name, r.model),
+      model: r.model,
+      category: r.equipment_category?.name ?? null,
+    })),
   );
   return {
     ok: true,
     data: grouped.map((grp) => ({
       category: grp.category,
-      items: grp.items.map(({ id, name }) => ({ id, name })),
+      items: grp.items.map(({ id, name, model }) => ({ id, name, model })),
     })),
   };
 }
