@@ -144,12 +144,14 @@ export function ReportWizard({ initial }: { initial: ServiceReportRow | null }) 
     setSeqNo(res.data.seq_no);
     if (!idRef.current) {
       setReportId(res.data.id);
-      const q = new URLSearchParams(searchParams.toString());
+      // 저장 완료 시점의 실제 URL 기준으로 id만 심는다 — 렌더 스냅샷(searchParams)을 쓰면
+      // 저장 중에 단계가 넘어간 경우 옛 step으로 되돌리는 replace가 돼 단계가 튕긴다.
+      const q = new URLSearchParams(window.location.search);
       q.set("id", res.data.id);
       router.replace(`/field/report?${q.toString()}`, { scroll: false });
     }
     return { ok: true, id: res.data.id };
-  }, [router, searchParams]);
+  }, [router]);
 
   const goto = useCallback(
     (next: number) => {
