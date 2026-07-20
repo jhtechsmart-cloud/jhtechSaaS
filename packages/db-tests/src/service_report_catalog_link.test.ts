@@ -289,6 +289,24 @@ describe("카탈로그 링크 해석 — 통계 원본(F3·H1)", () => {
     });
   });
 
+  test("백필 마이그레이션 후에도 동결 트리거가 살아 있다(꺼진 채 방치 금지)", async () => {
+    await inRollbackTx(c, async () => {
+      const s = await seed();
+      const r = await issueDirect(s, { name: "XTRA 3300H", catalogId: s.catA });
+      await asPostgres(c);
+      // 트리거가 enable 상태여야 발행본 수정이 계속 막힌다
+      const t = await c.query(
+        "select tgenabled from pg_trigger where tgname='service_reports_bu' and not tgisinternal",
+      );
+      expect(t.rows[0].tgenabled).toBe("O");
+      await c.query("savepoint sp");
+      await expect(
+        c.query("update public.service_reports set diagnosis='변조' where id=$1", [r.id]),
+      ).rejects.toThrow(/발행|수정/);
+      await c.query("rollback to savepoint sp");
+    });
+  });
+
   test("존재하지 않는 카탈로그 id는 draft 저장 단계에서 거부", async () => {
     await inRollbackTx(c, async () => {
       const s = await seed();
