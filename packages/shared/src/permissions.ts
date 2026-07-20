@@ -117,6 +117,12 @@ const PERMISSION_REGISTRY_RAW = [
     group: "A/S",
   },
   {
+    key: "service_reports.view",
+    label: "서비스 리포트 조회",
+    description: "발행·무효 리포트 조회(작성 중 문서는 제외) — 고객 응대 시 직전 A/S 확인용",
+    group: "A/S",
+  },
+  {
     key: "service_reports.view_all",
     label: "서비스 리포트 전체조회",
     description: "담당 무관 모든 서비스 리포트 조회 (없으면 본인 작성 draft + 발행본만)",
@@ -198,6 +204,8 @@ export const SALES_PRESET: PermissionKey[] = [
   "release_orders.write",
   "service_requests.status",
   "service_requests.claim",
+  // 발행 리포트 조회 — 고객 응대 시 직전 A/S 확인. draft는 포함되지 않는다(view_all 아님).
+  "service_reports.view",
   "supply_requests.status",
   "supply_requests.claim",
   "demo_reservations.write",

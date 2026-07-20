@@ -24,3 +24,18 @@ test("admin 서비스 리포트 목록 — 메뉴·필터 탭·테이블 렌더"
   await expect(page.getByRole("columnheader", { name: "번호" })).toBeVisible();
   await expect(page.getByRole("columnheader", { name: "후속조치" })).toBeVisible();
 });
+
+// #246 Part 1b — 영업담당(읽기전용 service_reports.view)이 메뉴·목록에 접근한다.
+// 이전에는 SALES_PRESET에 service_reports.* 키가 하나도 없어 메뉴가 숨겨지고 페이지도 403이었다.
+const SALES_EMAIL = process.env.E2E_SALES_EMAIL ?? "sales@jhtech.local";
+const SALES_PASSWORD = process.env.E2E_SALES_PASSWORD ?? "jhtech-sales-dev";
+
+test("영업 계정(읽기전용 view) — 사이드바 메뉴 노출 + 목록 진입", async ({ page }) => {
+  await login(page, SALES_EMAIL, SALES_PASSWORD);
+  await expect(page.getByRole("link", { name: "서비스 리포트" }).first()).toBeVisible();
+  await page.goto("/admin/service-reports");
+  await expect(page.getByRole("heading", { name: "서비스 리포트", level: 1 })).toBeVisible();
+  // 403 안내가 아니라 실제 콘솔이 떠야 한다
+  await expect(page.getByText("권한이 없습니다")).toHaveCount(0);
+  await expect(page.getByRole("columnheader", { name: "번호" })).toBeVisible();
+});
