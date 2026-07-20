@@ -69,7 +69,7 @@
 <div class="wrap">
   <h1>프로젝트 지도</h1>
   <div class="sub">지금까지 만들어진 파일이 <b>어디에</b> 있고, <b>각 단계가 어떤 파일을 만드는지</b>, 문제 시 <b>어디를 봐야 하는지</b>.</div>
-  <div class="upd">갱신: 2026-06-19 (세션16 · <b>프로덕션 코드감사 + 7 PR 배포(#156~#162): 견적 '계약완료' 라벨·수기견적 고객연결·장비 재고 편집/조회·고객목록 게시판화·프로필 사진+계정 메뉴+사이드바 고정</b>) · 직전: 세션15 견적상세·상태 라이프사이클(#146~148), 세션14 메일 실발송·출고의뢰서·모바일대응 · 명령어 <code>/map</code> 으로 재생성</div>
+  <div class="upd">갱신: 2026-07-20 (세션27 · <b>현장 콘솔 실기기 개선 7건(#235~#241) + AS 히스토리 기반 Part 1a·1b(#247·#248) — 카탈로그 링크·보유장비 중복 방지·소급 연결·영업 읽기전용 권한</b>) · 직전: 세션26 서비스 리포트 #228 4파트, 세션25 고객 매칭·개인정보 v1.1, 세션24 견적 옵션 모델 개편 · ⚠️ 섹션1 인벤토리 일부는 세션17~26 산출물이 반영되지 않은 항목이 있음(헤더·진행현황·gstack 산출물은 최신) · 명령어 <code>/map</code> 으로 재생성</div>
 
   <div class="lead">
     <b>핵심:</b> 이 프로젝트의 산출물은 <b>4곳에 흩어져</b> 있습니다. 코드·설정만 프로젝트 폴더 안에 있고,
@@ -129,6 +129,10 @@
     <tr><td class="path">specs/…-epic-jhtechsaas-v1.md</td><td>/spec</td><td>EPIC 스펙 아카이브(붙여넣기용 본문 + 이슈번호)</td></tr>
     <tr><td class="path">specs/…-e1-foundation.md</td><td>/spec</td><td>E1 스펙 아카이브(스키마·RLS·결정 D1~D5)</td></tr>
     <tr><td class="path">specs/…-e2-equipment-admin.md</td><td>/spec</td><td>E2 스펙 아카이브(장비 admin + 웹 인증, 결정 D1~D4)</td></tr>
+    <tr><td class="path">specs/…-service-report-field-mobile.md</td><td>/spec</td><td>서비스 리포트 현장 콘솔 스펙(#228, 세션26)</td></tr>
+    <tr><td class="path">specs/…-as-history-part1-data-linkage.md</td><td>/spec + /autoplan</td><td><b>Part 1a 스펙 + autoplan 리뷰 전문</b>(CEO·Eng findings 23건·판정·테스트 계획) — 이슈 #242</td></tr>
+    <tr><td class="path">specs/…-as-history-part{2,3,4}-*.md</td><td>/spec</td><td>Part 2 장비 상세·Part 3 모델 통계·Part 4 보유장비 옵션 스펙 — 이슈 #243·#244·#245</td></tr>
+    <tr><td class="path">permissions-backup-*.json</td><td>운영(세션27)</td><td>권한 일괄 부여 전 <code>profiles.permissions</code> 스냅샷(되돌리기용)</td></tr>
     <tr><td class="path">main-autoplan-review-*.md</td><td>/autoplan</td><td>CEO·Design·Eng 리뷰 + 결정·해결책 + 감사로그</td></tr>
     <tr><td class="path">main-autoplan-restore-*.md</td><td>/autoplan</td><td>리뷰 시작 시점 plan 복원점(되돌리기용)</td></tr>
     <tr><td class="path">designs/…/design-preview.html</td><td>/design-consultation</td><td>디자인 시스템 적용 프리뷰(브라우저로 본 그것)</td></tr>
@@ -180,9 +184,7 @@
   <p class="note">각 단계를 진행하면 → 어디에 어떤 파일이 생기고 무슨 내용이 담기는지.</p>
 
   <div class="lead" style="border-left-color:var(--sent)">
-    <b>진행 현황 (2026-06-19 세션16):</b> <b>M1~M2 + 견적 풀스택·메일 실발송·출고의뢰서·관리자 모바일대응·의뢰 상태 8단계 완료·라이브</b>. <b>이번 세션 = 프로덕션 코드감사 + 7 PR 배포(#156~162)</b>: ①<b>견적 상태 '납품완료'→'계약완료'</b>(라벨만, 키 <code>delivered</code> 불변·DB무변경). ②<b>수기견적 고객연결</b> — <code>applications.company_id</code> FK + <code>create_manual_quote(p_company_id)</code> + 이력 RPC company_id 매칭 + 폼 고객검색/프리필/딥링크 → 수기견적이 고객 이력에 노출. ③<b>장비 재고</b> — <code>equipment_inventory</code> 테이블, 관리자 편집(<code>/admin/inventory</code>) + 영업자 읽기전용(<code>/admin/inventory/view</code>, 대시보드 진입). ④<b>고객목록 게시판화</b>(부유 카드 제거→평면). ⑤<b>프로필 사진</b>(<code>profiles.avatar_url</code>+공개 avatars 버킷) + <b>계정 메뉴 팝오버</b>(<code>AccountMenu</code>) + 사이드바 사용자표시 + <b>사이드바 고정</b>(sticky). 운영: <b>sjcho 로그인 = 코드버그 아님</b>(변경 성공·계정 정상, 입력≠저장 비번=브라우저 자동제안 추정 → 임시비번 재설정). 게이트 GREEN(shared137·web389·db-tests404·e2e·tsc·lint·build·as any 0). ⚠️ <b>UI 변경은 로컬 렌더→스크린샷 시각검증 후 보고</b>(게시판 열정렬 3번 빗나감)·게시판 표=<code>table-fixed</code>+<code>colgroup</code>+비-<code>w-full</code>·PostgREST 1:1 임베드(PK=FK)는 객체/배열 양쪽 처리·<b>SECURITY DEFINER RPC 외부 id는 담당 스코프까지 검증(IDOR)</b>·profiles 본인 행 갱신도 admin 클라.
-    <b>다음 = start 시 →</b> ①<b>감사 후속(High 우선)</b>: 공개 <code>lookup_company_by_biz_no</code>가 사업자번호→상호·대표·전화 PII를 레이트리밋 없이 anon 노출 → 레이트리밋/PII 재검토 · <code>.env.example</code> Gmail→Hiworks 정정 · <code>supabase gen types</code> 도입 · RLS db-tests CI 편입 · DB 백업/PITR 확인. ②프로필 사진 실사용 확인. ③<b>수금 원장</b>(미수금=VAT포함 total−Σ수금, payments 테이블). ④이월: 출고의뢰서 모바일대응·운영후속(장비 카탈로그·직책연락처·견적로고). 감사 리포트=<code>docs/audit-2026-06-19.md</code>(Critical 0). ⚠️ db reset 후 e2e면 <code>bash supabase/seed/seed-local.sh</code> 복구 필수. db-tests <code>demo_reservations</code> 동시성 1건은 로컬 flaky(무관·재실행 통과).
-  </div>
+    <b>진행 현황 (2026-07-20 세션27):</b> <b>M1~M2 + 견적 풀스택·메일·출고의뢰서·모바일대응·의뢰 8상태·데모예약·재고·서비스 리포트(#228) 완료·라이브</b>. <b>이번 세션 = 현장 콘솔 개선 7건 + AS 히스토리 기반 2파트</b>(PR #235~#241, #247·#248 / main <code>5de2a99</code>). ①<b>현장 UX 7건</b> — 사진첨부 갤러리 선택(<code>capture</code> 제거)·부품 삭제링크 레이아웃·<b>PDF 열람 후 브라우저 먹통</b>(서버액션 await 뒤 <code>window.open</code>=비제스처 팝업 → <code>&lt;a&gt;</code>+리다이렉트 라우트)·<b>단계 튕김</b>(첫 저장 <code>replace</code>가 옛 <code>searchParams</code> 스냅샷 사용)·<b>iOS 자동확대</b>(16px 미만 입력칸 → <code>.field-shell</code> 16px 고정)·개선5종(장비 카탈로그 피커·년/월/일 셀렉트·<b>서명 유실·업로드 실패</b>·PDF A4 1장)·작성 중 리포트 삭제. ②<b>/spec → 이슈 #242~#246</b>(AS 히스토리 4분할 + 권한 분리). ③<b>/autoplan 리뷰가 치명적 3건 포착</b> — <b>F1</b> 확정 RPC가 <code>company_equipment</code>를 무조건 INSERT해 카탈로그 피커로 고를 때마다 새 행 생성(이력 분할·통계 분모 팽창 = <i>기능이 스스로를 무너뜨림</i>) / <b>C1</b> 스토리지 read가 버킷 전체를 조건 없이 허용해 영업이 기사 draft 서명이미지 열람 가능 / <b>F2</b> 스펙의 SQL(<code>limit 1</code>)과 합격조건(다중매칭 미연결) 자기모순. ④<b>#247 Part 1a</b> — <code>match_catalog_equipment()</code> 매칭 함수 1벌·보유장비 재사용 3단(시리얼→카탈로그→이름, 시리얼 모순 시 재사용 금지)+고객 단위 advisory lock·<code>service_reports.catalog_equipment_id</code>(통계 단일원본, status 전환 UPDATE에 합쳐 써 동결 통과)·소급 연결(label→백업 테이블)·피커 모델명 병기. ⑤<b>#248 Part 1b</b> — 읽기전용 <code>service_reports.view</code> 신설(발행·무효본만)·스토리지 read를 리포트 스코프로 축소(기존 홀 폐쇄)·앱 6곳 전수 동기화·기사의 보유장비 조회 개방. ⑥<b>prod 적용</b>: 보유장비 카탈로그 연결 3/8→<b>8/8</b>·발행 리포트 링크 0/4→<b>4/4</b>·모델 집계 3종 성립·<b>리포트 권한 보유자 0명→25명</b>(기술부 17=작성·경영/영업/관리 8=조회). 게이트 GREEN: db-tests 518·shared 162·web 477·e2e 5/5·typecheck·lint0·build. ⚠️ 학습: 모바일 새 탭은 제스처 안에서만 / 스토리지에 UPDATE 정책 없으면 <code>upsert:true</code>가 거짓 안전 / 테이블 RLS만 막으면 첨부로 샌다 / 게이트 순서 = <code>db reset</code>→db-test→<code>seed-local</code>→e2e / <b>UI 변경 PR은 e2e 필수</b>(#240에서 건너뛰어 깨진 e2e 배포).</div>
   <p class="note">아래 단계 바 = 한 phase의 생애주기. M1 E1·E2·E3 + M2 P-A~P-F + E4 + E5a + E5b + 리디자인 모두 완주·배포. 다음 작업은 ①기획(/office-hours)부터(또는 빠른 수정은 /investigate→/review→/ship).</p>
   <div class="flow">
     <span class="step done">① 기획</span><span class="arr">→</span>
@@ -233,7 +235,7 @@
   </table>
 
   <footer>
-    <b>jhtechSaaS</b> · 이 문서는 <code>/map</code> 명령어로 언제든 재생성됩니다(4곳 재스캔). 프로젝트가 진행되며 단계·파일이 늘면 자동 반영됩니다. 최종 갱신 2026-06-19(세션16).<br>
+    <b>jhtechSaaS</b> · 이 문서는 <code>/map</code> 명령어로 언제든 재생성됩니다(4곳 재스캔). 프로젝트가 진행되며 단계·파일이 늘면 자동 반영됩니다. 최종 갱신 2026-07-20(세션27).<br>
     디자인: DESIGN.md 기준(2026-06-12 라이트 민트·파인 그린 테마 — Pretendard 단일 · 파인 #176455 주색 · 일정 이벤트 5색 · 명료함 · 상태 3톤).
   </footer>
 </div>
