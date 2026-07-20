@@ -2,12 +2,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { PdfStatus, EmailStatus, ServiceReportRow } from "@/lib/service-reports/types";
-import {
-  emailStatusAction,
-  pdfSignedUrlAction,
-  pdfStatusAction,
-  retryPdfAction,
-} from "@/lib/service-reports/actions";
+import { emailStatusAction, pdfStatusAction, retryPdfAction } from "@/lib/service-reports/actions";
 
 // 확정 완료 화면 — 문서(PDF)·메일 2행 상태 카드(autoplan F-S4 5변형).
 // "발송되었습니다" 단정 금지: 실제 상태를 폴링해 정직하게 표시.
@@ -37,12 +32,6 @@ export function DoneScreen({ report }: { report: ServiceReportRow }) {
       stop = true;
     };
   }, [report.id]);
-
-  async function openPdf() {
-    const res = await pdfSignedUrlAction(report.id);
-    if (res.ok) window.open(res.data, "_blank");
-    else setNote(res.error);
-  }
 
   async function retry() {
     setNote("");
@@ -87,13 +76,15 @@ export function DoneScreen({ report }: { report: ServiceReportRow }) {
             </p>
           </div>
           {pdf.state === "ready" && (
-            <button
-              type="button"
-              onClick={() => void openPdf()}
-              className="min-h-11 rounded-full bg-accent px-5 text-small font-bold text-white"
+            // async window.open은 모바일서 팝업 차단·탭 먹통을 유발 — 일반 링크로 제스처 내비게이션.
+            <a
+              href={`/field/report/pdf?id=${report.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex min-h-11 items-center rounded-full bg-accent px-5 text-small font-bold text-white"
             >
               PDF 보기
-            </button>
+            </a>
           )}
           {pdf.state === "failed" && (
             <button
