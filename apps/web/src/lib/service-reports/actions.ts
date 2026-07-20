@@ -2,8 +2,10 @@
 // 현장 서비스 리포트 서버 액션(#228 Part 3). 모든 액션이 requireServiceReportsWrite를 재검증
 // (Server Action은 직접 POST 가능 — 가드 규약). 쓰기·검증은 전부 SECURITY DEFINER RPC가 수행.
 import { requireServiceReportsWrite } from "@/lib/auth/guard";
+import { groupByCategory } from "@/lib/equipment/group";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type {
+  CatalogGroup,
   CompanyHit,
   DraftCard,
   EmailStatus,
@@ -109,6 +111,34 @@ export async function loadCompanyContextAction(
   } catch (e) {
     return fail(e, "고객 정보를 불러오지 못했습니다");
   }
+}
+
+// 장비 카탈로그(분류별 그룹) — 미등록 장비 입력 시 자유 타이핑 대신 등록 장비에서 선택.
+export async function equipmentCatalogAction(): Promise<Result<CatalogGroup[]>> {
+  const g = await guarded();
+  if (!g.ok) return g;
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("equipment")
+    .select("id, name, equipment_category:category_id(name)")
+    .eq("status", "active")
+    .order("name");
+  if (error) return { ok: false, error: error.message };
+  const rows = (data ?? []) as unknown as {
+    id: string;
+    name: string;
+    equipment_category: { name: string | null } | null;
+  }[];
+  const grouped = groupByCategory(
+    rows.map((r) => ({ id: r.id, name: r.name, category: r.equipment_category?.name ?? null })),
+  );
+  return {
+    ok: true,
+    data: grouped.map((grp) => ({
+      category: grp.category,
+      items: grp.items.map(({ id, name }) => ({ id, name })),
+    })),
+  };
 }
 
 // draft 저장(생성/수정) — RPC가 금액 재계산·검증. 반환 = 저장된 행(신규면 id 포함).

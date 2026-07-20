@@ -43,8 +43,13 @@ export function SignaturePad({
 
   useEffect(() => {
     setup();
-    // 회전·리사이즈 = 캔버스 리셋(비트맵 왜곡 방지) — 서명 유실 안내 노출.
+    // 폭이 바뀌는 리사이즈(회전)만 캔버스 리셋(비트맵 왜곡 방지) — 서명 유실 안내 노출.
+    // 모바일 스크롤로 주소창이 접히면 높이만 변한 resize가 오는데, 이때 리셋하면 서명이 지워진다.
     const onResize = () => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const dpr = window.devicePixelRatio || 1;
+      if (canvas.width === Math.round(canvas.clientWidth * dpr)) return;
       setup();
       setResetNote(true);
     };

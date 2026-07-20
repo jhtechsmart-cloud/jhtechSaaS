@@ -4,8 +4,9 @@ import { getFontDataUri } from "./assets";
 import { buildServiceReportPdf } from "./render-service-report-pdf";
 import type { ServiceReportHtmlData } from "./service-report-html";
 
-// 발행된 서비스 리포트 → 사진·서명 다운로드(base64 인라인) → PDF → service-reports 버킷 업로드 →
+// 발행된 서비스 리포트 → 서명 다운로드(base64 인라인) → PDF → service-reports 버킷 업로드 →
 // pdf_url 기록(AFTER UPDATE 트리거가 메일 잡을 enqueue). 이슈 #228 Part 2.
+// 사진은 PDF 미포함(현장 요청 — A4 1장 유지). 스토리지·화면에는 그대로 남는다.
 
 // issued_at(ISO) → KST 'YYYY-MM-DD HH:mm'.
 function fmtKstMinute(iso: string | null): string {
@@ -80,14 +81,10 @@ export async function processServiceReportPdfJob(
     });
   }
 
-  // 사진·서명 인라인(서명은 필수 — 발행 검증 통과분).
+  // 서명 인라인(필수 — 발행 검증 통과분).
   const signaturePath = str(r.signature_path);
   if (!signaturePath) throw new Error("signature_path 없음(발행 검증 우회 의심)");
-  const [signatureDataUri, photosBefore, photosAfter] = await Promise.all([
-    toDataUri(supabase, signaturePath),
-    Promise.all(arr(r.photos_before).map((p) => toDataUri(supabase, p))),
-    Promise.all(arr(r.photos_after).map((p) => toDataUri(supabase, p))),
-  ]);
+  const signatureDataUri = await toDataUri(supabase, signaturePath);
 
   const purchasedAt = str(r.purchased_at);
   const issuedAtIso = str(r.issued_at);
@@ -123,8 +120,6 @@ export async function processServiceReportPdfJob(
     faults: arr(r.faults),
     diagnosis: str(r.diagnosis),
     actionText: str(r.action_text),
-    photosBefore,
-    photosAfter,
     followLabel,
     parts: parseParts(r.parts),
     visitFee: num(r.visit_fee),

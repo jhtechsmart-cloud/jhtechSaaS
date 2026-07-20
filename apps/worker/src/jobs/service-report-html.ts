@@ -1,7 +1,7 @@
 // 서비스 리포트 PDF용 HTML 조립(순수 함수) — 목업 V4 #reportSheet 7섹션 이식(#228 Part 2).
 // 팔레트는 DESIGN.md 파인 그린 토큰. Railway(Linux) 크롬엔 시스템폰트가 0이라
-// NotoSansKR @font-face base64 임베드 필수. 사진·서명은 data URI로 인라인.
-// page-break: 섹션 단위 break-inside:avoid + '7. 고객확인'은 항상 통짜(잘림 금지).
+// NotoSansKR @font-face base64 임베드 필수. 서명은 data URI로 인라인.
+// 사진은 PDF 미포함(현장 요청 — A4 1장 유지가 우선, 사진은 화면·스토리지에만).
 import type { ServicePart } from "@jhtechsaas/shared";
 
 export type ServiceReportHtmlData = {
@@ -24,8 +24,6 @@ export type ServiceReportHtmlData = {
   faults: string[];
   diagnosis: string;
   actionText: string;
-  photosBefore: string[]; // data URI
-  photosAfter: string[];
   followLabel: string; // "조치 완료 · 후속 일정 없음" 또는 "후속 조치 필요 — ..."
   // 6. 청구
   parts: ServicePart[];
@@ -49,14 +47,6 @@ const txt = (s: string | null | undefined): string =>
 
 const won = (n: number): string => n.toLocaleString("ko-KR");
 
-// 사진 블록(있을 때만) — 한 줄 최대 3장, 자동 줄바꿈. 섹션과 함께 통짜 유지.
-function photoBlock(title: string, uris: string[]): string {
-  if (uris.length === 0) return "";
-  return `<div class="photos"><b>${esc(title)}</b><div class="photo-grid">${uris
-    .map((u) => `<img src="${u}" alt="">`)
-    .join("")}</div></div>`;
-}
-
 export function renderServiceReportHtml(d: ServiceReportHtmlData): string {
   const histRows = d.history.length
     ? `<table class="grid hist">${d.history
@@ -77,41 +67,38 @@ export function renderServiceReportHtml(d: ServiceReportHtmlData): string {
   @font-face{ font-family:'KR'; src:url(${d.fontDataUri}); font-weight:400 700; }
   :root{ --pine:#176455; --pine-deep:#0F4439; --muted:#5b6f69; --text:#1a2a25; --line:#c9d5d0; --soft:#eef5f2; }
   *{ box-sizing:border-box; margin:0; padding:0; }
-  html,body{ font-family:'KR',sans-serif; color:#111; font-size:12.5px; line-height:1.55; }
-  .page{ width:210mm; padding:10mm 12mm; }
-  .rs-head{ display:flex; justify-content:space-between; align-items:flex-end; border-bottom:3px solid var(--pine); padding-bottom:10px; }
+  html,body{ font-family:'KR',sans-serif; color:#111; font-size:11px; line-height:1.45; }
+  .page{ width:210mm; padding:8mm 10mm; }
+  .rs-head{ display:flex; justify-content:space-between; align-items:flex-end; border-bottom:3px solid var(--pine); padding-bottom:7px; }
   .rs-head h1{ font-size:21px; letter-spacing:.5px; color:var(--pine); }
   .rs-head .co{ text-align:right; font-size:11.5px; color:#333; line-height:1.5; }
   .rs-head .co b{ font-size:14px; color:var(--pine); }
-  .rs-meta{ display:flex; justify-content:space-between; font-size:11px; color:#555; margin:8px 0 6px; }
+  .rs-meta{ display:flex; justify-content:space-between; font-size:10.5px; color:#555; margin:6px 0 4px; }
   .rs-meta b{ font-family:'KR'; font-variant-numeric:tabular-nums; }
   section{ break-inside:avoid; }
-  h2{ font-size:13px; background:var(--pine); color:#fff; padding:6px 10px; margin:14px 0 8px; border-radius:3px; }
-  table{ width:100%; border-collapse:collapse; font-size:12px; }
-  table.grid th, table.grid td{ border:1px solid var(--line); padding:6px 9px; text-align:left; vertical-align:top; }
+  h2{ font-size:11.5px; background:var(--pine); color:#fff; padding:3px 8px; margin:7px 0 5px; border-radius:3px; }
+  table{ width:100%; border-collapse:collapse; font-size:11px; }
+  table.grid th, table.grid td{ border:1px solid var(--line); padding:3px 7px; text-align:left; vertical-align:top; }
   table.grid th{ background:var(--soft); font-weight:700; width:96px; white-space:nowrap; color:#243b34; }
   table.hist{ margin-top:6px; }
   table.hist th{ width:90px; font-variant-numeric:tabular-nums; }
   .fault-tags span{ display:inline-block; border:1px solid var(--pine); color:var(--pine); border-radius:999px; padding:2px 10px; font-size:11px; margin:2px 4px 2px 0; }
-  .longtext{ white-space:pre-wrap; min-height:40px; word-break:break-word; }
-  .none-note{ color:#666; font-size:11.5px; margin-top:4px; }
+  .longtext{ white-space:pre-wrap; min-height:20px; word-break:break-word; }
+  .none-note{ color:#666; font-size:11px; margin-top:4px; }
   .none-cell{ color:#666; }
   .empty{ color:#c8d8d2; }
-  .photos{ margin-top:6px; }
-  .photos b{ font-size:11px; color:#555; }
-  .photo-grid img{ height:88px; border:1px solid var(--line); border-radius:4px; margin:4px 6px 0 0; }
-  table.money th, table.money td{ border:1px solid var(--line); padding:6px 9px; }
+  table.money th, table.money td{ border:1px solid var(--line); padding:3px 7px; }
   table.money th{ background:var(--soft); text-align:left; }
   table.money td.n, table.money th.n{ text-align:right; font-variant-numeric:tabular-nums; }
   tr.tot td{ font-weight:800; background:#f6f2df; }
   .free-stamp{ color:var(--pine); font-weight:800; border:2px solid var(--pine); border-radius:6px; display:inline-block; padding:2px 12px; transform:rotate(-3deg); }
   .sign-note{ font-size:11.5px; margin-bottom:6px; }
   .sign-row{ display:flex; gap:16px; margin-top:6px; }
-  .sign-cell{ flex:1; border:1px solid var(--line); border-radius:6px; padding:10px 12px; min-height:92px; }
+  .sign-cell{ flex:1; border:1px solid var(--line); border-radius:6px; padding:7px 12px; min-height:62px; }
   .sign-cell .t{ font-size:10.5px; color:#555; margin-bottom:4px; }
-  .sign-cell img{ max-height:60px; }
-  .sign-cell .eng-name{ font-size:16px; font-weight:700; color:var(--pine-deep); margin-top:16px; }
-  .rs-foot{ margin-top:20px; border-top:1px solid var(--line); padding-top:8px; font-size:10px; color:#666; display:flex; justify-content:space-between; }
+  .sign-cell img{ max-height:44px; }
+  .sign-cell .eng-name{ font-size:15px; font-weight:700; color:var(--pine-deep); margin-top:12px; }
+  .rs-foot{ margin-top:8px; border-top:1px solid var(--line); padding-top:6px; font-size:10px; color:#666; display:flex; justify-content:space-between; }
   </style></head><body><div class="page">
 
   <div class="rs-head">
@@ -145,13 +132,11 @@ export function renderServiceReportHtml(d: ServiceReportHtmlData): string {
   <h2>3. 점검 및 고장 내역</h2>
   <div class="fault-tags">${d.faults.map((f) => `<span>${esc(f)}</span>`).join("")}</div>
   <table class="grid" style="margin-top:6px"><tr><td class="longtext">${esc(d.diagnosis)}</td></tr></table>
-  ${photoBlock("수리 전 사진", d.photosBefore)}
   </section>
 
   <section>
   <h2>4. 조치 및 수리 내역</h2>
   <table class="grid"><tr><td class="longtext">${esc(d.actionText)}</td></tr></table>
-  ${photoBlock("수리 후 사진", d.photosAfter)}
   </section>
 
   <section>

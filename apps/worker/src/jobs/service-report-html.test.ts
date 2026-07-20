@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { renderServiceReportHtml, type ServiceReportHtmlData } from "./service-report-html";
 
-// 서비스 리포트 HTML 조립 — 7섹션·무상 스탬프·사진·이력·이스케이프·page-break.
+// 서비스 리포트 HTML 조립 — 7섹션·무상 스탬프·이력·이스케이프·page-break(사진 미포함 = 1장 유지).
 function make(over: Partial<ServiceReportHtmlData> = {}): ServiceReportHtmlData {
   return {
     seqNo: "SR-20260716-00007",
@@ -20,8 +20,6 @@ function make(over: Partial<ServiceReportHtmlData> = {}): ServiceReportHtmlData 
     faults: ["접촉불량", "SSR·퓨즈 불량"],
     diagnosis: "전원 24V OK. SSR 접촉부 접촉불량 확인",
     actionText: "재납땜 및 커넥터 교체, 출력 테스트 정상",
-    photosBefore: ["data:image/png;base64,AAA1"],
-    photosAfter: [],
     followLabel: "조치 완료 · 후속 일정 없음",
     parts: [{ name: "SSR 모듈", qty: 2, price: 15000 }],
     visitFee: 90000,
@@ -75,10 +73,9 @@ describe("renderServiceReportHtml", () => {
     expect(html).toContain("0원");
   });
 
-  it("사진: 있는 슬롯만 블록 렌더, 서명 이미지 포함", () => {
+  it("사진 블록 미렌더(1장 유지), 서명 이미지는 포함", () => {
     const html = renderServiceReportHtml(make());
-    expect(html).toContain("수리 전 사진");
-    expect(html).toContain("data:image/png;base64,AAA1");
+    expect(html).not.toContain("수리 전 사진");
     expect(html).not.toContain("수리 후 사진");
     expect(html).toContain("data:image/png;base64,SIGN");
   });
