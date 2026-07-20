@@ -1,8 +1,13 @@
 "use client";
 import { useEffect, useState } from "react";
 import { judgeWarranty, WARRANTY_MONTHS } from "@jhtechsaas/shared";
-import type { ReportPayload, CompanyHit } from "@/lib/service-reports/types";
-import { loadCompanyContextAction, searchCompaniesAction } from "@/lib/service-reports/actions";
+import type { CatalogGroup, ReportPayload, CompanyHit } from "@/lib/service-reports/types";
+import {
+  equipmentCatalogAction,
+  loadCompanyContextAction,
+  searchCompaniesAction,
+} from "@/lib/service-reports/actions";
+import { DateField } from "./DateField";
 import type { WizardCtx } from "./ReportWizard";
 
 // 1·2단계 — 고객 선택(검색/직접입력 + 미종결 A/S 신청 연결)·장비 선택(보증 배지·이력).
@@ -226,6 +231,26 @@ export function Step2Equipment({ draft, patch, ctx, setCtx }: StepProps) {
     });
   }, [draft.company_id, ctx.equipment.length, ctx.manualEquipment, setCtx]);
 
+  // 장비 카탈로그(분류 그룹) — 미등록 장비 입력 섹션을 열면 1회 적재.
+  const [catalog, setCatalog] = useState<CatalogGroup[] | null>(null);
+  const [openCat, setOpenCat] = useState("");
+  const [catQuery, setCatQuery] = useState("");
+  const [freeText, setFreeText] = useState(false);
+  useEffect(() => {
+    if (!ctx.manualEquipment || catalog !== null) return;
+    void equipmentCatalogAction().then((res) => {
+      setCatalog(res.ok ? res.data : []);
+    });
+  }, [ctx.manualEquipment, catalog]);
+
+  const q = catQuery.trim().toLowerCase();
+  const filtered = (catalog ?? [])
+    .map((grp) => ({
+      ...grp,
+      items: q ? grp.items.filter((it) => it.name.toLowerCase().includes(q)) : grp.items,
+    }))
+    .filter((grp) => grp.items.length > 0);
+
   const warranty = judgeWarranty(draft.purchased_at || null, new Date());
 
   return (
@@ -304,15 +329,82 @@ export function Step2Equipment({ draft, patch, ctx, setCtx }: StepProps) {
         </button>
         {ctx.manualEquipment && (
           <div className="mt-3 flex flex-col gap-3">
-            <label className="flex flex-col gap-1 text-small font-medium text-muted">
-              장비명 *
+            <div className="flex flex-col gap-1">
+              <span className="text-small font-medium text-muted">장비명 * — 등록 장비에서 선택</span>
+              {draft.device_name && !freeText && (
+                <div className="mb-1 rounded-md bg-accent-soft p-3 text-small text-text">
+                  <b>{draft.device_name}</b> 선택됨
+                </div>
+              )}
               <input
-                value={draft.device_name}
-                onChange={(e) => patch({ device_name: e.target.value })}
-                placeholder="예: JU-2513UV UV 평판 프린터"
+                value={catQuery}
+                onChange={(e) => setCatQuery(e.target.value)}
+                placeholder="장비명 검색 — 예: 3300, XTRA"
+                aria-label="장비 카탈로그 검색"
                 className="rounded-full border border-border bg-surface px-4 py-3 text-body text-text"
               />
-            </label>
+              {catalog === null ? (
+                <p className="mt-1 text-small text-muted">장비 목록 불러오는 중…</p>
+              ) : (
+                <div className="mt-1 overflow-hidden rounded-md border border-border">
+                  {filtered.length === 0 && (
+                    <p className="p-3 text-small text-muted">검색 결과 없음 — 아래 직접 입력을 이용하세요</p>
+                  )}
+                  {filtered.map((grp) => {
+                    const open = q !== "" || openCat === grp.category;
+                    return (
+                      <div key={grp.category} className="border-b border-border last:border-b-0">
+                        <button
+                          type="button"
+                          onClick={() => setOpenCat(open && q === "" ? "" : grp.category)}
+                          className="flex min-h-11 w-full items-center justify-between bg-surface-2 px-4 py-2 text-left text-small font-semibold text-text"
+                        >
+                          {grp.category}
+                          <span className="text-micro text-muted">
+                            {grp.items.length}종 {open ? "▲" : "▼"}
+                          </span>
+                        </button>
+                        {open &&
+                          grp.items.map((it) => {
+                            const selected = draft.device_name === it.name;
+                            return (
+                              <button
+                                key={it.id}
+                                type="button"
+                                onClick={() => {
+                                  patch({ device_name: it.name, company_equipment_id: null });
+                                  setFreeText(false);
+                                }}
+                                className={`min-h-11 w-full border-t border-border px-4 py-2.5 text-left text-body ${
+                                  selected ? "bg-accent-soft font-semibold text-accent" : "bg-surface text-text"
+                                }`}
+                              >
+                                {it.name}
+                              </button>
+                            );
+                          })}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => setFreeText((v) => !v)}
+                className="mt-1 self-start text-small text-muted underline"
+              >
+                {freeText ? "직접 입력 닫기" : "목록에 없는 장비 — 직접 입력"}
+              </button>
+              {freeText && (
+                <input
+                  value={draft.device_name}
+                  onChange={(e) => patch({ device_name: e.target.value })}
+                  placeholder="예: JU-2513UV UV 평판 프린터"
+                  aria-label="장비명 직접 입력"
+                  className="rounded-full border border-border bg-surface px-4 py-3 text-body text-text"
+                />
+              )}
+            </div>
             <label className="flex flex-col gap-1 text-small font-medium text-muted">
               일련번호
               <input
@@ -322,15 +414,16 @@ export function Step2Equipment({ draft, patch, ctx, setCtx }: StepProps) {
                 className="rounded-full border border-border bg-surface px-4 py-3 font-mono text-body text-text"
               />
             </label>
-            <label className="flex flex-col gap-1 text-small font-medium text-muted">
+            <div className="flex flex-col gap-1 text-small font-medium text-muted">
               구매(설치) 일자
-              <input
-                type="date"
+              <DateField
                 value={draft.purchased_at}
-                onChange={(e) => patch({ purchased_at: e.target.value })}
-                className="rounded-full border border-border bg-surface px-4 py-3 text-body text-text"
+                onChange={(v) => patch({ purchased_at: v })}
+                fromYear={2000}
+                toYear={new Date().getFullYear()}
+                aria-label="구매 일자"
               />
-            </label>
+            </div>
             <p className="text-small text-muted">
               구매일을 입력하면 보증({WARRANTY_MONTHS}개월) 기준 무상·유상이 자동 제안됩니다. 직접
               입력한 장비는 확정 시 고객 보유장비로 등록됩니다.

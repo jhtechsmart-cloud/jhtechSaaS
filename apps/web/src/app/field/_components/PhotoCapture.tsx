@@ -82,9 +82,11 @@ export function PhotoCapture({
     setItems(withPending);
 
     const supabase = createSupabaseBrowserClient();
+    // 스토리지에 UPDATE 정책이 없어 upsert(덮어쓰기)는 기존 파일 존재 시 거부됨 — 삭제 후 업로드.
+    await supabase.storage.from("service-reports").remove([path]);
     const { error } = await supabase.storage
       .from("service-reports")
-      .upload(path, blob, { contentType: "image/jpeg", upsert: true });
+      .upload(path, blob, { contentType: "image/jpeg" });
     sync(
       withPending.map((i) =>
         i.path === path ? { ...i, state: error ? "error" : "done" } : i,
@@ -105,9 +107,10 @@ export function PhotoCapture({
     }
     setItems((cur) => cur.map((i) => (i.path === item.path ? { ...i, state: "uploading" } : i)));
     const supabase = createSupabaseBrowserClient();
+    await supabase.storage.from("service-reports").remove([item.path]);
     const { error } = await supabase.storage
       .from("service-reports")
-      .upload(item.path, blob, { contentType: "image/jpeg", upsert: true });
+      .upload(item.path, blob, { contentType: "image/jpeg" });
     setItems((cur) => {
       const next = cur.map((i) =>
         i.path === item.path ? { ...i, state: (error ? "error" : "done") as Item["state"] } : i,

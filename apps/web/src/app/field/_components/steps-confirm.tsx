@@ -209,9 +209,11 @@ export function Step8Summary({
     }
     const path = `${id}/signature.png`;
     const supabase = createSupabaseBrowserClient();
+    // 스토리지에 UPDATE 정책이 없어 upsert(덮어쓰기)는 재서명 시 거부됨 — 삭제 후 새로 업로드.
+    await supabase.storage.from("service-reports").remove([path]);
     const { error: upErr } = await supabase.storage
       .from("service-reports")
-      .upload(path, signBlob, { contentType: "image/png", upsert: true });
+      .upload(path, signBlob, { contentType: "image/png" });
     if (upErr) {
       setBusy("");
       setError("서명 업로드 실패 — 네트워크 확인 후 다시 시도해 주세요 (서명은 유지됩니다)");
@@ -252,7 +254,7 @@ export function Step8Summary({
             onClick={() => setLockView(false)}
             className="self-start text-small text-muted underline"
           >
-            ← 기사 화면으로
+            ← 이전 화면으로
           </button>
           <div className="rounded-md border border-border bg-surface p-5 text-center shadow-card">
             <p className="text-small text-muted">총 청구액 {isFree ? "" : "(VAT 포함)"}</p>

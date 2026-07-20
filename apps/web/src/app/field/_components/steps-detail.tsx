@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { SERVICE_REPORT_LIMITS, sortFaultGroupsForKind } from "@jhtechsaas/shared";
 import { AmountInput } from "@/app/admin/_components/AmountInput";
 import type { ReportPayload } from "@/lib/service-reports/types";
+import { DateField } from "./DateField";
 import { PhotoCapture } from "./PhotoCapture";
 
 // 3~6단계 — 고장분류(아코디언+검색)·조치·향후일정·부품.
@@ -253,15 +254,16 @@ export function Step5Follow({ draft, patch }: StepProps) {
               className="rounded-full border border-border bg-surface px-4 py-3 text-body text-text"
             />
           </label>
-          <label className="flex flex-col gap-1 text-small font-medium text-muted">
+          <div className="flex flex-col gap-1 text-small font-medium text-muted">
             예정일
-            <input
-              type="date"
+            <DateField
               value={draft.follow_date}
-              onChange={(e) => patch({ follow_date: e.target.value })}
-              className="rounded-full border border-border bg-surface px-4 py-3 text-body text-text"
+              onChange={(v) => patch({ follow_date: v })}
+              fromYear={new Date().getFullYear()}
+              toYear={new Date().getFullYear() + 2}
+              aria-label="후속 조치 예정일"
             />
-          </label>
+          </div>
           <p className="text-small text-muted">
             확정 시 <b>후속 조치 대기</b> 건으로 등록되어 관리 화면에 남습니다. 연결된 A/S 신청은
             처리완료로 넘어가지 않습니다.

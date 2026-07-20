@@ -85,6 +85,12 @@ export interface EquipmentItem {
   history: { issuedAt: string; summary: string }[]; // 과거 issued 리포트(최근순)
 }
 
+// 장비 카탈로그 분류 그룹 — 미등록 장비 선택 피커용(equipmentCatalogAction).
+export interface CatalogGroup {
+  category: string;
+  items: { id: string; name: string }[];
+}
+
 export interface OpenRequest {
   id: string;
   seq_no: string;
