@@ -6,7 +6,8 @@ import "server-only";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { EquipmentReportRow } from "@/lib/equipment/history-filters";
 
-const HISTORY_LIMIT = 300;
+// 300건 절단 = "최근 300건 표본" 계약(#244) — 도달 시 화면에 배지·통계 카드에 표기.
+export const HISTORY_LIMIT = 300;
 
 export async function listEquipmentReports(
   equipmentId: string,
@@ -15,11 +16,12 @@ export async function listEquipmentReports(
   const { data, error } = await supabase
     .from("service_reports")
     .select(
-      "id, seq_no, status, customer_name, device_serial, faults, action_text, parts, charge_type, total, pdf_url, void_reason, issued_at",
+      "id, seq_no, status, customer_name, device_serial, faults, action_text, parts, charge_type, total, pdf_url, void_reason, issued_at, company_equipment_id, free_reason",
     )
     .eq("catalog_equipment_id", equipmentId)
     .in("status", ["issued", "voided"])
-    .order("issued_at", { ascending: false })
+    // nullsFirst:false — null issued_at 행이 300 슬롯 맨 앞을 차지해 최신 행을 밀어내지 않게(#244).
+    .order("issued_at", { ascending: false, nullsFirst: false })
     .limit(HISTORY_LIMIT);
   if (error) return { ok: false, error: error.message };
   return { ok: true, data: (data ?? []) as EquipmentReportRow[] };

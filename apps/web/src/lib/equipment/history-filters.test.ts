@@ -31,6 +31,8 @@ function row(over: Partial<EquipmentReportRow>): EquipmentReportRow {
     pdf_url: null,
     void_reason: null,
     issued_at: "2026-07-01T03:00:00.000Z",
+    company_equipment_id: null,
+    free_reason: null,
     ...over,
   };
 }

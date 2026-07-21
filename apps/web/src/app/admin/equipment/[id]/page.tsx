@@ -6,9 +6,11 @@ import { can } from "@jhtechsaas/shared";
 import { requireEquipmentDetailRead } from "@/lib/auth/guard";
 import { getEquipmentDetail } from "@/lib/equipment/queries";
 import {
+  HISTORY_LIMIT,
   countUnlinkedForEquipment,
   listEquipmentReports,
 } from "@/lib/service-reports/equipment-history";
+import { StatsTab } from "./_components/StatsTab";
 import { publicImageUrl } from "@/lib/equipment/images";
 import { DetailTabs } from "./_components/DetailTabs";
 import { HistoryTab } from "./_components/HistoryTab";
@@ -44,14 +46,16 @@ export default async function EquipmentDetailPage({
   if (!detail) notFound();
 
   const sp = await searchParams;
-  const tab = sp.tab === "history" ? "history" : "overview";
+  const tab = sp.tab === "history" ? "history" : sp.tab === "stats" ? "stats" : "overview";
   const canManage = can(access.permissions, "equipment.manage");
   // equipment.manage 단독 계정은 RLS로 리포트가 0건 — 조용한 빈 목록 대신 권한 안내를 띄운다.
   const canReadReports = (
     ["service_reports.write", "service_reports.view", "service_reports.view_all"] as const
   ).some((k) => can(access.permissions, k));
 
-  const [reports, unlinkedCount] = canReadReports
+  // 리포트·미연결 조회는 필요한 탭에서만(#244 — 개요 탭은 미조회로 탭 전환마다의 중복 조회 회피).
+  const needReports = canReadReports && tab !== "overview";
+  const [reports, unlinkedCount] = needReports
     ? await Promise.all([listEquipmentReports(id), countUnlinkedForEquipment(id)])
     : [{ ok: true as const, data: [] }, 0];
 
@@ -185,21 +189,29 @@ export default async function EquipmentDetailPage({
       ) : (
         <div
           role="tabpanel"
-          id="tabpanel-history"
-          aria-labelledby="tab-history"
+          id={`tabpanel-${tab}`}
+          aria-labelledby={`tab-${tab}`}
           className="flex flex-col gap-3"
         >
           {!canReadReports ? (
             <div className="flex flex-col items-center gap-2 rounded-md border border-border bg-surface p-10">
-              <p className="text-body font-medium text-text">A/S 이력을 볼 권한이 없습니다</p>
+              <p className="text-body font-medium text-text">
+                {tab === "stats" ? "통계를 볼 권한이 없습니다" : "A/S 이력을 볼 권한이 없습니다"}
+              </p>
               <p className="text-small text-muted">
                 서비스 리포트 조회 권한이 필요합니다. 관리자에게 문의하세요.
               </p>
             </div>
           ) : !reports.ok ? (
             <p className="rounded-md border border-border bg-surface p-4 text-small text-danger">
-              A/S 이력을 불러오지 못했습니다: {reports.error}
+              {tab === "stats" ? "통계를" : "A/S 이력을"} 불러오지 못했습니다: {reports.error}
             </p>
+          ) : tab === "stats" ? (
+            <StatsTab
+              rows={reports.data}
+              unlinkedCount={unlinkedCount}
+              truncated={reports.data.length >= HISTORY_LIMIT}
+            />
           ) : (
             <HistoryTab rows={reports.data} unlinkedCount={unlinkedCount} />
           )}

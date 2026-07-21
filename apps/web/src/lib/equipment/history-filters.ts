@@ -28,6 +28,9 @@ export interface EquipmentReportRow {
   pdf_url: string | null;
   void_reason: string | null;
   issued_at: string | null;
+  // #244 통계용 — 간격 그룹핑 키(개별 장비)·무상 사유(enum은 열린 집합으로 취급, null=사유 미기재)
+  company_equipment_id: string | null;
+  free_reason: string | null;
 }
 
 const PERIODS: readonly HistoryPeriod[] = ["all", "1y", "6m"];
