@@ -6,9 +6,9 @@ import { can } from "@jhtechsaas/shared";
 import { requireEquipmentDetailRead } from "@/lib/auth/guard";
 import { getEquipmentDetail } from "@/lib/equipment/queries";
 import {
-  HISTORY_LIMIT,
   countUnlinkedForEquipment,
   listEquipmentReports,
+  listEquipmentReportsForStats,
 } from "@/lib/service-reports/equipment-history";
 import { StatsTab } from "./_components/StatsTab";
 import { publicImageUrl } from "@/lib/equipment/images";
@@ -54,10 +54,23 @@ export default async function EquipmentDetailPage({
   ).some((k) => can(access.permissions, k));
 
   // 리포트·미연결 조회는 필요한 탭에서만(#244 — 개요 탭은 미조회로 탭 전환마다의 중복 조회 회피).
+  // 통계는 issued 전용 별도 조회 — 이력 쿼리를 공유하면 최근 무효 건이 300 표본을 잠식한다.
   const needReports = canReadReports && tab !== "overview";
-  const [reports, unlinkedCount] = needReports
-    ? await Promise.all([listEquipmentReports(id), countUnlinkedForEquipment(id)])
-    : [{ ok: true as const, data: [] }, 0];
+  const [reports, statsReports, unlinkedCount] = needReports
+    ? await Promise.all([
+        tab === "history"
+          ? listEquipmentReports(id)
+          : Promise.resolve({ ok: true as const, data: [] }),
+        tab === "stats"
+          ? listEquipmentReportsForStats(id)
+          : Promise.resolve({ ok: true as const, data: [], voidedCount: 0, truncated: false }),
+        countUnlinkedForEquipment(id),
+      ])
+    : [
+        { ok: true as const, data: [] },
+        { ok: true as const, data: [], voidedCount: 0, truncated: false },
+        0,
+      ];
 
   const included = detail.options.filter((o) => o.kind === "included");
   const extra = detail.options.filter((o) => o.kind === "extra");
@@ -202,16 +215,23 @@ export default async function EquipmentDetailPage({
                 서비스 리포트 조회 권한이 필요합니다. 관리자에게 문의하세요.
               </p>
             </div>
+          ) : tab === "stats" ? (
+            !statsReports.ok ? (
+              <p className="rounded-md border border-border bg-surface p-4 text-small text-danger">
+                통계를 불러오지 못했습니다: {statsReports.error}
+              </p>
+            ) : (
+              <StatsTab
+                rows={statsReports.data}
+                unlinkedCount={unlinkedCount}
+                truncated={statsReports.truncated}
+                voidedCount={statsReports.voidedCount}
+              />
+            )
           ) : !reports.ok ? (
             <p className="rounded-md border border-border bg-surface p-4 text-small text-danger">
-              {tab === "stats" ? "통계를" : "A/S 이력을"} 불러오지 못했습니다: {reports.error}
+              A/S 이력을 불러오지 못했습니다: {reports.error}
             </p>
-          ) : tab === "stats" ? (
-            <StatsTab
-              rows={reports.data}
-              unlinkedCount={unlinkedCount}
-              truncated={reports.data.length >= HISTORY_LIMIT}
-            />
           ) : (
             <HistoryTab rows={reports.data} unlinkedCount={unlinkedCount} />
           )}

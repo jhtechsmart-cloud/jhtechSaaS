@@ -19,8 +19,10 @@ function issuedOnly(rows: EquipmentReportRow[]): {
   issued: EquipmentReportRow[];
   excludedVoided: number;
 } {
+  // voided만 명시 집계 — 횡단 뷰가 draft 섞인 입력을 줘도 draft가 '무효 제외'로 오표기되지 않게.
   const issued = rows.filter((r) => r.status === "issued");
-  return { issued, excludedVoided: rows.length - issued.length };
+  const excludedVoided = rows.filter((r) => r.status === "voided").length;
+  return { issued, excludedVoided };
 }
 
 // ── 1. 고장 유형 Top 10 ─────────────────────────────────────
@@ -72,7 +74,7 @@ export interface IntervalStats {
   medianDays: number | null;
   /** 간격 산출 가능 장비 수(발행 2건 이상) */
   deviceCountWithIntervals: number;
-  /** 전체 m대 = distinct 연결 장비 수(미연결 리포트는 별도 병기) */
+  /** 전체 m대 = issued_at 유효한 발행 리포트 기준 distinct 연결 장비 수(미연결 리포트는 별도 병기) */
   linkedDeviceCount: number;
   unlinkedReportCount: number;
   excludedVoided: number;
@@ -151,9 +153,10 @@ export function computeMonthlyStats(
     const d = new Date(Date.UTC(y, m - i, 1));
     const ym = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
     index.set(ym, months.length);
+    // 라벨은 짧게 — "(진행 중)"은 UI가 current 플래그로 별도 줄 렌더(칼럼 폭 균등 유지).
     months.push({
       ym,
-      label: i === 0 ? `${d.getUTCMonth() + 1}월(진행 중)` : `${d.getUTCMonth() + 1}월`,
+      label: `${d.getUTCMonth() + 1}월`,
       count: 0,
       current: i === 0,
     });

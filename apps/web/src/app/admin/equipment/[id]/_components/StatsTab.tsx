@@ -126,7 +126,8 @@ function RepeatIntervalCard({ s }: { s: IntervalStats }) {
 }
 
 function MonthlyBlocks({ s }: { s: MonthlyStats }) {
-  const MAX = 12; // 레인 높이 고정(라벨 위치 불변) — 12블록 초과 +N (WeeklyUnitChart 규칙 계승)
+  const MAX = 12; // 12블록 초과 +N (WeeklyUnitChart 규칙 계승)
+  // 레인 높이 = 12블록(12px)+갭 11개(2px)+`+N` 텍스트 여유 — h-40(160px)이면 블록이 압축돼 균일성이 깨진다.
   return (
     <div className="overflow-x-auto">
       <div className="flex min-w-[640px] items-end gap-2">
@@ -135,17 +136,20 @@ function MonthlyBlocks({ s }: { s: MonthlyStats }) {
             <span className="text-micro tabular-nums text-muted">{m.count}</span>
             <div
               aria-hidden
-              className="flex h-40 w-full flex-col-reverse items-center gap-0.5"
+              className="flex h-[184px] w-full flex-col-reverse items-center gap-0.5"
               title={`${m.ym} · ${m.count}건`}
             >
               {Array.from({ length: Math.min(m.count, MAX) }, (_, i) => (
-                <span key={i} className="h-3 w-4 rounded-sm bg-accent" />
+                <span key={i} className="h-3 w-4 shrink-0 rounded-sm bg-accent" />
               ))}
-              {m.count > MAX && <span className="text-micro text-muted">+{m.count - MAX}</span>}
+              {m.count > MAX && (
+                <span className="shrink-0 text-micro text-muted">+{m.count - MAX}</span>
+              )}
             </div>
             <span className={`text-micro ${m.current ? "font-semibold text-text" : "text-muted"}`}>
               {m.label}
             </span>
+            <span className="h-3 text-[10px] leading-3 text-muted">{m.current ? "진행 중" : ""}</span>
           </div>
         ))}
       </div>
@@ -166,13 +170,15 @@ function ChargeBreakdown({ s }: { s: ChargeStats }) {
           <span className="text-small text-muted">({s.freePct}%)</span>
         </p>
       </div>
-      <p className="text-small text-text">
-        유상 총 청구액{" "}
-        <span className="font-mono font-semibold tabular-nums">
-          {s.paidCount > 0 ? won(s.paidTotal) : "유상 없음"}
-        </span>{" "}
-        {s.paidCount > 0 && <span className="text-micro text-muted">(VAT 포함)</span>}
-      </p>
+      {s.paidCount > 0 ? (
+        <p className="text-small text-text">
+          유상 총 청구액{" "}
+          <span className="font-mono font-semibold tabular-nums">{won(s.paidTotal)}</span>{" "}
+          <span className="text-micro text-muted">(VAT 포함)</span>
+        </p>
+      ) : (
+        <p className="text-small text-muted">유상 없음</p>
+      )}
       {s.freeCount > 0 ? (
         <ul className="flex flex-col gap-0.5">
           {s.freeReasons.map((r) => (
@@ -193,10 +199,13 @@ export function StatsTab({
   rows,
   unlinkedCount,
   truncated,
+  voidedCount,
 }: {
+  /** issued 전용 rows(listEquipmentReportsForStats) — 무효는 별도 count(300 표본 잠식 방지) */
   rows: EquipmentReportRow[];
   unlinkedCount: number;
   truncated: boolean;
+  voidedCount: number;
 }) {
   const now = new Date();
   const fault = computeFaultStats(rows);
@@ -204,7 +213,6 @@ export function StatsTab({
   const monthly = computeMonthlyStats(rows, now, truncated);
   const charge = computeChargeStats(rows);
   const issuedCount = charge.reportCount;
-  const voidedCount = charge.excludedVoided;
   const lowSample = issuedCount < SAMPLE_MIN_REPORTS;
 
   if (issuedCount === 0) {
@@ -236,6 +244,9 @@ export function StatsTab({
           {voidedCount > 0 && ` (무효 ${voidedCount}건 제외)`}
         </p>
       )}
+      {!lowSample && voidedCount > 0 && (
+        <p className="text-micro text-muted">무효 {voidedCount}건은 모든 지표에서 제외됩니다.</p>
+      )}
 
       <StatsCard
         title="고장 유형 Top 10"
@@ -248,10 +259,13 @@ export function StatsTab({
 
       <div className="grid gap-3 lg:grid-cols-2">
         <StatsCard
-          title="평균 고장 주기"
+          title="고장 주기 (중앙값 기준)"
           sample={`간격 표본 ${interval.intervalCount}개`}
-          reference={lowSample || interval.intervalCount < SAMPLE_MIN_INTERVALS}
-          footer="반복 A/S가 있던 장비만의 평균입니다 — 1건뿐인 장비는 계산에 들어가지 않습니다."
+          reference={
+            interval.intervalCount > 0 &&
+            (lowSample || interval.intervalCount < SAMPLE_MIN_INTERVALS)
+          }
+          footer="반복 A/S가 있던 장비만의 수치입니다 — 1건뿐인 장비는 계산에 들어가지 않습니다."
         >
           <RepeatIntervalCard s={interval} />
         </StatsCard>
@@ -267,7 +281,7 @@ export function StatsTab({
       <StatsCard
         title="월별 A/S 발생 추이 (최근 12개월)"
         sample={`리포트 ${monthly.reportCount}건`}
-        reference={lowSample}
+        reference={monthly.reportCount < SAMPLE_MIN_REPORTS}
         footer="블록 1개 = 리포트 1건 · 현재월은 진행 중 집계입니다."
       >
         <MonthlyBlocks s={monthly} />
