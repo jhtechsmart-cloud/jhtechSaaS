@@ -165,6 +165,20 @@ describe("count_unlinked_company_equipment — 뷰어 무관 정확 건수", () 
       expect(rpc.rows[0].n).toBe(1);
     });
   });
+
+  test("권한 없는 계정은 RPC 호출 거부(SECURITY DEFINER 직접 호출 차단)", async () => {
+    await inRollbackTx(c, async () => {
+      const s = await seed();
+      await asPostgres(c);
+      await c.query("update public.profiles set permissions='{}' where id=$1", [OTHER_SALES]);
+      await asUser(c, OTHER_SALES);
+      await c.query("savepoint sp1");
+      await expect(
+        c.query("select public.count_unlinked_company_equipment($1)", [s.equipmentId]),
+      ).rejects.toThrow(/권한/);
+      await c.query("rollback to savepoint sp1");
+    });
+  });
 });
 
 describe("개요 탭 데이터 — 읽기 전용 계정의 카탈로그 접근", () => {

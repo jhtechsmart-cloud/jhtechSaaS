@@ -1,6 +1,6 @@
 "use client";
-import { Fragment, useMemo, useState, useTransition } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { Fragment, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { adminPdfUrlAction } from "@/lib/service-reports/admin-actions";
 import {
   filterReports,
@@ -13,7 +13,9 @@ import {
 // #243 AS 이력 탭(클라) — 필터 상태 = URL 쿼리 단일 원본(공유·새로고침 보존).
 // 데스크톱 = 8컬럼 테이블 + 행 클릭 인라인 확장 / lg 미만 = 카드뷰. PDF = 기존 admin 패턴 재사용.
 const won = (n: number) => `${n.toLocaleString("ko-KR")}원`;
-const d10 = (iso: string | null) => (iso ? iso.slice(0, 10) : "—");
+// 표시일도 KST 기준 — 기간 필터(periodCutoffKst)와 경계가 어긋나 보이지 않게(UTC slice 금지).
+const d10 = (iso: string | null) =>
+  iso ? new Date(iso).toLocaleDateString("en-CA", { timeZone: "Asia/Seoul" }) : "—";
 
 const PERIOD_LABEL = { all: "전체", "1y": "1년", "6m": "6개월" } as const;
 const CHARGE_LABEL = { all: "전체", paid: "유상", free: "무상" } as const;
@@ -109,9 +111,7 @@ export function HistoryTab({
   rows: EquipmentReportRow[];
   unlinkedCount: number;
 }) {
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const [, startTransition] = useTransition();
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
   const [pdfLoading, setPdfLoading] = useState<string | null>(null);
   const [note, setNote] = useState("");
@@ -129,10 +129,13 @@ export function HistoryTab({
 
   const filtered = useMemo(() => filterReports(rows, filters, new Date()), [rows, filters]);
 
+  // 서버 재조회 없는 shallow 갱신(useListParams 패턴) — router.replace를 쓰면 키 입력마다
+  // RSC 풀 재조회 + controlled 입력이 이전 URL 값으로 되돌아가는 레이스가 난다.
+  // useSearchParams는 native history와 연동되므로 filters 파생도 즉시 갱신된다.
   function apply(next: HistoryFilters) {
     const p = serializeHistoryFilters(next);
     p.set("tab", "history");
-    startTransition(() => router.replace(`?${p.toString()}`, { scroll: false }));
+    window.history.replaceState(null, "", `?${p.toString()}`);
   }
 
   function toggleExpand(id: string) {
@@ -147,22 +150,43 @@ export function HistoryTab({
   async function openPdf(id: string) {
     setPdfLoading(id);
     setNote("");
+    // 클릭 제스처 안에서 창을 먼저 확보 — await 뒤 window.open은 모바일(iOS Safari)서
+    // 비제스처 취급으로 팝업 차단된다(세션27 /field에서 실증된 함정).
+    const win = window.open("", "_blank");
     try {
       const res = await adminPdfUrlAction(id);
-      if (res.ok) window.open(res.data, "_blank");
-      else setNote(res.error);
+      if (res.ok) {
+        if (win) win.location.href = res.data;
+        else window.location.href = res.data; // 창 확보 실패(팝업 전면 차단) 폴백
+      } else {
+        win?.close();
+        setNote(res.error);
+      }
     } finally {
       setPdfLoading(null);
     }
   }
 
+  // 미연결 안내는 0건 빈 상태보다 먼저 — 리포트가 안 보이는 이유가 미연결일 수 있는
+  // 바로 그 상황에서 배너가 가장 필요하다(조용한 누락 금지).
+  const unlinkedBanner = unlinkedCount > 0 && (
+    <p className="rounded-md border border-coral/40 bg-coral-soft px-3 py-2 text-small text-coral-text">
+      이 모델과 이름이 일치하지만 카탈로그에 연결되지 않은 보유장비가 {unlinkedCount}건 있습니다 —
+      해당 장비의 리포트는 이 이력에 포함되지 않았을 수 있습니다. 정정은 관리자가 고객 상세의
+      보유장비에서 카탈로그를 연결하면 됩니다.
+    </p>
+  );
+
   if (rows.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-2 rounded-md border border-border bg-surface p-10">
-        <p className="text-body font-medium text-text">발행된 A/S 리포트가 없습니다</p>
-        <p className="text-small text-muted">
-          리포트는 현장 콘솔에서 기사가 확정하면 자동으로 쌓입니다.
-        </p>
+      <div className="flex flex-col gap-3">
+        {unlinkedBanner}
+        <div className="flex flex-col items-center gap-2 rounded-md border border-border bg-surface p-10">
+          <p className="text-body font-medium text-text">발행된 A/S 리포트가 없습니다</p>
+          <p className="text-small text-muted">
+            리포트는 현장 콘솔에서 기사가 확정하면 자동으로 쌓입니다.
+          </p>
+        </div>
       </div>
     );
   }
@@ -171,11 +195,10 @@ export function HistoryTab({
 
   return (
     <div className="flex flex-col gap-3">
-      {unlinkedCount > 0 && (
-        <p className="rounded-md border border-coral/40 bg-coral-soft px-3 py-2 text-small text-coral-text">
-          이 모델과 이름이 일치하지만 카탈로그에 연결되지 않은 보유장비가 {unlinkedCount}건 있습니다
-          — 해당 장비의 리포트는 이 이력에 포함되지 않았을 수 있습니다. 정정은 관리자가 고객
-          상세의 보유장비에서 카탈로그를 연결하면 됩니다.
+      {unlinkedBanner}
+      {rows.length >= 300 && (
+        <p className="rounded-md border border-border bg-surface-2 px-3 py-2 text-small text-muted">
+          최근 300건만 표시 중입니다 — 필터·건수는 이 범위 기준입니다.
         </p>
       )}
 

@@ -88,7 +88,9 @@ export function filterReports(
     if (customer && !r.customer_name.toLocaleLowerCase().includes(customer)) return false;
     if (cutoff) {
       if (!r.issued_at) return false; // 발행 시각 없는 행은 기간 필터에서 제외(방어)
-      if (r.issued_at < cutoff) return false;
+      // 문자열 비교 금지 — DB 직렬화(+00:00·마이크로초 자릿수 가변)와 ISO Z 표기가 섞이면
+      // 경계 초에서 문자 순서로 오판한다. epoch 비교로.
+      if (Date.parse(r.issued_at) < Date.parse(cutoff)) return false;
     }
     return true;
   });
