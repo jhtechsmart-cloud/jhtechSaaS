@@ -102,7 +102,8 @@ test.describe.serial("E5a 권한 모델 E2E", () => {
     await expect(nav.locator('a[href="/admin/customers"]')).toBeVisible();
     await expect(nav.locator('a[href="/admin/service-requests"]')).toBeVisible();
     await expect(nav.locator('a[href="/admin/supply-requests"]')).toBeVisible();
-    await expect(nav.locator('a[href="/admin/equipment"]')).toHaveCount(0);
+    // #243: 장비 메뉴는 리포트 조회(view) 보유 영업에게도 노출(읽기 전용 상세·AS 이력).
+    await expect(nav.locator('a[href="/admin/equipment"]')).toBeVisible();
     await expect(nav.locator('a[href="/admin/consumables"]')).toHaveCount(0);
     await expect(nav.locator('a[href="/admin/categories"]')).toHaveCount(0);
     await expect(nav.locator('a[href="/admin/users"]')).toHaveCount(0);

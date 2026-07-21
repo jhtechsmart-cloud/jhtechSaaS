@@ -68,6 +68,15 @@ export async function adminVoidReportAction(id: string, reason: string): Promise
   const { error } = await supabase.rpc("void_service_report", { p_id: id, p_reason: reason });
   if (error) return { ok: false, error: error.message };
   revalidatePath("/admin/service-reports");
+  // #243: 장비 상세 AS 이력에도 무효 상태 즉시 반영(연결된 카탈로그 장비가 있을 때만)
+  const { data: row } = await supabase
+    .from("service_reports")
+    .select("catalog_equipment_id")
+    .eq("id", id)
+    .maybeSingle();
+  if (row?.catalog_equipment_id) {
+    revalidatePath(`/admin/equipment/${row.catalog_equipment_id}`);
+  }
   return { ok: true, data: null };
 }
 

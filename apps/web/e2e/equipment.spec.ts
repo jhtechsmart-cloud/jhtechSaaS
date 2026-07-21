@@ -128,9 +128,11 @@ test.describe.serial("E2E 장비 생성·토글 플로우", () => {
   test("AC5: inactive 토글 → 비활성 필터에 노출", async ({ page }) => {
     await login(page);
     await page.goto("/admin/equipment"); // E5a: 랜딩이 /admin/applications라 목록으로 명시 이동
-    // 목록에서 E2E 포장기 행 클릭 → edit 페이지
-    // .first()로 strict mode 위반 방지(beforeAll cleanup 후 정확히 1건이지만 안전망)
-    await page.getByRole("link", { name: E2E_EQUIPMENT_NAME }).first().click();
+    // #243: 이름 클릭 = 상세. 수정 진입은 상세 헤더의 "수정" 버튼.
+    // .first()로 strict mode 위반 방지(연필 아이콘 aria-label에도 이름이 포함됨)
+    await page.getByRole("link", { name: E2E_EQUIPMENT_NAME, exact: true }).first().click();
+    await page.waitForURL(/\/admin\/equipment\/[0-9a-f-]+$/, { timeout: 10_000 });
+    await page.getByRole("link", { name: "수정" }).click();
     await page.waitForURL(/\/edit$/, { timeout: 10_000 });
 
     // 상태 select → "비활성" 옵션 선택
