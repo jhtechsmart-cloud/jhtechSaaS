@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 const TABS = [
   { key: "overview", label: "개요" },
   { key: "history", label: "AS 이력" },
+  { key: "stats", label: "통계" },
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];

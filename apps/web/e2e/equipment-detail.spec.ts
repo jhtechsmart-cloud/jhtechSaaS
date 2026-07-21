@@ -69,6 +69,29 @@ test.describe.serial("장비 상세 + AS 이력", () => {
     await expect(page.getByRole("tab", { name: "AS 이력" })).toHaveAttribute("aria-selected", "true");
   });
 
+  // #244 통계 탭 — 발행 리포트는 시드 불가(트리거가 service_role에도 draft 강제) → 0건 상태로 검증.
+  // 데이터 있는 집계는 unit(service-stats.test.ts ~24개)이 담당한다.
+  test("통계 탭(#244) — 0건 빈 상태·ARIA 배선·3탭 방향키 순환", async ({ page }) => {
+    await login(page, ADMIN_EMAIL, ADMIN_PASSWORD);
+    await page.goto(`/admin/equipment/${equipmentId}?tab=stats`);
+    // 0건 빈 상태 — 에러·NaN 없이 렌더
+    await expect(page.getByText("통계를 낼 발행 리포트가 없습니다")).toBeVisible();
+    await expect(page.getByText("NaN")).toHaveCount(0);
+    // ARIA 배선
+    const statsTab = page.getByRole("tab", { name: "통계" });
+    await expect(statsTab).toHaveAttribute("aria-selected", "true");
+    await expect(statsTab).toHaveAttribute("aria-controls", "tabpanel-stats");
+    await expect(page.locator("#tabpanel-stats")).toBeVisible();
+    // 방향키 순환: 통계 → ArrowRight → 개요(순환)
+    await statsTab.focus();
+    await page.keyboard.press("ArrowRight");
+    await expect(page.getByRole("tab", { name: "개요" })).toHaveAttribute("aria-selected", "true");
+    // 새로고침 시 탭 보존
+    await page.goto(`/admin/equipment/${equipmentId}?tab=stats`);
+    await page.reload();
+    await expect(page.getByRole("tab", { name: "통계" })).toHaveAttribute("aria-selected", "true");
+  });
+
   test("영업(view) — 사이드바 노출·상세 진입 가능·수정 버튼 없음", async ({ page }) => {
     await login(page, SALES_EMAIL, SALES_PASSWORD);
     await expect(page.getByRole("link", { name: "장비", exact: true }).first()).toBeVisible();

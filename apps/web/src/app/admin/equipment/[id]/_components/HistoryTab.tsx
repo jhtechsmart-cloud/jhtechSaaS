@@ -2,6 +2,7 @@
 import { Fragment, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { adminPdfUrlAction } from "@/lib/service-reports/admin-actions";
+import { UnlinkedBanner } from "./UnlinkedBanner";
 import {
   filterReports,
   parseHistoryFilters,
@@ -168,19 +169,11 @@ export function HistoryTab({
   }
 
   // 미연결 안내는 0건 빈 상태보다 먼저 — 리포트가 안 보이는 이유가 미연결일 수 있는
-  // 바로 그 상황에서 배너가 가장 필요하다(조용한 누락 금지).
-  const unlinkedBanner = unlinkedCount > 0 && (
-    <p className="rounded-md border border-coral/40 bg-coral-soft px-3 py-2 text-small text-coral-text">
-      이 모델과 이름이 일치하지만 카탈로그에 연결되지 않은 보유장비가 {unlinkedCount}건 있습니다 —
-      해당 장비의 리포트는 이 이력에 포함되지 않았을 수 있습니다. 정정은 관리자가 고객 상세의
-      보유장비에서 카탈로그를 연결하면 됩니다.
-    </p>
-  );
-
+  // 바로 그 상황에서 배너가 가장 필요하다(조용한 누락 금지). 통계 탭과 공용(#244).
   if (rows.length === 0) {
     return (
       <div className="flex flex-col gap-3">
-        {unlinkedBanner}
+        <UnlinkedBanner count={unlinkedCount} />
         <div className="flex flex-col items-center gap-2 rounded-md border border-border bg-surface p-10">
           <p className="text-body font-medium text-text">발행된 A/S 리포트가 없습니다</p>
           <p className="text-small text-muted">
@@ -195,7 +188,7 @@ export function HistoryTab({
 
   return (
     <div className="flex flex-col gap-3">
-      {unlinkedBanner}
+      <UnlinkedBanner count={unlinkedCount} />
       {rows.length >= 300 && (
         <p className="rounded-md border border-border bg-surface-2 px-3 py-2 text-small text-muted">
           최근 300건만 표시 중입니다 — 필터·건수는 이 범위 기준입니다.
