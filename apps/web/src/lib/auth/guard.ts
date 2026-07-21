@@ -123,6 +123,14 @@ export const requireSupplyConsole = () =>
     "supply_requests.claim",
   ]);
 export const requireServiceReportsWrite = () => requirePermission("service_reports.write");
+// 장비 상세(#243) — 리포트 조회 3키(영업=view) 또는 카탈로그 관리자. ⚠️ view_all 단독 요구 금지(영업 403).
+export const requireEquipmentDetailRead = () =>
+  requireAnyPermission([
+    "service_reports.write",
+    "service_reports.view",
+    "service_reports.view_all",
+    "equipment.manage",
+  ]);
 // 서비스 리포트 조회 — admin 조회 화면용. view는 발행·무효본만 보는 읽기전용 키(영업 기본).
 export const requireServiceReportsRead = () =>
   requireAnyPermission(["service_reports.write", "service_reports.view", "service_reports.view_all"]);

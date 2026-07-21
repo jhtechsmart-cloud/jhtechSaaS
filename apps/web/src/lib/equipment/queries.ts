@@ -23,6 +23,64 @@ export async function listEquipment(): Promise<Equipment[]> {
   }) as unknown as Equipment[];
 }
 
+// #243 장비 상세 — 카탈로그 1건 + 분류명 + 옵션 + 재고. 없으면 null(호출부 notFound).
+export interface EquipmentDetail {
+  id: string;
+  name: string;
+  model: string | null;
+  category: string | null;
+  base_price: number;
+  status: "active" | "inactive";
+  photos: string[];
+  specs: ReturnType<typeof parseSpecs>;
+  options: { kind: "included" | "extra"; name: string; price: number }[];
+  inventory: { stock_qty: number; restock_date: string | null; note: string | null } | null;
+}
+
+export async function getEquipmentDetail(id: string): Promise<EquipmentDetail | null> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("equipment")
+    .select(
+      "id, name, model, base_price, status, photos, specs, equipment_category:category_id(name)",
+    )
+    .eq("id", id)
+    .single();
+  if (error || !data) return null;
+
+  const [{ data: optionRows }, { data: inv }] = await Promise.all([
+    supabase
+      .from("equipment_option")
+      .select("kind, name, price, sort_order")
+      .eq("equipment_id", id)
+      .order("sort_order", { ascending: true })
+      .order("name", { ascending: true }),
+    supabase
+      .from("equipment_inventory")
+      .select("stock_qty, restock_date, note")
+      .eq("equipment_id", id)
+      .maybeSingle(),
+  ]);
+
+  const cat = data.equipment_category as { name?: string } | null;
+  return {
+    id: data.id,
+    name: data.name,
+    model: data.model ?? null,
+    category: cat?.name ?? null,
+    base_price: Number(data.base_price),
+    status: data.status as "active" | "inactive",
+    photos: (data.photos ?? []) as string[],
+    specs: parseSpecs(data.specs),
+    options: (optionRows ?? []).map((o) => ({
+      kind: o.kind as "included" | "extra",
+      name: o.name,
+      price: Number(o.price),
+    })),
+    inventory: inv ?? null,
+  };
+}
+
 // 분류 전체 노드(대/소분류). 트리·드롭다운 빌더에 전달.
 export async function listCategoryTree(): Promise<CategoryNode[]> {
   const supabase = await createSupabaseServerClient();

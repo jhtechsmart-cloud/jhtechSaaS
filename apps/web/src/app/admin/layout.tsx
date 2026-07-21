@@ -92,7 +92,12 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     },
     // 데모예약 — 조회는 전 직원(쓰기만 demo_reservations.write로 게이팅)
     { href: "/admin/demo-reservations", label: "데모예약", icon: "calendarCheck", show: true, section: "업무" },
-    { href: "/admin/equipment", label: "장비", icon: "equipment", show: can(perms, "equipment.manage"), section: "카탈로그" },
+    {
+      // 장비 — #243: 영업(리포트 조회 view)도 상세·AS 이력 열람. 재고·분류는 manage 유지.
+      href: "/admin/equipment", label: "장비", icon: "equipment", section: "카탈로그",
+      show: can(perms, "equipment.manage") ||
+        anyOf(["service_reports.write", "service_reports.view", "service_reports.view_all"]),
+    },
     { href: "/admin/inventory", label: "재고현황", icon: "inventory", show: can(perms, "equipment.manage"), section: "카탈로그" },
     { href: "/admin/consumables", label: "소모품", icon: "consumables", show: can(perms, "consumables.manage"), section: "카탈로그" },
     { href: "/admin/categories", label: "분류", icon: "categories", show: can(perms, "equipment.manage"), section: "카탈로그" },

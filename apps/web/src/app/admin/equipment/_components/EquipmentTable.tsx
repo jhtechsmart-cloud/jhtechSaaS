@@ -19,7 +19,8 @@ const STATUS_BADGE: Record<Equipment["status"], { label: string; cls: string }> 
   inactive: { label: "비활성", cls: "bg-surface-2 text-muted" },
 };
 
-export function EquipmentTable({ items }: { items: Equipment[] }) {
+// canManage: 쓰기 UI(새 장비·수정 아이콘) 노출 여부 — 영업(읽기 전용)에겐 숨김. (#243)
+export function EquipmentTable({ items, canManage }: { items: Equipment[]; canManage: boolean }) {
   const router = useRouter();
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<StatusFilter>("all");
@@ -55,13 +56,17 @@ export function EquipmentTable({ items }: { items: Equipment[] }) {
     return (
       <div className="flex flex-col items-center gap-3 rounded-md border border-border bg-surface p-10">
         <p className="text-body font-medium text-text">등록된 장비가 없습니다</p>
-        <p className="text-small text-muted">첫 장비를 추가해 카탈로그를 시작하세요</p>
-        <Link
-          href="/admin/equipment/new"
-          className="rounded-md bg-accent px-4 py-2 text-body font-medium text-white"
-        >
-          + 새 장비
-        </Link>
+        <p className="text-small text-muted">
+          {canManage ? "첫 장비를 추가해 카탈로그를 시작하세요" : "관리자가 장비를 등록하면 여기에 표시됩니다"}
+        </p>
+        {canManage && (
+          <Link
+            href="/admin/equipment/new"
+            className="rounded-md bg-accent px-4 py-2 text-body font-medium text-white"
+          >
+            + 새 장비
+          </Link>
+        )}
       </div>
     );
   }
@@ -115,6 +120,7 @@ export function EquipmentTable({ items }: { items: Equipment[] }) {
               <th className="py-2 pr-4 font-medium">분류</th>
               <th className="py-2 pr-4 text-right font-medium">기본가</th>
               <th className="py-2 font-medium">상태</th>
+              {canManage && <th className="w-10 py-2"></th>}
             </tr>
           </thead>
           <tbody>
@@ -127,7 +133,7 @@ export function EquipmentTable({ items }: { items: Equipment[] }) {
                     className="cursor-pointer border-b border-border bg-surface-2/60 hover:bg-surface-2"
                     onClick={() => toggle(g.category)}
                   >
-                    <td colSpan={6} className="py-2">
+                    <td colSpan={canManage ? 7 : 6} className="py-2">
                       <span className="flex items-center gap-2 font-medium text-text">
                         <svg
                           viewBox="0 0 16 16"
@@ -149,8 +155,9 @@ export function EquipmentTable({ items }: { items: Equipment[] }) {
                       return (
                         <tr
                           key={it.id}
+                          // 행 클릭 = 상세(#243). 수정 직행은 우측 연필 아이콘(manage만).
                           className="cursor-pointer border-b border-border hover:bg-surface-2"
-                          onClick={() => router.push(`/admin/equipment/${it.id}/edit`)}
+                          onClick={() => router.push(`/admin/equipment/${it.id}`)}
                         >
                           <td className="py-2 pr-3">
                             {it.photos[0] ? (
@@ -168,7 +175,7 @@ export function EquipmentTable({ items }: { items: Equipment[] }) {
                           </td>
                           <td className="max-w-xs py-2 pr-4">
                             <Link
-                              href={`/admin/equipment/${it.id}/edit`}
+                              href={`/admin/equipment/${it.id}`}
                               className="block max-w-xs truncate font-medium text-text hover:text-accent"
                             >
                               {it.name}
@@ -184,6 +191,20 @@ export function EquipmentTable({ items }: { items: Equipment[] }) {
                               {badge.label}
                             </span>
                           </td>
+                          {canManage && (
+                            <td className="py-2 text-right">
+                              <Link
+                                href={`/admin/equipment/${it.id}/edit`}
+                                aria-label={`${it.name} 수정`}
+                                onClick={(e) => e.stopPropagation()}
+                                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted hover:bg-surface-2 hover:text-accent"
+                              >
+                                <svg viewBox="0 0 16 16" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.5">
+                                  <path d="M11.1 2.4l2.5 2.5L5.5 13 2.5 13.5 3 10.5l8.1-8.1z" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                              </Link>
+                            </td>
+                          )}
                         </tr>
                       );
                     })}
