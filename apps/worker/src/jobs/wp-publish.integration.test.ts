@@ -52,6 +52,12 @@ async function insertJob(
   action: string,
   wpPostId?: number,
 ): Promise<void> {
+  // INSERT 트리거의 자동 sync 잡과 부분 유니크가 충돌하지 않게 해당 장비 활성 잡 선정리
+  await supabase
+    .from("jobs")
+    .delete()
+    .eq("type", "wp_publish")
+    .eq("payload->>equipment_id", equipmentId);
   const { error } = await supabase.from("jobs").insert({
     type: "wp_publish",
     payload: {
@@ -214,6 +220,49 @@ describe("wp_publish 잡 — publish/unpublish/dirty", () => {
     await drainJobs(fake);
     const eq = await getEq(id);
     expect(eq.wp_post_status).toBe("draft");
+  });
+
+  test("storage에 없는 사진은 건너뛰고 잡은 성공한다 (한 장 누락이 저장을 막지 않음)", async () => {
+    const missing = "equipment/00000000-0000-0000-0000-00000000dcee/wp-missing.png";
+    const id = await seedEquipment({ photos: [PHOTO_A, missing] });
+    const fake = new FakeWpPublisher();
+    await supabase.from("jobs").delete().eq("type", "wp_publish"); // seed INSERT가 만든 자동 잡 정리
+    await insertJob(id, "sync");
+    await drainJobs(fake);
+    expect(fake.calls.filter((c) => c.method === "uploadMedia")).toHaveLength(1);
+    const eq = await getEq(id);
+    expect(eq.wp_post_id).toBe(1);
+    expect(Object.keys(eq.wp_media as Record<string, unknown>)).toEqual([PHOTO_A]);
+  });
+
+  test("publish 잡 처리 시점에 체크가 해제됐으면 발행하지 않는다 (내리기 의도 우선)", async () => {
+    const id = await seedEquipment();
+    const fake = new FakeWpPublisher();
+    await drainJobs(fake); // seed 자동 sync → draft 생성
+    // 체크 해제(트리거가 unpublish 잡 생성) 후 그 잡까지 소화 → draft 유지 상태
+    await supabase.from("equipment").update({ wp_publish_enabled: false }).eq("id", id);
+    await drainJobs(fake);
+    // 유실·레이스로 남았던 publish 잡을 모사(직접 주입 — RPC 가드 우회 경로)
+    await insertJob(id, "publish");
+    await drainJobs(fake);
+    const eq = await getEq(id);
+    expect(eq.wp_post_status).toBe("draft"); // 발행 안 됨
+    expect(fake.calls.filter((c) => c.method === "setStatus" && c.args[1] === "publish")).toHaveLength(0);
+  });
+
+  test("자가 치유: unpublish가 유실돼도 sync 잡이 상태를 재확인해 스스로 내린다", async () => {
+    const id = await seedEquipment();
+    const fake = new FakeWpPublisher();
+    await drainJobs(fake); // draft 생성
+    await insertJob(id, "publish");
+    await drainJobs(fake); // 공개
+    await supabase.from("equipment").update({ wp_publish_enabled: false }).eq("id", id);
+    // 트리거가 만든 unpublish 잡을 지워 "processing sync에 흡수돼 소실"된 상황 모사
+    await supabase.from("jobs").delete().eq("type", "wp_publish");
+    await insertJob(id, "sync");
+    await drainJobs(fake);
+    const eq = await getEq(id);
+    expect(eq.wp_post_status).toBe("draft"); // 워커가 스스로 내림
   });
 
   test("공개 후 수정(dirty) → refresh sync가 dirty를 해제한다", async () => {

@@ -1,5 +1,7 @@
 // 장비 분류 → WP 카테고리 해석(순수). 소분류 우선, 미설정이면 조상 방향 폴백.
 // resolveLogoKind 패턴 재사용 — 다중/순환 참조는 null(오연결보다 미연결이 안전).
+// ⚠️ SQL 쌍둥이 = supabase/migrations/20260804183000_equipment_wp_sync.sql의 resolve_wp_category_id
+//    (트리거·RPC용). 폴백 규칙을 바꾸면 반드시 양쪽을 같이 수정할 것 — db-tests가 동치 검증.
 
 export interface WpCategoryNode {
   id: string;

@@ -116,6 +116,13 @@ describe("renderWpPostHtml", () => {
     expect(html).not.toMatch(/가격|원|price/i);
   });
 
+  it("videoThumbnails 옵션이면 iframe 대신 정적 썸네일을 렌더한다 (sandbox 미리보기용)", () => {
+    const html = renderWpPostHtml(equip(), { imageUrls: urls, videoThumbnails: true });
+    expect(html).not.toContain("<iframe");
+    expect(html).toContain("https://img.youtube.com/vi/456ADQ8-8Xo/hqdefault.jpg");
+    expect(html).toContain("실제 글에서 재생됩니다");
+  });
+
   it("동일 입력 → 동일 출력 (결정적 스냅샷)", () => {
     const html = renderWpPostHtml(equip(), { imageUrls: urls });
     expect(html).toMatchSnapshot();

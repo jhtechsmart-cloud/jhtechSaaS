@@ -1,7 +1,7 @@
 "use client";
 // 장비 상세 "홈페이지" 패널(#253) — 3축 상태 배지 + 상태별 버튼 매트릭스 + 구성 미리보기 + 잡 폴링.
 // 공개 글 저장은 자동 반영되지 않으므로 '반영 대기' 보조 배지와 [홈페이지 갱신](primary)이 핵심 동선.
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import type { WpPrimaryStatus } from "@jhtechsaas/shared";
 import { enqueueWpAction, getWpSnapshot, type WpSnapshot } from "@/lib/equipment/wp-actions";
 
@@ -14,7 +14,7 @@ const BADGE: Record<WpPrimaryStatus, { label: string; cls: string }> = {
   pending_create: { label: "동기화 대기", cls: "bg-surface-2 text-muted" },
   syncing: { label: "동기화 중", cls: "bg-surface-2 text-muted" },
   failed: { label: "실패", cls: "bg-danger/10 text-danger" },
-  draft: { label: "초안", cls: "bg-surface-2 text-text" },
+  draft: { label: "초안", cls: "bg-surface-2 text-muted" },
   published: { label: "공개", cls: "bg-active/10 text-active" },
 };
 
@@ -27,6 +27,17 @@ function relativeTime(iso: string | null): string | null {
   const h = Math.floor(min / 60);
   if (h < 24) return `${h}시간 전`;
   return `${Math.floor(h / 24)}일 전`;
+}
+
+// 상대시간은 마운트 후에만 렌더 — SSR 시각과 클라 시각이 어긋나면 hydration 텍스트 불일치.
+// setState-in-effect 금지 규칙 준수: useSyncExternalStore 서버/클라 스냅샷 분기(표준 hydration 감지).
+const emptySubscribe = () => () => {};
+function useMounted(): boolean {
+  return useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false,
+  );
 }
 
 export function WpPanel({
@@ -47,6 +58,7 @@ export function WpPanel({
   const [previewOpen, setPreviewOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const mounted = useMounted();
 
   const syncing = snap.status.primary === "syncing";
 
@@ -95,11 +107,11 @@ export function WpPanel({
           )}
         </span>
         {snap.status.pendingRefresh && !syncing ? (
-          <span className="rounded-sm bg-[#D3E478]/30 px-2 py-0.5 text-micro font-medium text-text">
+          <span className="rounded-sm bg-lime/30 px-2 py-0.5 text-micro font-medium text-text">
             반영 대기
           </span>
         ) : null}
-        {snap.syncedAt ? (
+        {snap.syncedAt && mounted ? (
           <span className="ml-auto font-mono text-micro tabular-nums text-muted">
             마지막 반영: {relativeTime(snap.syncedAt)}
           </span>
@@ -107,11 +119,15 @@ export function WpPanel({
       </div>
 
       {snap.status.error ? (
-        <p className="mt-2 rounded-sm bg-danger/5 px-3 py-2 text-small text-danger">
+        <p role="alert" className="mt-2 rounded-sm bg-danger/5 px-3 py-2 text-small text-danger">
           {snap.status.error}
         </p>
       ) : null}
-      {err ? <p className="mt-2 text-small text-danger">{err}</p> : null}
+      {err ? (
+        <p role="alert" className="mt-2 text-small text-danger">
+          {err}
+        </p>
+      ) : null}
 
       {primary === "not_linked" ? (
         <p className="mt-2 text-small text-muted">
@@ -137,7 +153,7 @@ export function WpPanel({
           <button
             type="button"
             onClick={() => setPreviewOpen((v) => !v)}
-            className="rounded-md border border-border px-3 py-1.5 text-small font-medium text-text hover:bg-surface-2"
+            className="rounded-full border border-border px-3.5 py-1.5 text-small font-medium text-text hover:bg-surface-2"
           >
             {previewOpen ? "미리보기 닫기" : "구성 미리보기"}
           </button>
@@ -146,7 +162,7 @@ export function WpPanel({
               type="button"
               disabled={disabled}
               onClick={() => run("sync")}
-              className="rounded-md border border-border px-3 py-1.5 text-small font-medium text-text hover:bg-surface-2 disabled:opacity-50"
+              className="rounded-full border border-border px-3.5 py-1.5 text-small font-medium text-text hover:bg-surface-2 disabled:opacity-50"
             >
               {primary === "failed" ? "다시 시도" : "초안 동기화"}
             </button>
@@ -156,7 +172,7 @@ export function WpPanel({
               type="button"
               disabled={disabled}
               onClick={() => run("publish")}
-              className="rounded-md bg-accent px-3 py-1.5 text-small font-medium text-white disabled:opacity-50"
+              className="rounded-full bg-accent px-3.5 py-1.5 text-small font-medium text-white disabled:opacity-50"
             >
               홈페이지 발행
             </button>
@@ -166,7 +182,7 @@ export function WpPanel({
               type="button"
               disabled={disabled}
               onClick={() => run("refresh")}
-              className="rounded-md bg-accent px-3 py-1.5 text-small font-medium text-white disabled:opacity-50"
+              className="rounded-full bg-accent px-3.5 py-1.5 text-small font-medium text-white disabled:opacity-50"
             >
               홈페이지 갱신
             </button>

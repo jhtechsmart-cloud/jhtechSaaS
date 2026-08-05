@@ -80,16 +80,9 @@ begin
   new.wp_last_error := old.wp_last_error;
   new.wp_synced_at := old.wp_synced_at;
 
-  -- WP 반영 필드 비교 → dirty 계산. 제외 방식이 아니라 반영 필드 열거:
-  -- 본문을 구성하는 것만(name·model·photos·specs·highlights·youtube_urls·category_id).
-  v_fields_changed :=
-    new.name is distinct from old.name
-    or new.model is distinct from old.model
-    or new.photos is distinct from old.photos
-    or new.specs is distinct from old.specs
-    or new.highlights is distinct from old.highlights
-    or new.youtube_urls is distinct from old.youtube_urls
-    or new.category_id is distinct from old.category_id;
+  -- WP 반영 필드 비교 → dirty 계산. 단일 출처 = equipment_wp_fields_changed()
+  -- (enqueue 트리거와 공유 — 반영 필드 추가 시 그 함수 한 곳만 수정).
+  v_fields_changed := public.equipment_wp_fields_changed(old, new);
 
   if new.wp_publish_enabled and v_fields_changed then
     new.wp_dirty := true;
@@ -106,6 +99,9 @@ create trigger equipment_wp_guard_trg
   for each row execute function public.equipment_wp_guard();
 
 -- 5) enqueue 헬퍼 — 활성 잡 유니크 위반은 무해(이미 대기 중) → 흡수.
+-- 단 unpublish는 "내리기"가 sync보다 항상 우선이므로 대기(queued) 잡을 먼저 지우고 넣는다
+-- (흡수로 unpublish가 소실되면 내린 글이 영구 공개로 남는 사고 — /review 3모델 교차 확인).
+-- processing 잡은 못 지우므로 그 짧은 창은 워커의 자가 치유(sync가 상태 재확인 후 스스로 내림)가 담당.
 -- SECURITY DEFINER 필수: jobs는 RLS 정책 0 + GRANT 0이라 소유자 권한으로만 INSERT 가능.
 -- (⚠️ 로컬 Supabase 이미지에서 authenticated 실행 시 segfault 실측 — invoker 실행 금지)
 create or replace function public.enqueue_wp_job(p_equipment_id uuid, p_action text, p_wp_post_id integer)
@@ -115,6 +111,12 @@ security definer
 set search_path = ''
 as $$
 begin
+  if p_action = 'unpublish' then
+    delete from public.jobs
+    where type = 'wp_publish'
+      and status = 'queued'
+      and payload->>'equipment_id' = p_equipment_id::text;
+  end if;
   begin
     insert into public.jobs (type, payload)
     values ('wp_publish', jsonb_strip_nulls(jsonb_build_object(
@@ -123,9 +125,26 @@ begin
       'wp_post_id', p_wp_post_id
     )));
   exception when unique_violation then
-    null; -- 동일 장비 활성 잡 존재 — 중복 enqueue 무시
+    null; -- 동일 장비 활성(processing) 잡 존재 — 중복 enqueue 무시
   end;
 end;
+$$;
+
+-- 5b) WP 반영 필드 비교 — 가드(dirty 계산)·enqueue 두 트리거가 공유하는 단일 출처.
+--     반영 필드를 추가할 땐 이 함수 한 곳만 고친다(양쪽 복붙 드리프트 방지).
+create or replace function public.equipment_wp_fields_changed(p_old public.equipment, p_new public.equipment)
+returns boolean
+language sql
+immutable
+set search_path = ''
+as $$
+  select p_new.name is distinct from p_old.name
+    or p_new.model is distinct from p_old.model
+    or p_new.photos is distinct from p_old.photos
+    or p_new.specs is distinct from p_old.specs
+    or p_new.highlights is distinct from p_old.highlights
+    or p_new.youtube_urls is distinct from p_old.youtube_urls
+    or p_new.category_id is distinct from p_old.category_id;
 $$;
 
 -- 6) AFTER 트리거 — 저장 분기별 enqueue.
@@ -141,10 +160,21 @@ as $$
 declare
   v_fields_changed boolean;
   v_enabled_on boolean;
+  v_reactivated boolean;
 begin
   if tg_op = 'DELETE' then
     if old.wp_post_id is not null then
       perform public.enqueue_wp_job(old.id, 'unpublish', old.wp_post_id);
+    end if;
+    return null;
+  end if;
+
+  -- 신규 등록: 체크 켠 채 INSERT하면 즉시 초안 sync(UPDATE만 걸면 다음 편집까지 방치되는 구멍).
+  if tg_op = 'INSERT' then
+    if new.wp_publish_enabled
+       and new.status = 'active'
+       and public.resolve_wp_category_id(new.category_id) is not null then
+      perform public.enqueue_wp_job(new.id, 'sync', null);
     end if;
     return null;
   end if;
@@ -154,14 +184,8 @@ begin
   end if;
 
   v_enabled_on := new.wp_publish_enabled and not old.wp_publish_enabled;
-  v_fields_changed :=
-    new.name is distinct from old.name
-    or new.model is distinct from old.model
-    or new.photos is distinct from old.photos
-    or new.specs is distinct from old.specs
-    or new.highlights is distinct from old.highlights
-    or new.youtube_urls is distinct from old.youtube_urls
-    or new.category_id is distinct from old.category_id;
+  v_reactivated := new.status = 'active' and old.status = 'inactive';
+  v_fields_changed := public.equipment_wp_fields_changed(old, new);
 
   -- 내리기: 체크 해제 or inactive 전환
   if old.wp_post_id is not null
@@ -171,11 +195,12 @@ begin
     return null;
   end if;
 
-  -- 자동 sync: 공개 글은 제외(버튼으로만) — 미생성·초안만
+  -- 자동 sync: 공개 글은 제외(버튼으로만) — 미생성·초안만.
+  -- 재활성(inactive→active) 복귀도 초안 재동기화(내려간 글은 발행 버튼으로만 재공개).
   if new.wp_publish_enabled
      and new.status = 'active'
      and (new.wp_post_id is null or new.wp_post_status = 'draft')
-     and (v_enabled_on or v_fields_changed)
+     and (v_enabled_on or v_reactivated or v_fields_changed)
      and public.resolve_wp_category_id(new.category_id) is not null then
     perform public.enqueue_wp_job(new.id, 'sync', null);
   end if;
@@ -185,7 +210,7 @@ end;
 $$;
 
 create trigger equipment_wp_enqueue_trg
-  after update or delete on public.equipment
+  after insert or update or delete on public.equipment
   for each row execute function public.equipment_wp_enqueue();
 
 -- 7) 버튼 경로 RPC — 발행/갱신/재시도. 권한(equipment.manage)+상태 검증을 서버가 강제.
@@ -210,6 +235,15 @@ begin
     raise exception '장비를 찾을 수 없습니다';
   end if;
 
+  -- 활성 잡 존재 시 명시 거부 — 조용한 흡수 대신 UI에 사유 전달(버튼은 원래 disabled지만 레이스 방어)
+  if exists (
+    select 1 from public.jobs
+    where type = 'wp_publish' and status in ('queued','processing')
+      and payload->>'equipment_id' = p_equipment_id::text
+  ) then
+    raise exception '이미 동기화가 진행 중입니다. 잠시 후 다시 시도하세요.';
+  end if;
+
   if p_action = 'publish' then
     if not v_eq.wp_publish_enabled then raise exception '홈페이지 등록이 체크되지 않은 장비입니다'; end if;
     if v_eq.status <> 'active' then raise exception '비활성 장비는 발행할 수 없습니다'; end if;
@@ -218,6 +252,8 @@ begin
     perform public.enqueue_wp_job(v_eq.id, 'publish', v_eq.wp_post_id);
   elsif p_action = 'refresh' then
     if v_eq.wp_post_status is distinct from 'publish' then raise exception '공개된 글만 갱신할 수 있습니다'; end if;
+    if not v_eq.wp_publish_enabled then raise exception '홈페이지 등록이 체크되지 않은 장비입니다'; end if;
+    if v_eq.status <> 'active' then raise exception '비활성 장비는 갱신할 수 없습니다'; end if;
     perform public.enqueue_wp_job(v_eq.id, 'sync', null);
   elsif p_action = 'sync' then
     if not v_eq.wp_publish_enabled then raise exception '홈페이지 등록이 체크되지 않은 장비입니다'; end if;
@@ -251,7 +287,6 @@ set search_path = ''
 as $$
 declare
   v_eq public.equipment;
-  v_cas_won boolean := true;
 begin
   select * into v_eq from public.equipment where id = p_equipment_id for update;
   if v_eq.id is null then
@@ -283,7 +318,8 @@ begin
   where id = p_equipment_id;
   perform set_config('app.wp_sync', '', true);
 
-  return jsonb_build_object('cas_won', v_cas_won, 'wp_post_id', coalesce(p_post_id, v_eq.wp_post_id));
+  -- CAS 패배 경로는 위에서 조기 return — 여기 도달 = 항상 승리
+  return jsonb_build_object('cas_won', true, 'wp_post_id', coalesce(p_post_id, v_eq.wp_post_id));
 end;
 $$;
 revoke all on function public.record_wp_sync(uuid, integer, text, jsonb, text, boolean, timestamptz, boolean) from public, anon, authenticated;
@@ -294,6 +330,8 @@ revoke all on function public.enqueue_wp_job(uuid, text, integer) from public, a
 
 -- 9) 패널 조회용 — 장비의 활성 wp_publish 잡 상태(queued/processing/null).
 --    jobs는 RLS 정책 0이라 화면이 '동기화 중'을 알 유일한 통로. 읽기 전용 최소 노출.
+--    ⚠️ 관례 예외: 내부 has_permission 검사 없이 authenticated 전원 허용 —
+--    노출값이 상태 문자열(queued/processing) 1개뿐이고, 장비 상세는 전 스태프 열람 대상이라 저위험 승인(/review).
 create or replace function public.get_wp_job_state(p_equipment_id uuid)
 returns text
 language sql

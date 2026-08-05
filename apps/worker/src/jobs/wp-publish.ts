@@ -16,7 +16,9 @@ import {
 //   + WP post meta equipment_uuid로 결정적 재연결(slug/이름 검색 금지 — 동명 장비 오연결 방지).
 // 실패 분류: transient만 throw(잡 재시도), auth/permanent/not_found는 wp_last_error 기록 후 종료(재시도 낭비 금지).
 
-const WP_PRODUCT_CATEGORY_ID = 9; // 판매 제품 — 모든 장비 글에 항상 부착
+// '판매 제품' 루트 카테고리 — 모든 장비 글에 항상 부착.
+// ⚠️ 실제 WP 사이트(jhtech.co.kr)의 카테고리 id 실측값 — WP 쪽에서 카테고리를 재생성하면 갱신 필요.
+const WP_PRODUCT_CATEGORY_ID = 9;
 const IMAGE_BUCKET = "equipment-images";
 
 const MIME_BY_EXT: Record<string, string> = {
@@ -133,7 +135,6 @@ async function resolveCategory(
 async function syncMedia(
   supabase: SupabaseClient,
   publisher: WpPublisher,
-  equipmentId: string,
   photos: string[],
   current: Record<string, WpMediaEntry>,
   touch?: () => Promise<void>,
@@ -171,15 +172,52 @@ async function syncMedia(
   return { map, removed, fail: null };
 }
 
+// 재연결 정책 단일화: meta로 기존 글을 찾으면 갱신, 없으면 draft 재생성.
+// 404 복구 분기와 미생성 분기가 공유(중복 2벌 방지 — /review).
+async function reconnectOrCreate(
+  supabase: SupabaseClient,
+  publisher: WpPublisher,
+  equipmentId: string,
+  post: Parameters<WpPublisher["createDraft"]>[0],
+): Promise<{ postId: number; postStatus: "draft" | "publish" } | null> {
+  const found = await publisher.findByMeta(equipmentId);
+  const { value: ref, fail } = unwrap(found);
+  if (fail) {
+    await handleFail(supabase, equipmentId, fail.kind, `재연결 조회 실패: ${fail.error}`);
+    return null;
+  }
+  if (ref) {
+    const updated = await publisher.updatePost(ref.postId, post);
+    if (!updated.ok) {
+      await handleFail(supabase, equipmentId, updated.kind, `재연결 갱신 실패: ${updated.error}`);
+      return null;
+    }
+    return { postId: ref.postId, postStatus: ref.status ?? "draft" };
+  }
+  const created = await publisher.createDraft(post);
+  if (!created.ok) {
+    await handleFail(supabase, equipmentId, created.kind, `초안 생성 실패: ${created.error}`);
+    return null;
+  }
+  return { postId: created.value.postId, postStatus: "draft" };
+}
+
 async function processSync(
   supabase: SupabaseClient,
   publisher: WpPublisher,
   eq: EquipmentRow,
   opts: WpPublishOpts,
 ): Promise<void> {
-  // 상태가 그 사이 바뀌었으면 조용히 종료(해당 상태 전환이 자체 잡을 이미 enqueue함)
+  // 상태가 그 사이 바뀌었으면: 공개 글이 남아 있으면 스스로 내린다(자가 치유).
+  // 근거: 체크 해제·비활성의 unpublish 잡은 활성 sync 잡(processing)에 흡수돼 소실될 수 있다 —
+  // 그 마지막 방어선이 이 분기다(/review 3모델 교차 확인).
   if (!eq.wp_publish_enabled || eq.status !== "active") {
-    console.warn(`[worker] wp_publish sync 스킵 — 상태 변경됨 equipment=${eq.id}`);
+    if (eq.wp_post_id != null && eq.wp_post_status === "publish") {
+      console.warn(`[worker] wp_publish sync → 자가 unpublish (상태 변경 감지) equipment=${eq.id}`);
+      await processStatusChange(supabase, publisher, eq.id, eq.wp_post_id, "draft");
+    } else {
+      console.warn(`[worker] wp_publish sync 스킵 — 상태 변경됨 equipment=${eq.id}`);
+    }
     return;
   }
   const categoryId = await resolveCategory(supabase, eq.category_id);
@@ -191,17 +229,18 @@ async function processSync(
     return;
   }
 
-  const media = await syncMedia(
-    supabase,
-    publisher,
-    eq.id,
-    eq.photos,
-    eq.wp_media ?? {},
-    opts.touch,
-  );
+  const media = await syncMedia(supabase, publisher, eq.photos, eq.wp_media ?? {}, opts.touch);
   if (media.fail) {
     await handleFail(supabase, eq.id, media.fail.kind, `미디어 업로드 실패: ${media.fail.error}`);
     return;
+  }
+  // 업로드 성공분을 즉시 기록 — 이후 글 upsert가 실패해도 재시도가 재업로드 없이 재개(WP 고아 미디어 방지).
+  // (기존+신규 합산 맵이라 삭제 대상 항목도 이 시점엔 보존 — 최종 기록에서 정리)
+  if (Object.keys(media.map).length > 0 || media.removed.length > 0) {
+    await recordSync(supabase, {
+      equipmentId: eq.id,
+      media: { ...(eq.wp_media ?? {}), ...media.map },
+    });
   }
 
   const imageUrls = Object.fromEntries(
@@ -234,29 +273,10 @@ async function processSync(
     const updated = await publisher.updatePost(postId, post);
     if (!updated.ok && updated.kind === "not_found") {
       // 원격 글 소실 — meta로 재연결, 없으면 재생성
-      const found = await publisher.findByMeta(eq.id);
-      const { value: ref, fail } = unwrap(found);
-      if (fail) {
-        await handleFail(supabase, eq.id, fail.kind, `재연결 조회 실패: ${fail.error}`);
-        return;
-      }
-      if (ref) {
-        const reupdated = await publisher.updatePost(ref.postId, post);
-        if (!reupdated.ok) {
-          await handleFail(supabase, eq.id, reupdated.kind, `재연결 갱신 실패: ${reupdated.error}`);
-          return;
-        }
-        postId = ref.postId;
-        postStatus = ref.status ?? "draft";
-      } else {
-        const recreated = await publisher.createDraft(post);
-        if (!recreated.ok) {
-          await handleFail(supabase, eq.id, recreated.kind, `재생성 실패: ${recreated.error}`);
-          return;
-        }
-        postId = recreated.value.postId;
-        postStatus = "draft";
-      }
+      const recovered = await reconnectOrCreate(supabase, publisher, eq.id, post);
+      if (!recovered) return; // 실패는 reconnectOrCreate가 기록
+      postId = recovered.postId;
+      postStatus = recovered.postStatus;
       replace = true;
     } else if (!updated.ok) {
       await handleFail(supabase, eq.id, updated.kind, `글 갱신 실패: ${updated.error}`);
@@ -264,29 +284,10 @@ async function processSync(
     }
   } else {
     // 미생성: 부분 실패 재시도 대비 meta 재연결 먼저
-    const found = await publisher.findByMeta(eq.id);
-    const { value: ref, fail } = unwrap(found);
-    if (fail) {
-      await handleFail(supabase, eq.id, fail.kind, `재연결 조회 실패: ${fail.error}`);
-      return;
-    }
-    if (ref) {
-      const updated = await publisher.updatePost(ref.postId, post);
-      if (!updated.ok) {
-        await handleFail(supabase, eq.id, updated.kind, `글 갱신 실패: ${updated.error}`);
-        return;
-      }
-      postId = ref.postId;
-      postStatus = ref.status ?? "draft";
-    } else {
-      const created = await publisher.createDraft(post);
-      if (!created.ok) {
-        await handleFail(supabase, eq.id, created.kind, `초안 생성 실패: ${created.error}`);
-        return;
-      }
-      postId = created.value.postId;
-      postStatus = "draft";
-    }
+    const recovered = await reconnectOrCreate(supabase, publisher, eq.id, post);
+    if (!recovered) return;
+    postId = recovered.postId;
+    postStatus = recovered.postStatus;
   }
 
   const recorded = await recordSync(supabase, {
@@ -362,6 +363,11 @@ export async function processWpPublishJob(
   if (action === "publish") {
     if (eq.wp_post_id == null) {
       await recordSync(supabase, { equipmentId, lastError: "발행할 초안이 없습니다" });
+      return;
+    }
+    // enqueue 후 체크 해제·비활성 전환됐으면 발행 금지 — 내리기 의도가 항상 우선(/review 보안 지적).
+    if (!eq.wp_publish_enabled || eq.status !== "active") {
+      console.warn(`[worker] wp_publish publish 스킵 — 상태 변경됨(발행 취소) equipment=${eq.id}`);
       return;
     }
     await processStatusChange(supabase, publisher, equipmentId, eq.wp_post_id, "publish");

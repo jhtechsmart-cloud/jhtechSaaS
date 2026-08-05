@@ -95,6 +95,8 @@ export default async function EquipmentDetailPage({
           },
           {
             imageUrls: Object.fromEntries(detail.photos.map((p) => [p, publicImageUrl(p)])),
+            // sandbox iframe은 스크립트 차단으로 유튜브 embed가 빈 박스 — 정적 썸네일로 대체
+            videoThumbnails: true,
           },
         )
       : "";

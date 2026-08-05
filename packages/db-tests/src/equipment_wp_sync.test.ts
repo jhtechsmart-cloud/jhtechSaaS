@@ -248,6 +248,8 @@ describe("enqueue_wp_publish RPC — 버튼 경로", () => {
       await asUser(c, UID.admin);
       await c.query("update public.equipment set wp_publish_enabled=true where id=$1", [id]);
       await recordPost(id, 42, "publish");
+      await asPostgres(c);
+      await c.query("delete from public.jobs where type='wp_publish'"); // 활성 잡 pre-check 회피
       await asUser(c, UID.admin);
       await expect(c.query("select public.enqueue_wp_publish($1,'publish')", [id])).rejects.toThrow(/공개/);
     });
@@ -358,6 +360,142 @@ describe("record_wp_sync RPC — 워커 기록", () => {
       await c.query("select public.record_wp_sync($1, 42, 'draft', '{}'::jsonb, null, true, null)", [id]);
       await asPostgres(c);
       expect((await c.query("select wp_last_error from public.equipment where id=$1", [id])).rows[0].wp_last_error).toBeNull();
+    });
+  });
+});
+
+describe("equipment wp — /review 보강", () => {
+  test("체크 켠 채 신규 등록(INSERT) → 즉시 sync 잡 (다음 편집까지 방치 방지)", async () => {
+    await inRollbackTx(c, async () => {
+      await seed();
+      await asUser(c, UID.admin);
+      const r = await c.query(
+        "insert into public.equipment (name,base_price,status,category_id,wp_publish_enabled) values ('신규체크',0,'active',$1,true) returning id",
+        [CAT_SUB],
+      );
+      expect(await wpJobs(r.rows[0].id as string)).toEqual([{ action: "sync", status: "queued" }]);
+    });
+  });
+
+  test("장비 행 DELETE(공개 글 존재) → unpublish 잡 + payload wp_post_id 보존", async () => {
+    await inRollbackTx(c, async () => {
+      const id = await seed();
+      await asUser(c, UID.admin);
+      await c.query("update public.equipment set wp_publish_enabled=true where id=$1", [id]);
+      await recordPost(id, 42, "publish");
+      await asPostgres(c);
+      await c.query("delete from public.jobs where type='wp_publish'");
+      await asUser(c, UID.admin);
+      await c.query("delete from public.equipment where id=$1", [id]);
+      await asPostgres(c);
+      const r = await c.query(
+        "select payload from public.jobs where type='wp_publish' and payload->>'equipment_id'=$1",
+        [id],
+      );
+      expect(r.rows).toHaveLength(1);
+      expect(r.rows[0].payload.action).toBe("unpublish");
+      expect(r.rows[0].payload.wp_post_id).toBe(42);
+    });
+  });
+
+  test("대기 중 sync 잡이 있어도 unpublish는 소실되지 않는다 (queued 대체)", async () => {
+    await inRollbackTx(c, async () => {
+      const id = await seed();
+      await asUser(c, UID.admin);
+      await c.query("update public.equipment set wp_publish_enabled=true where id=$1", [id]);
+      await recordPost(id, 42, "publish");
+      await asUser(c, UID.admin);
+      await c.query("update public.equipment set name='수정' where id=$1", [id]); // 공개 글 → 잡 없음(dirty만)
+      // 대기 sync 잡을 인위로 만들어 흡수 시나리오 구성
+      await asPostgres(c);
+      await c.query("delete from public.jobs where type='wp_publish'");
+      await c.query(
+        "insert into public.jobs (type,payload) values ('wp_publish', jsonb_build_object('equipment_id',$1::text,'action','sync'))",
+        [id],
+      );
+      await asUser(c, UID.admin);
+      await c.query("update public.equipment set wp_publish_enabled=false where id=$1", [id]);
+      const jobs = await wpJobs(id);
+      expect(jobs).toEqual([{ action: "unpublish", status: "queued" }]); // sync가 대체됨
+    });
+  });
+
+  test("inactive → active 재활성 → 초안 sync 잡 (재공개는 버튼으로만)", async () => {
+    await inRollbackTx(c, async () => {
+      const id = await seed();
+      await asUser(c, UID.admin);
+      await c.query("update public.equipment set wp_publish_enabled=true where id=$1", [id]);
+      await c.query("update public.equipment set status='inactive' where id=$1", [id]);
+      await asPostgres(c);
+      await c.query("delete from public.jobs where type='wp_publish'");
+      await asUser(c, UID.admin);
+      await c.query("update public.equipment set status='active' where id=$1", [id]);
+      expect(await wpJobs(id)).toEqual([{ action: "sync", status: "queued" }]);
+    });
+  });
+
+  test("enqueue_wp_publish 가드 전수: 비활성 발행·초안 없음·공개글 sync·글 없는 unpublish·미지 동작 전부 거부", async () => {
+    await inRollbackTx(c, async () => {
+      const id = await seed();
+      await asUser(c, UID.admin);
+      await c.query("update public.equipment set wp_publish_enabled=true where id=$1", [id]);
+      await asPostgres(c);
+      await c.query("delete from public.jobs where type='wp_publish'");
+      // 한 트랜잭션에서 연속 예외를 검증 — savepoint로 abort 상태 복구
+      async function expectReject(action: string, pattern: RegExp): Promise<void> {
+        await c.query("savepoint sp");
+        await expect(c.query("select public.enqueue_wp_publish($1,$2)", [id, action])).rejects.toThrow(pattern);
+        await c.query("rollback to savepoint sp");
+      }
+
+      await asUser(c, UID.admin);
+      await expectReject("publish", /초안/);
+      await expectReject("unpublish", /글이 없습니다/);
+      await expectReject("nonsense", /알 수 없는/);
+
+      await recordPost(id, 42, "publish");
+      await asPostgres(c);
+      await c.query("delete from public.jobs where type='wp_publish'");
+      await asUser(c, UID.admin);
+      await expectReject("sync", /갱신/);
+
+      await asPostgres(c);
+      await c.query("delete from public.jobs where type='wp_publish'");
+      await asUser(c, UID.admin);
+      await c.query("update public.equipment set status='inactive' where id=$1", [id]); // unpublish 잡 생성됨
+      await asPostgres(c);
+      await c.query("delete from public.jobs where type='wp_publish'");
+      await asUser(c, UID.admin);
+      await expectReject("refresh", /비활성/);
+    });
+  });
+
+  test("활성 잡 존재 시 버튼 RPC는 명시 거부 ('진행 중' 안내)", async () => {
+    await inRollbackTx(c, async () => {
+      const id = await seed();
+      await asUser(c, UID.admin);
+      await c.query("update public.equipment set wp_publish_enabled=true where id=$1", [id]); // sync queued
+      await expect(c.query("select public.enqueue_wp_publish($1,'sync')", [id])).rejects.toThrow(/진행 중/);
+    });
+  });
+
+  test("get_wp_job_state: 활성 잡이면 상태 문자열, 없으면 null + anon 실행 불가(권한 카탈로그)", async () => {
+    await inRollbackTx(c, async () => {
+      const id = await seed();
+      await asUser(c, UID.admin);
+      await c.query("update public.equipment set wp_publish_enabled=true where id=$1", [id]);
+      const active = await c.query("select public.get_wp_job_state($1) as s", [id]);
+      expect(active.rows[0].s).toBe("queued");
+      await asPostgres(c);
+      await c.query("delete from public.jobs where type='wp_publish'");
+      await asUser(c, UID.admin);
+      const idle = await c.query("select public.get_wp_job_state($1) as s", [id]);
+      expect(idle.rows[0].s).toBeNull();
+      await asPostgres(c);
+      const priv = await c.query(
+        "select has_function_privilege('anon','public.get_wp_job_state(uuid)','execute') as anon_ok, has_function_privilege('authenticated','public.get_wp_job_state(uuid)','execute') as auth_ok",
+      );
+      expect(priv.rows[0]).toEqual({ anon_ok: false, auth_ok: true });
     });
   });
 });

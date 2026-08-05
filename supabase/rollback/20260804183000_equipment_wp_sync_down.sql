@@ -1,10 +1,13 @@
 -- #253 롤백 — equipment WP 연동 컬럼·트리거·RPC 제거 (20260804183000_equipment_wp_sync)
+-- 잔여 wp_publish 잡 정리 — 남겨두면 핸들러 없는 워커가 attempts 소진까지 실패 루프를 돈다.
+delete from public.jobs where type = 'wp_publish' and status in ('queued','processing');
 drop function if exists public.get_wp_job_state(uuid);
 drop function if exists public.record_wp_sync(uuid, integer, text, jsonb, text, boolean, timestamptz, boolean);
 drop function if exists public.enqueue_wp_publish(uuid, text);
 drop trigger if exists equipment_wp_enqueue_trg on public.equipment;
 drop function if exists public.equipment_wp_enqueue();
 drop function if exists public.enqueue_wp_job(uuid, text, integer);
+drop function if exists public.equipment_wp_fields_changed(public.equipment, public.equipment);
 drop trigger if exists equipment_wp_guard_trg on public.equipment;
 drop function if exists public.equipment_wp_guard();
 drop index if exists public.jobs_wp_publish_active_uniq;

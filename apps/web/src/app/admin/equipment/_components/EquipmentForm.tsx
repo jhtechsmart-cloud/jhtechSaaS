@@ -116,6 +116,7 @@ export function EquipmentForm(props: Props) {
       props.mode === "edit" &&
       needsUnpublishConfirm({
         initialEnabled: props.initial.wp_publish_enabled,
+        initialStatus: props.initial.status,
         wpPostStatus: props.wpPostStatus,
         nextEnabled: values.wp_publish_enabled,
         nextStatus: values.status,

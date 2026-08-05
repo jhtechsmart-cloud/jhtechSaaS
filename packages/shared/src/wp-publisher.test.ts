@@ -149,6 +149,55 @@ describe("WpRestPublisher", () => {
     }
   });
 
+  it("findByMeta: WP가 meta 쿼리를 무시하고 최신 글을 돌려줘도 meta 불일치면 null (무관 글 덮어쓰기 차단)", async () => {
+    // WP 코어 REST는 meta_key/meta_value를 조용히 무시한다 — 응답 meta 대조가 유일한 방어선.
+    const fakeFetch: typeof fetch = async () =>
+      new Response(
+        JSON.stringify([
+          { id: 500, status: "publish", link: "https://x/latest-blog-post" }, // meta 없음(무관 글)
+          { id: 501, status: "publish", meta: { jhtech_equipment_uuid: "다른-uuid" } },
+        ]),
+        { status: 200 },
+      );
+    const pub = new WpRestPublisher(env, { fetch: fakeFetch });
+    const r = await pub.findByMeta(post.equipmentUuid);
+    expect(r.ok).toBe(true);
+    if (!r.ok) throw new Error("unreachable");
+    expect(r.value).toBeNull();
+  });
+
+  it("findByMeta: meta가 일치하는 글만 재연결 대상으로 반환한다", async () => {
+    const fakeFetch: typeof fetch = async (input) => {
+      expect(String(input)).toContain("context=edit");
+      return new Response(
+        JSON.stringify([
+          { id: 500, status: "publish" },
+          { id: 77, status: "draft", link: "https://x/?p=77", meta: { jhtech_equipment_uuid: post.equipmentUuid } },
+        ]),
+        { status: 200 },
+      );
+    };
+    const pub = new WpRestPublisher(env, { fetch: fakeFetch });
+    const r = await pub.findByMeta(post.equipmentUuid);
+    if (!r.ok) throw new Error("unreachable");
+    expect(r.value).toEqual({ postId: 77, link: "https://x/?p=77", status: "draft" });
+  });
+
+  it("uploadMedia 파일명은 안전 문자셋으로 강제된다 (CR/LF·백슬래시 헤더 파괴 방지)", async () => {
+    let disposition: string | null = null;
+    const fakeFetch: typeof fetch = async (_input, init) => {
+      disposition = new Headers(init?.headers).get("Content-Disposition");
+      return new Response(JSON.stringify({ id: 1, source_url: "https://x/a" }), { status: 201 });
+    };
+    const pub = new WpRestPublisher(env, { fetch: fakeFetch });
+    await pub.uploadMedia({
+      filename: 'evil"\nname\\x.png',
+      content: new Uint8Array([1]),
+      mimeType: "image/png",
+    });
+    expect(disposition).toBe('attachment; filename="evil__name_x.png"');
+  });
+
   it("네트워크 예외는 transient로 분류한다", async () => {
     const fakeFetch: typeof fetch = async () => {
       throw new Error("ECONNRESET");

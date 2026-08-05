@@ -130,7 +130,8 @@ function WpCategorySelect({
       </select>
       {/* 상속 실효값 — 미설정 소분류가 '매핑필요'인지 '상속 OK'인지 화면에서 구분(#253 결정 17) */}
       {current == null && inheritedName ? (
-        <span className="text-micro text-muted/70">↑ {inheritedName} 상속</span>
+        // 투명도 흐림은 micro 크기에서 AA 미달 — ↑ 기호만으로 구분(DESIGN.md 대비 규칙)
+        <span className="text-micro text-muted">↑ {inheritedName} 상속</span>
       ) : null}
     </label>
   );

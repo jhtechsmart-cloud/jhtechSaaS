@@ -17,6 +17,11 @@ export interface WpPostEquipment {
 export interface WpPostRenderOptions {
   /** storage 경로 → 렌더에 쓸 이미지 URL */
   imageUrls: Record<string, string>;
+  /**
+   * 영상을 iframe 대신 정적 썸네일로 렌더 — sandbox iframe 미리보기용
+   * (sandbox=""는 스크립트를 막아 유튜브 embed가 빈 박스로 보인다).
+   */
+  videoThumbnails?: boolean;
 }
 
 function esc(s: string): string {
@@ -66,9 +71,15 @@ export function renderWpPostHtml(
   for (const url of equipment.youtubeUrls) {
     const id = parseYoutubeId(url);
     if (!id) continue;
-    parts.push(
-      `<div class="jh-wp-video"><iframe src="${youtubeEmbedUrl(id)}" title="${esc(equipment.name)}" loading="lazy" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>`,
-    );
+    if (options.videoThumbnails) {
+      parts.push(
+        `<div class="jh-wp-video"><img src="https://img.youtube.com/vi/${id}/hqdefault.jpg" alt="${esc(equipment.name)} 영상" loading="lazy" /><p>▶ 유튜브 영상 (실제 글에서 재생됩니다)</p></div>`,
+      );
+    } else {
+      parts.push(
+        `<div class="jh-wp-video"><iframe src="${youtubeEmbedUrl(id)}" title="${esc(equipment.name)}" loading="lazy" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>`,
+      );
+    }
   }
 
   return parts.join("\n");

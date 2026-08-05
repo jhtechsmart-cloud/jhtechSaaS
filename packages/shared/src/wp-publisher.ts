@@ -141,6 +141,8 @@ const WpPostSchema = z.object({
   id: z.number(),
   status: z.enum(["draft", "publish", "pending", "private", "future", "trash"]).optional(),
   link: z.string().optional(),
+  // 재연결 검증용 — register_post_meta 미등록이면 응답에 없을 수 있음(그 경우 재연결 불가 = 안전한 재생성)
+  meta: z.record(z.string(), z.unknown()).optional(),
 });
 const WpMediaSchema = z.object({ id: z.number(), source_url: z.string() });
 const WpPostListSchema = z.array(WpPostSchema);
@@ -184,9 +186,11 @@ export class WpRestPublisher implements WpPublisher {
       res = await this.doFetch(`${this.base}${path}`, {
         ...init,
         headers: { Authorization: this.auth, ...(init.headers ?? {}) },
+        // 무타임아웃이면 WP가 응답을 물고 있을 때 워커 폴링 루프 전체(PDF·메일 포함)가 정지한다
+        signal: AbortSignal.timeout(30_000),
       });
     } catch (e) {
-      // 네트워크 오류 = 도달 불명 → 재시도(중복은 DB CAS가 방지)
+      // 네트워크 오류·타임아웃 = 도달 불명 → 재시도(중복은 DB CAS가 방지)
       return { ok: false, error: e instanceof Error ? e.message : String(e), kind: "transient" };
     }
     const json: unknown = await res.json().catch(() => null);
@@ -213,19 +217,21 @@ export class WpRestPublisher implements WpPublisher {
   }
 
   async findByMeta(equipmentUuid: string): Promise<WpResult<WpPostRef | null>> {
-    // meta_key/meta_value 쿼리는 WP 기본 REST에서 제한적 → search + meta 대조 대신
-    // meta 쿼리 파라미터를 우선 시도(허용 안 되면 빈 배열 = null 반환, 워커는 재생성 경로).
+    // ⚠️ WP 코어 REST는 meta_key/meta_value 쿼리를 "에러 없이 무시"한다(/review 적대 리뷰 확인) —
+    // 쿼리 파라미터만 믿으면 필터 안 된 최신 글이 돌아와 무관 글을 덮어쓴다.
+    // 방어 = 응답의 meta[WP_EQUIPMENT_META_KEY]를 클라이언트에서 대조, 불일치·meta 부재는 전부 미발견(null).
+    // (register_post_meta(show_in_rest) 미등록 환경이면 항상 null → 재생성 경로 = 오연결보다 안전)
     const r = await this.request(
       `/wp/v2/posts?status=draft,publish&per_page=100&meta_key=${WP_EQUIPMENT_META_KEY}&meta_value=${encodeURIComponent(equipmentUuid)}&context=edit`,
       { method: "GET" },
       WpPostListSchema,
     );
     if (!r.ok) return r;
-    const first = r.value[0];
-    if (!first) return { ok: true, value: null };
+    const match = r.value.find((p) => p.meta?.[WP_EQUIPMENT_META_KEY] === equipmentUuid);
+    if (!match) return { ok: true, value: null };
     return {
       ok: true,
-      value: { postId: first.id, link: first.link, status: toPostStatus(first.status) },
+      value: { postId: match.id, link: match.link, status: toPostStatus(match.status) },
     };
   }
 
@@ -288,7 +294,8 @@ export class WpRestPublisher implements WpPublisher {
       {
         method: "POST",
         headers: {
-          "Content-Disposition": `attachment; filename="${media.filename.replaceAll('"', "")}"`,
+          // 파일명은 안전 문자셋으로 강제 — CR/LF·백슬래시가 헤더를 깨거나(undici throw) 인용을 망가뜨린다
+          "Content-Disposition": `attachment; filename="${media.filename.replace(/[^A-Za-z0-9._-]/g, "_")}"`,
           "Content-Type": media.mimeType,
         },
         body: media.content,
