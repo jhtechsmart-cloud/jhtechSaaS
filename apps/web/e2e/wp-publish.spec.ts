@@ -1,0 +1,142 @@
+import { test, expect, type Page } from "@playwright/test";
+
+// #253 장비 → 홈페이지(워드프레스) 자동 등록 — 폼 체크박스·상세 패널 배지·분류 매핑 안내.
+// 워커는 e2e에서 돌지 않으므로 잡은 queued로 남는다 → '동기화 중' 배지가 관찰 대상.
+const ADMIN_EMAIL = process.env.E2E_ADMIN_EMAIL ?? "admin@jhtech.local";
+const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD ?? "jhtech-admin-dev";
+
+const EQ_MAPPED = "E2E_WP연동장비";
+const EQ_UNMAPPED = "E2E_WP미매핑장비";
+const CAT_MAPPED = "E2E_WP매핑분류";
+const CAT_UNMAPPED = "E2E_WP미매핑분류";
+
+// 로컬 Supabase 서비스롤 — 시드·정리용(비밀 아님, 공개 표준 데모 키).
+const LOCAL_SUPABASE_URL = "http://127.0.0.1:54321";
+const LOCAL_SERVICE_ROLE_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
+
+async function sr(path: string, options: RequestInit = {}): Promise<Response> {
+  return fetch(`${LOCAL_SUPABASE_URL}${path}`, {
+    ...options,
+    headers: {
+      apikey: LOCAL_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${LOCAL_SERVICE_ROLE_KEY}`,
+      "Content-Type": "application/json",
+      ...((options.headers as Record<string, string>) ?? {}),
+    },
+  });
+}
+
+async function cleanup(): Promise<void> {
+  for (const name of [EQ_MAPPED, EQ_UNMAPPED]) {
+    const res = await sr(`/rest/v1/equipment?name=eq.${encodeURIComponent(name)}&select=id`);
+    const rows = (await res.json()) as { id: string }[];
+    for (const r of rows) {
+      await sr(`/rest/v1/jobs?payload->>equipment_id=eq.${r.id}`, { method: "DELETE" });
+    }
+    await sr(`/rest/v1/equipment?name=eq.${encodeURIComponent(name)}`, { method: "DELETE" });
+  }
+  for (const name of [CAT_MAPPED, CAT_UNMAPPED]) {
+    await sr(`/rest/v1/equipment_category?name=eq.${encodeURIComponent(name)}`, {
+      method: "DELETE",
+    });
+  }
+}
+
+async function login(page: Page) {
+  await page.goto("/login");
+  await page.getByLabel("이메일").fill(ADMIN_EMAIL);
+  await page.getByLabel("비밀번호", { exact: true }).fill(ADMIN_PASSWORD);
+  await page.getByRole("button", { name: "로그인" }).click();
+  await page.waitForURL(/\/admin\//, { timeout: 20_000 });
+}
+
+test.describe.serial("장비 → 홈페이지 자동 등록", () => {
+  let mappedCatId = "";
+  let unmappedCatId = "";
+  let mappedEqId = "";
+  let unmappedEqId = "";
+
+  test.beforeAll(async () => {
+    await cleanup();
+    const cat1 = await sr("/rest/v1/equipment_category", {
+      method: "POST",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify({ name: CAT_MAPPED, wp_category_id: 9 }),
+    });
+    mappedCatId = ((await cat1.json()) as { id: string }[])[0].id;
+    const cat2 = await sr("/rest/v1/equipment_category", {
+      method: "POST",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify({ name: CAT_UNMAPPED }),
+    });
+    unmappedCatId = ((await cat2.json()) as { id: string }[])[0].id;
+
+    const eq1 = await sr("/rest/v1/equipment", {
+      method: "POST",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify({
+        name: EQ_MAPPED,
+        model: "E2E-WP-1",
+        base_price: 0,
+        category_id: mappedCatId,
+      }),
+    });
+    mappedEqId = ((await eq1.json()) as { id: string }[])[0].id;
+    const eq2 = await sr("/rest/v1/equipment", {
+      method: "POST",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify({
+        name: EQ_UNMAPPED,
+        model: "E2E-WP-2",
+        base_price: 0,
+        category_id: unmappedCatId,
+        wp_publish_enabled: true,
+      }),
+    });
+    unmappedEqId = ((await eq2.json()) as { id: string }[])[0].id;
+  });
+
+  test.afterAll(async () => {
+    await cleanup();
+  });
+
+  test("장비 수정 폼: '홈페이지에 등록' 체크 → 캡션 노출 → 저장하면 상세 패널이 '동기화 중'", async ({
+    page,
+  }) => {
+    await login(page);
+    await page.goto(`/admin/equipment/${mappedEqId}/edit`);
+    const checkbox = page.getByLabel("홈페이지에 등록");
+    await expect(checkbox).toBeVisible();
+    await checkbox.check();
+    await expect(page.getByText("저장하면 홈페이지 초안에 자동 반영됩니다", { exact: false })).toBeVisible();
+    await page.getByRole("button", { name: "저장" }).click();
+    await page.waitForURL(/\/admin\/equipment$/, { timeout: 20_000 });
+
+    // 트리거가 sync 잡을 만들었고 워커가 없으므로 패널은 '동기화 중'
+    await page.goto(`/admin/equipment/${mappedEqId}`);
+    await expect(page.getByText("동기화 중")).toBeVisible();
+  });
+
+  test("매핑 없는 분류의 체크된 장비: 폼 캡션·상세 패널 모두 '매핑 필요' 안내", async ({ page }) => {
+    await login(page);
+    await page.goto(`/admin/equipment/${unmappedEqId}/edit`);
+    await expect(
+      page.getByText("분류의 WP 카테고리 설정 필요", { exact: false }),
+    ).toBeVisible();
+
+    await page.goto(`/admin/equipment/${unmappedEqId}`);
+    // 헤더 미니 배지("WP 분류 매핑 필요")와 패널 배지("분류 매핑 필요")가 둘 다 매칭 — first로 단언.
+    await expect(page.getByText("분류 매핑 필요").first()).toBeVisible();
+    await expect(page.getByRole("link", { name: "분류 설정으로 이동" })).toBeVisible();
+  });
+
+  test("분류 관리: WP 카테고리 드롭다운 또는 목록 실패 안내가 렌더된다", async ({ page }) => {
+    await login(page);
+    await page.goto("/admin/categories");
+    // 외부(jhtech.co.kr) fetch 성공 여부에 따라 두 상태 중 하나 — 어느 쪽이든 UI 계약 충족.
+    const dropdown = page.getByLabel(`${CAT_MAPPED} WP 카테고리`);
+    const fallback = page.getByText("WP 카테고리 목록을 불러오지 못했습니다", { exact: false });
+    await expect(dropdown.or(fallback).first()).toBeVisible({ timeout: 15_000 });
+  });
+});

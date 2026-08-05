@@ -20,3 +20,8 @@ export * from "./mail";
 export * from "./password";
 export * from "./release-order";
 export * from "./service-report";
+export * from "./youtube";
+export * from "./wp-category";
+export * from "./wp-status";
+export * from "./wp-post-html";
+export * from "./wp-publisher";

@@ -8,6 +8,11 @@ const envSchema = z.object({
   // 하이웍스 메일 발송(E6) 오피스 토큰. optional — 미설정 시 FakeMailSender(로컬/미발송).
   // 프로덕션은 Railway env에 주입 + 하이웍스 허용 IP에 워커 고정 IP 등록 필요.
   HIWORKS_OFFICE_TOKEN: z.string().min(1).optional(),
+  // 워드프레스 발행(#253). 3종 모두 있어야 실발행 — 하나라도 없으면 FakeWpPublisher(실호출 0).
+  // WP_API_URL은 https 필수(Application Password Basic 인증 평문 방지 — WpRestPublisher가 기동 거부).
+  WP_API_URL: z.string().url().startsWith("https://").optional(),
+  WP_APP_USER: z.string().min(1).optional(),
+  WP_APP_PASSWORD: z.string().min(1).optional(),
 });
 
 export type WorkerEnv = z.infer<typeof envSchema>;

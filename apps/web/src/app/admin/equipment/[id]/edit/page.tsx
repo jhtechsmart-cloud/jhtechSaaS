@@ -26,7 +26,7 @@ export default async function EditEquipmentPage({
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("equipment")
-    .select("name, model, category_id, base_price, status, is_demo, highlights, youtube_urls, specs, photos, quote_device_name, quote_device_image, catalog_pdf")
+    .select("name, model, category_id, base_price, status, is_demo, wp_publish_enabled, wp_post_status, highlights, youtube_urls, specs, photos, quote_device_name, quote_device_image, catalog_pdf")
     .eq("id", id)
     .single();
   if (error || !data) notFound();
@@ -48,6 +48,7 @@ export default async function EditEquipmentPage({
     base_price: Number(data.base_price),
     status: data.status,
     is_demo: Boolean(data.is_demo),
+    wp_publish_enabled: Boolean(data.wp_publish_enabled),
     highlights: (data.highlights ?? []) as string[],
     youtube_urls: (data.youtube_urls ?? []) as string[],
     // pdf 미설정 항목은 편집 폼에서 기본 체크(true)로 표시 — 관리자가 빼고 싶은 것만 해제.
@@ -69,7 +70,13 @@ export default async function EditEquipmentPage({
   return (
     <section className="flex flex-col gap-4">
       <h1 className="text-h1 font-semibold text-text">장비 수정</h1>
-      <EquipmentForm mode="edit" id={id} initial={initial} categories={categories} />
+      <EquipmentForm
+        mode="edit"
+        id={id}
+        initial={initial}
+        categories={categories}
+        wpPostStatus={(data.wp_post_status as "draft" | "publish" | null) ?? null}
+      />
     </section>
   );
 }

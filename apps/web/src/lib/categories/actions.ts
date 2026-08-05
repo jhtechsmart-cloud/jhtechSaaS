@@ -104,6 +104,37 @@ export async function setCategoryLogoKind(
   return null;
 }
 
+// 홈페이지(WP) 카테고리 매핑 설정(#253). null = 미지정(소분류는 조상 상속).
+// ⚠️ 변경해도 기존 공개 글엔 자동 반영되지 않는다 — 다음 갱신 때 적용(autoplan 결정 18).
+export async function setCategoryWpId(
+  id: string,
+  wpCategoryId: number | null,
+): Promise<CategoryActionResult> {
+  const access = await requireEquipmentManage();
+  if (access.status === "forbidden") return { error: "권한이 없습니다." };
+
+  if (!z.guid().safeParse(id).success) return { error: "잘못된 요청입니다." };
+  if (wpCategoryId !== null && (!Number.isInteger(wpCategoryId) || wpCategoryId <= 0)) {
+    return { error: "잘못된 WP 카테고리입니다." };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("equipment_category")
+    .update({ wp_category_id: wpCategoryId })
+    .eq("id", id)
+    .select("id");
+
+  if (error) {
+    console.error("[categories.setWpId]", error);
+    return { error: "WP 카테고리를 설정하지 못했습니다." };
+  }
+  if (!data || data.length === 0) return { error: "없는 분류입니다." };
+
+  revalidatePath("/admin/categories");
+  return null;
+}
+
 // 삭제. 참조(자식·장비·소모품 scope) 있으면 FK restrict로 거부 → 안내.
 export async function deleteCategory(id: string): Promise<CategoryActionResult> {
   const access = await requireEquipmentManage();

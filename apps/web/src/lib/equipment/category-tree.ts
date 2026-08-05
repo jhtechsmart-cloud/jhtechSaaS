@@ -8,6 +8,8 @@ export interface CategoryNode {
   sort_order: number;
   // 견적서 PDF 좌상단 회사로고 종류(대분류에만 의미). null/미설정 = 기본 로고.
   quote_logo_kind?: LogoKind | null;
+  // 홈페이지(워드프레스) 카테고리 매핑(#253). 해석은 조상 폴백(resolveWpCategoryId).
+  wp_category_id?: number | null;
 }
 
 export interface CategoryTreeNode extends CategoryNode {

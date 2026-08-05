@@ -12,8 +12,12 @@ import {
 } from "@/lib/service-reports/equipment-history";
 import { StatsTab } from "./_components/StatsTab";
 import { publicImageUrl } from "@/lib/equipment/images";
+import { renderWpPostHtml } from "@jhtechsaas/shared";
+import { getWpSnapshot } from "@/lib/equipment/wp-actions";
+import { WP_PUBLIC_SITE } from "@/lib/equipment/wp-public";
 import { DetailTabs } from "./_components/DetailTabs";
 import { HistoryTab } from "./_components/HistoryTab";
+import { WpPanel } from "./_components/WpPanel";
 
 // #243 장비 상세 — 영업 전원 진입 허브(개요 + AS 이력 탭). 탭·필터 상태 = URL 쿼리.
 // 가드 = 리포트 조회 3키 ∪ equipment.manage (⚠️ view_all 단독 요구 금지 — 영업 실권한은 view).
@@ -75,6 +79,39 @@ export default async function EquipmentDetailPage({
   const included = detail.options.filter((o) => o.kind === "included");
   const extra = detail.options.filter((o) => o.kind === "extra");
 
+  // 홈페이지 연동 상태(#253) — 미니 배지가 어느 탭에서도 보여야 해 탭 무관 조회(가벼운 3쿼리).
+  // 미리보기 HTML만 개요 탭에서 생성. 워커의 WP 미디어 URL 렌더와 같은 함수(구성 확인용 라벨 병기).
+  const wpSnapshot = await getWpSnapshot(id);
+  const wpPreviewHtml =
+    tab === "overview"
+      ? renderWpPostHtml(
+          {
+            name: detail.name,
+            model: detail.model,
+            photos: detail.photos,
+            highlights: detail.highlights,
+            specs: detail.specs,
+            youtubeUrls: detail.youtube_urls,
+          },
+          {
+            imageUrls: Object.fromEntries(detail.photos.map((p) => [p, publicImageUrl(p)])),
+            // sandbox iframe은 스크립트 차단으로 유튜브 embed가 빈 박스 — 정적 썸네일로 대체
+            videoThumbnails: true,
+          },
+        )
+      : "";
+  // 액션 필요 상태(실패·매핑필요·반영대기)만 고정 헤더에 미니 배지 승격 — 어느 탭에서도 보이게.
+  const wpAlert =
+    wpSnapshot && !("error" in wpSnapshot)
+      ? wpSnapshot.status.primary === "failed"
+        ? "홈페이지 반영 실패"
+        : wpSnapshot.status.primary === "mapping_required"
+          ? "WP 분류 매핑 필요"
+          : wpSnapshot.status.pendingRefresh
+            ? "홈페이지 반영 대기"
+            : null
+      : null;
+
   return (
     <section className="flex flex-col gap-4">
       {/* 탭 밖 고정 헤더 — 어느 탭에서도 장비 정체성 유지 */}
@@ -106,6 +143,11 @@ export default async function EquipmentDetailPage({
             >
               {detail.status === "active" ? "판매중" : "비활성"}
             </span>
+            {wpAlert ? (
+              <span className="rounded-sm bg-danger/10 px-2 py-0.5 font-medium text-danger">
+                {wpAlert}
+              </span>
+            ) : null}
           </div>
         </div>
         {canManage && (
@@ -175,6 +217,16 @@ export default async function EquipmentDetailPage({
               )}
             </div>
           </div>
+
+          {wpSnapshot && !("error" in wpSnapshot) ? (
+            <WpPanel
+              equipmentId={detail.id}
+              initial={wpSnapshot}
+              previewHtml={wpPreviewHtml}
+              publicSiteUrl={WP_PUBLIC_SITE}
+              canManage={canManage}
+            />
+          ) : null}
 
           <div className="rounded-md border border-border bg-surface p-4 shadow-card">
             <h2 className="text-small font-semibold text-muted">사양</h2>

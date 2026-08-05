@@ -1,6 +1,12 @@
 // Railway 워커 진입점 — jobs 큐 폴링(통합 PDF, 향후 메일).
 // 잡 트리거 = DB 폴링(FOR UPDATE SKIP LOCKED, claim_next_job). webhook/Realtime 회피.
-import { createServiceClient, FakeMailSender, HiworksMailSender, type MailSender } from "@jhtechsaas/shared";
+import {
+  createServiceClient,
+  createWpPublisherFromEnv,
+  FakeMailSender,
+  HiworksMailSender,
+  type MailSender,
+} from "@jhtechsaas/shared";
 import { loadEnv } from "./env";
 import { closeBrowser } from "./jobs/browser";
 import { runOnce } from "./jobs/runner";
@@ -21,6 +27,12 @@ async function main(): Promise<void> {
     console.warn("[worker] HIWORKS_OFFICE_TOKEN 미설정 — 메일은 실제 발송되지 않습니다(FakeMailSender)");
   }
 
+  // WP 발행기(#253) — env 3종 모두 있어야 실발행, 아니면 Fake(SSL·계정 준비 전 안전).
+  const { publisher: wpPublisher, live: wpLive } = createWpPublisherFromEnv(env);
+  if (!wpLive) {
+    console.warn("[worker] WP_API_URL/WP_APP_USER/WP_APP_PASSWORD 미설정 — 홈페이지 발행은 실호출되지 않습니다(FakeWpPublisher)");
+  }
+
   // Railway 재배포·중지 시 SIGTERM — 진행 중 잡을 마치고 크롬 정리 후 종료(잡 고아 방지).
   let stopping = false;
   const requestStop = (signal: string): void => {
@@ -32,7 +44,7 @@ async function main(): Promise<void> {
 
   console.log("jhtechSaaS worker: jobs 폴링 시작");
   await runLoop({
-    runOnce: () => runOnce(supabase, { mailSender }),
+    runOnce: () => runOnce(supabase, { mailSender, wpPublisher }),
     sleep,
     isStopping: () => stopping,
     pollMs: POLL_MS,
