@@ -33,6 +33,8 @@ export interface EquipmentDetail {
   status: "active" | "inactive";
   photos: string[];
   specs: ReturnType<typeof parseSpecs>;
+  highlights: string[];
+  youtube_urls: string[];
   options: { kind: "included" | "extra"; name: string; price: number }[];
   inventory: { stock_qty: number; restock_date: string | null; note: string | null } | null;
 }
@@ -42,7 +44,7 @@ export async function getEquipmentDetail(id: string): Promise<EquipmentDetail | 
   const { data, error } = await supabase
     .from("equipment")
     .select(
-      "id, name, model, base_price, status, photos, specs, equipment_category:category_id(name)",
+      "id, name, model, base_price, status, photos, specs, highlights, youtube_urls, equipment_category:category_id(name)",
     )
     .eq("id", id)
     .single();
@@ -72,6 +74,8 @@ export async function getEquipmentDetail(id: string): Promise<EquipmentDetail | 
     status: data.status as "active" | "inactive",
     photos: (data.photos ?? []) as string[],
     specs: parseSpecs(data.specs),
+    highlights: (data.highlights ?? []) as string[],
+    youtube_urls: (data.youtube_urls ?? []) as string[],
     options: (optionRows ?? []).map((o) => ({
       kind: o.kind as "included" | "extra",
       name: o.name,
@@ -86,7 +90,7 @@ export async function listCategoryTree(): Promise<CategoryNode[]> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("equipment_category")
-    .select("id,parent_id,name,sort_order,quote_logo_kind")
+    .select("id,parent_id,name,sort_order,quote_logo_kind,wp_category_id")
     .order("sort_order");
   if (error) { console.error("[equipment.categoryTree]", error); return []; }
   return (data ?? []) as CategoryNode[];

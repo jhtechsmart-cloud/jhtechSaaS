@@ -7,13 +7,26 @@ import {
   renameCategory,
   deleteCategory,
   setCategoryLogoKind,
+  setCategoryWpId,
 } from "@/lib/categories/actions";
 
 // action 결과 타입 — null이면 성공, { error } 이면 실패.
 type ActionResult = { error: string } | null;
 
+// WP 카테고리 후보(홈페이지 공개 API에서 fetch). null = 목록을 불러오지 못함.
+export interface WpCategoryOption {
+  id: number;
+  name: string;
+}
+
 // 분류 트리 클라이언트 컴포넌트 — 대분류·소분류 추가·수정·삭제 인터랙션 처리.
-export function CategoryTree({ tree }: { tree: CategoryTreeNode[] }) {
+export function CategoryTree({
+  tree,
+  wpCategories,
+}: {
+  tree: CategoryTreeNode[];
+  wpCategories: WpCategoryOption[] | null;
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [err, setErr] = useState<string | null>(null);
@@ -55,13 +68,71 @@ export function CategoryTree({ tree }: { tree: CategoryTreeNode[] }) {
         </button>
       </div>
 
+      {/* WP 카테고리 목록 fetch 실패 안내 — 숫자 입력 폴백 없이 재시도만(#253 결정 17) */}
+      {wpCategories === null ? (
+        <p className="rounded-md border border-border bg-surface-2 px-3 py-2 text-small text-muted">
+          홈페이지 WP 카테고리 목록을 불러오지 못했습니다.{" "}
+          <button type="button" onClick={() => router.refresh()} className="text-accent underline">
+            다시 시도
+          </button>
+        </p>
+      ) : null}
+
       {/* 대분류 목록 */}
       <ul className="flex flex-col gap-3">
         {tree.map((top) => (
-          <TopNode key={top.id} node={top} pending={pending} run={run} />
+          <TopNode key={top.id} node={top} pending={pending} run={run} wpCategories={wpCategories} />
         ))}
       </ul>
     </div>
+  );
+}
+
+// WP 카테고리 드롭다운 — 직접값 또는 상속 안내. "이름 (id)" 표기.
+function WpCategorySelect({
+  node,
+  inheritedFrom,
+  pending,
+  run,
+  wpCategories,
+}: {
+  node: CategoryNode;
+  inheritedFrom: CategoryNode | null; // 소분류 미설정 시 값을 물려주는 대분류(표시용)
+  pending: boolean;
+  run: (fn: () => Promise<ActionResult>) => void;
+  wpCategories: WpCategoryOption[] | null;
+}) {
+  if (wpCategories === null) return null; // fetch 실패 시 상단 재시도 안내로 갈음
+  const current = node.wp_category_id ?? null;
+  const inheritedValue = inheritedFrom?.wp_category_id ?? null;
+  const inheritedName =
+    inheritedValue != null
+      ? (wpCategories.find((c) => c.id === inheritedValue)?.name ?? String(inheritedValue))
+      : null;
+  return (
+    <label className="flex items-center gap-1 text-micro text-muted">
+      WP 카테고리
+      <select
+        value={current ?? ""}
+        disabled={pending}
+        aria-label={`${node.name} WP 카테고리`}
+        onChange={(e) =>
+          run(() => setCategoryWpId(node.id, e.target.value === "" ? null : Number(e.target.value)))
+        }
+        className="rounded-sm border border-border bg-surface px-2 py-1 text-micro text-text"
+      >
+        <option value="">미지정</option>
+        {wpCategories.map((c) => (
+          <option key={c.id} value={c.id}>
+            {c.name} ({c.id})
+          </option>
+        ))}
+      </select>
+      {/* 상속 실효값 — 미설정 소분류가 '매핑필요'인지 '상속 OK'인지 화면에서 구분(#253 결정 17) */}
+      {current == null && inheritedName ? (
+        <span className="text-micro text-muted/70">↑ {inheritedName} 상속</span>
+      ) : null}
+    </label>
   );
 }
 
@@ -70,10 +141,12 @@ function TopNode({
   node,
   pending,
   run,
+  wpCategories,
 }: {
   node: CategoryTreeNode;
   pending: boolean;
   run: (fn: () => Promise<ActionResult>) => void;
+  wpCategories: WpCategoryOption[] | null;
 }) {
   const [child, setChild] = useState("");
 
@@ -120,6 +193,13 @@ function TopNode({
             <option value="printer">프린터</option>
           </select>
         </label>
+        <WpCategorySelect
+          node={node}
+          inheritedFrom={null}
+          pending={pending}
+          run={run}
+          wpCategories={wpCategories}
+        />
       </div>
 
       {/* 소분류 목록 + 추가 입력행 */}
@@ -148,6 +228,15 @@ function TopNode({
             >
               삭제
             </button>
+            <span className="ml-auto">
+              <WpCategorySelect
+                node={c}
+                inheritedFrom={node}
+                pending={pending}
+                run={run}
+                wpCategories={wpCategories}
+              />
+            </span>
           </li>
         ))}
 

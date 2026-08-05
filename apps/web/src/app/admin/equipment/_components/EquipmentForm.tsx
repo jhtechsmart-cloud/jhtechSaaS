@@ -1,6 +1,6 @@
 "use client";
 import { Fragment, useEffect, useRef, useState, useTransition } from "react";
-import { useForm, useController, FormProvider } from "react-hook-form";
+import { useForm, useController, useWatch, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { z } from "zod";
@@ -15,6 +15,8 @@ import {
   type EquipmentActionResult,
 } from "../actions";
 import { equipmentSelectableOptions, type CategoryNode } from "@/lib/equipment/category-tree";
+import { needsUnpublishConfirm } from "@/lib/equipment/wp-form-logic";
+import { resolveWpCategoryId } from "@jhtechsaas/shared";
 import { SpecEditor } from "./SpecEditor";
 import { HighlightsEditor } from "./HighlightsEditor";
 import { YoutubeUrlsEditor } from "./YoutubeUrlsEditor";
@@ -28,7 +30,14 @@ type EquipmentFormInput = z.input<typeof equipmentFormSchema>;
 
 type Props =
   | { mode: "create"; categories: CategoryNode[] }
-  | { mode: "edit"; id: string; initial: EquipmentFormValues; categories: CategoryNode[] };
+  | {
+      mode: "edit";
+      id: string;
+      initial: EquipmentFormValues;
+      categories: CategoryNode[];
+      // 홈페이지 글 상태(#253) — 공개 글이 내려가는 저장(체크 해제·비활성)에 확인 모달을 띄우는 판정용.
+      wpPostStatus: "draft" | "publish" | null;
+    };
 
 export function EquipmentForm(props: Props) {
   const router = useRouter();
@@ -54,6 +63,7 @@ export function EquipmentForm(props: Props) {
             base_price: 0,
             status: "active",
             is_demo: false,
+            wp_publish_enabled: false,
             highlights: [],
             youtube_urls: [],
             // UI-SPEC: 생성 시 1 빈 그룹(아이템 1 빈 행)
@@ -101,6 +111,19 @@ export function EquipmentForm(props: Props) {
   }, [isDirty]);
 
   function onSubmit(values: EquipmentFormValues) {
+    // 공개된 홈페이지 글이 내려가는 저장(체크 해제·비활성 전환)은 확인 1회(#253 D14).
+    if (
+      props.mode === "edit" &&
+      needsUnpublishConfirm({
+        initialEnabled: props.initial.wp_publish_enabled,
+        wpPostStatus: props.wpPostStatus,
+        nextEnabled: values.wp_publish_enabled,
+        nextStatus: values.status,
+      }) &&
+      !confirm("홈페이지에서 이 장비 글이 비공개로 전환됩니다. 계속할까요?")
+    ) {
+      return;
+    }
     setServerError(null);
     startTransition(async () => {
       let result: EquipmentActionResult;
@@ -216,6 +239,12 @@ export function EquipmentForm(props: Props) {
                 <option value="inactive">비활성</option>
               </select>
             </Field>
+            {/* 홈페이지 등록(#253) — 상태(노출 결정)와 같은 섹션. 캡션은 현재 선택값 기준 동적 안내. */}
+            <WpPublishField
+              register={register}
+              control={control}
+              categories={props.categories}
+            />
           </div>
         </Card>
 
@@ -305,6 +334,51 @@ export function EquipmentForm(props: Props) {
       </div>
     </form>
     </FormProvider>
+  );
+}
+
+// 홈페이지 등록 체크박스 + 동적 캡션(#253). 매핑 미설정·비활성 상태를 저장 전에 미리 안내.
+function WpPublishField({
+  register,
+  control,
+  categories,
+}: {
+  register: ReturnType<typeof useForm<EquipmentFormInput, unknown, EquipmentFormValues>>["register"];
+  control: ReturnType<typeof useForm<EquipmentFormInput, unknown, EquipmentFormValues>>["control"];
+  categories: CategoryNode[];
+}) {
+  const enabled = useWatch({ control, name: "wp_publish_enabled" });
+  const categoryId = useWatch({ control, name: "category_id" });
+  const status = useWatch({ control, name: "status" });
+  const mappingResolved =
+    !!categoryId &&
+    resolveWpCategoryId(
+      categoryId,
+      categories.map((c) => ({ id: c.id, parent_id: c.parent_id, wp_category_id: c.wp_category_id ?? null })),
+    ) != null;
+
+  return (
+    <div className="flex flex-col gap-1">
+      <label className="flex items-center gap-1.5 text-small text-text">
+        <input type="checkbox" {...register("wp_publish_enabled")} className="h-4 w-4 accent-accent" />
+        홈페이지에 등록
+      </label>
+      {enabled ? (
+        !mappingResolved ? (
+          <p className="text-micro text-danger">
+            분류의 WP 카테고리 설정 필요 — 분류 관리에서 설정해야 홈페이지에 반영됩니다.
+          </p>
+        ) : status === "inactive" ? (
+          <p className="text-micro text-muted">
+            비활성 장비는 홈페이지에 노출되지 않습니다(체크는 유지됩니다).
+          </p>
+        ) : (
+          <p className="text-micro text-muted">
+            저장하면 홈페이지 초안에 자동 반영됩니다. 공개된 글은 장비 상세의 [홈페이지 갱신]으로 반영합니다.
+          </p>
+        )
+      ) : null}
+    </div>
   );
 }
 

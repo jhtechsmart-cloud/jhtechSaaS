@@ -48,6 +48,8 @@ export const equipmentFormSchema = z.object({
   status: z.enum(["active", "inactive"]),
   // 데모 가능 장비 여부 — 데모예약 폼에 노출할지. 기본 false.
   is_demo: z.boolean().default(false),
+  // 홈페이지(워드프레스) 등록 여부(#253) — 기존 장비 전부 false 시작. 실제 반영은 DB 트리거가 enqueue.
+  wp_publish_enabled: z.boolean().default(false),
   // 요약 불릿(P-A)
   highlights: z.array(z.string()).default([]),
   // 복수 제품 영상(P-A) — 각 항목 YouTube 호스트 제한

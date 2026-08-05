@@ -31,6 +31,16 @@ export async function completeJob(supabase: SupabaseClient, id: string): Promise
     console.warn(`[worker] 잡 완료 기록 0행 — 이미 다른 워커가 처리한 잡일 수 있음 id=${id}`);
 }
 
+// 하트비트 — 오래 걸리는 잡(wp_publish 미디어 업로드)이 5분 스테일 회수(20260611120000)에
+// "죽은 잡"으로 오인돼 이중 실행되지 않게 updated_at을 갱신한다. 실패는 무시(하트비트는 best-effort).
+export async function touchJob(supabase: SupabaseClient, id: string): Promise<void> {
+  await supabase
+    .from("jobs")
+    .update({ updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("status", "processing");
+}
+
 // 실패 — 시도 횟수가 한도 미만이면 재시도(queued)로 되돌리고, 한도 도달이면 failed.
 // 기록 update의 에러를 삼키면 잡이 processing으로 고착되므로 completeJob과 동일하게 throw.
 export async function failJob(supabase: SupabaseClient, job: Job, message: string): Promise<void> {
