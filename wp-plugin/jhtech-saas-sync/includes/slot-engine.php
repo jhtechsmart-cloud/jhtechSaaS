@@ -62,7 +62,12 @@ function jhtech_find_marked(array &$elements, $class)
     return null;
 }
 
-/** 텍스트 위젯 치환 — text-editor는 settings.editor(원본 래핑 태그 유지), heading은 settings.title. */
+/**
+ * 텍스트 위젯 치환 — text-editor는 settings.editor(원본 래핑 태그 "체인" 유지), heading은 settings.title.
+ * ⚠️ 단일 태그만 보존하면 <p class="테마클래스"><span style="color:#fff">…</span></p> 구조에서
+ * span(실제 색 지정)이 소실돼 테마 클래스 색이 이긴다(라이브 스모크 실측 — 시리즈명 배경색 매몰).
+ * 중첩 래퍼를 최대 3겹까지 벗겨 내려가며 태그·속성을 전부 보존하고 최심부 텍스트만 교체한다.
+ */
 function jhtech_set_text(array &$el, $text)
 {
     $safe = htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
@@ -72,12 +77,20 @@ function jhtech_set_text(array &$el, $text)
         return;
     }
     $orig = isset($el['settings']['editor']) ? (string) $el['settings']['editor'] : '';
-    // 원본이 <tag ...>내용</tag> 단일 래핑이면 그 태그·속성을 유지하고 내용만 교체(스타일 보존).
-    if (preg_match('/^\s*<([a-z][a-z0-9]*)([^>]*)>.*<\/\1>\s*$/is', $orig, $m)) {
-        $el['settings']['editor'] = '<' . $m[1] . $m[2] . '>' . $safe . '</' . $m[1] . '>';
-    } else {
-        $el['settings']['editor'] = '<p>' . $safe . '</p>';
+    $prefix = '';
+    $suffix = '';
+    $inner = $orig;
+    for ($depth = 0; $depth < 3; $depth++) {
+        if (!preg_match('/^\s*<([a-z][a-z0-9]*)([^>]*)>(.*)<\/\1>\s*$/is', $inner, $m)) {
+            break;
+        }
+        $prefix .= '<' . $m[1] . $m[2] . '>';
+        $suffix = '</' . $m[1] . '>' . $suffix;
+        $inner = $m[3];
     }
+    $el['settings']['editor'] = $prefix !== ''
+        ? $prefix . $safe . $suffix
+        : '<p>' . $safe . '</p>';
 }
 
 /** icon-list 항목 재구성 — 첫 항목을 스타일 템플릿으로 복제. */

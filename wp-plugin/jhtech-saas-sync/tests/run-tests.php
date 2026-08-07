@@ -160,6 +160,16 @@ $t8 = collect_texts($r8['tree']);
 check('그룹 3개 전부 렌더', strpos($t8, '■ A그룹') !== false && strpos($t8, '■ B그룹') !== false && strpos($t8, '■ C그룹') !== false);
 check('템플릿의 2번째 그룹(JC 600) 잔존 없음', strpos($t8, 'JC 600') === false);
 
+echo "6b) 중첩 래퍼 체인 보존 — <p class><span style>의 span(색 지정)이 살아남는다\n";
+$nested = load_fixture('synthetic-template.json');
+$nested[0]['elements'][0]['elements'][0]['settings']['editor'] =
+    '<p class="product_title entry-title" style="text-align: center;"><span style="color: #ffffff;">자동 급지 커팅기</span></p>';
+$rN = jhtech_apply_slots($nested, base_payload(array('title' => '멀티컷 A3 Max 5')));
+$jN = json_encode($rN['tree'], JSON_UNESCAPED_UNICODE);
+check('span 래퍼(색 지정) 보존', strpos($jN, 'color: #ffffff') !== false);
+check('p 클래스·정렬 보존', strpos($jN, 'product_title entry-title') !== false);
+check('최심부 텍스트만 교체', strpos($jN, '멀티컷 A3 Max 5') !== false && strpos($jN, '자동 급지 커팅기') === false);
+
 echo "8b) 사양 다중 컬럼 — 다른 컬럼의 템플릿 icon-list도 제거, 삽입 위치는 첫 발견 자리\n";
 $multi = load_fixture('synthetic-template.json');
 // 사양 섹션(sec0004)을 2컬럼 구조로 변형: 컬럼마다 icon-list 1개
