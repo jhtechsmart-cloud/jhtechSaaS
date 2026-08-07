@@ -221,19 +221,28 @@ describe("WpRestPublisher", () => {
     }
   });
 
-  it("uploadMedia 파일명은 안전 문자셋으로 강제된다 (CR/LF·백슬래시 헤더 파괴 방지)", async () => {
-    let disposition: string | null = null;
+  it("uploadMedia는 multipart/form-data로 보내고 파일명은 안전 문자셋으로 강제된다 (가비아 ModSecurity가 원시 바이너리 POST를 302 차단 — 라이브 실측)", async () => {
+    let body: unknown;
+    let contentType: string | null = null;
     const fakeFetch: typeof fetch = async (_input, init) => {
-      disposition = new Headers(init?.headers).get("Content-Disposition");
+      body = init?.body;
+      contentType = new Headers(init?.headers).get("Content-Type");
       return new Response(JSON.stringify({ id: 1, source_url: "https://x/a" }), { status: 201 });
     };
     const pub = new WpRestPublisher(env, { fetch: fakeFetch });
-    await pub.uploadMedia({
+    const r = await pub.uploadMedia({
       filename: 'evil"\nname\\x.png',
       content: new Uint8Array([1]),
       mimeType: "image/png",
     });
-    expect(disposition).toBe('attachment; filename="evil__name_x.png"');
+    expect(r.ok).toBe(true);
+    // Content-Type을 직접 지정하면 multipart boundary가 빠져 깨진다 — fetch가 붙이게 비워둔다.
+    expect(contentType).toBeNull();
+    expect(body).toBeInstanceOf(FormData);
+    const file = (body as FormData).get("file");
+    expect(file).toBeInstanceOf(File);
+    expect((file as File).name).toBe("evil__name_x.png");
+    expect((file as File).type).toBe("image/png");
   });
 
   it("네트워크 예외는 transient로 분류한다", async () => {
@@ -247,15 +256,11 @@ describe("WpRestPublisher", () => {
     expect(r.kind).toBe("transient");
   });
 
-  it("uploadMedia는 파일명·타입 헤더를 싣고 mediaId·sourceUrl을 돌려준다", async () => {
-    let captured: { url: string; disposition: string | null; type: string | null } | null = null;
+  it("uploadMedia는 multipart 파일명·타입을 싣고 mediaId·sourceUrl을 돌려준다", async () => {
+    let captured: { url: string; file: File | null } | null = null;
     const fakeFetch: typeof fetch = async (input, init) => {
-      const headers = new Headers(init?.headers);
-      captured = {
-        url: String(input),
-        disposition: headers.get("Content-Disposition"),
-        type: headers.get("Content-Type"),
-      };
+      const form = init?.body instanceof FormData ? init.body : null;
+      captured = { url: String(input), file: (form?.get("file") as File | null) ?? null };
       return new Response(
         JSON.stringify({ id: 7, source_url: "https://jhtech.co.kr/wp-content/uploads/a.png" }),
         { status: 201 },
@@ -274,7 +279,7 @@ describe("WpRestPublisher", () => {
       sourceUrl: "https://jhtech.co.kr/wp-content/uploads/a.png",
     });
     expect(captured!.url).toContain("/wp/v2/media");
-    expect(captured!.disposition).toContain('filename="a.png"');
-    expect(captured!.type).toBe("image/png");
+    expect(captured!.file?.name).toBe("a.png");
+    expect(captured!.file?.type).toBe("image/png");
   });
 });
