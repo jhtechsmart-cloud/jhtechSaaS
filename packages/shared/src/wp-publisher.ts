@@ -193,9 +193,16 @@ export class WpRestPublisher implements WpPublisher {
       // 네트워크 오류·타임아웃 = 도달 불명 → 재시도(중복은 DB CAS가 방지)
       return { ok: false, error: e instanceof Error ? e.message : String(e), kind: "transient" };
     }
-    const json: unknown = await res.json().catch(() => null);
     if (!res.ok) {
       return { ok: false, error: `wp ${res.status}`, kind: classifyWpHttpStatus(res.status) };
+    }
+    let json: unknown;
+    try {
+      json = await res.json();
+    } catch {
+      // 본문 읽기 실패 = 타임아웃 중단·프록시 HTML 등 도달/전송 문제 → 재시도 대상.
+      // 스키마 불일치(permanent)와 섞으면 일시 장애가 영구 실패로 고착된다(라이브 스모크 실측).
+      return { ok: false, error: "WP 응답 본문 읽기 실패", kind: "transient" };
     }
     const parsed = schema.safeParse(json);
     if (!parsed.success) {
@@ -222,7 +229,8 @@ export class WpRestPublisher implements WpPublisher {
     // 방어 = 응답의 meta[WP_EQUIPMENT_META_KEY]를 클라이언트에서 대조, 불일치·meta 부재는 전부 미발견(null).
     // (register_post_meta(show_in_rest) 미등록 환경이면 항상 null → 재생성 경로 = 오연결보다 안전)
     const r = await this.request(
-      `/wp/v2/posts?status=draft,publish&per_page=100&meta_key=${WP_EQUIPMENT_META_KEY}&meta_value=${encodeURIComponent(equipmentUuid)}&context=edit`,
+      // _fields 필수 — 없으면 Elementor 본문 전문까지 실려 3.8MB(실측)가 되고 30s 타임아웃을 유발한다.
+      `/wp/v2/posts?status=draft,publish&per_page=100&meta_key=${WP_EQUIPMENT_META_KEY}&meta_value=${encodeURIComponent(equipmentUuid)}&context=edit&_fields=id,status,link,meta`,
       { method: "GET" },
       WpPostListSchema,
     );

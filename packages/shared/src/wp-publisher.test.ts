@@ -183,6 +183,26 @@ describe("WpRestPublisher", () => {
     expect(r.value).toEqual({ postId: 77, link: "https://x/?p=77", status: "draft" });
   });
 
+  it("findByMeta: _fields로 응답을 축소한다 (전문 포함 3.8MB 응답이 30s 타임아웃을 유발한 라이브 스모크 실측)", async () => {
+    let url = "";
+    const fakeFetch: typeof fetch = async (input) => {
+      url = String(input);
+      return new Response(JSON.stringify([]), { status: 200 });
+    };
+    const pub = new WpRestPublisher(env, { fetch: fakeFetch });
+    await pub.findByMeta(post.equipmentUuid);
+    expect(url).toContain("_fields=id,status,link,meta");
+  });
+
+  it("본문이 JSON으로 안 읽히면 transient로 분류한다 (타임아웃 중단·프록시 HTML을 permanent 오분류 금지)", async () => {
+    const fakeFetch: typeof fetch = async () => new Response("<html>gateway</html>", { status: 200 });
+    const pub = new WpRestPublisher(env, { fetch: fakeFetch });
+    const r = await pub.findByMeta(post.equipmentUuid);
+    expect(r.ok).toBe(false);
+    if (r.ok) throw new Error("unreachable");
+    expect(r.kind).toBe("transient");
+  });
+
   it("uploadMedia 파일명은 안전 문자셋으로 강제된다 (CR/LF·백슬래시 헤더 파괴 방지)", async () => {
     let disposition: string | null = null;
     const fakeFetch: typeof fetch = async (_input, init) => {
