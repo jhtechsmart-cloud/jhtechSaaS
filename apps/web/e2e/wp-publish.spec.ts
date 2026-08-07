@@ -111,10 +111,10 @@ test.describe.serial("장비 → 홈페이지 자동 등록", () => {
     await checkbox.check();
     await expect(page.getByText("저장하면 홈페이지 초안에 자동 반영됩니다", { exact: false })).toBeVisible();
     await page.getByRole("button", { name: "저장" }).click();
-    await page.waitForURL(/\/admin\/equipment$/, { timeout: 20_000 });
+    // 홈페이지 등록이 켜진 저장은 목록이 아니라 상세로 — 홈페이지 패널(동기화 진행·미리보기)을 바로 보여준다.
+    await page.waitForURL(new RegExp(`/admin/equipment/${mappedEqId}$`), { timeout: 20_000 });
 
     // 트리거가 sync 잡을 만들었고 워커가 없으므로 패널은 '동기화 중'
-    await page.goto(`/admin/equipment/${mappedEqId}`);
     await expect(page.getByText("동기화 중")).toBeVisible();
   });
 
