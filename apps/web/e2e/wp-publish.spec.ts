@@ -7,6 +7,7 @@ const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD ?? "jhtech-admin-dev";
 
 const EQ_MAPPED = "E2E_WP연동장비";
 const EQ_UNMAPPED = "E2E_WP미매핑장비";
+const EQ_INACTIVE = "E2E_WP비활성장비";
 const CAT_MAPPED = "E2E_WP매핑분류";
 const CAT_UNMAPPED = "E2E_WP미매핑분류";
 
@@ -28,7 +29,7 @@ async function sr(path: string, options: RequestInit = {}): Promise<Response> {
 }
 
 async function cleanup(): Promise<void> {
-  for (const name of [EQ_MAPPED, EQ_UNMAPPED]) {
+  for (const name of [EQ_MAPPED, EQ_UNMAPPED, EQ_INACTIVE]) {
     const res = await sr(`/rest/v1/equipment?name=eq.${encodeURIComponent(name)}&select=id`);
     const rows = (await res.json()) as { id: string }[];
     for (const r of rows) {
@@ -56,6 +57,7 @@ test.describe.serial("장비 → 홈페이지 자동 등록", () => {
   let unmappedCatId = "";
   let mappedEqId = "";
   let unmappedEqId = "";
+  let inactiveEqId = "";
 
   test.beforeAll(async () => {
     await cleanup();
@@ -95,6 +97,20 @@ test.describe.serial("장비 → 홈페이지 자동 등록", () => {
       }),
     });
     unmappedEqId = ((await eq2.json()) as { id: string }[])[0].id;
+    // 비활성 + 체크 on: 트리거·워커가 조용히 건너뛰는 조합 — 패널이 사유를 안내해야 한다.
+    const eq3 = await sr("/rest/v1/equipment", {
+      method: "POST",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify({
+        name: EQ_INACTIVE,
+        model: "E2E-WP-3",
+        base_price: 0,
+        category_id: mappedCatId,
+        status: "inactive",
+        wp_publish_enabled: true,
+      }),
+    });
+    inactiveEqId = ((await eq3.json()) as { id: string }[])[0].id;
   });
 
   test.afterAll(async () => {
@@ -116,6 +132,18 @@ test.describe.serial("장비 → 홈페이지 자동 등록", () => {
 
     // 트리거가 sync 잡을 만들었고 워커가 없으므로 패널은 '동기화 중'
     await expect(page.getByText("동기화 중")).toBeVisible();
+  });
+
+  test("비활성 + 체크된 장비: 상세 패널에 '판매중으로 변경' 안내가 뜨고 동기화 버튼은 없다", async ({
+    page,
+  }) => {
+    await login(page);
+    await page.goto(`/admin/equipment/${inactiveEqId}`);
+    await expect(
+      page.getByText("비활성 장비는 홈페이지에 등록되지 않습니다", { exact: false }),
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "초안 동기화" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "홈페이지 발행" })).toHaveCount(0);
   });
 
   test("매핑 없는 분류의 체크된 장비: 폼 캡션·상세 패널 모두 '매핑 필요' 안내", async ({ page }) => {

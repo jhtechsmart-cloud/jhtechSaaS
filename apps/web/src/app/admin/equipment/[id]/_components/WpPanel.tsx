@@ -46,12 +46,15 @@ export function WpPanel({
   previewHtml,
   publicSiteUrl,
   canManage,
+  equipmentInactive,
 }: {
   equipmentId: string;
   initial: WpSnapshot;
   previewHtml: string;
   publicSiteUrl: string; // 예: http(s)://jhtech.co.kr — 글 링크 조립용
   canManage: boolean;
+  // 비활성 장비는 트리거가 자동 sync를 건너뛰고 워커도 조용히 스킵 — 안내 없이는 '동기화 대기' 고착으로 보인다.
+  equipmentInactive: boolean;
 }) {
   const [snap, setSnap] = useState<WpSnapshot>(initial);
   const [err, setErr] = useState<string | null>(null);
@@ -142,7 +145,13 @@ export function WpPanel({
           </a>
         </p>
       ) : null}
-      {primary === "pending_create" ? (
+      {equipmentInactive && primary !== "not_linked" && primary !== "mapping_required" ? (
+        <p className="mt-2 rounded-sm bg-danger/5 px-3 py-2 text-small text-danger">
+          비활성 장비는 홈페이지에 등록되지 않습니다. 장비 상태를 &lsquo;판매중&rsquo;으로 변경해
+          저장하면 자동으로 초안이 동기화됩니다.
+        </p>
+      ) : null}
+      {primary === "pending_create" && !equipmentInactive ? (
         <p className="mt-2 text-small text-muted">
           장비를 저장하면 홈페이지 초안이 자동 생성됩니다. 지금 만들려면 [초안 동기화]를 누르세요.
         </p>
@@ -157,7 +166,7 @@ export function WpPanel({
           >
             {previewOpen ? "미리보기 닫기" : "구성 미리보기"}
           </button>
-          {primary === "pending_create" || primary === "failed" ? (
+          {!equipmentInactive && (primary === "pending_create" || primary === "failed") ? (
             <button
               type="button"
               disabled={disabled}
@@ -167,7 +176,7 @@ export function WpPanel({
               {primary === "failed" ? "다시 시도" : "초안 동기화"}
             </button>
           ) : null}
-          {primary === "draft" ? (
+          {primary === "draft" && !equipmentInactive ? (
             <button
               type="button"
               disabled={disabled}
@@ -177,7 +186,7 @@ export function WpPanel({
               홈페이지 발행
             </button>
           ) : null}
-          {primary === "published" && snap.status.pendingRefresh ? (
+          {primary === "published" && snap.status.pendingRefresh && !equipmentInactive ? (
             <button
               type="button"
               disabled={disabled}

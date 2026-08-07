@@ -225,6 +225,7 @@ export default async function EquipmentDetailPage({
               previewHtml={wpPreviewHtml}
               publicSiteUrl={WP_PUBLIC_SITE}
               canManage={canManage}
+              equipmentInactive={detail.status !== "active"}
             />
           ) : null}
 
