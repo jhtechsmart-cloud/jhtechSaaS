@@ -203,6 +203,24 @@ describe("WpRestPublisher", () => {
     expect(r.kind).toBe("transient");
   });
 
+  it("deletePost·deleteMedia는 POST + X-HTTP-Method-Override를 쓴다 (가비아 Apache가 DELETE 메서드를 302로 차단 — 라이브 실측)", async () => {
+    const calls: Array<{ method?: string; override: string | null }> = [];
+    const fakeFetch: typeof fetch = async (_input, init) => {
+      calls.push({
+        method: init?.method,
+        override: new Headers(init?.headers).get("X-HTTP-Method-Override"),
+      });
+      return new Response(JSON.stringify({ deleted: true }), { status: 200 });
+    };
+    const pub = new WpRestPublisher(env, { fetch: fakeFetch });
+    expect((await pub.deletePost(4596)).ok).toBe(true);
+    expect((await pub.deleteMedia(77)).ok).toBe(true);
+    for (const c of calls) {
+      expect(c.method).toBe("POST");
+      expect(c.override).toBe("DELETE");
+    }
+  });
+
   it("uploadMedia 파일명은 안전 문자셋으로 강제된다 (CR/LF·백슬래시 헤더 파괴 방지)", async () => {
     let disposition: string | null = null;
     const fakeFetch: typeof fetch = async (_input, init) => {

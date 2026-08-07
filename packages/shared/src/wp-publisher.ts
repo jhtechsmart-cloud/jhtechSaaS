@@ -314,22 +314,21 @@ export class WpRestPublisher implements WpPublisher {
     return { ok: true, value: { mediaId: r.value.id, sourceUrl: r.value.source_url } };
   }
 
+  // ⚠️ HTTP DELETE 금지 — 가비아 Apache가 DELETE 메서드 자체를 302로 차단한다(라이브 스모크 실측).
+  // WP REST 공식 지원인 POST + X-HTTP-Method-Override로 우회.
+  private readonly deleteInit: RequestInit = {
+    method: "POST",
+    headers: { "X-HTTP-Method-Override": "DELETE" },
+  };
+
   async deleteMedia(mediaId: number): Promise<WpResult<null>> {
-    const r = await this.request(
-      `/wp/v2/media/${mediaId}?force=true`,
-      { method: "DELETE" },
-      z.unknown(),
-    );
+    const r = await this.request(`/wp/v2/media/${mediaId}?force=true`, this.deleteInit, z.unknown());
     if (!r.ok) return r;
     return { ok: true, value: null };
   }
 
   async deletePost(postId: number): Promise<WpResult<null>> {
-    const r = await this.request(
-      `/wp/v2/posts/${postId}?force=true`,
-      { method: "DELETE" },
-      z.unknown(),
-    );
+    const r = await this.request(`/wp/v2/posts/${postId}?force=true`, this.deleteInit, z.unknown());
     if (!r.ok) return r;
     return { ok: true, value: null };
   }
