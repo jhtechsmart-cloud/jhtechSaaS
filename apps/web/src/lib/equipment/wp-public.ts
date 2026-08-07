@@ -1,7 +1,7 @@
 import "server-only";
 // 홈페이지(워드프레스) 공개 정보(#253) — 글 링크 조립·카테고리 목록 fetch.
-// 단일테넌트 고정 도메인. SSL 적용 후 https로 바뀌면 여기 한 곳만 수정.
-export const WP_PUBLIC_SITE = "http://jhtech.co.kr";
+// 단일테넌트 고정 도메인. SSL 적용 완료(2026-08-05 Sectigo DV)로 https 전환.
+export const WP_PUBLIC_SITE = "https://jhtech.co.kr";
 
 export interface WpCategory {
   id: number;
