@@ -366,6 +366,37 @@ describe("wp_publish 잡 — 플러그인 템플릿 경로(#262)", () => {
     expect(fake.calls.map((c) => c.method)).not.toContain("updatePost"); // 조용한 HTML 덮어쓰기 없음
   });
 
+  test("플러그인 반환 id ≠ DB 저장 id → replace 기록(재연결) + 기존 글 deletePost 금지", async () => {
+    const fake = new FakeWpPublisher();
+    const id = await seedEquipment();
+    // 첫 sync로 DB에 post_id 기록
+    await insertJob(id, "sync");
+    await drainJobs(fake);
+    const first = await getEq(id);
+    const dbPostId = first.wp_post_id as number;
+    // 플러그인이 meta 재연결로 "다른 글"을 돌려주는 상황 주입
+    fake.pluginSyncPostIdOverride = dbPostId + 1000;
+    await insertJob(id, "sync");
+    await drainJobs(fake);
+    const eq = await getEq(id);
+    expect(eq.wp_post_id).toBe(dbPostId + 1000); // replace=true로 교체 기록
+    expect(eq.wp_last_error).toBeNull();
+    // created=false(기존 글 재연결) — CAS 정리든 뭐든 deletePost가 호출되면 실글 삭제 사고
+    expect(fake.calls.map((c) => c.method)).not.toContain("deletePost");
+  });
+
+  test("계약 버전 불일치(contract_mismatch) + 미생성 장비 = 레거시 폴백", async () => {
+    const fake = new FakeWpPublisher();
+    fake.pluginContract = 99;
+    const id = await seedEquipment();
+    await insertJob(id, "sync");
+    await drainJobs(fake);
+    const eq = await getEq(id);
+    expect(eq.wp_post_id).not.toBeNull();
+    expect(eq.wp_render_mode).toBe("html"); // no_plugin과 동일 분기 — 레거시로
+    expect(eq.wp_last_error).toBeNull();
+  });
+
   test("플러그인 미설치 + 미생성 장비 = 레거시 HTML 경로로 정상 폴백(render_mode=html)", async () => {
     const fake = new FakeWpPublisher();
     fake.pluginInstalled = false;

@@ -160,6 +160,38 @@ $t8 = collect_texts($r8['tree']);
 check('그룹 3개 전부 렌더', strpos($t8, '■ A그룹') !== false && strpos($t8, '■ B그룹') !== false && strpos($t8, '■ C그룹') !== false);
 check('템플릿의 2번째 그룹(JC 600) 잔존 없음', strpos($t8, 'JC 600') === false);
 
+echo "8b) 사양 다중 컬럼 — 다른 컬럼의 템플릿 icon-list도 제거, 삽입 위치는 첫 발견 자리\n";
+$multi = load_fixture('synthetic-template.json');
+// 사양 섹션(sec0004)을 2컬럼 구조로 변형: 컬럼마다 icon-list 1개
+$multi[3]['elements'] = array(
+    array('id' => 'colA', 'elType' => 'column', 'settings' => array(), 'elements' => array(
+        array('id' => 'widX1', 'elType' => 'widget', 'widgetType' => 'text-editor',
+            'settings' => array('editor' => '<p>사양 안내</p>'), 'elements' => array()),
+        $multi[3]['elements'][0]['elements'][0], // 원래 첫 icon-list(JC 350)
+    )),
+    array('id' => 'colB', 'elType' => 'column', 'settings' => array(), 'elements' => array(
+        $multi[3]['elements'][0]['elements'][1], // 원래 둘째 icon-list(JC 600)
+    )),
+);
+$rM = jhtech_apply_slots($multi, base_payload(array('spec_groups' => array(
+    array('name' => '단일그룹', 'items' => array(array('label' => 'k', 'value' => 'v'))),
+))));
+$tM = collect_texts($rM['tree']);
+check('다른 컬럼(JC 600) 잔존 제거', strpos($tM, 'JC 600') === false);
+check('첫 컬럼(JC 350) 잔존 제거', strpos($tM, 'JC 350') === false);
+check('신규 그룹 렌더', strpos($tM, '■ 단일그룹') !== false && strpos($tM, 'k : v') !== false);
+check('비-icon-list 형제(사양 안내) 보존', strpos($tM, '사양 안내') !== false);
+
+echo "8c) 사진이 슬롯보다 많으면 초과분 무시\n";
+$rX = jhtech_apply_slots($tpl, base_payload(array('images' => array(
+    array('id' => 501, 'url' => 'https://x/a.png'),
+    array('id' => 502, 'url' => 'https://x/b.png'),
+    array('id' => 503, 'url' => 'https://x/c.png'), // 슬롯은 2개(image-01·02)
+))));
+$jX = json_encode($rX['tree'], JSON_UNESCAPED_SLASHES);
+check('슬롯 2개 채움', strpos($jX, 'https://x/a.png') !== false && strpos($jX, 'https://x/b.png') !== false);
+check('초과분(3번째)은 미사용', strpos($jX, 'https://x/c.png') === false);
+
 // 실제 export 픽스처가 있으면 스모크 추가(마커 부여 후 재export한 파일).
 if (file_exists(__DIR__ . '/fixtures/template-4605.json')) {
     echo "9) 실제 4605 export 스모크\n";

@@ -154,6 +154,8 @@ export class FakeWpPublisher implements WpPublisher {
   public pluginInstalled = true;
   public pluginContract = WP_PLUGIN_CONTRACT;
   public readonly manualEditedUuids = new Set<string>();
+  /** 설정 시 pluginSync가 이 post_id를 반환(created=false) — DB id ≠ 플러그인 반환 id(재연결) 시나리오 주입. */
+  public pluginSyncPostIdOverride: number | null = null;
 
   async pluginPrecheck(
     equipmentUuid: string,
@@ -190,7 +192,11 @@ export class FakeWpPublisher implements WpPublisher {
     if (this.manualEditedUuids.has(input.equipmentUuid) && !input.force) {
       return { ok: false, error: "manually_edited", kind: "manual_edit" };
     }
-    const existing = input.knownPostId ?? this.postsByUuid.get(input.equipmentUuid)?.postId ?? null;
+    const existing =
+      this.pluginSyncPostIdOverride ??
+      input.knownPostId ??
+      this.postsByUuid.get(input.equipmentUuid)?.postId ??
+      null;
     const created = existing == null;
     const postId = existing ?? this.nextPostId++;
     const status: "draft" | "publish" = created ? "draft" : (input.currentStatus ?? "draft");
@@ -403,6 +409,7 @@ export class WpRestPublisher implements WpPublisher {
   //    해서 request()와 별도 경로. 비JSON body(가비아 errdoc HTML)는 코드 null로 안전 처리.
   private async pluginRaw(
     body: Record<string, unknown>,
+    timeoutMs: number,
   ): Promise<
     | { res: "ok"; json: unknown }
     | { res: "http"; status: number; code: string | null }
@@ -414,7 +421,7 @@ export class WpRestPublisher implements WpPublisher {
         method: "POST",
         headers: { Authorization: this.auth, "Content-Type": "application/json" },
         body: JSON.stringify(body),
-        signal: AbortSignal.timeout(30_000),
+        signal: AbortSignal.timeout(timeoutMs),
       });
     } catch (e) {
       return { res: "network", error: e instanceof Error ? e.message : String(e) };
@@ -428,12 +435,15 @@ export class WpRestPublisher implements WpPublisher {
     equipmentUuid: string,
     knownPostId: number | null,
   ): Promise<WpResult<WpPluginPrecheck>> {
-    const r = await this.pluginRaw({
-      precheck: true,
-      contract: WP_PLUGIN_CONTRACT,
-      equipment_uuid: equipmentUuid,
-      known_post_id: knownPostId,
-    });
+    const r = await this.pluginRaw(
+      {
+        precheck: true,
+        contract: WP_PLUGIN_CONTRACT,
+        equipment_uuid: equipmentUuid,
+        known_post_id: knownPostId,
+      },
+      30_000,
+    );
     if (r.res === "network") return { ok: false, error: r.error, kind: "transient" };
     if (r.res === "http") {
       if (r.status === 404 && r.code === "rest_no_route") {
@@ -461,11 +471,17 @@ export class WpRestPublisher implements WpPublisher {
   }
 
   async pluginSync(input: WpTemplateSyncInput): Promise<WpResult<WpPluginSyncOk>> {
-    const r = await this.pluginRaw(toPluginPayload(input));
+    // 60s — 공유호스팅에서 대형 트리 복제·인코딩·CSS 재생성이 30s를 넘길 수 있고,
+    // 타임아웃 재시도는 WP 쪽 부하를 반복시킨다(/review — 여유 있게).
+    const r = await this.pluginRaw(toPluginPayload(input), 60_000);
     if (r.res === "network") return { ok: false, error: r.error, kind: "transient" };
     if (r.res === "http") {
       if (r.status === 409 && r.code === "manually_edited") {
         return { ok: false, error: "manually_edited", kind: "manual_edit" };
+      }
+      if (r.code === "contract_mismatch") {
+        // precheck→sync 사이 플러그인 업그레이드 레이스 — 파싱 실패 오진 대신 명시.
+        return { ok: false, error: "contract_mismatch: 플러그인 계약 버전 불일치", kind: "permanent" };
       }
       if (r.code === "template_invalid") {
         return { ok: false, error: "template_invalid: 템플릿 글·필수 슬롯 확인 필요", kind: "permanent" };

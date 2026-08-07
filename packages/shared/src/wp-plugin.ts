@@ -25,7 +25,11 @@ export interface WpTemplateSyncInput {
   specGroups: Array<{ name: string; items: Array<{ label: string; value: string }> }>;
   youtubeIds: string[];
   categories: number[];
-  /** 갱신 시 보존할 현재 상태. null = 신규 생성(draft). */
+  /**
+   * 갱신 시 보존할 현재 상태. null = 신규 생성(draft).
+   * ⚠️ 정보성 필드 — 플러그인은 이 값을 읽지 않는다. 상태 보존은 "갱신 시 post_status를
+   * 아예 전달하지 않는" 방식으로 구현돼 있다(플러그인이 이 값을 쓰기 시작하면 계약 재검토).
+   */
   currentStatus: "draft" | "publish" | null;
   /** 수동 편집 감지 무시 덮어쓰기(관리자 전용 경로에서만 true). */
   force: boolean;

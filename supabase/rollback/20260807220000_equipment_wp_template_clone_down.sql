@@ -163,6 +163,10 @@ begin
 end;
 $$;
 
+-- create or replace는 기존 ACL을 보존하지만, 자급자족을 위해 v1 ACL을 명시 복원.
+revoke all on function public.enqueue_wp_publish(uuid, text) from public, anon;
+grant execute on function public.enqueue_wp_publish(uuid, text) to authenticated, service_role;
+
 alter table public.equipment_category drop column if exists wp_template_post_id;
 alter table public.equipment
   drop column if exists wp_render_mode,

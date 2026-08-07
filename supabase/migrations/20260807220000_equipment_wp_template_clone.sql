@@ -212,10 +212,15 @@ begin
     if not v_eq.wp_publish_enabled then raise exception '홈페이지 등록이 체크되지 않은 장비입니다'; end if;
     if v_eq.status <> 'active' then raise exception '비활성 장비는 동기화할 수 없습니다'; end if;
     if public.resolve_wp_category_id(v_eq.category_id) is null then raise exception '분류의 WP 카테고리 설정이 필요합니다'; end if;
-    insert into public.jobs (type, payload)
-    values ('wp_publish', jsonb_strip_nulls(jsonb_build_object(
-      'equipment_id', v_eq.id, 'action', 'sync', 'force', true
-    )));
+    begin
+      insert into public.jobs (type, payload)
+      values ('wp_publish', jsonb_strip_nulls(jsonb_build_object(
+        'equipment_id', v_eq.id, 'action', 'sync', 'force', true
+      )));
+    exception when unique_violation then
+      -- EXISTS 선체크와의 좁은 레이스 — raw 23505 대신 기존 안내문으로(enqueue_wp_job 패턴 동일).
+      raise exception '이미 동기화가 진행 중입니다. 잠시 후 다시 시도하세요.';
+    end;
   else -- unpublish
     if v_eq.wp_post_id is null then raise exception '홈페이지 글이 없습니다'; end if;
     perform public.enqueue_wp_job(v_eq.id, 'unpublish', v_eq.wp_post_id);

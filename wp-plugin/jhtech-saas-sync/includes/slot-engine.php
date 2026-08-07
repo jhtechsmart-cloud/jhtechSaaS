@@ -110,9 +110,11 @@ function jhtech_uniquify_ids(array &$elements, $seed)
 }
 
 /**
- * 사양 섹션 재구성: jh-slot-specs 컨테이너 내부의 첫 icon-list 위젯을 "그룹 템플릿"으로,
- * 그룹 수만큼 복제해 컨테이너를 다시 채운다. 그룹명은 첫 항목(굵은 헤딩 스타일)으로,
- * 이후 항목은 "라벨 : 값" 형식 — 템플릿(자동 급지 커팅기)의 표기 관행과 동일.
+ * 사양 섹션 재구성: jh-slot-specs 컨테이너 "전체"에서 icon-list 위젯을 전부 걷어내고,
+ * 첫 icon-list가 있던 자리(같은 부모·같은 인덱스)에 그룹 수만큼 복제해 삽입한다.
+ * ⚠️ 다중 컬럼 템플릿(컬럼마다 icon-list 1개) 대응 — 첫 위젯의 형제만 치우면 다른
+ * 컬럼의 템플릿 잔존 텍스트가 살아남는다(/review 지적). 그룹명은 첫 항목(■ 접두),
+ * 이후 항목은 "라벨 : 값" — 템플릿(자동 급지 커팅기)의 표기 관행과 동일.
  */
 function jhtech_set_specs(array &$container, array $specGroups)
 {
@@ -121,7 +123,6 @@ function jhtech_set_specs(array &$container, array $specGroups)
         return false; // 그룹 템플릿 위젯 없음 — 호출측이 template_invalid 처리
     }
     $proto = $found[0]; // 값 복사(위젯 원형)
-    $parentRef = &$found[1]; // 그 위젯이 속한 elements 배열
     $newList = array();
     foreach ($specGroups as $gi => $group) {
         $w = $proto;
@@ -138,16 +139,34 @@ function jhtech_set_specs(array &$container, array $specGroups)
         }
         $newList[] = $w;
     }
-    // 원 컨테이너의 icon-list 위젯들을 전부 제거하고 생성분으로 대체(잔여 그룹 잔상 방지)
-    $kept = array();
-    foreach ($parentRef as $el) {
-        $isIconList = isset($el['widgetType']) && $el['widgetType'] === 'icon-list';
-        if (!$isIconList) {
-            $kept[] = $el;
-        }
-    }
-    $parentRef = array_merge($kept, $newList);
+    // 컨테이너 전체에서 icon-list를 제거하되, "전역 첫 번째" 위치에 생성분을 통째로 삽입.
+    $inserted = false;
+    jhtech_specs_rebuild($container, $newList, $inserted);
     return true;
+}
+
+/** 컨테이너 하위 elements를 재귀 재구성 — icon-list 전부 제거, 첫 발견 위치에 $newList 삽입. */
+function jhtech_specs_rebuild(array &$node, array $newList, &$inserted)
+{
+    if (!isset($node['elements']) || !is_array($node['elements'])) {
+        return;
+    }
+    $rebuilt = array();
+    foreach ($node['elements'] as $el) {
+        $isIconList = isset($el['widgetType']) && $el['widgetType'] === 'icon-list';
+        if ($isIconList) {
+            if (!$inserted) {
+                foreach ($newList as $w) {
+                    $rebuilt[] = $w;
+                }
+                $inserted = true;
+            }
+            continue; // 템플릿 잔존 그룹 제거(다른 컬럼 포함)
+        }
+        jhtech_specs_rebuild($el, $newList, $inserted);
+        $rebuilt[] = $el;
+    }
+    $node['elements'] = $rebuilt;
 }
 
 /** 컨테이너 내부에서 특정 widgetType의 첫 위젯을 [위젯 값, &부모 elements 배열]로 반환. */

@@ -317,26 +317,32 @@ async function processSync(
     });
   }
 
-  const imageUrls = Object.fromEntries(
-    Object.entries(media.map).map(([path, entry]) => [path, entry.url]),
-  );
-  const post = {
-    title: eq.name,
-    content: renderWpPostHtml(
-      {
-        name: eq.name,
-        model: eq.model,
-        photos: eq.photos,
-        highlights: eq.highlights ?? [],
-        specs: Array.isArray(eq.specs) ? (eq.specs as never) : [],
-        youtubeUrls: eq.youtube_urls ?? [],
-      },
-      { imageUrls },
-    ),
-    categories: [...new Set([WP_PRODUCT_CATEGORY_ID, categoryId])],
-    equipmentUuid: eq.id,
-    ...(eq.model && /^[\x20-\x7e]+$/.test(eq.model) ? { slug: eq.model.toLowerCase() } : {}),
-    ...(eq.photos[0] && media.map[eq.photos[0]] ? { featuredMediaId: media.map[eq.photos[0]].id } : {}),
+  const categories = [...new Set([WP_PRODUCT_CATEGORY_ID, categoryId])];
+  const featuredMediaId =
+    eq.photos[0] && media.map[eq.photos[0]] ? media.map[eq.photos[0]].id : null;
+  // 레거시 HTML 본문은 레거시 경로에서만 조립(플러그인 경로에선 categories만 쓰인다 — 낭비 렌더 방지).
+  const buildLegacyPost = () => {
+    const imageUrls = Object.fromEntries(
+      Object.entries(media.map).map(([path, entry]) => [path, entry.url]),
+    );
+    return {
+      title: eq.name,
+      content: renderWpPostHtml(
+        {
+          name: eq.name,
+          model: eq.model,
+          photos: eq.photos,
+          highlights: eq.highlights ?? [],
+          specs: Array.isArray(eq.specs) ? (eq.specs as never) : [],
+          youtubeUrls: eq.youtube_urls ?? [],
+        },
+        { imageUrls },
+      ),
+      categories,
+      equipmentUuid: eq.id,
+      ...(eq.model && /^[\x20-\x7e]+$/.test(eq.model) ? { slug: eq.model.toLowerCase() } : {}),
+      ...(featuredMediaId != null ? { featuredMediaId } : {}),
+    };
   };
 
   let postId = eq.wp_post_id;
@@ -356,7 +362,7 @@ async function processSync(
       subtitle: eq.wp_subtitle?.trim() || null,
       seriesName: eq.wp_series_name?.trim() || null,
       photoMediaIds: eq.photos.map((p) => media.map[p]?.id).filter((v): v is number => v != null),
-      featuredMediaId: eq.photos[0] && media.map[eq.photos[0]] ? media.map[eq.photos[0]].id : null,
+      featuredMediaId,
       features: (eq.highlights ?? []).filter(Boolean),
       specGroups: parseSpecs(eq.specs).map((g) => ({
         name: g.name,
@@ -365,7 +371,7 @@ async function processSync(
       youtubeIds: (eq.youtube_urls ?? [])
         .map((u) => parseYoutubeId(u))
         .filter((v): v is string => v != null),
-      categories: post.categories,
+      categories,
       currentStatus: eq.wp_post_id != null ? (eq.wp_post_status ?? "draft") : null,
       force,
     };
@@ -382,6 +388,7 @@ async function processSync(
       (eq.wp_post_id != null && postId !== eq.wp_post_id) ||
       (eq.wp_post_id == null && !r.value.created);
   } else if (postId != null) {
+    const post = buildLegacyPost();
     const updated = await publisher.updatePost(postId, post);
     if (!updated.ok && updated.kind === "not_found") {
       // 원격 글 소실 — meta로 재연결, 없으면 재생성
@@ -397,7 +404,7 @@ async function processSync(
     }
   } else {
     // 미생성: 부분 실패 재시도 대비 meta 재연결 먼저
-    const recovered = await reconnectOrCreate(supabase, publisher, eq.id, post);
+    const recovered = await reconnectOrCreate(supabase, publisher, eq.id, buildLegacyPost());
     if (!recovered) return;
     postId = recovered.postId;
     postStatus = recovered.postStatus;
