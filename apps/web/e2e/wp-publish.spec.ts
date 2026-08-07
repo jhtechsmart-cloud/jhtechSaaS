@@ -117,6 +117,73 @@ test.describe.serial("장비 → 홈페이지 자동 등록", () => {
     await cleanup();
   });
 
+  test("#262 폼: 체크하면 부제·시리즈명 입력이 노출된다", async ({ page }) => {
+    await login(page);
+    await page.goto(`/admin/equipment/${unmappedEqId}/edit`);
+    // 체크된 장비 — 슬롯 입력 2종 노출
+    await expect(page.getByLabel("홈페이지 부제")).toBeVisible();
+    await expect(page.getByLabel("영문 시리즈명")).toBeVisible();
+  });
+
+  test("#262 수동 편집 감지: 패널에 role=alert 안내 + 관리자 [그래도 덮어쓰기]", async ({
+    page,
+    browser,
+  }) => {
+    // 체크가 꺼져 있으면 어떤 에러든 not_linked로 눌린다 — 켜고, 켬 전환이 만든 자동 sync 잡은
+    // 정리(activeJob이 있으면 syncing이 manual_edit보다 우선이라 배지가 가려짐).
+    await sr(`/rest/v1/equipment?id=eq.${mappedEqId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ wp_publish_enabled: true }),
+    });
+    await sr(`/rest/v1/jobs?type=eq.wp_publish&payload->>equipment_id=eq.${mappedEqId}`, {
+      method: "DELETE",
+    });
+    // wp_last_error는 서버통제 — record_wp_sync RPC(service_role)로만 세팅 가능.
+    await sr("/rest/v1/rpc/record_wp_sync", {
+      method: "POST",
+      body: JSON.stringify({
+        p_equipment_id: mappedEqId,
+        p_post_id: 900001,
+        p_post_status: "draft",
+        p_media: {},
+        p_last_error: "manual_edit: WP에서 수동 편집된 글 — 갱신이 차단됩니다",
+        p_clear_error: false,
+        p_dirty_snapshot: null,
+      }),
+    });
+    await login(page);
+    await page.goto(`/admin/equipment/${mappedEqId}`);
+    await expect(page.getByText("수동 편집됨").first()).toBeVisible();
+    await expect(page.getByRole("alert").filter({ hasText: "직접 수정된 글" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "그래도 덮어쓰기" })).toBeVisible(); // admin = users.manage
+    // 비관리자에게는 [그래도 덮어쓰기]가 보이지 않아야 한다(UI 노출 회귀 — 서버 가드는 db-tests가 커버).
+    // admin 세션이 있는 page에서 /login은 리다이렉트되므로 별도 컨텍스트로 sales 로그인.
+    const salesCtx = await browser.newContext();
+    const salesPage = await salesCtx.newPage();
+    await salesPage.goto("/login");
+    await salesPage.getByLabel("이메일").fill("sales@jhtech.local");
+    await salesPage.getByLabel("비밀번호", { exact: true }).fill("jhtech-sales-dev");
+    await salesPage.getByRole("button", { name: "로그인" }).click();
+    await salesPage.waitForURL(/\/admin\//, { timeout: 20_000 });
+    await salesPage.goto(`/admin/equipment/${mappedEqId}`);
+    await expect(salesPage.getByText("홈페이지").first()).toBeVisible();
+    await expect(salesPage.getByRole("button", { name: "그래도 덮어쓰기" })).toHaveCount(0);
+    await salesCtx.close();
+    // 정리: 에러 클리어(후속 테스트의 '동기화 중' 단언 오염 방지)
+    await sr("/rest/v1/rpc/record_wp_sync", {
+      method: "POST",
+      body: JSON.stringify({
+        p_equipment_id: mappedEqId,
+        p_post_id: null,
+        p_post_status: null,
+        p_media: null,
+        p_last_error: null,
+        p_clear_error: true,
+        p_dirty_snapshot: null,
+      }),
+    });
+  });
+
   test("장비 수정 폼: '홈페이지에 등록' 체크 → 캡션 노출 → 저장하면 상세 패널이 '동기화 중'", async ({
     page,
   }) => {

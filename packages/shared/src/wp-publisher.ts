@@ -3,8 +3,19 @@
 //   not_found = 원격 글·미디어 소실(호출측이 재연결/재생성 분기) / permanent = 그 외 4xx·스키마 불일치
 // 멱등성·재연결(post meta equipment_uuid)·CAS는 워커+DB RPC가 책임지고, 여기선 "한 번 호출"과 분류만.
 import { z } from "zod";
+import {
+  WP_PLUGIN_CONTRACT,
+  WpPluginPrecheckResponseSchema,
+  WpPluginSyncResponseSchema,
+  parseWpErrorCode,
+  toPluginPayload,
+  type WpPluginPrecheck,
+  type WpPluginSyncOk,
+  type WpTemplateSyncInput,
+} from "./wp-plugin";
 
-export type WpFailKind = "transient" | "permanent" | "auth" | "not_found";
+// manual_edit(#262) = 플러그인 해시 감지가 수동 편집을 확인 — 재시도 무의미, force_sync만 해제.
+export type WpFailKind = "transient" | "permanent" | "auth" | "not_found" | "manual_edit";
 
 export type WpResult<T> =
   | { ok: true; value: T }
@@ -41,6 +52,10 @@ export interface WpPublisher {
   deleteMedia(mediaId: number): Promise<WpResult<null>>;
   /** 최초 생성 레이스 패자의 자기 draft 정리용(완전 삭제). */
   deletePost(postId: number): Promise<WpResult<null>>;
+  /** #262 플러그인 가용성·수동편집 사전 체크 — 미디어 업로드 전에 호출(고아 미디어 방지). */
+  pluginPrecheck(equipmentUuid: string, knownPostId: number | null): Promise<WpResult<WpPluginPrecheck>>;
+  /** #262 템플릿 재복제 sync — 신규만 draft, 갱신은 currentStatus 보존, 응답 created로 CAS 정리 판단. */
+  pluginSync(input: WpTemplateSyncInput): Promise<WpResult<WpPluginSyncOk>>;
 }
 
 // HTTP 상태 → 실패 종별. 429/408은 일시적(레이트리밋·타임아웃), 401/403은 인증(즉시 실패).
@@ -133,6 +148,65 @@ export class FakeWpPublisher implements WpPublisher {
       if (ref.postId === postId) this.postsByUuid.delete(uuid);
     }
     return { ok: true, value: null };
+  }
+
+  // ── #262 플러그인 모사 — 설치 여부·수동 편집·계약 버전을 시나리오별로 주입.
+  public pluginInstalled = true;
+  public pluginContract = WP_PLUGIN_CONTRACT;
+  public readonly manualEditedUuids = new Set<string>();
+  /** 설정 시 pluginSync가 이 post_id를 반환(created=false) — DB id ≠ 플러그인 반환 id(재연결) 시나리오 주입. */
+  public pluginSyncPostIdOverride: number | null = null;
+
+  async pluginPrecheck(
+    equipmentUuid: string,
+    knownPostId: number | null,
+  ): Promise<WpResult<WpPluginPrecheck>> {
+    const fail = this.record("pluginPrecheck", [equipmentUuid, knownPostId]);
+    if (fail) return fail;
+    if (!this.pluginInstalled) {
+      return { ok: true, value: { pluginAvailable: false, reason: "no_plugin" } };
+    }
+    if (this.pluginContract !== WP_PLUGIN_CONTRACT) {
+      return {
+        ok: true,
+        value: { pluginAvailable: false, reason: "contract_mismatch", contract: this.pluginContract },
+      };
+    }
+    return {
+      ok: true,
+      value: {
+        pluginAvailable: true,
+        contract: this.pluginContract,
+        manualEdited: this.manualEditedUuids.has(equipmentUuid),
+        postId: knownPostId ?? this.postsByUuid.get(equipmentUuid)?.postId ?? null,
+      },
+    };
+  }
+
+  async pluginSync(input: WpTemplateSyncInput): Promise<WpResult<WpPluginSyncOk>> {
+    const fail = this.record("pluginSync", [input]);
+    if (fail) return fail;
+    if (!this.pluginInstalled) {
+      return { ok: false, error: "rest_no_route", kind: "not_found" };
+    }
+    if (this.manualEditedUuids.has(input.equipmentUuid) && !input.force) {
+      return { ok: false, error: "manually_edited", kind: "manual_edit" };
+    }
+    const existing =
+      this.pluginSyncPostIdOverride ??
+      input.knownPostId ??
+      this.postsByUuid.get(input.equipmentUuid)?.postId ??
+      null;
+    const created = existing == null;
+    const postId = existing ?? this.nextPostId++;
+    const status: "draft" | "publish" = created ? "draft" : (input.currentStatus ?? "draft");
+    this.postsByUuid.set(input.equipmentUuid, {
+      postId,
+      status,
+      link: `https://fake.example/?p=${postId}`,
+    });
+    if (input.force) this.manualEditedUuids.delete(input.equipmentUuid);
+    return { ok: true, value: { postId, status, created, link: `https://fake.example/?p=${postId}` } };
   }
 }
 
@@ -329,6 +403,106 @@ export class WpRestPublisher implements WpPublisher {
     const r = await this.request(`/wp/v2/posts/${postId}?force=true`, this.deleteInit, z.unknown());
     if (!r.ok) return r;
     return { ok: true, value: null };
+  }
+
+  // ── #262 플러그인 endpoint — 에러 body의 WP 코드(rest_no_route·manually_edited 등)까지 분류해야
+  //    해서 request()와 별도 경로. 비JSON body(가비아 errdoc HTML)는 코드 null로 안전 처리.
+  private async pluginRaw(
+    body: Record<string, unknown>,
+    timeoutMs: number,
+  ): Promise<
+    | { res: "ok"; json: unknown }
+    | { res: "http"; status: number; code: string | null }
+    | { res: "network"; error: string }
+  > {
+    let r: Response;
+    try {
+      r = await this.doFetch(`${this.base}/jhtech/v1/equipment-post`, {
+        method: "POST",
+        headers: { Authorization: this.auth, "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+    } catch (e) {
+      return { res: "network", error: e instanceof Error ? e.message : String(e) };
+    }
+    const json: unknown = await r.json().catch(() => null);
+    if (!r.ok) return { res: "http", status: r.status, code: parseWpErrorCode(json) };
+    return { res: "ok", json };
+  }
+
+  async pluginPrecheck(
+    equipmentUuid: string,
+    knownPostId: number | null,
+  ): Promise<WpResult<WpPluginPrecheck>> {
+    const r = await this.pluginRaw(
+      {
+        precheck: true,
+        contract: WP_PLUGIN_CONTRACT,
+        equipment_uuid: equipmentUuid,
+        known_post_id: knownPostId,
+      },
+      30_000,
+    );
+    if (r.res === "network") return { ok: false, error: r.error, kind: "transient" };
+    if (r.res === "http") {
+      if (r.status === 404 && r.code === "rest_no_route") {
+        return { ok: true, value: { pluginAvailable: false, reason: "no_plugin" } };
+      }
+      return { ok: false, error: `wp-plugin ${r.status}`, kind: classifyWpHttpStatus(r.status) };
+    }
+    const parsed = WpPluginPrecheckResponseSchema.safeParse(r.json);
+    if (!parsed.success) return { ok: false, error: "플러그인 precheck 응답 파싱 실패", kind: "permanent" };
+    if (parsed.data.contract !== WP_PLUGIN_CONTRACT) {
+      return {
+        ok: true,
+        value: { pluginAvailable: false, reason: "contract_mismatch", contract: parsed.data.contract },
+      };
+    }
+    return {
+      ok: true,
+      value: {
+        pluginAvailable: true,
+        contract: parsed.data.contract,
+        manualEdited: parsed.data.manual_edited,
+        postId: parsed.data.post_id,
+      },
+    };
+  }
+
+  async pluginSync(input: WpTemplateSyncInput): Promise<WpResult<WpPluginSyncOk>> {
+    // 60s — 공유호스팅에서 대형 트리 복제·인코딩·CSS 재생성이 30s를 넘길 수 있고,
+    // 타임아웃 재시도는 WP 쪽 부하를 반복시킨다(/review — 여유 있게).
+    const r = await this.pluginRaw(toPluginPayload(input), 60_000);
+    if (r.res === "network") return { ok: false, error: r.error, kind: "transient" };
+    if (r.res === "http") {
+      if (r.status === 409 && r.code === "manually_edited") {
+        return { ok: false, error: "manually_edited", kind: "manual_edit" };
+      }
+      if (r.code === "contract_mismatch") {
+        // precheck→sync 사이 플러그인 업그레이드 레이스 — 파싱 실패 오진 대신 명시.
+        return { ok: false, error: "contract_mismatch: 플러그인 계약 버전 불일치", kind: "permanent" };
+      }
+      if (r.code === "template_invalid") {
+        return { ok: false, error: "template_invalid: 템플릿 글·필수 슬롯 확인 필요", kind: "permanent" };
+      }
+      if (r.status === 404 && r.code === "rest_no_route") {
+        // precheck 이후 비활성화된 레이스 — 폴백 판단은 워커(render_mode 가드) 몫.
+        return { ok: false, error: "rest_no_route", kind: "not_found" };
+      }
+      return { ok: false, error: `wp-plugin ${r.status}`, kind: classifyWpHttpStatus(r.status) };
+    }
+    const parsed = WpPluginSyncResponseSchema.safeParse(r.json);
+    if (!parsed.success) return { ok: false, error: "플러그인 sync 응답 파싱 실패", kind: "permanent" };
+    return {
+      ok: true,
+      value: {
+        postId: parsed.data.post_id,
+        link: parsed.data.link,
+        status: parsed.data.status,
+        created: parsed.data.created,
+      },
+    };
   }
 }
 

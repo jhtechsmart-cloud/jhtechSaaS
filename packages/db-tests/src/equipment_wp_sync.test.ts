@@ -277,7 +277,7 @@ describe("record_wp_sync RPC — 워커 기록", () => {
     await inRollbackTx(c, async () => {
       await asPostgres(c);
       const r = await c.query(
-        "select has_function_privilege('authenticated','public.record_wp_sync(uuid,integer,text,jsonb,text,boolean,timestamptz,boolean)','execute') as auth_ok, has_function_privilege('service_role','public.record_wp_sync(uuid,integer,text,jsonb,text,boolean,timestamptz,boolean)','execute') as svc_ok",
+        "select has_function_privilege('authenticated','public.record_wp_sync(uuid,integer,text,jsonb,text,boolean,timestamptz,boolean,text)','execute') as auth_ok, has_function_privilege('service_role','public.record_wp_sync(uuid,integer,text,jsonb,text,boolean,timestamptz,boolean,text)','execute') as svc_ok",
       );
       expect(r.rows[0]).toEqual({ auth_ok: false, svc_ok: true });
     });
@@ -512,6 +512,128 @@ describe("resolve_wp_category_id — SQL 조상 해석", () => {
       expect(direct.rows[0].v).toBe(11);
       const orphan = await c.query("select public.resolve_wp_category_id($1) as v", [CAT_ORPHAN]);
       expect(orphan.rows[0].v).toBeNull();
+    });
+  });
+});
+
+// ── #262 템플릿 복제 v2 — 신규 컬럼·함수 계약 ──────────────────────────────
+describe("wp 템플릿 복제 v2 (#262)", () => {
+  test("wp_subtitle 수정 → dirty=true + sync 잡 (반영 필드 누락 회귀 방어)", async () => {
+    await inRollbackTx(c, async () => {
+      const eq = await seed();
+      await asPostgres(c);
+      await c.query("update public.equipment set wp_publish_enabled=true where id=$1", [eq]);
+      await c.query("delete from public.jobs where type='wp_publish'");
+      await asUser(c, UID.admin);
+      await c.query("update public.equipment set wp_subtitle='소량 다품종 최적' where id=$1", [eq]);
+      await asPostgres(c);
+      const r = await c.query("select wp_dirty from public.equipment where id=$1", [eq]);
+      expect(r.rows[0].wp_dirty).toBe(true);
+      const jobs = await wpJobs(eq);
+      expect(jobs.map((j) => j.action)).toContain("sync"); // 초안·미생성은 저장 시 자동 sync
+    });
+  });
+
+  test("wp_series_name 수정도 반영 필드다 (fields_changed 단일 출처)", async () => {
+    await inRollbackTx(c, async () => {
+      const eq = await seed();
+      await asPostgres(c);
+      await c.query("update public.equipment set wp_publish_enabled=true where id=$1", [eq]);
+      await asUser(c, UID.admin);
+      await c.query("update public.equipment set wp_series_name='AUTO FEED SERIES' where id=$1", [eq]);
+      await asPostgres(c);
+      const r = await c.query("select wp_dirty from public.equipment where id=$1", [eq]);
+      expect(r.rows[0].wp_dirty).toBe(true);
+    });
+  });
+
+  test("wp_render_mode는 서버통제 — 클라 UPDATE·INSERT 위조 차단, RPC로만 기록", async () => {
+    await inRollbackTx(c, async () => {
+      const eq = await seed();
+      await asUser(c, UID.admin);
+      await c.query("update public.equipment set wp_render_mode='elementor' where id=$1", [eq]);
+      await asPostgres(c);
+      let r = await c.query("select wp_render_mode from public.equipment where id=$1", [eq]);
+      expect(r.rows[0].wp_render_mode).toBeNull();
+      const ins = await c.query(
+        "insert into public.equipment (name,model,base_price,status,wp_render_mode) values ('위조','X',0,'active','elementor') returning wp_render_mode",
+      );
+      expect(ins.rows[0].wp_render_mode).toBeNull();
+      await asService(c);
+      await c.query(
+        "select public.record_wp_sync($1, 100, 'draft', '{}'::jsonb, null, true, null, false, 'elementor')",
+        [eq],
+      );
+      await asPostgres(c);
+      r = await c.query("select wp_render_mode from public.equipment where id=$1", [eq]);
+      expect(r.rows[0].wp_render_mode).toBe("elementor");
+      // p_render_mode 생략 = 기존값 유지 (구 워커 8-인자 named 호출 호환)
+      await asService(c);
+      await c.query("select public.record_wp_sync($1, 100, 'draft', '{}'::jsonb, null, true, null)", [eq]);
+      await asPostgres(c);
+      r = await c.query("select wp_render_mode from public.equipment where id=$1", [eq]);
+      expect(r.rows[0].wp_render_mode).toBe("elementor");
+    });
+  });
+
+  test("resolve_wp_template_post_id — 소분류 직접 > 조상 폴백 > 전무 null", async () => {
+    await inRollbackTx(c, async () => {
+      await seed();
+      await asPostgres(c);
+      const none = await c.query("select public.resolve_wp_template_post_id($1) as v", [CAT_SUB]);
+      expect(none.rows[0].v).toBeNull();
+      await c.query("update public.equipment_category set wp_template_post_id=4605 where id=$1", [CAT_ROOT]);
+      const inherited = await c.query("select public.resolve_wp_template_post_id($1) as v", [CAT_SUB]);
+      expect(inherited.rows[0].v).toBe(4605);
+      await c.query("update public.equipment_category set wp_template_post_id=7777 where id=$1", [CAT_SUB]);
+      const direct = await c.query("select public.resolve_wp_template_post_id($1) as v", [CAT_SUB]);
+      expect(direct.rows[0].v).toBe(7777);
+    });
+  });
+
+  test("force_sync: equipment.manage만으로는 거부(users.manage 전용)", async () => {
+    await inRollbackTx(c, async () => {
+      const eq = await seed();
+      await asPostgres(c);
+      await c.query("update public.equipment set wp_publish_enabled=true where id=$1", [eq]);
+      await c.query("update public.profiles set permissions='{equipment.manage}' where id=$1", [UID.sales2]);
+      await asUser(c, UID.sales2);
+      // 예외 후 tx가 abort되므로 이 단언이 이 테스트의 마지막 쿼리여야 한다.
+      await expect(c.query("select public.enqueue_wp_publish($1,'force_sync')", [eq])).rejects.toThrow(
+        /users\.manage/,
+      );
+    });
+  });
+
+  test("force_sync: 관리자는 허용 — 잡 payload에 action=sync + force=true", async () => {
+    await inRollbackTx(c, async () => {
+      const eq = await seed();
+      await asPostgres(c);
+      await c.query("update public.equipment set wp_publish_enabled=true where id=$1", [eq]);
+      await c.query("delete from public.jobs where type='wp_publish'");
+      await asUser(c, UID.admin); // users.manage 보유 = 전 권한 통과
+      await c.query("select public.enqueue_wp_publish($1,'force_sync')", [eq]);
+      await asPostgres(c);
+      const jobs = await c.query(
+        "select payload from public.jobs where type='wp_publish' and payload->>'equipment_id'=$1",
+        [eq],
+      );
+      expect(jobs.rows).toHaveLength(1);
+      expect(jobs.rows[0].payload.action).toBe("sync");
+      expect(jobs.rows[0].payload.force).toBe(true);
+    });
+  });
+
+  test("record_wp_sync 9-인자: 잘못된 render_mode는 예외", async () => {
+    await inRollbackTx(c, async () => {
+      const eq = await seed();
+      await asService(c);
+      await expect(
+        c.query(
+          "select public.record_wp_sync($1, 1, 'draft', '{}'::jsonb, null, true, null, false, 'wix')",
+          [eq],
+        ),
+      ).rejects.toThrow(/render_mode/);
     });
   });
 });

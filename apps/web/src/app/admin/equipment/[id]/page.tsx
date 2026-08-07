@@ -52,6 +52,8 @@ export default async function EquipmentDetailPage({
   const sp = await searchParams;
   const tab = sp.tab === "history" ? "history" : sp.tab === "stats" ? "stats" : "overview";
   const canManage = can(access.permissions, "equipment.manage");
+  // #262 [그래도 덮어쓰기]는 관리자 전용(RPC도 users.manage 재강제 — UI는 노출 제어만)
+  const canForce = can(access.permissions, "users.manage");
   // equipment.manage 단독 계정은 RLS로 리포트가 0건 — 조용한 빈 목록 대신 권한 안내를 띄운다.
   const canReadReports = (
     ["service_reports.write", "service_reports.view", "service_reports.view_all"] as const
@@ -225,6 +227,7 @@ export default async function EquipmentDetailPage({
               previewHtml={wpPreviewHtml}
               publicSiteUrl={WP_PUBLIC_SITE}
               canManage={canManage}
+              canForce={canForce}
               equipmentInactive={detail.status !== "active"}
             />
           ) : null}

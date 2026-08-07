@@ -14,6 +14,7 @@ const BADGE: Record<WpPrimaryStatus, { label: string; cls: string }> = {
   pending_create: { label: "동기화 대기", cls: "bg-surface-2 text-muted" },
   syncing: { label: "동기화 중", cls: "bg-surface-2 text-muted" },
   failed: { label: "실패", cls: "bg-danger/10 text-danger" },
+  manual_edit: { label: "수동 편집됨", cls: "bg-danger/10 text-danger" },
   draft: { label: "초안", cls: "bg-surface-2 text-muted" },
   published: { label: "공개", cls: "bg-active/10 text-active" },
 };
@@ -46,6 +47,7 @@ export function WpPanel({
   previewHtml,
   publicSiteUrl,
   canManage,
+  canForce,
   equipmentInactive,
 }: {
   equipmentId: string;
@@ -53,6 +55,8 @@ export function WpPanel({
   previewHtml: string;
   publicSiteUrl: string; // 예: http(s)://jhtech.co.kr — 글 링크 조립용
   canManage: boolean;
+  // #262 [그래도 덮어쓰기] 노출 여부 — RPC가 users.manage를 서버에서 재강제, UI는 노출 제어만.
+  canForce: boolean;
   // 비활성 장비는 트리거가 자동 sync를 건너뛰고 워커도 조용히 스킵 — 안내 없이는 '동기화 대기' 고착으로 보인다.
   equipmentInactive: boolean;
 }) {
@@ -78,7 +82,7 @@ export function WpPanel({
     };
   }, [syncing, equipmentId]);
 
-  function run(action: "publish" | "refresh" | "sync") {
+  function run(action: "publish" | "refresh" | "sync" | "force_sync") {
     setErr(null);
     startTransition(async () => {
       const r = await enqueueWpAction(equipmentId, action);
@@ -121,9 +125,16 @@ export function WpPanel({
         ) : null}
       </div>
 
-      {snap.status.error ? (
+      {snap.status.error && primary !== "manual_edit" ? (
         <p role="alert" className="mt-2 rounded-sm bg-danger/5 px-3 py-2 text-small text-danger">
           {snap.status.error}
+        </p>
+      ) : null}
+      {primary === "manual_edit" ? (
+        <p role="alert" className="mt-2 rounded-sm bg-danger/5 px-3 py-2 text-small text-danger">
+          홈페이지에서 직접 수정된 글입니다 — 덮어쓰기를 막기 위해 자동 반영·[홈페이지 갱신]이
+          차단됩니다. 이후 홈페이지에서 직접 관리하거나, 관리자가 [그래도 덮어쓰기]로 SaaS 내용으로
+          되돌릴 수 있습니다.
         </p>
       ) : null}
       {err ? (
@@ -186,6 +197,20 @@ export function WpPanel({
               홈페이지 발행
             </button>
           ) : null}
+          {primary === "manual_edit" && canForce && !equipmentInactive ? (
+            <button
+              type="button"
+              disabled={disabled}
+              onClick={() => {
+                // eslint-disable-next-line no-alert -- 파괴적 확인(홈페이지 수동 편집분 소실) — 장비 삭제와 동일 패턴
+                if (window.confirm("홈페이지에서 직접 수정한 내용이 SaaS 내용으로 덮어써집니다. 계속할까요?"))
+                  run("force_sync");
+              }}
+              className="rounded-full border border-danger/40 px-3.5 py-1.5 text-small font-medium text-danger hover:bg-danger/5 disabled:opacity-50"
+            >
+              그래도 덮어쓰기
+            </button>
+          ) : null}
           {primary === "published" && snap.status.pendingRefresh && !equipmentInactive ? (
             <button
               type="button"
@@ -196,7 +221,7 @@ export function WpPanel({
               홈페이지 갱신
             </button>
           ) : null}
-          {postLink && (primary === "published" || primary === "draft") ? (
+          {postLink && (primary === "published" || primary === "draft" || primary === "manual_edit") ? (
             <a
               href={postLink}
               target="_blank"
@@ -218,7 +243,8 @@ export function WpPanel({
       {previewOpen ? (
         <div className="mt-3">
           <p className="mb-1 text-micro text-muted">
-            구성 미리보기 — 현재 저장본 기준이며, 실제 홈페이지 표시와 다를 수 있습니다.
+            구성 미리보기 — 내용(텍스트·사진·사양) 확인용입니다. 실제 디자인은 홈페이지 템플릿로
+            적용됩니다.
           </p>
           {/* sandbox iframe(srcdoc) 격리 — SaaS CSS 오염·스크립트 실행 이중 차단 */}
           <iframe

@@ -57,6 +57,19 @@ describe("deriveWpStatus", () => {
     expect(s.error).toBe("401");
   });
 
+  it("manual_edit: 접두 에러는 전용 상태로 승격 (#262 — 일반 failed와 구분)", () => {
+    const s = deriveWpStatus(
+      base({ wpPostId: 10, wpPostStatus: "publish", wpLastError: "manual_edit: WP에서 수동 편집된 글" }),
+    );
+    expect(s.primary).toBe("manual_edit");
+    expect(s.error).toContain("수동 편집");
+    // syncing은 여전히 우선
+    const syncing = deriveWpStatus(
+      base({ wpPostId: 10, wpLastError: "manual_edit: x", activeJob: "queued" }),
+    );
+    expect(syncing.primary).toBe("syncing");
+  });
+
   it("공개 글 + dirty = 보조 배지 pendingRefresh", () => {
     const s = deriveWpStatus(base({ wpPostId: 10, wpPostStatus: "publish", wpDirty: true }));
     expect(s.primary).toBe("published");

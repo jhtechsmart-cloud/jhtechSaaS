@@ -1,11 +1,14 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  parseSpecs,
+  parseYoutubeId,
   renderWpPostHtml,
   resolveWpCategoryId,
   type WpCategoryNode,
   type WpFailKind,
   type WpPublisher,
   type WpResult,
+  type WpTemplateSyncInput,
 } from "@jhtechsaas/shared";
 
 // 장비 → 워드프레스 발행 잡(#253). 액션 3종:
@@ -54,6 +57,10 @@ interface EquipmentRow {
   wp_media: Record<string, WpMediaEntry>;
   wp_dirty: boolean;
   wp_dirty_at: string | null; // ISO 문자열 그대로 왕복(Date 변환 시 마이크로초 소실 → CAS 어긋남)
+  // #262 템플릿 복제 v2
+  wp_subtitle: string | null;
+  wp_series_name: string | null;
+  wp_render_mode: "html" | "elementor" | null; // 마지막으로 본문을 쓴 주체 — elementor면 레거시 폴백 금지
 }
 
 export interface WpPublishOpts {
@@ -72,6 +79,7 @@ async function recordSync(
     clearError?: boolean;
     dirtySnapshot?: string | null;
     replace?: boolean;
+    renderMode?: "html" | "elementor" | null;
   },
 ): Promise<{ casWon: boolean; wpPostId: number | null }> {
   const { data, error } = await supabase.rpc("record_wp_sync", {
@@ -83,6 +91,7 @@ async function recordSync(
     p_clear_error: params.clearError ?? false,
     p_dirty_snapshot: params.dirtySnapshot ?? null,
     p_replace: params.replace ?? false,
+    p_render_mode: params.renderMode ?? null,
   });
   if (error) throw new Error(`record_wp_sync 실패: ${error.message}`);
   const r = data as { cas_won?: boolean; wp_post_id?: number | null } | null;
@@ -110,7 +119,7 @@ async function fetchEquipment(supabase: SupabaseClient, id: string): Promise<Equ
   const { data, error } = await supabase
     .from("equipment")
     .select(
-      "id,name,model,status,category_id,photos,specs,highlights,youtube_urls,wp_publish_enabled,wp_post_id,wp_post_status,wp_media,wp_dirty,wp_dirty_at",
+      "id,name,model,status,category_id,photos,specs,highlights,youtube_urls,wp_publish_enabled,wp_post_id,wp_post_status,wp_media,wp_dirty,wp_dirty_at,wp_subtitle,wp_series_name,wp_render_mode",
     )
     .eq("id", id)
     .maybeSingle();
@@ -128,6 +137,27 @@ async function resolveCategory(
     .select("id,parent_id,wp_category_id");
   if (error) throw new Error(`분류 조회 실패: ${error.message}`);
   return resolveWpCategoryId(categoryId, (data ?? []) as WpCategoryNode[]);
+}
+
+// #262 분류별 템플릿 글 해석 — 소분류 직접 설정 > 조상 폴백(resolve_wp_template_post_id와 동일 규칙).
+// null = 템플릿 미설정(레거시 HTML 경로 유지 — 기능 도입 전 prod 무변화 보장).
+async function resolveTemplate(
+  supabase: SupabaseClient,
+  categoryId: string | null,
+): Promise<number | null> {
+  if (!categoryId) return null;
+  const { data, error } = await supabase
+    .from("equipment_category")
+    .select("id,parent_id,wp_template_post_id");
+  if (error) throw new Error(`분류 조회 실패: ${error.message}`);
+  const rows = (data ?? []) as Array<{ id: string; parent_id: string | null; wp_template_post_id: number | null }>;
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  let cur = byId.get(categoryId);
+  for (let depth = 0; cur && depth < 10; depth++) {
+    if (cur.wp_template_post_id != null) return cur.wp_template_post_id;
+    cur = cur.parent_id ? byId.get(cur.parent_id) : undefined;
+  }
+  return null;
 }
 
 // 사진 diff 업로드: wp_media 맵에 있는 경로는 재사용, 없는 경로만 storage에서 받아 업로드.
@@ -179,7 +209,7 @@ async function reconnectOrCreate(
   publisher: WpPublisher,
   equipmentId: string,
   post: Parameters<WpPublisher["createDraft"]>[0],
-): Promise<{ postId: number; postStatus: "draft" | "publish" } | null> {
+): Promise<{ postId: number; postStatus: "draft" | "publish"; created: boolean } | null> {
   const found = await publisher.findByMeta(equipmentId);
   const { value: ref, fail } = unwrap(found);
   if (fail) {
@@ -192,14 +222,14 @@ async function reconnectOrCreate(
       await handleFail(supabase, equipmentId, updated.kind, `재연결 갱신 실패: ${updated.error}`);
       return null;
     }
-    return { postId: ref.postId, postStatus: ref.status ?? "draft" };
+    return { postId: ref.postId, postStatus: ref.status ?? "draft", created: false };
   }
   const created = await publisher.createDraft(post);
   if (!created.ok) {
     await handleFail(supabase, equipmentId, created.kind, `초안 생성 실패: ${created.error}`);
     return null;
   }
-  return { postId: created.value.postId, postStatus: "draft" };
+  return { postId: created.value.postId, postStatus: "draft", created: true };
 }
 
 async function processSync(
@@ -207,6 +237,7 @@ async function processSync(
   publisher: WpPublisher,
   eq: EquipmentRow,
   opts: WpPublishOpts,
+  force = false,
 ): Promise<void> {
   // 상태가 그 사이 바뀌었으면: 공개 글이 남아 있으면 스스로 내린다(자가 치유).
   // 근거: 체크 해제·비활성의 unpublish 잡은 활성 sync 잡(processing)에 흡수돼 소실될 수 있다 —
@@ -229,6 +260,49 @@ async function processSync(
     return;
   }
 
+  // #262 플러그인 경로 판정 + 사전 체크 — 미디어 업로드 전에 수행(409 시 고아 미디어 방지).
+  // 템플릿 미설정 && 레거시 관리 글 = 기존 경로 그대로(기능 도입 전 prod 무변화).
+  const templatePostId = await resolveTemplate(supabase, eq.category_id);
+  let usePlugin = false;
+  if (templatePostId != null || eq.wp_render_mode === "elementor") {
+    const pre = await publisher.pluginPrecheck(eq.id, eq.wp_post_id);
+    if (!pre.ok) {
+      await handleFail(supabase, eq.id, pre.kind, `플러그인 사전 체크 실패: ${pre.error}`);
+      return;
+    }
+    if (!pre.value.pluginAvailable) {
+      if (eq.wp_render_mode === "elementor") {
+        // 침묵 품질 회귀 금지: Elementor 관리 글을 레거시 HTML로 "성공한 척" 덮으면
+        // 화면은 그대로인데 상태만 GREEN이 된다 — 명시 실패로 표기(autoplan Eng 지적 5).
+        await handleFail(
+          supabase,
+          eq.id,
+          "permanent",
+          `플러그인 미가용(${pre.value.reason ?? "unknown"}) — Elementor 관리 글은 레거시 폴백 금지`,
+        );
+        return;
+      }
+      console.warn(
+        `[worker] wp_publish 플러그인 미가용(${pre.value.reason ?? "unknown"}) — 레거시 HTML 경로로 진행 equipment=${eq.id}`,
+      );
+    } else if (templatePostId == null) {
+      // 플러그인은 있는데 분류 템플릿 미설정 + 이미 Elementor 관리 글 — 갱신 불능을 명시.
+      await handleFail(supabase, eq.id, "permanent", "분류에 템플릿 글(wp_template_post_id) 설정이 필요합니다");
+      return;
+    } else {
+      if (pre.value.manualEdited && !force) {
+        await handleFail(
+          supabase,
+          eq.id,
+          "manual_edit",
+          "WP에서 수동 편집된 글 — 갱신이 차단됩니다. 관리자의 [그래도 덮어쓰기]로만 해제됩니다",
+        );
+        return;
+      }
+      usePlugin = true;
+    }
+  }
+
   const media = await syncMedia(supabase, publisher, eq.photos, eq.wp_media ?? {}, opts.touch);
   if (media.fail) {
     await handleFail(supabase, eq.id, media.fail.kind, `미디어 업로드 실패: ${media.fail.error}`);
@@ -243,33 +317,78 @@ async function processSync(
     });
   }
 
-  const imageUrls = Object.fromEntries(
-    Object.entries(media.map).map(([path, entry]) => [path, entry.url]),
-  );
-  const post = {
-    title: eq.name,
-    content: renderWpPostHtml(
-      {
-        name: eq.name,
-        model: eq.model,
-        photos: eq.photos,
-        highlights: eq.highlights ?? [],
-        specs: Array.isArray(eq.specs) ? (eq.specs as never) : [],
-        youtubeUrls: eq.youtube_urls ?? [],
-      },
-      { imageUrls },
-    ),
-    categories: [...new Set([WP_PRODUCT_CATEGORY_ID, categoryId])],
-    equipmentUuid: eq.id,
-    ...(eq.model && /^[\x20-\x7e]+$/.test(eq.model) ? { slug: eq.model.toLowerCase() } : {}),
-    ...(eq.photos[0] && media.map[eq.photos[0]] ? { featuredMediaId: media.map[eq.photos[0]].id } : {}),
+  const categories = [...new Set([WP_PRODUCT_CATEGORY_ID, categoryId])];
+  const featuredMediaId =
+    eq.photos[0] && media.map[eq.photos[0]] ? media.map[eq.photos[0]].id : null;
+  // 레거시 HTML 본문은 레거시 경로에서만 조립(플러그인 경로에선 categories만 쓰인다 — 낭비 렌더 방지).
+  const buildLegacyPost = () => {
+    const imageUrls = Object.fromEntries(
+      Object.entries(media.map).map(([path, entry]) => [path, entry.url]),
+    );
+    return {
+      title: eq.name,
+      content: renderWpPostHtml(
+        {
+          name: eq.name,
+          model: eq.model,
+          photos: eq.photos,
+          highlights: eq.highlights ?? [],
+          specs: Array.isArray(eq.specs) ? (eq.specs as never) : [],
+          youtubeUrls: eq.youtube_urls ?? [],
+        },
+        { imageUrls },
+      ),
+      categories,
+      equipmentUuid: eq.id,
+      ...(eq.model && /^[\x20-\x7e]+$/.test(eq.model) ? { slug: eq.model.toLowerCase() } : {}),
+      ...(featuredMediaId != null ? { featuredMediaId } : {}),
+    };
   };
 
   let postId = eq.wp_post_id;
   let postStatus: "draft" | "publish" = eq.wp_post_status ?? "draft";
   let replace = false;
+  let createdByMe = false;
+  let renderMode: "html" | "elementor" = "html";
 
-  if (postId != null) {
+  if (usePlugin && templatePostId != null) {
+    // 플러그인 경로 — 매 sync = 템플릿 재복제(플러그인 책임). 신규만 draft, 갱신은 상태 보존.
+    renderMode = "elementor";
+    const input: WpTemplateSyncInput = {
+      equipmentUuid: eq.id,
+      knownPostId: eq.wp_post_id,
+      templatePostId,
+      title: eq.name,
+      subtitle: eq.wp_subtitle?.trim() || null,
+      seriesName: eq.wp_series_name?.trim() || null,
+      photoMediaIds: eq.photos.map((p) => media.map[p]?.id).filter((v): v is number => v != null),
+      featuredMediaId,
+      features: (eq.highlights ?? []).filter(Boolean),
+      specGroups: parseSpecs(eq.specs).map((g) => ({
+        name: g.name,
+        items: g.items.map((i) => ({ label: i.label, value: i.value })),
+      })),
+      youtubeIds: (eq.youtube_urls ?? [])
+        .map((u) => parseYoutubeId(u))
+        .filter((v): v is string => v != null),
+      categories,
+      currentStatus: eq.wp_post_id != null ? (eq.wp_post_status ?? "draft") : null,
+      force,
+    };
+    const r = await publisher.pluginSync(input);
+    if (!r.ok) {
+      await handleFail(supabase, eq.id, r.kind, `플러그인 sync 실패: ${r.error}`);
+      return;
+    }
+    postId = r.value.postId;
+    postStatus = r.value.status;
+    createdByMe = r.value.created;
+    // DB가 1차 권위자: 저장 id와 다른 글이 반환되면 재연결로 기록(404 재연결과 동일 취급).
+    replace =
+      (eq.wp_post_id != null && postId !== eq.wp_post_id) ||
+      (eq.wp_post_id == null && !r.value.created);
+  } else if (postId != null) {
+    const post = buildLegacyPost();
     const updated = await publisher.updatePost(postId, post);
     if (!updated.ok && updated.kind === "not_found") {
       // 원격 글 소실 — meta로 재연결, 없으면 재생성
@@ -277,6 +396,7 @@ async function processSync(
       if (!recovered) return; // 실패는 reconnectOrCreate가 기록
       postId = recovered.postId;
       postStatus = recovered.postStatus;
+      createdByMe = recovered.created;
       replace = true;
     } else if (!updated.ok) {
       await handleFail(supabase, eq.id, updated.kind, `글 갱신 실패: ${updated.error}`);
@@ -284,10 +404,11 @@ async function processSync(
     }
   } else {
     // 미생성: 부분 실패 재시도 대비 meta 재연결 먼저
-    const recovered = await reconnectOrCreate(supabase, publisher, eq.id, post);
+    const recovered = await reconnectOrCreate(supabase, publisher, eq.id, buildLegacyPost());
     if (!recovered) return;
     postId = recovered.postId;
     postStatus = recovered.postStatus;
+    createdByMe = recovered.created;
   }
 
   const recorded = await recordSync(supabase, {
@@ -298,11 +419,13 @@ async function processSync(
     clearError: true,
     dirtySnapshot: eq.wp_dirty_at,
     replace,
+    renderMode,
   });
   if (!recorded.casWon) {
-    // 최초 생성 레이스 패배 — 내가 만든 draft를 정리(멱등: 남은 글은 승자 것 하나)
-    console.warn(`[worker] wp_publish CAS 패배 — 중복 draft 정리 equipment=${eq.id} post=${postId}`);
-    if (postId != null) await publisher.deletePost(postId);
+    // 최초 생성 레이스 패배 — "내가 이번에 새로 만든 draft"만 정리.
+    // 기존 글(재연결·플러그인 meta 조회 결과)을 지우면 실글 삭제 사고(autoplan Eng 지적 3).
+    console.warn(`[worker] wp_publish CAS 패배 equipment=${eq.id} post=${postId} created=${createdByMe}`);
+    if (createdByMe && postId != null) await publisher.deletePost(postId);
     return;
   }
 
@@ -357,7 +480,8 @@ export async function processWpPublishJob(
   }
 
   if (action === "sync") {
-    await processSync(supabase, publisher, eq, opts);
+    // force = force_sync RPC(관리자 전용)가 실은 플래그 — 수동 편집 감지 무시 덮어쓰기.
+    await processSync(supabase, publisher, eq, opts, payload.force === true);
     return;
   }
   if (action === "publish") {
