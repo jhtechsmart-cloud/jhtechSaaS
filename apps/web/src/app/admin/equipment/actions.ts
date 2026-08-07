@@ -112,7 +112,8 @@ export async function createEquipment(
   }
 
   revalidatePath("/admin/equipment");
-  redirect("/admin/equipment");
+  // 홈페이지 등록을 켠 저장은 상세로 — 홈페이지 패널(동기화 진행·미리보기)을 바로 보여준다.
+  redirect(v.wp_publish_enabled ? `/admin/equipment/${id}` : "/admin/equipment");
 }
 
 export async function updateEquipment(
@@ -177,7 +178,8 @@ export async function updateEquipment(
   }
 
   revalidatePath("/admin/equipment");
-  redirect("/admin/equipment");
+  // 홈페이지 등록이 켜진 저장은 상세로 — 홈페이지 패널(동기화 진행·미리보기)을 바로 보여준다.
+  redirect(v.wp_publish_enabled ? `/admin/equipment/${id}` : "/admin/equipment");
 }
 
 export async function deleteEquipment(id: string): Promise<EquipmentActionResult> {
