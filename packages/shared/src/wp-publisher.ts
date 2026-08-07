@@ -297,19 +297,17 @@ export class WpRestPublisher implements WpPublisher {
   async uploadMedia(
     media: WpMediaInput,
   ): Promise<WpResult<{ mediaId: number; sourceUrl: string }>> {
-    const r = await this.request(
-      "/wp/v2/media",
-      {
-        method: "POST",
-        headers: {
-          // 파일명은 안전 문자셋으로 강제 — CR/LF·백슬래시가 헤더를 깨거나(undici throw) 인용을 망가뜨린다
-          "Content-Disposition": `attachment; filename="${media.filename.replace(/[^A-Za-z0-9._-]/g, "_")}"`,
-          "Content-Type": media.mimeType,
-        },
-        body: media.content,
-      },
-      WpMediaSchema,
+    // ⚠️ 원시 바이너리 body 금지 — 가비아 ModSecurity가 302(errdoc)로 차단한다(라이브 실측).
+    // WP 관리자와 같은 multipart/form-data만 통과. Content-Type은 fetch가 boundary와 함께 붙인다.
+    // 파일명은 안전 문자셋으로 강제 — CR/LF·백슬래시가 multipart 파트 헤더 인용을 망가뜨린다.
+    const form = new FormData();
+    form.append(
+      "file",
+      new File([media.content as BlobPart], media.filename.replace(/[^A-Za-z0-9._-]/g, "_"), {
+        type: media.mimeType,
+      }),
     );
+    const r = await this.request("/wp/v2/media", { method: "POST", body: form }, WpMediaSchema);
     if (!r.ok) return r;
     return { ok: true, value: { mediaId: r.value.id, sourceUrl: r.value.source_url } };
   }
