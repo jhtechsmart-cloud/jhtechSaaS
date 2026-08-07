@@ -365,7 +365,7 @@ async function processSync(
       featuredMediaId,
       features: (eq.highlights ?? []).filter(Boolean),
       specGroups: parseSpecs(eq.specs).map((g) => ({
-        name: g.name,
+        name: g.group,
         items: g.items.map((i) => ({ label: i.label, value: i.value })),
       })),
       youtubeIds: (eq.youtube_urls ?? [])
