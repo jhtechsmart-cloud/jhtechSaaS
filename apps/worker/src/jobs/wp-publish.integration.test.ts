@@ -297,7 +297,10 @@ describe("wp_publish 잡 — 플러그인 템플릿 경로(#262)", () => {
 
   test("신규 생성: precheck→미디어→pluginSync 순서, draft + render_mode=elementor 기록", async () => {
     const fake = new FakeWpPublisher();
-    const id = await seedEquipment({ photos: [PHOTO_A] });
+    const id = await seedEquipment({
+      photos: [PHOTO_A],
+      specs: [{ group: "시스템", icon: "settings", items: [{ id: "", label: "속도", value: "1600mm/s" }] }],
+    });
     await insertJob(id, "sync");
     await drainJobs(fake);
     const eq = await getEq(id);
@@ -308,6 +311,11 @@ describe("wp_publish 잡 — 플러그인 템플릿 경로(#262)", () => {
     expect(methods.indexOf("pluginPrecheck")).toBeLessThan(methods.indexOf("uploadMedia"));
     expect(methods).toContain("pluginSync");
     expect(methods).not.toContain("createDraft"); // 레거시 경로 미사용
+    // payload 내용 계약 — 그룹명(SpecGroup.group→name 매핑)·특징이 실제로 실려 간다
+    const syncCall = fake.calls.find((c) => c.method === "pluginSync");
+    const input = syncCall?.args[0] as { specGroups: Array<{ name: string }>; features: string[] };
+    expect(input.specGroups.map((g) => g.name)).toEqual(["시스템"]);
+    expect(input.features).toEqual(["하이라이트1"]);
   });
 
   test("공개 글 갱신: pluginSync가 currentStatus를 보존한다 (강등 금지 계약)", async () => {
