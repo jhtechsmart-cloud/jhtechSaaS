@@ -51,6 +51,7 @@ async function insertJob(
   equipmentId: string,
   action: string,
   wpPostId?: number,
+  extra: Record<string, unknown> = {},
 ): Promise<void> {
   // INSERT 트리거의 자동 sync 잡과 부분 유니크가 충돌하지 않게 해당 장비 활성 잡 선정리
   await supabase
@@ -64,6 +65,7 @@ async function insertJob(
       equipment_id: equipmentId,
       action,
       ...(wpPostId !== undefined ? { wp_post_id: wpPostId } : {}),
+      ...extra,
     },
   });
   if (error) throw error;
@@ -77,7 +79,7 @@ async function drainJobs(fake: FakeWpPublisher): Promise<void> {
 async function getEq(id: string): Promise<Record<string, unknown>> {
   const { data, error } = await supabase
     .from("equipment")
-    .select("wp_post_id, wp_post_status, wp_media, wp_dirty, wp_dirty_at, wp_last_error")
+    .select("wp_post_id, wp_post_status, wp_media, wp_dirty, wp_dirty_at, wp_last_error, wp_render_mode")
     .eq("id", id)
     .single();
   if (error) throw error;
@@ -281,5 +283,99 @@ describe("wp_publish 잡 — publish/unpublish/dirty", () => {
     const eq = await getEq(id);
     expect(eq.wp_dirty).toBe(false);
     expect(eq.wp_post_status).toBe("publish"); // 갱신은 공개 상태 유지
+  });
+});
+
+// ── #262 플러그인 템플릿 경로 — 분류에 wp_template_post_id가 설정되면 활성화 ──
+describe("wp_publish 잡 — 플러그인 템플릿 경로(#262)", () => {
+  beforeAll(async () => {
+    await supabase.from("equipment_category").update({ wp_template_post_id: 4605 }).eq("id", CAT);
+  });
+  afterAll(async () => {
+    await supabase.from("equipment_category").update({ wp_template_post_id: null }).eq("id", CAT);
+  });
+
+  test("신규 생성: precheck→미디어→pluginSync 순서, draft + render_mode=elementor 기록", async () => {
+    const fake = new FakeWpPublisher();
+    const id = await seedEquipment({ photos: [PHOTO_A] });
+    await insertJob(id, "sync");
+    await drainJobs(fake);
+    const eq = await getEq(id);
+    expect(eq.wp_post_id).not.toBeNull();
+    expect(eq.wp_post_status).toBe("draft");
+    expect(eq.wp_render_mode).toBe("elementor");
+    const methods = fake.calls.map((c) => c.method);
+    expect(methods.indexOf("pluginPrecheck")).toBeLessThan(methods.indexOf("uploadMedia"));
+    expect(methods).toContain("pluginSync");
+    expect(methods).not.toContain("createDraft"); // 레거시 경로 미사용
+  });
+
+  test("공개 글 갱신: pluginSync가 currentStatus를 보존한다 (강등 금지 계약)", async () => {
+    const fake = new FakeWpPublisher();
+    const id = await seedEquipment();
+    await insertJob(id, "sync");
+    await drainJobs(fake);
+    const first = await getEq(id);
+    // 발행 전환 후 재sync([홈페이지 갱신] 경로와 동일)
+    await insertJob(id, "publish", undefined);
+    await drainJobs(fake);
+    await insertJob(id, "sync");
+    await drainJobs(fake);
+    const eq = await getEq(id);
+    expect(eq.wp_post_id).toBe(first.wp_post_id);
+    expect(eq.wp_post_status).toBe("publish"); // 갱신이 draft로 강등시키지 않음
+    expect(eq.wp_render_mode).toBe("elementor");
+  });
+
+  test("수동 편집 감지: 미디어 업로드 전에 종단(manual_edit) — 고아 미디어 0", async () => {
+    const fake = new FakeWpPublisher();
+    const id = await seedEquipment({ photos: [PHOTO_A] });
+    fake.manualEditedUuids.add(id);
+    await insertJob(id, "sync");
+    await drainJobs(fake);
+    const eq = await getEq(id);
+    expect(String(eq.wp_last_error)).toMatch(/^manual_edit:/);
+    const methods = fake.calls.map((c) => c.method);
+    expect(methods).toContain("pluginPrecheck");
+    expect(methods).not.toContain("uploadMedia"); // 409 조기 감지 — 업로드 자체가 없다
+    expect(methods).not.toContain("pluginSync");
+  });
+
+  test("force 잡(관리자 덮어쓰기)은 수동 편집을 무시하고 동기화·에러 해제", async () => {
+    const fake = new FakeWpPublisher();
+    const id = await seedEquipment();
+    fake.manualEditedUuids.add(id);
+    await insertJob(id, "sync", undefined, { force: true });
+    await drainJobs(fake);
+    const eq = await getEq(id);
+    expect(eq.wp_last_error).toBeNull();
+    expect(eq.wp_post_id).not.toBeNull();
+    expect(eq.wp_render_mode).toBe("elementor");
+  });
+
+  test("플러그인 미설치 + Elementor 관리 글 = 레거시 폴백 금지(명시 실패)", async () => {
+    const fake = new FakeWpPublisher();
+    const id = await seedEquipment();
+    await insertJob(id, "sync");
+    await drainJobs(fake); // 정상 생성 → render_mode=elementor
+    fake.pluginInstalled = false;
+    await insertJob(id, "sync");
+    await drainJobs(fake);
+    const eq = await getEq(id);
+    expect(String(eq.wp_last_error)).toContain("레거시 폴백 금지");
+    expect(fake.calls.map((c) => c.method)).not.toContain("updatePost"); // 조용한 HTML 덮어쓰기 없음
+  });
+
+  test("플러그인 미설치 + 미생성 장비 = 레거시 HTML 경로로 정상 폴백(render_mode=html)", async () => {
+    const fake = new FakeWpPublisher();
+    fake.pluginInstalled = false;
+    const id = await seedEquipment();
+    await insertJob(id, "sync");
+    await drainJobs(fake);
+    const eq = await getEq(id);
+    expect(eq.wp_post_id).not.toBeNull();
+    expect(eq.wp_post_status).toBe("draft");
+    expect(eq.wp_render_mode).toBe("html");
+    expect(eq.wp_last_error).toBeNull();
   });
 });

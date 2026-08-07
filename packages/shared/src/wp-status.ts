@@ -8,6 +8,7 @@ export type WpPrimaryStatus =
   | "pending_create" // 체크+매핑 OK, 글 미생성(저장 시 잡 생성 대기)
   | "syncing" // 활성 잡 존재
   | "failed" // 마지막 잡 실패(wp_last_error)
+  | "manual_edit" // #262 WP에서 수동 편집 감지 — 갱신 차단, force_sync(관리자)만 해제
   | "draft"
   | "published";
 
@@ -35,6 +36,8 @@ export function deriveWpStatus(input: WpStatusInput): WpStatus {
     return { primary: "not_linked", pendingRefresh: false, error: null };
   }
   if (input.activeJob) return { primary: "syncing", pendingRefresh, error: null };
+  // handleFail이 "<kind>: <message>" 형식으로 기록 — manual_edit 접두는 전용 상태로 승격.
+  if (error?.startsWith("manual_edit:")) return { primary: "manual_edit", pendingRefresh, error };
   if (error) return { primary: "failed", pendingRefresh, error };
   if (!input.mappingResolved) return { primary: "mapping_required", pendingRefresh, error: null };
   if (!input.wpPostId) return { primary: "pending_create", pendingRefresh: false, error: null };

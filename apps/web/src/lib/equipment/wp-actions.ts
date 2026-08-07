@@ -51,10 +51,11 @@ export async function getWpSnapshot(equipmentId: string): Promise<WpSnapshot | {
   };
 }
 
-// 버튼 enqueue — publish(발행)/refresh(공개 글 갱신)/sync(초안 재동기화·재시도).
+// 버튼 enqueue — publish(발행)/refresh(공개 글 갱신)/sync(초안 재동기화·재시도)/
+// force_sync(#262 수동 편집 감지 무시 덮어쓰기 — RPC가 users.manage를 추가 강제).
 export async function enqueueWpAction(
   equipmentId: string,
-  action: "publish" | "refresh" | "sync",
+  action: "publish" | "refresh" | "sync" | "force_sync",
 ): Promise<{ error: string } | null> {
   const access = await requireEquipmentManage();
   if (access.status === "forbidden") return { error: "권한이 없습니다." };

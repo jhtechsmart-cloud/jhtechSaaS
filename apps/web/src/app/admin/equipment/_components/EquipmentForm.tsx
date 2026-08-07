@@ -64,6 +64,8 @@ export function EquipmentForm(props: Props) {
             status: "active",
             is_demo: false,
             wp_publish_enabled: false,
+            wp_subtitle: "",
+            wp_series_name: "",
             highlights: [],
             youtube_urls: [],
             // UI-SPEC: 생성 시 1 빈 그룹(아이템 1 빈 행)
@@ -378,6 +380,27 @@ function WpPublishField({
             저장하면 홈페이지 초안에 자동 반영됩니다. 공개된 글은 장비 상세의 [홈페이지 갱신]으로 반영합니다.
           </p>
         )
+      ) : null}
+      {enabled ? (
+        // #262 템플릿 슬롯 문구 — 비우면 홈페이지에서 해당 슬롯 섹션이 숨겨진다.
+        <div className="mt-1 flex flex-col gap-2 sm:flex-row">
+          <input
+            type="text"
+            maxLength={80}
+            placeholder="홈페이지 부제 (예: 소량 다품종의 스티커, 라벨 제작에 최적)"
+            aria-label="홈페이지 부제"
+            {...register("wp_subtitle")}
+            className="w-full rounded-sm border border-border bg-surface px-2.5 py-1.5 text-small text-text sm:flex-1"
+          />
+          <input
+            type="text"
+            maxLength={80}
+            placeholder="영문 시리즈명 (예: AUTO FEED SERIES · 선택)"
+            aria-label="영문 시리즈명"
+            {...register("wp_series_name")}
+            className="w-full rounded-sm border border-border bg-surface px-2.5 py-1.5 text-small text-text sm:w-64"
+          />
+        </div>
       ) : null}
     </div>
   );

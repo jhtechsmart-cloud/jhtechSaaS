@@ -50,6 +50,9 @@ export const equipmentFormSchema = z.object({
   is_demo: z.boolean().default(false),
   // 홈페이지(워드프레스) 등록 여부(#253) — 기존 장비 전부 false 시작. 실제 반영은 DB 트리거가 enqueue.
   wp_publish_enabled: z.boolean().default(false),
+  // #262 템플릿 복제 슬롯 — 빈 값이면 해당 슬롯 섹션이 홈페이지에서 숨겨진다. 한 줄 강제(max 80).
+  wp_subtitle: z.string().trim().max(80, "부제는 80자 이내로 입력하세요").default(""),
+  wp_series_name: z.string().trim().max(80, "시리즈명은 80자 이내로 입력하세요").default(""),
   // 요약 불릿(P-A)
   highlights: z.array(z.string()).default([]),
   // 복수 제품 영상(P-A) — 각 항목 YouTube 호스트 제한

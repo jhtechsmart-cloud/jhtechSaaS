@@ -86,6 +86,9 @@ export async function createEquipment(
     is_demo: v.is_demo,
     // 홈페이지 등록 체크(#253) — 반영 잡 enqueue는 DB 트리거가 담당(웹은 값만 저장).
     wp_publish_enabled: v.wp_publish_enabled,
+    // #262 템플릿 슬롯 — 빈 값은 null(슬롯 숨김)
+    wp_subtitle: v.wp_subtitle || null,
+    wp_series_name: v.wp_series_name || null,
     // 빈 불릿·빈 URL은 저장 단계에서 제거(공개면 phantom 빈 줄/빈 영상섹션 방지).
     highlights: v.highlights.map((h) => h.trim()).filter(Boolean),
     youtube_urls: v.youtube_urls.map((u) => u.trim()).filter(Boolean),
@@ -151,6 +154,9 @@ export async function updateEquipment(
       is_demo: v.is_demo,
       // 홈페이지 등록 체크(#253) — 반영 잡 enqueue는 DB 트리거가 담당(웹은 값만 저장).
       wp_publish_enabled: v.wp_publish_enabled,
+      // #262 템플릿 슬롯 — 빈 값은 null(슬롯 숨김)
+      wp_subtitle: v.wp_subtitle || null,
+      wp_series_name: v.wp_series_name || null,
       // 빈 불릿·빈 URL은 저장 단계에서 제거(공개면 phantom 빈 줄/빈 영상섹션 방지).
       highlights: v.highlights.map((h) => h.trim()).filter(Boolean),
       youtube_urls: v.youtube_urls.map((u) => u.trim()).filter(Boolean),

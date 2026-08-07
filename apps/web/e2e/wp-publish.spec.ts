@@ -117,6 +117,48 @@ test.describe.serial("장비 → 홈페이지 자동 등록", () => {
     await cleanup();
   });
 
+  test("#262 폼: 체크하면 부제·시리즈명 입력이 노출된다", async ({ page }) => {
+    await login(page);
+    await page.goto(`/admin/equipment/${unmappedEqId}/edit`);
+    // 체크된 장비 — 슬롯 입력 2종 노출
+    await expect(page.getByLabel("홈페이지 부제")).toBeVisible();
+    await expect(page.getByLabel("영문 시리즈명")).toBeVisible();
+  });
+
+  test("#262 수동 편집 감지: 패널에 role=alert 안내 + 관리자 [그래도 덮어쓰기]", async ({ page }) => {
+    // wp_last_error는 서버통제 — record_wp_sync RPC(service_role)로만 세팅 가능.
+    await sr("/rest/v1/rpc/record_wp_sync", {
+      method: "POST",
+      body: JSON.stringify({
+        p_equipment_id: mappedEqId,
+        p_post_id: 900001,
+        p_post_status: "draft",
+        p_media: {},
+        p_last_error: "manual_edit: WP에서 수동 편집된 글 — 갱신이 차단됩니다",
+        p_clear_error: false,
+        p_dirty_snapshot: null,
+      }),
+    });
+    await login(page);
+    await page.goto(`/admin/equipment/${mappedEqId}`);
+    await expect(page.getByText("수동 편집됨").first()).toBeVisible();
+    await expect(page.getByRole("alert").filter({ hasText: "직접 수정된 글" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "그래도 덮어쓰기" })).toBeVisible(); // admin = users.manage
+    // 정리: 에러 클리어(후속 테스트의 '동기화 중' 단언 오염 방지)
+    await sr("/rest/v1/rpc/record_wp_sync", {
+      method: "POST",
+      body: JSON.stringify({
+        p_equipment_id: mappedEqId,
+        p_post_id: null,
+        p_post_status: null,
+        p_media: null,
+        p_last_error: null,
+        p_clear_error: true,
+        p_dirty_snapshot: null,
+      }),
+    });
+  });
+
   test("장비 수정 폼: '홈페이지에 등록' 체크 → 캡션 노출 → 저장하면 상세 패널이 '동기화 중'", async ({
     page,
   }) => {

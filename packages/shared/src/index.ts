@@ -25,3 +25,4 @@ export * from "./wp-category";
 export * from "./wp-status";
 export * from "./wp-post-html";
 export * from "./wp-publisher";
+export * from "./wp-plugin";
