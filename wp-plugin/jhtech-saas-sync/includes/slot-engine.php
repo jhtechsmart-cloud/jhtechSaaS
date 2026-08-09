@@ -93,20 +93,57 @@ function jhtech_set_text(array &$el, $text)
         : '<p>' . $safe . '</p>';
 }
 
-/** icon-list 항목 재구성 — 첫 항목을 스타일 템플릿으로 복제. */
-function jhtech_set_icon_list(array &$el, array $texts)
+/** icon-list 항목 재구성 — 첫 항목을 스타일 템플릿으로 복제. entries = [['text'=>…, 'icon'=>null|'fas fa-…'], …] */
+function jhtech_build_icon_list(array &$el, array $entries)
 {
     $items = isset($el['settings']['icon_list']) && is_array($el['settings']['icon_list'])
         ? $el['settings']['icon_list'] : array();
     $proto = count($items) > 0 ? $items[0] : array('text' => '');
     $out = array();
-    foreach ($texts as $i => $t) {
+    foreach ($entries as $i => $e) {
         $item = $proto;
-        $item['text'] = htmlspecialchars($t, ENT_QUOTES, 'UTF-8');
-        $item['_id'] = substr(md5('jhli' . $i . $t), 0, 7);
+        $item['text'] = htmlspecialchars($e['text'], ENT_QUOTES, 'UTF-8');
+        if (isset($e['icon']) && $e['icon'] !== null && $e['icon'] !== '') {
+            $item['selected_icon'] = array('value' => $e['icon'], 'library' => 'fa-solid');
+        }
+        $item['_id'] = substr(md5('jhli' . $i . $e['text']), 0, 7);
         $out[] = $item;
     }
     $el['settings']['icon_list'] = $out;
+}
+
+/** 텍스트만 넘기는 호출(특장점 등) — 아이콘은 프로토 항목 것을 유지. */
+function jhtech_set_icon_list(array &$el, array $texts)
+{
+    $entries = array();
+    foreach ($texts as $t) {
+        $entries[] = array('text' => $t, 'icon' => null);
+    }
+    jhtech_build_icon_list($el, $entries);
+}
+
+/**
+ * 사양 라벨 → 의미 아이콘(원본 수제 페이지의 어휘: cog=구동, stopwatch=속도, cogs=정밀,
+ * print=소재·커팅, arrows-alt=크기·무게, plug=전원, user-cog=데이터·인터페이스).
+ * 미매칭 = null → 항목 프로토의 기본 아이콘 유지. 순서 중요('커팅 속도'는 속도가 먼저).
+ */
+function jhtech_spec_icon($label)
+{
+    $rules = array(
+        array('/속도/u', 'fas fa-stopwatch'),
+        array('/정밀|압력/u', 'fas fa-cogs'),
+        array('/폭|소재|두께|공급|급지|용지|적재|커팅/u', 'fas fa-print'),
+        array('/크기|무게|치수|캐비넷/u', 'fas fa-arrows-alt'),
+        array('/전원|전기|전압/u', 'fas fa-plug'),
+        array('/데이터|인터페이스|소프트웨어|연결|전송|제어판|터치|스크린|USB|WIFI|와이파이|QR|카메라|마크/iu', 'fas fa-user-cog'),
+        array('/모터|구동|헤드|시스템/u', 'fas fa-cog'),
+    );
+    foreach ($rules as $r) {
+        if (preg_match($r[0], $label)) {
+            return $r[1];
+        }
+    }
+    return null;
 }
 
 /** 복제 트리의 모든 _id 재발급 — 템플릿과의 id 충돌 방지. $seed로 결정적 생성(테스트 재현성). */
@@ -126,36 +163,91 @@ function jhtech_uniquify_ids(array &$elements, $seed)
  * 사양 섹션 재구성: jh-slot-specs 컨테이너 "전체"에서 icon-list 위젯을 전부 걷어내고,
  * 첫 icon-list가 있던 자리(같은 부모·같은 인덱스)에 그룹 수만큼 복제해 삽입한다.
  * ⚠️ 다중 컬럼 템플릿(컬럼마다 icon-list 1개) 대응 — 첫 위젯의 형제만 치우면 다른
- * 컬럼의 템플릿 잔존 텍스트가 살아남는다(/review 지적). 그룹명은 첫 항목(■ 접두),
- * 이후 항목은 "라벨 : 값" — 템플릿(자동 급지 커팅기)의 표기 관행과 동일.
+ * 컬럼의 템플릿 잔존 텍스트가 살아남는다(/review 지적).
+ *
+ * 원본 수제 페이지의 사양은 2단 구조: [그룹 제목 icon-list(굵게·■아이콘 1항목)] +
+ * [항목 icon-list(작은 폰트·구분선·항목별 의미 아이콘)]. 컨테이너에 icon-list가 2개
+ * 이상이면 첫째=제목 프로토·둘째=항목 프로토로 그룹마다 한 쌍씩 생성한다(스타일 충실).
+ * 1개뿐인 레거시 템플릿은 기존 방식(단일 리스트 + '■ ' 텍스트 접두) 유지.
  */
 function jhtech_set_specs(array &$container, array $specGroups)
 {
-    $found = jhtech_find_first_widget($container, 'icon-list');
-    if ($found === null) {
+    $protos = jhtech_collect_widgets($container, 'icon-list', 2);
+    if (count($protos) === 0) {
         return false; // 그룹 템플릿 위젯 없음 — 호출측이 template_invalid 처리
     }
-    $proto = $found[0]; // 값 복사(위젯 원형)
+    $headerProto = $protos[0];
+    $itemProto = count($protos) >= 2 ? $protos[1] : null;
+
     $newList = array();
     foreach ($specGroups as $gi => $group) {
-        $w = $proto;
-        $texts = array();
-        if (isset($group['name']) && $group['name'] !== '') {
-            $texts[] = '■ ' . $group['name'];
+        $name = isset($group['name']) ? (string) $group['name'] : '';
+        if ($itemProto !== null) {
+            // 2-프로토: 그룹 제목 위젯(아이콘이 ■ 역할 — 텍스트 접두 없음) + 항목 위젯
+            if ($name !== '') {
+                $h = $headerProto;
+                jhtech_build_icon_list($h, array(array('text' => $name, 'icon' => null)));
+                if (isset($h['id'])) {
+                    $h['id'] = substr(md5('jhspech' . $gi), 0, 7);
+                }
+                $newList[] = $h;
+            }
+            $w = $itemProto;
+            $entries = array();
+            foreach ($group['items'] as $item) {
+                $entries[] = array(
+                    'text' => $item['label'] . ' : ' . $item['value'],
+                    'icon' => jhtech_spec_icon($item['label']),
+                );
+            }
+            jhtech_build_icon_list($w, $entries);
+            if (isset($w['id'])) {
+                $w['id'] = substr(md5('jhspec' . $gi), 0, 7);
+            }
+            $newList[] = $w;
+        } else {
+            // 레거시 단일 프로토
+            $w = $headerProto;
+            $texts = array();
+            if ($name !== '') {
+                $texts[] = '■ ' . $name;
+            }
+            foreach ($group['items'] as $item) {
+                $texts[] = $item['label'] . ' : ' . $item['value'];
+            }
+            jhtech_set_icon_list($w, $texts);
+            if (isset($w['id'])) {
+                $w['id'] = substr(md5('jhspec' . $gi), 0, 7);
+            }
+            $newList[] = $w;
         }
-        foreach ($group['items'] as $item) {
-            $texts[] = $item['label'] . ' : ' . $item['value'];
-        }
-        jhtech_set_icon_list($w, $texts);
-        if (isset($w['id'])) {
-            $w['id'] = substr(md5('jhspec' . $gi), 0, 7);
-        }
-        $newList[] = $w;
     }
     // 컨테이너 전체에서 icon-list를 제거하되, "전역 첫 번째" 위치에 생성분을 통째로 삽입.
     $inserted = false;
     jhtech_specs_rebuild($container, $newList, $inserted);
     return true;
+}
+
+/** 컨테이너 내부에서 특정 widgetType 위젯을 문서 순서로 최대 $limit개 수집(값 복사). */
+function jhtech_collect_widgets(array $container, $widgetType, $limit)
+{
+    $out = array();
+    if (!isset($container['elements']) || !is_array($container['elements'])) {
+        return $out;
+    }
+    foreach ($container['elements'] as $el) {
+        if (count($out) >= $limit) {
+            break;
+        }
+        if (isset($el['widgetType']) && $el['widgetType'] === $widgetType) {
+            $out[] = $el;
+            continue;
+        }
+        foreach (jhtech_collect_widgets($el, $widgetType, $limit - count($out)) as $w) {
+            $out[] = $w;
+        }
+    }
+    return $out;
 }
 
 /** 컨테이너 하위 elements를 재귀 재구성 — icon-list 전부 제거, 첫 발견 위치에 $newList 삽입. */
@@ -182,23 +274,20 @@ function jhtech_specs_rebuild(array &$node, array $newList, &$inserted)
     $node['elements'] = $rebuilt;
 }
 
-/** 컨테이너 내부에서 특정 widgetType의 첫 위젯을 [위젯 값, &부모 elements 배열]로 반환. */
-function jhtech_find_first_widget(array &$container, $widgetType)
+/** 요소(하위 포함)에 스페이서·구분선이 아닌 "내용 위젯"이 하나라도 있는가. */
+function jhtech_has_content_widget(array $el)
 {
-    if (!isset($container['elements']) || !is_array($container['elements'])) {
-        return null;
+    if (isset($el['widgetType']) && $el['widgetType'] !== 'spacer' && $el['widgetType'] !== 'divider') {
+        return true;
     }
-    foreach ($container['elements'] as $i => &$el) {
-        if (isset($el['widgetType']) && $el['widgetType'] === $widgetType) {
-            return array($container['elements'][$i], &$container['elements']);
-        }
-        $found = jhtech_find_first_widget($el, $widgetType);
-        if ($found !== null) {
-            return $found;
+    if (isset($el['elements']) && is_array($el['elements'])) {
+        foreach ($el['elements'] as $c) {
+            if (is_array($c) && jhtech_has_content_widget($c)) {
+                return true;
+            }
         }
     }
-    unset($el);
-    return null;
+    return false;
 }
 
 /**
@@ -308,6 +397,20 @@ function jhtech_apply_slots(array $tree, array $payload)
         }
         return true;
     });
+
+    // 밴드 제거로 "스페이서뿐인" 최상위 섹션이 연속되면 1개만 남긴다 — 원본은 밴드 사이
+    // 간격 1개가 규칙인데, 사이 밴드가 제거되면 스페이서가 겹쳐 큰 빈 공백이 생긴다.
+    $collapsed = array();
+    $prevSpacerOnly = false;
+    foreach ($tree as $sec) {
+        $spacerOnly = !jhtech_has_content_widget($sec);
+        if ($spacerOnly && $prevSpacerOnly) {
+            continue;
+        }
+        $collapsed[] = $sec;
+        $prevSpacerOnly = $spacerOnly;
+    }
+    $tree = $collapsed;
 
     // 위젯 id 전면 재발급(템플릿·기존 글과 충돌 방지). seed로 결정적 — 같은 입력 = 같은 트리(해시 안정).
     $seed = isset($payload['seed']) ? (string) $payload['seed'] : 'jhtech';

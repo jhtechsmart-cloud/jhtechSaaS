@@ -361,7 +361,14 @@ async function processSync(
       title: eq.name,
       subtitle: eq.wp_subtitle?.trim() || null,
       seriesName: eq.wp_series_name?.trim() || null,
-      photoMediaIds: eq.photos.map((p) => media.map[p]?.id).filter((v): v is number => v != null),
+      // 사진 1장이면 image-02(사양 섹션 옆 제품 이미지)도 같은 사진으로 채운다 — 원본
+      // 수제 페이지는 사양 옆에 제품 이미지가 항상 있고, 비면 컬럼 제거로 레이아웃이 무너진다.
+      photoMediaIds: (() => {
+        const ids = eq.photos
+          .map((p) => media.map[p]?.id)
+          .filter((v): v is number => v != null);
+        return ids.length === 1 ? [ids[0], ids[0]] : ids;
+      })(),
       featuredMediaId,
       features: (eq.highlights ?? []).filter(Boolean),
       specGroups: parseSpecs(eq.specs).map((g) => ({
