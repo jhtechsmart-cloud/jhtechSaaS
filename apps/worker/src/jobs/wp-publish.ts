@@ -51,6 +51,7 @@ interface EquipmentRow {
   specs: unknown;
   highlights: string[];
   youtube_urls: string[];
+  quote_device_image: string | null; // 견적서 우하단 장비 이미지 — WP 사양 옆 이미지(슬롯 2)로 재사용
   wp_publish_enabled: boolean;
   wp_post_id: number | null;
   wp_post_status: "draft" | "publish" | null;
@@ -119,7 +120,7 @@ async function fetchEquipment(supabase: SupabaseClient, id: string): Promise<Equ
   const { data, error } = await supabase
     .from("equipment")
     .select(
-      "id,name,model,status,category_id,photos,specs,highlights,youtube_urls,wp_publish_enabled,wp_post_id,wp_post_status,wp_media,wp_dirty,wp_dirty_at,wp_subtitle,wp_series_name,wp_render_mode",
+      "id,name,model,status,category_id,photos,specs,highlights,youtube_urls,quote_device_image,wp_publish_enabled,wp_post_id,wp_post_status,wp_media,wp_dirty,wp_dirty_at,wp_subtitle,wp_series_name,wp_render_mode",
     )
     .eq("id", id)
     .maybeSingle();
@@ -162,23 +163,28 @@ async function resolveTemplate(
 
 // 사진 diff 업로드: wp_media 맵에 있는 경로는 재사용, 없는 경로만 storage에서 받아 업로드.
 // 반환 = 새 맵 + 제거 대상 미디어 id들(글 갱신 성공 후 삭제 — 고아 방지).
+// freshPaths: 캐시를 무시하고 매번 재업로드할 경로 — 견적서 장비 이미지처럼 "고정 경로에
+// 내용만 교체"되는 자산은 경로 diff로 변경을 감지할 수 없다(옛 첨부는 removed로 정리).
 async function syncMedia(
   supabase: SupabaseClient,
   publisher: WpPublisher,
   photos: string[],
   current: Record<string, WpMediaEntry>,
   touch?: () => Promise<void>,
+  freshPaths: string[] = [],
 ): Promise<
   | { map: Record<string, WpMediaEntry>; removed: number[]; fail: null }
   | { map: null; removed: []; fail: { kind: WpFailKind; error: string } }
 > {
   const map: Record<string, WpMediaEntry> = {};
+  const staleFresh: number[] = [];
   for (const path of photos) {
     const existing = current[path];
-    if (existing) {
+    if (existing && !freshPaths.includes(path)) {
       map[path] = existing;
       continue;
     }
+    if (existing) staleFresh.push(existing.id);
     const dl = await supabase.storage.from(IMAGE_BUCKET).download(path);
     if (dl.error || !dl.data) {
       // storage에 없는 사진은 본문에서 제외(장비 저장 자체를 막지 않는다)
@@ -198,7 +204,8 @@ async function syncMedia(
   }
   const removed = Object.entries(current)
     .filter(([path]) => !photos.includes(path))
-    .map(([, entry]) => entry.id);
+    .map(([, entry]) => entry.id)
+    .concat(staleFresh);
   return { map, removed, fail: null };
 }
 
@@ -303,7 +310,22 @@ async function processSync(
     }
   }
 
-  const media = await syncMedia(supabase, publisher, eq.photos, eq.wp_media ?? {}, opts.touch);
+  // 견적서 장비 이미지도 같은 버킷(equipment-images) — 플러그인(템플릿) 경로에서만 쓰이므로
+  // 그때만 업로드 목록에 포함(레거시 HTML 경로의 불필요 업로드 방지 — /review P2).
+  // 고정 경로(device-image.ext)에 내용만 바뀌는 자산이라 항상 재업로드(freshPaths).
+  const quoteImgPath =
+    usePlugin && eq.quote_device_image && !eq.photos.includes(eq.quote_device_image)
+      ? eq.quote_device_image
+      : null;
+  const mediaPaths = [...eq.photos, ...(quoteImgPath ? [quoteImgPath] : [])];
+  const media = await syncMedia(
+    supabase,
+    publisher,
+    mediaPaths,
+    eq.wp_media ?? {},
+    opts.touch,
+    quoteImgPath ? [quoteImgPath] : [],
+  );
   if (media.fail) {
     await handleFail(supabase, eq.id, media.fail.kind, `미디어 업로드 실패: ${media.fail.error}`);
     return;
@@ -361,13 +383,19 @@ async function processSync(
       title: eq.name,
       subtitle: eq.wp_subtitle?.trim() || null,
       seriesName: eq.wp_series_name?.trim() || null,
-      // 사진 1장이면 image-02(사양 섹션 옆 제품 이미지)도 같은 사진으로 채운다 — 원본
-      // 수제 페이지는 사양 옆에 제품 이미지가 항상 있고, 비면 컬럼 제거로 레이아웃이 무너진다.
+      // 슬롯 매핑: image-01 = 대표 사진, image-02 = 사양 옆 제품 이미지.
+      // image-02는 견적서 장비 이미지(quote_device_image) 우선 — 없으면 2번째 사진,
+      // 그것도 없으면 대표 사진 재사용(비면 컬럼 제거로 사양 레이아웃이 무너진다).
       photoMediaIds: (() => {
         const ids = eq.photos
           .map((p) => media.map[p]?.id)
           .filter((v): v is number => v != null);
-        return ids.length === 1 ? [ids[0], ids[0]] : ids;
+        const quoteImgId = quoteImgPath ? (media.map[quoteImgPath]?.id ?? null) : null;
+        // 사진 0장 + 견적 이미지만 있으면 견적 이미지가 히어로·사양 슬롯 둘 다 담당
+        // (업로드만 하고 아무 데도 안 그리는 거짓 성공 방지 — /review P1).
+        if (ids.length === 0) return quoteImgId != null ? [quoteImgId, quoteImgId] : [];
+        const slot2 = quoteImgId ?? ids[1] ?? ids[0];
+        return [ids[0], slot2, ...ids.slice(2)];
       })(),
       featuredMediaId,
       features: (eq.highlights ?? []).filter(Boolean),
