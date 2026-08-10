@@ -90,7 +90,7 @@ export async function listCategoryTree(): Promise<CategoryNode[]> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("equipment_category")
-    .select("id,parent_id,name,sort_order,quote_logo_kind,wp_category_id")
+    .select("id,parent_id,name,sort_order,quote_logo_kind,wp_category_id,card_label_en")
     .order("sort_order");
   if (error) { console.error("[equipment.categoryTree]", error); return []; }
   return (data ?? []) as CategoryNode[];

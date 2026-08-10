@@ -57,13 +57,15 @@ test.describe.serial("장비 분류 CRUD", () => {
     // 대분류가 목록에 나타날 때까지 대기.
     await expect(page.getByText(TOP)).toBeVisible();
 
-    // 방금 추가된 대분류 카드(li)를 찾아 소분류 추가.
-    const card = page.locator("li", { hasText: TOP });
+    // 방금 추가된 대분류 섹션 카드를 찾아 소분류 추가(재고현황형 레이아웃).
+    // ⚠️ 페이지 전체도 <section>이라 중첩 섹션(카드)만 매칭한다.
+    const card = page.locator("section section", { hasText: TOP });
     await card.getByPlaceholder("새 소분류명").fill(SUB);
     // 소분류 추가 버튼은 텍스트 링크 스타일 button — exact match.
     await card.getByRole("button", { name: "+ 소분류" }).click();
 
-    // 소분류는 "– {name}" 형태로 렌더링됨(CategoryTree TopNode children 렌더).
-    await expect(page.getByText(`– ${SUB}`)).toBeVisible();
+    // 소분류는 테이블 행으로 렌더링되고, 영문 라벨 입력이 함께 노출된다.
+    await expect(page.getByText(SUB)).toBeVisible();
+    await expect(card.getByLabel(`${SUB} 카드 영문 라벨`)).toBeVisible();
   });
 });

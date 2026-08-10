@@ -1,4 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { composeCardPng, type WpCardInput } from "./wp-card-image";
+import { getFontDataUri } from "./assets";
 import {
   parseSpecs,
   parseYoutubeId,
@@ -59,6 +61,7 @@ interface EquipmentRow {
   wp_dirty: boolean;
   wp_dirty_at: string | null; // ISO 문자열 그대로 왕복(Date 변환 시 마이크로초 소실 → CAS 어긋남)
   // #262 템플릿 복제 v2
+  quote_device_name: string | null; // 견적서 모델명 로고 — 카드 대표 이미지 우하단 로고 재사용
   wp_subtitle: string | null;
   wp_series_name: string | null;
   wp_render_mode: "html" | "elementor" | null; // 마지막으로 본문을 쓴 주체 — elementor면 레거시 폴백 금지
@@ -67,6 +70,8 @@ interface EquipmentRow {
 export interface WpPublishOpts {
   /** 미디어 1장 업로드마다 호출 — jobs.updated_at 하트비트(5분 스테일 회수의 이중 실행 방지). */
   touch?: () => Promise<void>;
+  /** 카드 대표 이미지 합성 오버라이드(테스트용) — 기본 composeCardPng(Puppeteer). */
+  composeCard?: (input: WpCardInput) => Promise<Uint8Array>;
 }
 
 async function recordSync(
@@ -120,7 +125,7 @@ async function fetchEquipment(supabase: SupabaseClient, id: string): Promise<Equ
   const { data, error } = await supabase
     .from("equipment")
     .select(
-      "id,name,model,status,category_id,photos,specs,highlights,youtube_urls,quote_device_image,wp_publish_enabled,wp_post_id,wp_post_status,wp_media,wp_dirty,wp_dirty_at,wp_subtitle,wp_series_name,wp_render_mode",
+      "id,name,model,status,category_id,photos,specs,highlights,youtube_urls,quote_device_image,quote_device_name,wp_publish_enabled,wp_post_id,wp_post_status,wp_media,wp_dirty,wp_dirty_at,wp_subtitle,wp_series_name,wp_render_mode",
     )
     .eq("id", id)
     .maybeSingle();
@@ -159,6 +164,38 @@ async function resolveTemplate(
     cur = cur.parent_id ? byId.get(cur.parent_id) : undefined;
   }
   return null;
+}
+
+// #262 후속 — 분류별 카드 영문 라벨 해석(소분류 직접 설정 > 조상 폴백, resolveTemplate 동일 규칙).
+async function resolveCardLabel(
+  supabase: SupabaseClient,
+  categoryId: string | null,
+): Promise<string | null> {
+  if (!categoryId) return null;
+  const { data, error } = await supabase
+    .from("equipment_category")
+    .select("id,parent_id,card_label_en");
+  if (error) throw new Error(`분류 조회 실패: ${error.message}`);
+  const rows = (data ?? []) as Array<{ id: string; parent_id: string | null; card_label_en: string | null }>;
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  let cur = byId.get(categoryId);
+  for (let depth = 0; cur && depth < 10; depth++) {
+    if (cur.card_label_en != null && cur.card_label_en.trim() !== "") return cur.card_label_en;
+    cur = cur.parent_id ? byId.get(cur.parent_id) : undefined;
+  }
+  return null;
+}
+
+// storage 이미지 → data URI(카드 합성용). 누락이면 null(카드 생략·원본 폴백).
+async function storageImageDataUri(
+  supabase: SupabaseClient,
+  path: string,
+): Promise<string | null> {
+  const dl = await supabase.storage.from(IMAGE_BUCKET).download(path);
+  if (dl.error || !dl.data) return null;
+  const ext = path.split(".").pop()?.toLowerCase() ?? "";
+  const mime = MIME_BY_EXT[ext] ?? "image/png";
+  return `data:${mime};base64,${Buffer.from(await dl.data.arrayBuffer()).toString("base64")}`;
 }
 
 // 사진 diff 업로드: wp_media 맵에 있는 경로는 재사용, 없는 경로만 storage에서 받아 업로드.
@@ -317,7 +354,9 @@ async function processSync(
     usePlugin && eq.quote_device_image && !eq.photos.includes(eq.quote_device_image)
       ? eq.quote_device_image
       : null;
-  const mediaPaths = [...eq.photos, ...(quoteImgPath ? [quoteImgPath] : [])];
+  // '__card__'는 생성 카드 전용 의사 키 — 사진 경로에 섞여 들어오면 수명주기가 꼬이므로 방어 필터.
+  const photoPaths = eq.photos.filter((p) => p !== "__card__");
+  const mediaPaths = [...photoPaths, ...(quoteImgPath ? [quoteImgPath] : [])];
   const media = await syncMedia(
     supabase,
     publisher,
@@ -339,9 +378,58 @@ async function processSync(
     });
   }
 
+  // 대표 이미지 카드 합성(#전체제품 카드 통일) — 플러그인 경로에서만. 사진(또는 견적 이미지)
+  // 위에 수제 카드 프레임(좌측 영문 밴드·상단 제목 밴드·우하단 모델 로고)을 씌워 업로드.
+  // 카드도 견적 이미지처럼 "내용 기반" 자산이라 매 sync 재업로드(옛 카드는 removed로 정리 —
+  // '__card__' 의사 키가 mediaPaths에 없어 syncMedia가 자동으로 삭제 목록에 올린다).
+  let cardMedia: WpMediaEntry | null = null;
+  if (usePlugin && templatePostId != null) {
+    const cardPhotoPath = eq.photos[0] ?? quoteImgPath;
+    const photoUri = cardPhotoPath ? await storageImageDataUri(supabase, cardPhotoPath) : null;
+    // 방금 미디어 diff에서 살아있다고 본 사진이 카드용 다운로드에서만 실패하면 일시 오류로
+    // 보고 재시도(throw) — 조용히 카드 없이 성공해 대표 이미지가 회귀하는 것 방지(/review P1).
+    // 맵에도 없는 사진(진짜 소실)은 기존 관행대로 카드만 생략.
+    if (cardPhotoPath && !photoUri && media.map[cardPhotoPath]) {
+      throw new Error(`카드 사진 다운로드 실패(일시) — 재시도: ${cardPhotoPath}`);
+    }
+    if (photoUri) {
+      const logoUri = eq.quote_device_name
+        ? await storageImageDataUri(supabase, eq.quote_device_name)
+        : null;
+      const model = eq.model?.trim() ?? "";
+      const compose = opts.composeCard ?? composeCardPng;
+      const png = await compose({
+        title: model !== "" ? model : eq.name,
+        subtitle: model !== "" ? eq.name : null,
+        sideText: await resolveCardLabel(supabase, eq.category_id),
+        photoDataUri: photoUri,
+        logoDataUri: logoUri,
+        fontDataUri: await getFontDataUri(),
+      });
+      const up = await publisher.uploadMedia({
+        filename: `card-${eq.id}.png`,
+        content: new Uint8Array(png), // ArrayBufferLike → ArrayBuffer 사본(업로더 타입 계약)
+        mimeType: "image/png",
+      });
+      if (!up.ok) {
+        await handleFail(supabase, eq.id, up.kind, `카드 이미지 업로드 실패: ${up.error}`);
+        return;
+      }
+      cardMedia = { id: up.value.mediaId, url: up.value.sourceUrl };
+      // 업로드 즉시 체크포인트 — 이후 pluginSync 실패/크래시 시에도 다음 sync의 removed가
+      // 이 카드를 정리(미기록 고아 방지, /review P2).
+      await recordSync(supabase, {
+        equipmentId: eq.id,
+        media: { ...(eq.wp_media ?? {}), ...media.map, __card__: cardMedia },
+      });
+      await opts.touch?.();
+    }
+  }
+
   const categories = [...new Set([WP_PRODUCT_CATEGORY_ID, categoryId])];
   const featuredMediaId =
-    eq.photos[0] && media.map[eq.photos[0]] ? media.map[eq.photos[0]].id : null;
+    cardMedia?.id ??
+    (eq.photos[0] && media.map[eq.photos[0]] ? media.map[eq.photos[0]].id : null);
   // 레거시 HTML 본문은 레거시 경로에서만 조립(플러그인 경로에선 categories만 쓰인다 — 낭비 렌더 방지).
   const buildLegacyPost = () => {
     const imageUrls = Object.fromEntries(
@@ -450,7 +538,7 @@ async function processSync(
     equipmentId: eq.id,
     postId,
     postStatus,
-    media: media.map,
+    media: { ...media.map, ...(cardMedia ? { __card__: cardMedia } : {}) },
     clearError: true,
     dirtySnapshot: eq.wp_dirty_at,
     replace,

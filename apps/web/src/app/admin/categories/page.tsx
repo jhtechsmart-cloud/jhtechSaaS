@@ -4,6 +4,7 @@ import { buildTree } from "@/lib/equipment/category-tree";
 import { fetchWpCategories } from "@/lib/equipment/wp-public";
 import { CategoryTree } from "./_components/CategoryTree";
 import { signOut } from "@/app/login/actions";
+import { Toaster } from "@/components/ui/sonner";
 
 // 분류 관리 페이지 — 대분류·소분류 CRUD.
 export default async function CategoriesPage() {
@@ -35,10 +36,12 @@ export default async function CategoriesPage() {
       <p className="text-small text-muted">
         대분류(프린터·커팅기) 아래 소분류를 둡니다. 소모품 범위·장비 등록이 이 분류를 씁니다.
         대분류의 &lsquo;견적 로고&rsquo;를 정하면 그 종류 장비의 견적서 좌상단 로고가 자동으로 바뀝니다.
-        &lsquo;WP 카테고리&rsquo;는 홈페이지 자동 등록 글이 붙을 카테고리입니다(소분류 미지정 시 대분류 상속,
+        &lsquo;카드 영문 라벨&rsquo;은 홈페이지 전체 제품 카드 이미지의 좌측 세로 밴드 문구,
+        &lsquo;WP 카테고리&rsquo;는 홈페이지 자동 등록 글이 붙을 분류입니다(둘 다 소분류 미지정 시 대분류 상속,
         변경은 기존 공개 글에 자동 반영되지 않습니다).
       </p>
       <CategoryTree tree={tree} wpCategories={wpCategories} />
+      <Toaster position="bottom-center" />
     </section>
   );
 }
