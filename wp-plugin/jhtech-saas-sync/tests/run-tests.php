@@ -221,6 +221,23 @@ check('그룹 1개 = icon-list 2개(제목+항목)', count($pLists) === 2);
 check('제목 위젯은 1항목', count($pLists[0]['settings']['icon_list']) === 1);
 check('항목 위젯은 그룹 항목 수', count($pLists[1]['settings']['icon_list']) === 2);
 
+echo "8h) 모델명 슬롯(jh-slot-model) — 다중 위치 전부 치환, 빈 값이면 jh-if-model 제거\n";
+$mTpl = load_fixture('synthetic-template.json');
+$mkModelWidget = function ($id) {
+    return array('id' => $id, 'elType' => 'widget', 'widgetType' => 'text-editor',
+        'settings' => array('css_classes' => 'jh-slot-model jh-if-model',
+            'editor' => '<p class="model_text">TPL-MODEL</p>'), 'elements' => array());
+};
+$mTpl[0]['elements'][0]['elements'][] = $mkModelWidget('mdl0001');
+$mTpl[3]['elements'][0]['elements'][] = $mkModelWidget('mdl0002');
+$rMd = jhtech_apply_slots($mTpl, base_payload(array('model' => 'JC350Max')));
+$jMd = json_encode($rMd['tree'], JSON_UNESCAPED_UNICODE);
+check('모델명 두 자리 전부 치환', substr_count($jMd, 'JC350Max') === 2 && strpos($jMd, 'TPL-MODEL') === false);
+check('래핑 클래스 보존', strpos($jMd, 'model_text') !== false);
+$rMd0 = jhtech_apply_slots($mTpl, base_payload(array('model' => '')));
+$jMd0 = json_encode($rMd0['tree'], JSON_UNESCAPED_UNICODE);
+check('빈 모델명 = 위젯 제거', strpos($jMd0, 'jh-slot-model') === false);
+
 echo "8g) flat 모드(jh-specs-flat) — 템플릿 헤더 유지 + 전 그룹 항목 평탄화 단일 리스트\n";
 $flatTpl = load_fixture('synthetic-template.json');
 $flatTpl[3]['settings']['css_classes'] .= ' jh-specs-flat';

@@ -471,6 +471,7 @@ async function processSync(
       title: eq.name,
       subtitle: eq.wp_subtitle?.trim() || null,
       seriesName: eq.wp_series_name?.trim() || null,
+      model: eq.model?.trim() || null,
       // 슬롯 매핑: image-01 = 대표 사진, image-02 = 사양 옆 제품 이미지.
       // image-02는 견적서 장비 이미지(quote_device_image) 우선 — 없으면 2번째 사진,
       // 그것도 없으면 대표 사진 재사용(비면 컬럼 제거로 사양 레이아웃이 무너진다).
