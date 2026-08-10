@@ -14,6 +14,7 @@ const NAME = "WP_WORKER_통합_장비";
 const CAT = "00000000-0000-0000-0000-00000000dc01";
 const PHOTO_A = "equipment/00000000-0000-0000-0000-00000000dcee/wp-a.png";
 const PHOTO_B = "equipment/00000000-0000-0000-0000-00000000dcee/wp-b.png";
+const QUOTE_IMG = "equipment/00000000-0000-0000-0000-00000000dcee/device-image.png";
 const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
 async function cleanup(): Promise<void> {
@@ -23,7 +24,7 @@ async function cleanup(): Promise<void> {
   }
   await supabase.from("equipment").delete().like("name", `${NAME}%`);
   await supabase.from("equipment_category").delete().eq("id", CAT);
-  await supabase.storage.from("equipment-images").remove([PHOTO_A, PHOTO_B]);
+  await supabase.storage.from("equipment-images").remove([PHOTO_A, PHOTO_B, QUOTE_IMG]);
 }
 
 async function seedEquipment(over: Record<string, unknown> = {}): Promise<string> {
@@ -96,6 +97,10 @@ beforeAll(async () => {
     upsert: true,
   });
   await supabase.storage.from("equipment-images").upload(PHOTO_B, PNG, {
+    contentType: "image/png",
+    upsert: true,
+  });
+  await supabase.storage.from("equipment-images").upload(QUOTE_IMG, PNG, {
     contentType: "image/png",
     upsert: true,
   });
@@ -323,6 +328,26 @@ describe("wp_publish 잡 — 플러그인 템플릿 경로(#262)", () => {
     // 사진 1장 = image-01·image-02 둘 다 같은 사진(사양 옆 제품 이미지 유지)
     expect(input.photoMediaIds).toHaveLength(2);
     expect(input.photoMediaIds[0]).toBe(input.photoMediaIds[1]);
+  });
+
+  test("견적서 장비 이미지가 있으면 image-02 슬롯은 그 이미지(대표 사진과 별개)", async () => {
+    const fake = new FakeWpPublisher();
+    const id = await seedEquipment({
+      photos: [PHOTO_A],
+      quote_device_image: QUOTE_IMG,
+    });
+    await insertJob(id, "sync");
+    await drainJobs(fake);
+    const syncCall = fake.calls.find((c) => c.method === "pluginSync");
+    const input = syncCall?.args[0] as { photoMediaIds: number[] };
+    const eq = await getEq(id);
+    const map = eq.wp_media as Record<string, { id: number }>;
+    // 견적 이미지도 미디어로 업로드·기록되고, 슬롯 2 = 견적 이미지 id
+    expect(map[QUOTE_IMG]).toBeDefined();
+    expect(input.photoMediaIds).toHaveLength(2);
+    expect(input.photoMediaIds[0]).toBe(map[PHOTO_A].id);
+    expect(input.photoMediaIds[1]).toBe(map[QUOTE_IMG].id);
+    expect(input.photoMediaIds[0]).not.toBe(input.photoMediaIds[1]);
   });
 
   test("공개 글 갱신: pluginSync가 currentStatus를 보존한다 (강등 금지 계약)", async () => {

@@ -51,6 +51,7 @@ interface EquipmentRow {
   specs: unknown;
   highlights: string[];
   youtube_urls: string[];
+  quote_device_image: string | null; // 견적서 우하단 장비 이미지 — WP 사양 옆 이미지(슬롯 2)로 재사용
   wp_publish_enabled: boolean;
   wp_post_id: number | null;
   wp_post_status: "draft" | "publish" | null;
@@ -119,7 +120,7 @@ async function fetchEquipment(supabase: SupabaseClient, id: string): Promise<Equ
   const { data, error } = await supabase
     .from("equipment")
     .select(
-      "id,name,model,status,category_id,photos,specs,highlights,youtube_urls,wp_publish_enabled,wp_post_id,wp_post_status,wp_media,wp_dirty,wp_dirty_at,wp_subtitle,wp_series_name,wp_render_mode",
+      "id,name,model,status,category_id,photos,specs,highlights,youtube_urls,quote_device_image,wp_publish_enabled,wp_post_id,wp_post_status,wp_media,wp_dirty,wp_dirty_at,wp_subtitle,wp_series_name,wp_render_mode",
     )
     .eq("id", id)
     .maybeSingle();
@@ -303,7 +304,14 @@ async function processSync(
     }
   }
 
-  const media = await syncMedia(supabase, publisher, eq.photos, eq.wp_media ?? {}, opts.touch);
+  // 견적서 장비 이미지도 같은 버킷(equipment-images) — 업로드·잔존 목록에 포함해 고아 삭제를 막는다.
+  const mediaPaths = [
+    ...eq.photos,
+    ...(eq.quote_device_image && !eq.photos.includes(eq.quote_device_image)
+      ? [eq.quote_device_image]
+      : []),
+  ];
+  const media = await syncMedia(supabase, publisher, mediaPaths, eq.wp_media ?? {}, opts.touch);
   if (media.fail) {
     await handleFail(supabase, eq.id, media.fail.kind, `미디어 업로드 실패: ${media.fail.error}`);
     return;
@@ -361,13 +369,19 @@ async function processSync(
       title: eq.name,
       subtitle: eq.wp_subtitle?.trim() || null,
       seriesName: eq.wp_series_name?.trim() || null,
-      // 사진 1장이면 image-02(사양 섹션 옆 제품 이미지)도 같은 사진으로 채운다 — 원본
-      // 수제 페이지는 사양 옆에 제품 이미지가 항상 있고, 비면 컬럼 제거로 레이아웃이 무너진다.
+      // 슬롯 매핑: image-01 = 대표 사진, image-02 = 사양 옆 제품 이미지.
+      // image-02는 견적서 장비 이미지(quote_device_image) 우선 — 없으면 2번째 사진,
+      // 그것도 없으면 대표 사진 재사용(비면 컬럼 제거로 사양 레이아웃이 무너진다).
       photoMediaIds: (() => {
         const ids = eq.photos
           .map((p) => media.map[p]?.id)
           .filter((v): v is number => v != null);
-        return ids.length === 1 ? [ids[0], ids[0]] : ids;
+        if (ids.length === 0) return ids;
+        const quoteImgId = eq.quote_device_image
+          ? (media.map[eq.quote_device_image]?.id ?? null)
+          : null;
+        const slot2 = quoteImgId ?? ids[1] ?? ids[0];
+        return [ids[0], slot2, ...ids.slice(2)];
       })(),
       featuredMediaId,
       features: (eq.highlights ?? []).filter(Boolean),
