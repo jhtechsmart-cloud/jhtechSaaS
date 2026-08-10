@@ -135,6 +135,35 @@ export async function setCategoryWpId(
   return null;
 }
 
+// 홈페이지 카드 좌측 밴드 영문 라벨 설정. null/빈 문자열 = 미지정(소분류는 조상 상속).
+export async function setCategoryCardLabel(
+  id: string,
+  label: string,
+): Promise<CategoryActionResult> {
+  const access = await requireEquipmentManage();
+  if (access.status === "forbidden") return { error: "권한이 없습니다." };
+
+  if (!z.guid().safeParse(id).success) return { error: "잘못된 요청입니다." };
+  const trimmed = label.trim();
+  if (trimmed.length > 60) return { error: "영문 라벨은 60자 이내로 입력하세요." };
+
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("equipment_category")
+    .update({ card_label_en: trimmed === "" ? null : trimmed })
+    .eq("id", id)
+    .select("id");
+
+  if (error) {
+    console.error("[categories.setCardLabel]", error);
+    return { error: "영문 라벨을 저장하지 못했습니다." };
+  }
+  if (!data || data.length === 0) return { error: "없는 분류입니다." };
+
+  revalidatePath("/admin/categories");
+  return null;
+}
+
 // 삭제. 참조(자식·장비·소모품 scope) 있으면 FK restrict로 거부 → 안내.
 export async function deleteCategory(id: string): Promise<CategoryActionResult> {
   const access = await requireEquipmentManage();

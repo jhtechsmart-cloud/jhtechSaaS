@@ -10,6 +10,8 @@ export interface CategoryNode {
   quote_logo_kind?: LogoKind | null;
   // 홈페이지(워드프레스) 카테고리 매핑(#253). 해석은 조상 폴백(resolveWpCategoryId).
   wp_category_id?: number | null;
+  // 홈페이지 카드 대표 이미지 좌측 밴드 영문 텍스트(예: ROLL TO ROLL UV PRINTER). 조상 폴백.
+  card_label_en?: string | null;
 }
 
 export interface CategoryTreeNode extends CategoryNode {

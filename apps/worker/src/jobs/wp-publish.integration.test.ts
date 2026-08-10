@@ -72,9 +72,13 @@ async function insertJob(
   if (error) throw error;
 }
 
+// 카드 합성 스텁 — 테스트에서 Puppeteer 기동 없이 고정 PNG 바이트 반환.
+const FAKE_CARD_PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x63, 0x61, 0x72, 0x64]);
+const composeCardStub = async () => FAKE_CARD_PNG;
+
 async function drainJobs(fake: FakeWpPublisher): Promise<void> {
   // eslint-disable-next-line no-empty
-  while (await runOnce(supabase, { wpPublisher: fake })) {}
+  while (await runOnce(supabase, { wpPublisher: fake, wpComposeCard: composeCardStub })) {}
 }
 
 async function getEq(id: string): Promise<Record<string, unknown>> {
@@ -361,6 +365,30 @@ describe("wp_publish 잡 — 플러그인 템플릿 경로(#262)", () => {
       .filter((c) => c.method === "deleteMedia")
       .map((c) => c.args[0] as number);
     expect(deleted).toContain(prevQuoteId);
+  });
+
+  test("카드 대표 이미지: 합성본이 featured로, 재sync마다 재생성 + 옛 카드 삭제", async () => {
+    const fake = new FakeWpPublisher();
+    const id = await seedEquipment({ photos: [PHOTO_A] });
+    await insertJob(id, "sync");
+    await drainJobs(fake);
+    const eq = await getEq(id);
+    const map = eq.wp_media as Record<string, { id: number }>;
+    expect(map.__card__).toBeDefined();
+    const syncCall = fake.calls.find((c) => c.method === "pluginSync");
+    const input = syncCall?.args[0] as { featuredMediaId: number | null };
+    expect(input.featuredMediaId).toBe(map.__card__.id);
+
+    const prevCardId = map.__card__.id;
+    await insertJob(id, "sync");
+    await drainJobs(fake);
+    const eq2 = await getEq(id);
+    const map2 = eq2.wp_media as Record<string, { id: number }>;
+    expect(map2.__card__.id).not.toBe(prevCardId);
+    const deleted = fake.calls
+      .filter((c) => c.method === "deleteMedia")
+      .map((c) => c.args[0] as number);
+    expect(deleted).toContain(prevCardId);
   });
 
   test("사진 0장 + 견적 이미지만 → 견적 이미지가 슬롯 1·2 폴백(거짓 성공 방지)", async () => {
