@@ -184,6 +184,39 @@ function jhtech_set_specs(array &$container, array $specGroups)
         ? count($headerProto['settings']['icon_list']) : 0;
     $itemProto = (count($protos) >= 2 && $headerItems === 1) ? $protos[1] : null;
 
+    // flat 모드(jh-specs-flat) — 프린터 템플릿(수제 '플로라 XTRA 3300S') 관행:
+    // 그룹별 제목을 만들지 않고 [템플릿 헤더 그대로(예: '제품 사양') + 전 그룹 항목 평탄화
+    // 단일 리스트(구분선으로만 구별)]로 재구성. 그룹명은 표기하지 않는다.
+    if ($itemProto !== null && jhtech_el_has_class($container, 'jh-specs-flat')) {
+        $entries = array();
+        foreach ($specGroups as $group) {
+            if (!isset($group['items']) || !is_array($group['items'])) {
+                continue;
+            }
+            foreach ($group['items'] as $item) {
+                $entries[] = array(
+                    'text' => $item['label'] . ' : ' . $item['value'],
+                    'icon' => jhtech_spec_icon($item['label']),
+                );
+            }
+        }
+        if (count($entries) === 0) {
+            return true; // 항목 0 = jh-if-specs가 섹션째 제거하므로 재구성 불필요
+        }
+        $h = $headerProto; // 헤더 텍스트는 템플릿 원문 유지
+        if (isset($h['id'])) {
+            $h['id'] = substr(md5('jhspech-flat'), 0, 7);
+        }
+        $w = $itemProto;
+        jhtech_build_icon_list($w, $entries);
+        if (isset($w['id'])) {
+            $w['id'] = substr(md5('jhspec-flat'), 0, 7);
+        }
+        $inserted = false;
+        jhtech_specs_rebuild($container, array($h, $w), $inserted);
+        return true;
+    }
+
     $newList = array();
     foreach ($specGroups as $gi => $group) {
         // 항목 없는 그룹은 빈 위젯을 만들지 않는다(플러그인 핸들러도 거르지만 엔진 계약으로 방어).
