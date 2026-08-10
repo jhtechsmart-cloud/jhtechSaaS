@@ -221,6 +221,25 @@ check('그룹 1개 = icon-list 2개(제목+항목)', count($pLists) === 2);
 check('제목 위젯은 1항목', count($pLists[0]['settings']['icon_list']) === 1);
 check('항목 위젯은 그룹 항목 수', count($pLists[1]['settings']['icon_list']) === 2);
 
+echo "8g) flat 모드(jh-specs-flat) — 템플릿 헤더 유지 + 전 그룹 항목 평탄화 단일 리스트\n";
+$flatTpl = load_fixture('synthetic-template.json');
+$flatTpl[3]['settings']['css_classes'] .= ' jh-specs-flat';
+$rF = jhtech_apply_slots($flatTpl, base_payload(array('spec_groups' => array(
+    array('name' => 'A그룹', 'items' => array(array('label' => '커팅 크기', 'value' => '350mm'))),
+    array('name' => 'B그룹', 'items' => array(array('label' => '속도', 'value' => '1600mm/s'))),
+))));
+$specF = null;
+foreach ($rF['tree'] as $sec) {
+    if (strpos(json_encode($sec), 'jh-slot-specs') !== false) { $specF = $sec; }
+}
+$fLists = jhtech_collect_widgets($specF, 'icon-list', 10);
+check('flat = icon-list 2개(헤더+통합 리스트)뿐', count($fLists) === 2);
+check('헤더 텍스트 = 템플릿 원문 유지', strpos(json_encode($fLists[0], JSON_UNESCAPED_UNICODE), 'JC 350 제품 사양') !== false);
+$tF = collect_texts($rF['tree']);
+check('그룹명 미표기·항목 전부 평탄화', strpos($tF, 'A그룹') === false && strpos($tF, 'B그룹') === false
+    && strpos($tF, '커팅 크기 : 350mm') !== false && strpos($tF, '속도 : 1600mm/s') !== false);
+check('통합 리스트 항목 수 = 2', count($fLists[1]['settings']['icon_list']) === 2);
+
 echo "8f) 연속 스페이서 섹션 접기 — 제거된 밴드 자리 빈 공백 스택 방지\n";
 $sp = load_fixture('synthetic-template.json');
 $mkSpacer = function ($id) {
