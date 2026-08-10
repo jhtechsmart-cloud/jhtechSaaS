@@ -4,6 +4,7 @@ import { buildTree } from "@/lib/equipment/category-tree";
 import { fetchWpCategories } from "@/lib/equipment/wp-public";
 import { CategoryTree } from "./_components/CategoryTree";
 import { signOut } from "@/app/login/actions";
+import { Toaster } from "@/components/ui/sonner";
 
 // 분류 관리 페이지 — 대분류·소분류 CRUD.
 export default async function CategoriesPage() {
@@ -40,6 +41,7 @@ export default async function CategoriesPage() {
         변경은 기존 공개 글에 자동 반영되지 않습니다).
       </p>
       <CategoryTree tree={tree} wpCategories={wpCategories} />
+      <Toaster position="bottom-center" />
     </section>
   );
 }

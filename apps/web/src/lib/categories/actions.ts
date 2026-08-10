@@ -144,8 +144,14 @@ export async function setCategoryCardLabel(
   if (access.status === "forbidden") return { error: "권한이 없습니다." };
 
   if (!z.guid().safeParse(id).success) return { error: "잘못된 요청입니다." };
-  const trimmed = label.trim();
+  // 런타임 파싱(위조 인자 방어) + 영문 라벨 계약: ASCII 인쇄 문자만(제어·bidi·비영문 차단).
+  const parsedLabel = z.string().max(200).safeParse(label);
+  if (!parsedLabel.success) return { error: "잘못된 요청입니다." };
+  const trimmed = parsedLabel.data.trim();
   if (trimmed.length > 60) return { error: "영문 라벨은 60자 이내로 입력하세요." };
+  if (trimmed !== "" && !/^[\x20-\x7e]+$/.test(trimmed)) {
+    return { error: "영문 라벨은 영문·숫자·기호만 입력할 수 있습니다." };
+  }
 
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase

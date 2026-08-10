@@ -158,6 +158,13 @@ function CardLabelInput({
 }) {
   const saved = node.card_label_en ?? "";
   const [value, setValue] = useState(saved);
+  // 서버값이 바뀌면(다른 관리자 편집·저장 후 refresh) 로컬 상태 동기화 — stale 재저장 방지.
+  // effect 대신 렌더 중 파생 상태 보정(React 공식 패턴, setState-in-effect 캐스케이드 회피).
+  const [lastSaved, setLastSaved] = useState(saved);
+  if (saved !== lastSaved) {
+    setLastSaved(saved);
+    setValue(saved);
+  }
   const inherited = inheritedFrom?.card_label_en ?? null;
   const commit = () => {
     if (value.trim() === saved) return;

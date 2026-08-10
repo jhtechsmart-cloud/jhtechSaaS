@@ -354,7 +354,9 @@ async function processSync(
     usePlugin && eq.quote_device_image && !eq.photos.includes(eq.quote_device_image)
       ? eq.quote_device_image
       : null;
-  const mediaPaths = [...eq.photos, ...(quoteImgPath ? [quoteImgPath] : [])];
+  // '__card__'는 생성 카드 전용 의사 키 — 사진 경로에 섞여 들어오면 수명주기가 꼬이므로 방어 필터.
+  const photoPaths = eq.photos.filter((p) => p !== "__card__");
+  const mediaPaths = [...photoPaths, ...(quoteImgPath ? [quoteImgPath] : [])];
   const media = await syncMedia(
     supabase,
     publisher,
@@ -384,6 +386,12 @@ async function processSync(
   if (usePlugin && templatePostId != null) {
     const cardPhotoPath = eq.photos[0] ?? quoteImgPath;
     const photoUri = cardPhotoPath ? await storageImageDataUri(supabase, cardPhotoPath) : null;
+    // 방금 미디어 diff에서 살아있다고 본 사진이 카드용 다운로드에서만 실패하면 일시 오류로
+    // 보고 재시도(throw) — 조용히 카드 없이 성공해 대표 이미지가 회귀하는 것 방지(/review P1).
+    // 맵에도 없는 사진(진짜 소실)은 기존 관행대로 카드만 생략.
+    if (cardPhotoPath && !photoUri && media.map[cardPhotoPath]) {
+      throw new Error(`카드 사진 다운로드 실패(일시) — 재시도: ${cardPhotoPath}`);
+    }
     if (photoUri) {
       const logoUri = eq.quote_device_name
         ? await storageImageDataUri(supabase, eq.quote_device_name)
@@ -408,6 +416,12 @@ async function processSync(
         return;
       }
       cardMedia = { id: up.value.mediaId, url: up.value.sourceUrl };
+      // 업로드 즉시 체크포인트 — 이후 pluginSync 실패/크래시 시에도 다음 sync의 removed가
+      // 이 카드를 정리(미기록 고아 방지, /review P2).
+      await recordSync(supabase, {
+        equipmentId: eq.id,
+        media: { ...(eq.wp_media ?? {}), ...media.map, __card__: cardMedia },
+      });
       await opts.touch?.();
     }
   }
