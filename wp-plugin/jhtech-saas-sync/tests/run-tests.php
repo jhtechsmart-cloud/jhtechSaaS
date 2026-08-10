@@ -93,8 +93,11 @@ check('제목 래핑 태그 유지(h2.big)', strpos(json_encode($r['tree'], JSON
 check('부제 치환', strpos($texts, '소량 다품종 최적') !== false);
 check('시리즈명 치환(heading title)', strpos($texts, 'MULTICUT SERIES') !== false);
 check('특징 3건', substr_count($texts, '특징 ') === 3);
-check('사양 그룹명 ■ 접두', strpos($texts, '■ 시스템') !== false);
+check('사양 그룹 제목 위젯(텍스트 접두 없음 — 아이콘이 ■ 역할)', strpos($texts, '시스템') !== false && strpos($texts, '■ 시스템') === false);
 check('사양 라벨:값 표기', strpos($texts, '커팅 크기 : 350mm') !== false);
+$jSpec = json_encode($r['tree'], JSON_UNESCAPED_UNICODE);
+check('사양 항목 의미 아이콘(커팅 크기→print)', strpos($jSpec, 'fas fa-print') !== false);
+check('사양 항목 의미 아이콘(속도→stopwatch)', strpos($jSpec, 'fas fa-stopwatch') !== false);
 check('템플릿 텍스트 잔존 없음', strpos($texts, '자동 급지') === false && strpos($texts, 'JC 350') === false);
 
 echo "2) 이미지·비디오 인덱스 슬롯\n";
@@ -157,7 +160,7 @@ $r8 = jhtech_apply_slots($tpl, base_payload(array('spec_groups' => array(
     array('name' => 'C그룹', 'items' => array(array('label' => 'z', 'value' => '3'))),
 ))));
 $t8 = collect_texts($r8['tree']);
-check('그룹 3개 전부 렌더', strpos($t8, '■ A그룹') !== false && strpos($t8, '■ B그룹') !== false && strpos($t8, '■ C그룹') !== false);
+check('그룹 3개 전부 렌더', strpos($t8, 'A그룹') !== false && strpos($t8, 'B그룹') !== false && strpos($t8, 'C그룹') !== false);
 check('템플릿의 2번째 그룹(JC 600) 잔존 없음', strpos($t8, 'JC 600') === false);
 
 echo "6b) 중첩 래퍼 체인 보존 — <p class><span style>의 span(색 지정)이 살아남는다\n";
@@ -170,17 +173,25 @@ check('span 래퍼(색 지정) 보존', strpos($jN, 'color: #ffffff') !== false)
 check('p 클래스·정렬 보존', strpos($jN, 'product_title entry-title') !== false);
 check('최심부 텍스트만 교체', strpos($jN, '멀티컷 A3 Max 5') !== false && strpos($jN, '자동 급지 커팅기') === false);
 
-echo "8b) 사양 다중 컬럼 — 다른 컬럼의 템플릿 icon-list도 제거, 삽입 위치는 첫 발견 자리\n";
+echo "8b) 사양 다중 컬럼 레거시 — 컬럼마다 '항목 리스트'(복수 항목) → 2-프로토 오인 없이 레거시 모드\n";
 $multi = load_fixture('synthetic-template.json');
-// 사양 섹션(sec0004)을 2컬럼 구조로 변형: 컬럼마다 icon-list 1개
+$mkList = function ($id, $texts) {
+    $items = array();
+    foreach ($texts as $i => $t) {
+        $items[] = array('_id' => 'm' . $id . $i, 'text' => $t, 'selected_icon' => array('value' => 'fas fa-cog'));
+    }
+    return array('id' => $id, 'elType' => 'widget', 'widgetType' => 'icon-list',
+        'settings' => array('icon_list' => $items), 'elements' => array());
+};
+// 사양 섹션(sec0004)을 2컬럼 구조로 변형: 컬럼마다 복수 항목 icon-list 1개(구 수제 관행)
 $multi[3]['elements'] = array(
     array('id' => 'colA', 'elType' => 'column', 'settings' => array(), 'elements' => array(
         array('id' => 'widX1', 'elType' => 'widget', 'widgetType' => 'text-editor',
             'settings' => array('editor' => '<p>사양 안내</p>'), 'elements' => array()),
-        $multi[3]['elements'][0]['elements'][0], // 원래 첫 icon-list(JC 350)
+        $mkList('widA', array('■ JC 350 제품 사양', '속도 : 1600')),
     )),
     array('id' => 'colB', 'elType' => 'column', 'settings' => array(), 'elements' => array(
-        $multi[3]['elements'][0]['elements'][1], // 원래 둘째 icon-list(JC 600)
+        $mkList('widB', array('■ JC 600 제품 사양', '속도 : 1600')),
     )),
 );
 $rM = jhtech_apply_slots($multi, base_payload(array('spec_groups' => array(
@@ -189,8 +200,51 @@ $rM = jhtech_apply_slots($multi, base_payload(array('spec_groups' => array(
 $tM = collect_texts($rM['tree']);
 check('다른 컬럼(JC 600) 잔존 제거', strpos($tM, 'JC 600') === false);
 check('첫 컬럼(JC 350) 잔존 제거', strpos($tM, 'JC 350') === false);
-check('신규 그룹 렌더', strpos($tM, '■ 단일그룹') !== false && strpos($tM, 'k : v') !== false);
+check('레거시 모드 렌더(첫 리스트가 복수 항목 = 2-프로토 오인 금지)', strpos($tM, '■ 단일그룹') !== false && strpos($tM, 'k : v') !== false);
 check('비-icon-list 형제(사양 안내) 보존', strpos($tM, '사양 안내') !== false);
+
+echo "8d) 레거시 단일 프로토(icon-list 1개) — '■ ' 텍스트 접두 유지\n";
+$legacy = load_fixture('synthetic-template.json');
+array_splice($legacy[3]['elements'][0]['elements'], 1, 1); // 둘째 icon-list 제거
+$rL = jhtech_apply_slots($legacy, base_payload());
+$tL = collect_texts($rL['tree']);
+check('레거시 그룹명 ■ 접두 유지', strpos($tL, '■ 시스템') !== false);
+
+echo "8e) 2-프로토 — 그룹당 [제목 위젯 + 항목 위젯] 쌍 생성, 항목 위젯은 둘째 프로토 스타일\n";
+$rP = jhtech_apply_slots($tpl, base_payload());
+$specSection = null;
+foreach ($rP['tree'] as $sec) {
+    if (strpos(json_encode($sec), 'jh-slot-specs') !== false) { $specSection = $sec; }
+}
+$pLists = jhtech_collect_widgets($specSection, 'icon-list', 10);
+check('그룹 1개 = icon-list 2개(제목+항목)', count($pLists) === 2);
+check('제목 위젯은 1항목', count($pLists[0]['settings']['icon_list']) === 1);
+check('항목 위젯은 그룹 항목 수', count($pLists[1]['settings']['icon_list']) === 2);
+
+echo "8f) 연속 스페이서 섹션 접기 — 제거된 밴드 자리 빈 공백 스택 방지\n";
+$sp = load_fixture('synthetic-template.json');
+$mkSpacer = function ($id) {
+    return array('id' => $id, 'elType' => 'section', 'settings' => array(), 'elements' => array(
+        array('id' => $id . 'c', 'elType' => 'column', 'settings' => array(), 'elements' => array(
+            array('id' => $id . 'w', 'elType' => 'widget', 'widgetType' => 'spacer',
+                'settings' => array(), 'elements' => array()),
+        )),
+    ));
+};
+// [본문] [스페이서] [비디오(jh-if-video-01)] [스페이서] [사양] 구조 — 비디오 제거 시 스페이서 1개만 남아야
+$spTree = array($sp[0], $mkSpacer('spA'), $sp[4], $mkSpacer('spB'), $sp[3]);
+$rS = jhtech_apply_slots($spTree, base_payload(array('youtube_ids' => array())));
+$spacerCount = 0;
+foreach ($rS['tree'] as $sec) {
+    if (jhtech_is_spacer_only($sec)) { $spacerCount++; }
+}
+check('비디오 밴드 제거 후 연속 스페이서 1개로 접힘', $spacerCount === 1);
+$rS2 = jhtech_apply_slots($spTree, base_payload());
+$spacerCount2 = 0;
+foreach ($rS2['tree'] as $sec) {
+    if (jhtech_is_spacer_only($sec)) { $spacerCount2++; }
+}
+check('비디오 있으면 스페이서 2개 그대로(간격 보존)', $spacerCount2 === 2);
 
 echo "8c) 사진이 슬롯보다 많으면 초과분 무시\n";
 $rX = jhtech_apply_slots($tpl, base_payload(array('images' => array(

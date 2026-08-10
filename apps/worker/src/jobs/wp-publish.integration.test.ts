@@ -313,9 +313,16 @@ describe("wp_publish 잡 — 플러그인 템플릿 경로(#262)", () => {
     expect(methods).not.toContain("createDraft"); // 레거시 경로 미사용
     // payload 내용 계약 — 그룹명(SpecGroup.group→name 매핑)·특징이 실제로 실려 간다
     const syncCall = fake.calls.find((c) => c.method === "pluginSync");
-    const input = syncCall?.args[0] as { specGroups: Array<{ name: string }>; features: string[] };
+    const input = syncCall?.args[0] as {
+      specGroups: Array<{ name: string }>;
+      features: string[];
+      photoMediaIds: number[];
+    };
     expect(input.specGroups.map((g) => g.name)).toEqual(["시스템"]);
     expect(input.features).toEqual(["하이라이트1"]);
+    // 사진 1장 = image-01·image-02 둘 다 같은 사진(사양 옆 제품 이미지 유지)
+    expect(input.photoMediaIds).toHaveLength(2);
+    expect(input.photoMediaIds[0]).toBe(input.photoMediaIds[1]);
   });
 
   test("공개 글 갱신: pluginSync가 currentStatus를 보존한다 (강등 금지 계약)", async () => {

@@ -1,148 +1,213 @@
 [
-  {
-    "id": "sec0001",
-    "elType": "section",
+ {
+  "id": "sec0001",
+  "elType": "section",
+  "settings": {},
+  "elements": [
+   {
+    "id": "col0001",
+    "elType": "column",
     "settings": {},
     "elements": [
-      {
-        "id": "col0001",
-        "elType": "column",
-        "settings": {},
-        "elements": [
-          {
-            "id": "wid0001",
-            "elType": "widget",
-            "widgetType": "text-editor",
-            "settings": { "css_classes": "jh-slot-title", "editor": "<h2 class=\"big\">자동 급지 커팅기</h2>" },
-            "elements": []
-          },
-          {
-            "id": "wid0002",
-            "elType": "widget",
-            "widgetType": "text-editor",
-            "settings": { "css_classes": "jh-slot-subtitle jh-if-subtitle", "editor": "<p>소량 다품종의 스티커, 라벨, 박스 제작에 최적합</p>" },
-            "elements": []
-          },
-          {
-            "id": "wid0003",
-            "elType": "widget",
-            "widgetType": "heading",
-            "settings": { "css_classes": "jh-slot-series jh-if-series", "title": "AUTO FEED SERIES" },
-            "elements": []
-          },
-          {
-            "id": "wid0004",
-            "elType": "widget",
-            "widgetType": "icon-list",
-            "settings": {
-              "css_classes": "jh-slot-features jh-if-features",
-              "icon_list": [
-                { "_id": "aaa0001", "text": "듀얼 툴 헤드 시스템", "selected_icon": { "value": "fas fa-check" } },
-                { "_id": "aaa0002", "text": "카메라 시스템", "selected_icon": { "value": "fas fa-check" } }
-              ]
-            },
-            "elements": []
-          }
-        ]
-      }
+     {
+      "id": "wid0001",
+      "elType": "widget",
+      "widgetType": "text-editor",
+      "settings": {
+       "css_classes": "jh-slot-title",
+       "editor": "<h2 class=\"big\">자동 급지 커팅기</h2>"
+      },
+      "elements": []
+     },
+     {
+      "id": "wid0002",
+      "elType": "widget",
+      "widgetType": "text-editor",
+      "settings": {
+       "css_classes": "jh-slot-subtitle jh-if-subtitle",
+       "editor": "<p>소량 다품종의 스티커, 라벨, 박스 제작에 최적합</p>"
+      },
+      "elements": []
+     },
+     {
+      "id": "wid0003",
+      "elType": "widget",
+      "widgetType": "heading",
+      "settings": {
+       "css_classes": "jh-slot-series jh-if-series",
+       "title": "AUTO FEED SERIES"
+      },
+      "elements": []
+     },
+     {
+      "id": "wid0004",
+      "elType": "widget",
+      "widgetType": "icon-list",
+      "settings": {
+       "css_classes": "jh-slot-features jh-if-features",
+       "icon_list": [
+        {
+         "_id": "aaa0001",
+         "text": "듀얼 툴 헤드 시스템",
+         "selected_icon": {
+          "value": "fas fa-check"
+         }
+        },
+        {
+         "_id": "aaa0002",
+         "text": "카메라 시스템",
+         "selected_icon": {
+          "value": "fas fa-check"
+         }
+        }
+       ]
+      },
+      "elements": []
+     }
     ]
+   }
+  ]
+ },
+ {
+  "id": "sec0002",
+  "elType": "section",
+  "settings": {
+   "css_classes": "jh-if-image-01"
   },
-  {
-    "id": "sec0002",
-    "elType": "section",
-    "settings": { "css_classes": "jh-if-image-01" },
+  "elements": [
+   {
+    "id": "col0002",
+    "elType": "column",
+    "settings": {},
     "elements": [
-      {
-        "id": "col0002",
-        "elType": "column",
-        "settings": {},
-        "elements": [
-          {
-            "id": "wid0005",
-            "elType": "widget",
-            "widgetType": "image",
-            "settings": { "css_classes": "jh-slot-image-01", "image": { "id": 111, "url": "https://tpl/img1.jpg" } },
-            "elements": []
-          }
-        ]
-      }
+     {
+      "id": "wid0005",
+      "elType": "widget",
+      "widgetType": "image",
+      "settings": {
+       "css_classes": "jh-slot-image-01",
+       "image": {
+        "id": 111,
+        "url": "https://tpl/img1.jpg"
+       }
+      },
+      "elements": []
+     }
     ]
+   }
+  ]
+ },
+ {
+  "id": "sec0003",
+  "elType": "section",
+  "settings": {
+   "css_classes": "jh-if-image-02"
   },
-  {
-    "id": "sec0003",
-    "elType": "section",
-    "settings": { "css_classes": "jh-if-image-02" },
+  "elements": [
+   {
+    "id": "col0003",
+    "elType": "column",
+    "settings": {},
     "elements": [
-      {
-        "id": "col0003",
-        "elType": "column",
-        "settings": {},
-        "elements": [
-          {
-            "id": "wid0006",
-            "elType": "widget",
-            "widgetType": "image",
-            "settings": { "css_classes": "jh-slot-image-02", "image": { "id": 112, "url": "https://tpl/img2.jpg" } },
-            "elements": []
-          }
-        ]
-      }
+     {
+      "id": "wid0006",
+      "elType": "widget",
+      "widgetType": "image",
+      "settings": {
+       "css_classes": "jh-slot-image-02",
+       "image": {
+        "id": 112,
+        "url": "https://tpl/img2.jpg"
+       }
+      },
+      "elements": []
+     }
     ]
+   }
+  ]
+ },
+ {
+  "id": "sec0004",
+  "elType": "section",
+  "settings": {
+   "css_classes": "jh-slot-specs jh-if-specs"
   },
-  {
-    "id": "sec0004",
-    "elType": "section",
-    "settings": { "css_classes": "jh-slot-specs jh-if-specs" },
+  "elements": [
+   {
+    "id": "col0004",
+    "elType": "column",
+    "settings": {},
     "elements": [
-      {
-        "id": "col0004",
-        "elType": "column",
-        "settings": {},
-        "elements": [
-          {
-            "id": "wid0007",
-            "elType": "widget",
-            "widgetType": "icon-list",
-            "settings": {
-              "icon_list": [
-                { "_id": "bbb0001", "text": "■ JC 350 제품 사양", "selected_icon": { "value": "fas fa-cog" } },
-                { "_id": "bbb0002", "text": "최대 커팅 속도 : 1,600mm/s", "selected_icon": { "value": "fas fa-cog" } }
-              ]
-            },
-            "elements": []
-          },
-          {
-            "id": "wid0008",
-            "elType": "widget",
-            "widgetType": "icon-list",
-            "settings": {
-              "icon_list": [{ "_id": "ccc0001", "text": "■ JC 600 제품 사양" }]
-            },
-            "elements": []
-          }
-        ]
-      }
+     {
+      "id": "wid0007",
+      "elType": "widget",
+      "widgetType": "icon-list",
+      "settings": {
+       "icon_list": [
+        {
+         "_id": "bbb0001",
+         "text": "JC 350 제품 사양",
+         "selected_icon": {
+          "value": "fas fa-square"
+         }
+        }
+       ]
+      },
+      "elements": []
+     },
+     {
+      "id": "wid0008",
+      "elType": "widget",
+      "widgetType": "icon-list",
+      "settings": {
+       "icon_list": [
+        {
+         "_id": "ccc0001",
+         "text": "최대 커팅 속도 : 1,600mm/s",
+         "selected_icon": {
+          "value": "fas fa-cog"
+         }
+        },
+        {
+         "_id": "ccc0002",
+         "text": "무게 : 39KG",
+         "selected_icon": {
+          "value": "fas fa-cog"
+         }
+        }
+       ],
+       "divider": "yes"
+      },
+      "elements": []
+     }
     ]
+   }
+  ]
+ },
+ {
+  "id": "sec0005",
+  "elType": "section",
+  "settings": {
+   "css_classes": "jh-if-video-01"
   },
-  {
-    "id": "sec0005",
-    "elType": "section",
-    "settings": { "css_classes": "jh-if-video-01" },
+  "elements": [
+   {
+    "id": "col0005",
+    "elType": "column",
+    "settings": {},
     "elements": [
-      {
-        "id": "col0005",
-        "elType": "column",
-        "settings": {},
-        "elements": [
-          {
-            "id": "wid0009",
-            "elType": "widget",
-            "widgetType": "video",
-            "settings": { "css_classes": "jh-slot-video-01", "youtube_url": "https://youtu.be/TPLVIDEO" },
-            "elements": []
-          }
-        ]
-      }
+     {
+      "id": "wid0009",
+      "elType": "widget",
+      "widgetType": "video",
+      "settings": {
+       "css_classes": "jh-slot-video-01",
+       "youtube_url": "https://youtu.be/TPLVIDEO"
+      },
+      "elements": []
+     }
     ]
-  }
+   }
+  ]
+ }
 ]

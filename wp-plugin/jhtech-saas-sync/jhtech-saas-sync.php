@@ -2,7 +2,7 @@
 /**
  * Plugin Name: JHTech SaaS Sync
  * Description: 재현테크 SaaS 장비 → Elementor 템플릿 복제 등록 endpoint (#262). REST 콜백 밖에서는 아무 일도 하지 않습니다(안전 반경 최소화).
- * Version: 1.0.0
+ * Version: 1.1.0
  * Author: JHTech SaaS
  *
  * 계약(contract=1) — 워커 wp-plugin.ts와 동기:
@@ -278,6 +278,15 @@ function jhtech_saas_sync_handle(WP_REST_Request $req)
     $tpl_type = (string) get_post_meta($template_id, '_elementor_template_type', true);
     if ($tpl_type !== '') {
         update_post_meta($post_id, '_elementor_template_type', $tpl_type);
+    }
+    // 페이지 템플릿(전체 폭 = elementor_header_footer)도 템플릿 글에서 복사 — 미복사 시
+    // 기본 본문 컬럼 폭에 갇혀 밴드가 좁게 렌더된다(가로폭·full-bleed 회귀의 원인).
+    // 알려진 Elementor 템플릿만 복사(임의 PHP 파일명 전파 차단) + 템플릿에 값이 없으면
+    // 대상 글 값을 지우지 않는다(운영자가 WP에서 직접 지정한 값 보존 — 해시 감시 밖 필드).
+    $tpl_page = (string) get_post_meta($template_id, '_wp_page_template', true);
+    $allowed_page_templates = array('elementor_header_footer', 'elementor_canvas', 'elementor_theme');
+    if (in_array($tpl_page, $allowed_page_templates, true)) {
+        update_post_meta($post_id, '_wp_page_template', $tpl_page);
     }
     update_post_meta($post_id, JHTECH_META_UUID, $uuid);
     // 해시는 "메타에 실제 저장된 값"의 정규화 해시 — 즉시 재조회(부분 실패·slash 왕복 오차 방지).
