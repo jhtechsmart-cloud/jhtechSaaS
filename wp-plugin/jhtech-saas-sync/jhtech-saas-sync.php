@@ -2,7 +2,7 @@
 /**
  * Plugin Name: JHTech SaaS Sync
  * Description: 재현테크 SaaS 장비 → Elementor 템플릿 복제 등록 endpoint (#262). REST 콜백 밖에서는 아무 일도 하지 않습니다(안전 반경 최소화).
- * Version: 1.2.0
+ * Version: 1.3.0
  * Author: JHTech SaaS
  *
  * 계약(contract=1) — 워커 wp-plugin.ts와 동기:
@@ -233,6 +233,7 @@ function jhtech_saas_sync_handle(WP_REST_Request $req)
         'title' => jhtech_sanitize_text($req->get_param('title')),
         'subtitle' => jhtech_sanitize_text($req->get_param('subtitle')),
         'series_name' => jhtech_sanitize_text($req->get_param('series_name')),
+        'model' => jhtech_sanitize_text($req->get_param('model')),
         'features' => $features,
         'spec_groups' => $spec_groups,
         'images' => $images,

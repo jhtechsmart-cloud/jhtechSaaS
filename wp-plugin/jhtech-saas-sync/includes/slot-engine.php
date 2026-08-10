@@ -376,6 +376,18 @@ function jhtech_apply_slots(array $tree, array $payload)
         }
     }
 
+    // 모델명 — 템플릿에 여러 자리(제목 아래·사양 이미지 아래)가 있을 수 있어 "전부" 치환.
+    // (다른 텍스트 슬롯은 첫 매칭만 — 모델명만 다중 배치 관행이라 전체 채움)
+    $model = isset($payload['model']) ? (string) $payload['model'] : '';
+    if ($model !== '') {
+        jhtech_walk($tree, function (&$el) use ($model) {
+            if (jhtech_el_has_class($el, 'jh-slot-model')) {
+                jhtech_set_text($el, $model);
+            }
+            return true;
+        });
+    }
+
     // 특장점
     $features = isset($payload['features']) && is_array($payload['features']) ? $payload['features'] : array();
     $featRef = jhtech_find_marked($tree, 'jh-slot-features');
@@ -434,6 +446,7 @@ function jhtech_apply_slots(array $tree, array $payload)
         'series' => isset($payload['series_name']) && $payload['series_name'] !== '',
         'features' => count($features) > 0,
         'specs' => count($specGroups) > 0,
+        'model' => $model !== '',
     );
     $removedAny = false;
     jhtech_walk($tree, function (&$el) use ($hasData, $images, $videos, &$removedAny) {
@@ -448,7 +461,7 @@ function jhtech_apply_slots(array $tree, array $payload)
                     $removedAny = true;
                     return false;
                 }
-            } elseif (preg_match('/^jh-if-(subtitle|series|features|specs)$/', $cls, $m)) {
+            } elseif (preg_match('/^jh-if-(subtitle|series|features|specs|model)$/', $cls, $m)) {
                 if (!$hasData[$m[1]]) {
                     $removedAny = true;
                     return false;

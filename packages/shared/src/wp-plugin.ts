@@ -18,6 +18,8 @@ export interface WpTemplateSyncInput {
   title: string;
   subtitle: string | null;
   seriesName: string | null;
+  /** 모델명 — 템플릿의 jh-slot-model 위치들(제목 아래·사양 이미지 아래)에 전부 치환. */
+  model: string | null;
   /** 코어 REST로 선업로드된 media id(본문 순서). */
   photoMediaIds: number[];
   featuredMediaId: number | null;
@@ -83,6 +85,7 @@ export function toPluginPayload(input: WpTemplateSyncInput): Record<string, unkn
     title: input.title,
     subtitle: input.subtitle,
     series_name: input.seriesName,
+    model: input.model,
     photo_media_ids: input.photoMediaIds,
     featured_media_id: input.featuredMediaId,
     features: input.features,
