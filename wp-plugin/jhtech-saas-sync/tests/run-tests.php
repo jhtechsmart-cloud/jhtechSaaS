@@ -173,17 +173,25 @@ check('span 래퍼(색 지정) 보존', strpos($jN, 'color: #ffffff') !== false)
 check('p 클래스·정렬 보존', strpos($jN, 'product_title entry-title') !== false);
 check('최심부 텍스트만 교체', strpos($jN, '멀티컷 A3 Max 5') !== false && strpos($jN, '자동 급지 커팅기') === false);
 
-echo "8b) 사양 다중 컬럼 — 다른 컬럼의 템플릿 icon-list도 제거, 삽입 위치는 첫 발견 자리\n";
+echo "8b) 사양 다중 컬럼 레거시 — 컬럼마다 '항목 리스트'(복수 항목) → 2-프로토 오인 없이 레거시 모드\n";
 $multi = load_fixture('synthetic-template.json');
-// 사양 섹션(sec0004)을 2컬럼 구조로 변형: 컬럼마다 icon-list 1개
+$mkList = function ($id, $texts) {
+    $items = array();
+    foreach ($texts as $i => $t) {
+        $items[] = array('_id' => 'm' . $id . $i, 'text' => $t, 'selected_icon' => array('value' => 'fas fa-cog'));
+    }
+    return array('id' => $id, 'elType' => 'widget', 'widgetType' => 'icon-list',
+        'settings' => array('icon_list' => $items), 'elements' => array());
+};
+// 사양 섹션(sec0004)을 2컬럼 구조로 변형: 컬럼마다 복수 항목 icon-list 1개(구 수제 관행)
 $multi[3]['elements'] = array(
     array('id' => 'colA', 'elType' => 'column', 'settings' => array(), 'elements' => array(
         array('id' => 'widX1', 'elType' => 'widget', 'widgetType' => 'text-editor',
             'settings' => array('editor' => '<p>사양 안내</p>'), 'elements' => array()),
-        $multi[3]['elements'][0]['elements'][0], // 원래 첫 icon-list(JC 350)
+        $mkList('widA', array('■ JC 350 제품 사양', '속도 : 1600')),
     )),
     array('id' => 'colB', 'elType' => 'column', 'settings' => array(), 'elements' => array(
-        $multi[3]['elements'][0]['elements'][1], // 원래 둘째 icon-list(JC 600)
+        $mkList('widB', array('■ JC 600 제품 사양', '속도 : 1600')),
     )),
 );
 $rM = jhtech_apply_slots($multi, base_payload(array('spec_groups' => array(
@@ -192,7 +200,7 @@ $rM = jhtech_apply_slots($multi, base_payload(array('spec_groups' => array(
 $tM = collect_texts($rM['tree']);
 check('다른 컬럼(JC 600) 잔존 제거', strpos($tM, 'JC 600') === false);
 check('첫 컬럼(JC 350) 잔존 제거', strpos($tM, 'JC 350') === false);
-check('신규 그룹 렌더', strpos($tM, '단일그룹') !== false && strpos($tM, 'k : v') !== false);
+check('레거시 모드 렌더(첫 리스트가 복수 항목 = 2-프로토 오인 금지)', strpos($tM, '■ 단일그룹') !== false && strpos($tM, 'k : v') !== false);
 check('비-icon-list 형제(사양 안내) 보존', strpos($tM, '사양 안내') !== false);
 
 echo "8d) 레거시 단일 프로토(icon-list 1개) — '■ ' 텍스트 접두 유지\n";
@@ -228,13 +236,13 @@ $spTree = array($sp[0], $mkSpacer('spA'), $sp[4], $mkSpacer('spB'), $sp[3]);
 $rS = jhtech_apply_slots($spTree, base_payload(array('youtube_ids' => array())));
 $spacerCount = 0;
 foreach ($rS['tree'] as $sec) {
-    if (!jhtech_has_content_widget($sec)) { $spacerCount++; }
+    if (jhtech_is_spacer_only($sec)) { $spacerCount++; }
 }
 check('비디오 밴드 제거 후 연속 스페이서 1개로 접힘', $spacerCount === 1);
 $rS2 = jhtech_apply_slots($spTree, base_payload());
 $spacerCount2 = 0;
 foreach ($rS2['tree'] as $sec) {
-    if (!jhtech_has_content_widget($sec)) { $spacerCount2++; }
+    if (jhtech_is_spacer_only($sec)) { $spacerCount2++; }
 }
 check('비디오 있으면 스페이서 2개 그대로(간격 보존)', $spacerCount2 === 2);
 

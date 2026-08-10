@@ -177,10 +177,19 @@ function jhtech_set_specs(array &$container, array $specGroups)
         return false; // 그룹 템플릿 위젯 없음 — 호출측이 template_invalid 처리
     }
     $headerProto = $protos[0];
-    $itemProto = count($protos) >= 2 ? $protos[1] : null;
+    // 2-프로토는 "첫 리스트 = 1항목 제목 위젯"일 때만 — 다중 컬럼 레거시(컬럼마다 항목
+    // 리스트 1개)를 헤더/항목 쌍으로 오인하지 않는다(어드버서리얼 F3). 실제 4605 템플릿의
+    // 제목 리스트는 1항목("JC 350 제품 사양")이라 이 검증을 통과한다.
+    $headerItems = isset($headerProto['settings']['icon_list']) && is_array($headerProto['settings']['icon_list'])
+        ? count($headerProto['settings']['icon_list']) : 0;
+    $itemProto = (count($protos) >= 2 && $headerItems === 1) ? $protos[1] : null;
 
     $newList = array();
     foreach ($specGroups as $gi => $group) {
+        // 항목 없는 그룹은 빈 위젯을 만들지 않는다(플러그인 핸들러도 거르지만 엔진 계약으로 방어).
+        if (!isset($group['items']) || !is_array($group['items']) || count($group['items']) === 0) {
+            continue;
+        }
         $name = isset($group['name']) ? (string) $group['name'] : '';
         if ($itemProto !== null) {
             // 2-프로토: 그룹 제목 위젯(아이콘이 ■ 역할 — 텍스트 접두 없음) + 항목 위젯
@@ -274,20 +283,34 @@ function jhtech_specs_rebuild(array &$node, array $newList, &$inserted)
     $node['elements'] = $rebuilt;
 }
 
-/** 요소(하위 포함)에 스페이서·구분선이 아닌 "내용 위젯"이 하나라도 있는가. */
-function jhtech_has_content_widget(array $el)
+/**
+ * "스페이서 전용" 섹션 판정 — 위젯이 1개 이상 있고 전부 spacer일 때만 true.
+ * divider(가로 구분선)·배경만 있는 빈 섹션은 화면에 보이는 요소라 접기 대상이 아니다
+ * (어드버서리얼 리뷰 F1 — divider 밴드 무단 삭제 방지).
+ */
+function jhtech_is_spacer_only(array $el)
 {
-    if (isset($el['widgetType']) && $el['widgetType'] !== 'spacer' && $el['widgetType'] !== 'divider') {
-        return true;
+    $counts = array('spacer' => 0, 'other' => 0);
+    jhtech_count_widgets($el, $counts);
+    return $counts['spacer'] > 0 && $counts['other'] === 0;
+}
+
+function jhtech_count_widgets(array $el, array &$counts)
+{
+    if (isset($el['widgetType'])) {
+        if ($el['widgetType'] === 'spacer') {
+            $counts['spacer']++;
+        } else {
+            $counts['other']++;
+        }
     }
     if (isset($el['elements']) && is_array($el['elements'])) {
         foreach ($el['elements'] as $c) {
-            if (is_array($c) && jhtech_has_content_widget($c)) {
-                return true;
+            if (is_array($c)) {
+                jhtech_count_widgets($c, $counts);
             }
         }
     }
-    return false;
 }
 
 /**
@@ -379,18 +402,22 @@ function jhtech_apply_slots(array $tree, array $payload)
         'features' => count($features) > 0,
         'specs' => count($specGroups) > 0,
     );
-    jhtech_walk($tree, function (&$el) use ($hasData, $images, $videos) {
+    $removedAny = false;
+    jhtech_walk($tree, function (&$el) use ($hasData, $images, $videos, &$removedAny) {
         foreach (jhtech_el_classes($el) as $cls) {
             if (preg_match('/^jh-if-image-(\d{2})$/', $cls, $m)) {
                 if (!isset($images[((int) $m[1]) - 1])) {
+                    $removedAny = true;
                     return false;
                 }
             } elseif (preg_match('/^jh-if-video-(\d{2})$/', $cls, $m)) {
                 if (!isset($videos[((int) $m[1]) - 1])) {
+                    $removedAny = true;
                     return false;
                 }
             } elseif (preg_match('/^jh-if-(subtitle|series|features|specs)$/', $cls, $m)) {
                 if (!$hasData[$m[1]]) {
+                    $removedAny = true;
                     return false;
                 }
             }
@@ -398,19 +425,23 @@ function jhtech_apply_slots(array $tree, array $payload)
         return true;
     });
 
-    // 밴드 제거로 "스페이서뿐인" 최상위 섹션이 연속되면 1개만 남긴다 — 원본은 밴드 사이
+    // 밴드 제거로 "스페이서 전용" 최상위 섹션이 연속되면 1개만 남긴다 — 원본은 밴드 사이
     // 간격 1개가 규칙인데, 사이 밴드가 제거되면 스페이서가 겹쳐 큰 빈 공백이 생긴다.
-    $collapsed = array();
-    $prevSpacerOnly = false;
-    foreach ($tree as $sec) {
-        $spacerOnly = !jhtech_has_content_widget($sec);
-        if ($spacerOnly && $prevSpacerOnly) {
-            continue;
+    // jh-if 제거가 실제로 일어난 sync에서만 접는다 — 제거 없는 트리는 템플릿이 의도한
+    // 간격이므로 건드리지 않는다(어드버서리얼 F2). divider·빈 섹션은 제외(F1).
+    if ($removedAny) {
+        $collapsed = array();
+        $prevSpacerOnly = false;
+        foreach ($tree as $sec) {
+            $spacerOnly = jhtech_is_spacer_only($sec);
+            if ($spacerOnly && $prevSpacerOnly) {
+                continue;
+            }
+            $collapsed[] = $sec;
+            $prevSpacerOnly = $spacerOnly;
         }
-        $collapsed[] = $sec;
-        $prevSpacerOnly = $spacerOnly;
+        $tree = $collapsed;
     }
-    $tree = $collapsed;
 
     // 위젯 id 전면 재발급(템플릿·기존 글과 충돌 방지). seed로 결정적 — 같은 입력 = 같은 트리(해시 안정).
     $seed = isset($payload['seed']) ? (string) $payload['seed'] : 'jhtech';
