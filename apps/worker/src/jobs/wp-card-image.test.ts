@@ -8,6 +8,7 @@ const base = {
   photoDataUri: "data:image/png;base64,AAA",
   logoDataUri: "data:image/png;base64,BBB",
   fontDataUri: "data:font/otf;base64,CCC",
+  latinFontDataUri: "data:font/ttf;base64,DDD",
 };
 
 describe("renderWpCardHtml — 전체 제품 카드 프레임(500×500)", () => {

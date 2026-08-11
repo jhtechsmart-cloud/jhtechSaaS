@@ -1,6 +1,6 @@
 import { writeFile } from "node:fs/promises";
 import { getBrowser, closeBrowser } from "./browser";
-import { getFontDataUri } from "./assets";
+import { getFontDataUri, getModelFontDataUri } from "./assets";
 import { renderWpCardHtml, WP_CARD_SIZE } from "./wp-card-image";
 
 // 로컬 시각 검증 전용 — 홈페이지 카드 대표 이미지 합성 샘플(XTRA 3300S 실데이터).
@@ -28,6 +28,7 @@ async function main(): Promise<void> {
     photoDataUri: await fetchDataUri(photoUrl),
     logoDataUri: logoUrl ? await fetchDataUri(logoUrl) : null,
     fontDataUri: await getFontDataUri(),
+    latinFontDataUri: await getModelFontDataUri(),
   });
 
   const browser = await getBrowser();
