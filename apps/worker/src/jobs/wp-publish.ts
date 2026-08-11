@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { composeCardPng, type WpCardInput } from "./wp-card-image";
-import { getFontDataUri } from "./assets";
+import { getFontDataUri, getModelFontDataUri } from "./assets";
 import {
   parseSpecs,
   parseYoutubeId,
@@ -405,6 +405,7 @@ async function processSync(
         photoDataUri: photoUri,
         logoDataUri: logoUri,
         fontDataUri: await getFontDataUri(),
+        latinFontDataUri: await getModelFontDataUri(),
       });
       const up = await publisher.uploadMedia({
         filename: `card-${eq.id}.png`,

@@ -15,6 +15,8 @@ export interface WpCardInput {
   logoDataUri: string | null;
   /** 한글 폰트 data URI(워커 번들 NotoSansKR) */
   fontDataUri: string;
+  /** 영문 볼드 이탤릭 폰트 data URI(워커 번들 Arimo Bold Italic — 좌측 밴드, 수제 카드 서체) */
+  latinFontDataUri: string;
 }
 
 export const WP_CARD_SIZE = 500;
@@ -43,18 +45,20 @@ export function renderWpCardHtml(input: WpCardInput): string {
   return `<!doctype html>
 <html><head><meta charset="utf-8"><style>
   @font-face { font-family: 'KR'; src: url('${input.fontDataUri}'); }
+  @font-face { font-family: 'EN'; src: url('${input.latinFontDataUri}'); font-weight: bold; font-style: italic; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { width: ${WP_CARD_SIZE}px; height: ${WP_CARD_SIZE}px; font-family: 'KR', sans-serif; background: #fff; }
   .card { position: relative; width: ${WP_CARD_SIZE}px; height: ${WP_CARD_SIZE}px; background: #fff; overflow: hidden; }
   .side { position: absolute; left: 0; top: 0; width: 53px; height: 100%; background: #1a2842;
           display: flex; align-items: flex-start; justify-content: center; }
-  .side span { writing-mode: vertical-rl; transform: rotate(180deg); color: #fff; font-weight: 800;
-               font-size: 21px; letter-spacing: 2px; white-space: nowrap; padding-bottom: 14px; }
+  .side span { writing-mode: vertical-rl; transform: rotate(180deg); color: #fff;
+               font-family: 'EN', 'KR', sans-serif; font-style: italic; font-weight: bold;
+               font-size: 25px; letter-spacing: 1px; white-space: nowrap; padding-bottom: 10px; }
   .top { position: absolute; left: 53px; top: 0; right: 0; height: 95px; background: #23282c;
-         padding: 16px 0 0 18px; border-bottom: 1px solid #3a3f44; }
-  .top .title { color: #fff; font-weight: 800; font-size: 27px; line-height: 1.2;
+         padding: 14px 0 0 18px; border-bottom: 1px solid #3a3f44; }
+  .top .title { color: #fff; font-weight: 900; font-size: 29px; line-height: 1.2;
                 white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .top .subtitle { color: #aeb4ba; font-weight: 700; font-size: 16px; margin-top: 4px;
+  .top .subtitle { color: #c3c9ce; font-weight: 800; font-size: 18px; margin-top: 5px;
                    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .content { position: absolute; left: 53px; top: 95px; right: 0; bottom: 0;
              display: flex; align-items: center; justify-content: center; padding: 18px; }
