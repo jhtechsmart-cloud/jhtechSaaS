@@ -221,6 +221,21 @@ check('그룹 1개 = icon-list 2개(제목+항목)', count($pLists) === 2);
 check('제목 위젯은 1항목', count($pLists[0]['settings']['icon_list']) === 1);
 check('항목 위젯은 그룹 항목 수', count($pLists[1]['settings']['icon_list']) === 2);
 
+echo "8i) jh-first-red — 첫 글자만 빨강 span, 나머지는 이스케이프 유지\n";
+$rTpl = load_fixture('synthetic-template.json');
+$rTpl[0]['elements'][0]['elements'][] = array('id' => 'red0001', 'elType' => 'widget',
+    'widgetType' => 'text-editor', 'settings' => array(
+        'css_classes' => 'jh-slot-model jh-if-model jh-first-red',
+        'editor' => '<p class="big_model">TPL</p>'), 'elements' => array());
+$rRed = jhtech_apply_slots($rTpl, base_payload(array('model' => 'XTRA 3300S')));
+$jRed = json_encode($rRed['tree'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+check('첫 글자 span 빨강 + 나머지 평문', strpos($jRed, '<span style=\"color: #ff0000;\">X</span>TRA 3300S') !== false
+    || strpos($jRed, '<span style="color: #ff0000;">X</span>TRA 3300S') !== false);
+check('래핑 클래스 유지', strpos($jRed, 'big_model') !== false);
+$rRedX = jhtech_apply_slots($rTpl, base_payload(array('model' => '<b>주입</b>')));
+$jRedX = json_encode($rRedX['tree'], JSON_UNESCAPED_UNICODE);
+check('첫 글자 분리 후에도 XSS 이스케이프', strpos($jRedX, '<b>') === false);
+
 echo "8h) 모델명 슬롯(jh-slot-model) — 다중 위치 전부 치환, 빈 값이면 jh-if-model 제거\n";
 $mTpl = load_fixture('synthetic-template.json');
 $mkModelWidget = function ($id) {

@@ -71,7 +71,16 @@ function jhtech_find_marked(array &$elements, $class)
 function jhtech_set_text(array &$el, $text)
 {
     $safe = htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
+    // jh-first-red 마커: 첫 글자만 빨강(#ff0000) — 수제 페이지의 브랜드 관행("XTRA"의 X).
+    // text-editor 전용(heading title은 평문 유지).
+    $firstRed = jhtech_el_has_class($el, 'jh-first-red');
     $widget = isset($el['widgetType']) ? $el['widgetType'] : '';
+    if ($firstRed && $widget !== 'heading' && mb_strlen($text, 'UTF-8') > 0) {
+        $first = mb_substr($text, 0, 1, 'UTF-8');
+        $rest = mb_substr($text, 1, null, 'UTF-8');
+        $safe = '<span style="color: #ff0000;">' . htmlspecialchars($first, ENT_QUOTES, 'UTF-8') . '</span>'
+            . htmlspecialchars($rest, ENT_QUOTES, 'UTF-8');
+    }
     if ($widget === 'heading') {
         $el['settings']['title'] = $safe;
         return;
