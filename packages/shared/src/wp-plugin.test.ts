@@ -12,6 +12,7 @@ function input(overrides: Partial<WpTemplateSyncInput> = {}): WpTemplateSyncInpu
     title: "멀티컷 A3 Max 5",
     subtitle: "소량 다품종 최적",
     seriesName: null,
+    model: "JC350Max",
     photoMediaIds: [10, 11],
     featuredMediaId: 10,
     features: ["듀얼 툴 헤드"],
