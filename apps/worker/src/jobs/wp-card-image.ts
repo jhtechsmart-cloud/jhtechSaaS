@@ -51,14 +51,15 @@ export function renderWpCardHtml(input: WpCardInput): string {
   .card { position: relative; width: ${WP_CARD_SIZE}px; height: ${WP_CARD_SIZE}px; background: #fff; overflow: hidden; }
   .side { position: absolute; left: 0; top: 0; width: 53px; height: 100%; background: #1a2842;
           display: flex; align-items: flex-start; justify-content: center; }
-  .side span { writing-mode: vertical-rl; transform: rotate(180deg); color: #fff;
-               font-family: 'EN', 'KR', sans-serif; font-style: italic; font-weight: bold;
-               font-size: 25px; letter-spacing: 1px; white-space: nowrap; padding-bottom: 10px; }
+  /* 세로 영문: 원본은 위→아래로 읽힘(vertical-rl 기본, rotate 없음) + 합성 900으로 더 두껍게 */
+  .side span { writing-mode: vertical-rl; color: #fff;
+               font-family: 'EN', 'KR', sans-serif; font-style: italic; font-weight: 900;
+               font-size: 28px; letter-spacing: 1px; white-space: nowrap; padding-top: 10px; }
   .top { position: absolute; left: 53px; top: 0; right: 0; height: 95px; background: #23282c;
          padding: 14px 0 0 18px; border-bottom: 1px solid #3a3f44; }
   .top .title { color: #fff; font-weight: 900; font-size: 29px; line-height: 1.2;
                 white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .top .subtitle { color: #c3c9ce; font-weight: 800; font-size: 18px; margin-top: 5px;
+  .top .subtitle { color: #c3c9ce; font-weight: 800; font-size: 20px; margin-top: 4px;
                    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .content { position: absolute; left: 53px; top: 95px; right: 0; bottom: 0;
              display: flex; align-items: center; justify-content: center; padding: 18px; }
