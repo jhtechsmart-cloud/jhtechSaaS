@@ -125,6 +125,19 @@ test.describe.serial("장비 → 홈페이지 자동 등록", () => {
     await expect(page.getByLabel("영문 시리즈명")).toBeVisible();
   });
 
+  test("#277 폼: 브랜드 선택 → 저장 → 재로드 시 값 유지", async ({ page }) => {
+    await login(page);
+    // 체크(enabled)된 장비에서만 브랜드 드롭다운이 노출된다 — unmappedEq가 enabled=true 시드.
+    await page.goto(`/admin/equipment/${unmappedEqId}/edit`);
+    const brand = page.getByLabel("홈페이지 브랜드");
+    await expect(brand).toBeVisible();
+    await brand.selectOption("ju");
+    await page.getByRole("button", { name: "저장", exact: true }).click();
+    await page.waitForURL(/\/admin\/equipment(\/|$)/, { timeout: 20_000 });
+    await page.goto(`/admin/equipment/${unmappedEqId}/edit`);
+    await expect(page.getByLabel("홈페이지 브랜드")).toHaveValue("ju");
+  });
+
   test("#262 수동 편집 감지: 패널에 role=alert 안내 + 관리자 [그래도 덮어쓰기]", async ({
     page,
     browser,

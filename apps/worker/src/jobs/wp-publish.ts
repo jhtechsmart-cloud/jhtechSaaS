@@ -6,6 +6,8 @@ import {
   parseYoutubeId,
   renderWpPostHtml,
   resolveWpCategoryId,
+  WP_BRAND_CATEGORY_IDS,
+  type WpBrand,
   type WpCategoryNode,
   type WpFailKind,
   type WpPublisher,
@@ -65,6 +67,7 @@ interface EquipmentRow {
   wp_subtitle: string | null;
   wp_series_name: string | null;
   wp_render_mode: "html" | "elementor" | null; // 마지막으로 본문을 쓴 주체 — elementor면 레거시 폴백 금지
+  wp_brand: WpBrand | null; // #277 브랜드 카테고리 부여용 — null이면 브랜드 카테고리 미부착(커팅기·3D 등)
 }
 
 export interface WpPublishOpts {
@@ -125,7 +128,7 @@ async function fetchEquipment(supabase: SupabaseClient, id: string): Promise<Equ
   const { data, error } = await supabase
     .from("equipment")
     .select(
-      "id,name,model,status,category_id,photos,specs,highlights,youtube_urls,quote_device_image,quote_device_name,wp_publish_enabled,wp_post_id,wp_post_status,wp_media,wp_dirty,wp_dirty_at,wp_subtitle,wp_series_name,wp_render_mode",
+      "id,name,model,status,category_id,photos,specs,highlights,youtube_urls,quote_device_image,quote_device_name,wp_publish_enabled,wp_post_id,wp_post_status,wp_media,wp_dirty,wp_dirty_at,wp_subtitle,wp_series_name,wp_render_mode,wp_brand",
     )
     .eq("id", id)
     .maybeSingle();
@@ -427,7 +430,13 @@ async function processSync(
     }
   }
 
-  const categories = [...new Set([WP_PRODUCT_CATEGORY_ID, categoryId])];
+  // #277 브랜드 카테고리 — /product/ 포트폴리오 위젯이 브랜드 축으로 필터하므로 미부착 시 목록 누락.
+  const brandCategoryId = eq.wp_brand ? WP_BRAND_CATEGORY_IDS[eq.wp_brand] : null;
+  const categories = [
+    ...new Set(
+      [WP_PRODUCT_CATEGORY_ID, categoryId, brandCategoryId].filter((v): v is number => v != null),
+    ),
+  ];
   const featuredMediaId =
     cardMedia?.id ??
     (eq.photos[0] && media.map[eq.photos[0]] ? media.map[eq.photos[0]].id : null);

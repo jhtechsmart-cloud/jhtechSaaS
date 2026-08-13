@@ -637,3 +637,63 @@ describe("wp 템플릿 복제 v2 (#262)", () => {
     });
   });
 });
+
+// #277 홈페이지 브랜드(wp_brand) — 폼 수정 가능 + 반영 필드 + CHECK
+describe("equipment wp_brand (#277)", () => {
+  test("CHECK: 4종+null은 허용, 목록 밖 값은 거부", async () => {
+    await inRollbackTx(c, async () => {
+      const eq = await seed();
+      await asPostgres(c);
+      for (const b of ["flora", "ju", "mutoh", "efi", null]) {
+        await c.query("update public.equipment set wp_brand=$2 where id=$1", [eq, b]);
+      }
+      // 거부 단언은 마지막 — 거부 후엔 tx가 aborted 상태라 후속 쿼리 불가.
+      await expect(
+        c.query("update public.equipment set wp_brand='epson' where id=$1", [eq]),
+      ).rejects.toThrow(/check/i);
+    });
+  });
+
+  test("equipment.manage로 폼 수정 가능(서버통제 아님)", async () => {
+    await inRollbackTx(c, async () => {
+      const eq = await seed();
+      await asUser(c, UID.admin);
+      await c.query("update public.equipment set wp_brand='ju' where id=$1", [eq]);
+      await asPostgres(c);
+      const r = await c.query("select wp_brand from public.equipment where id=$1", [eq]);
+      expect(r.rows[0].wp_brand).toBe("ju");
+    });
+  });
+
+  test("공개 글 장비의 wp_brand만 변경 → 잡 미생성 + dirty=true (버튼으로만 반영)", async () => {
+    await inRollbackTx(c, async () => {
+      const eq = await seed();
+      await asPostgres(c);
+      await c.query("update public.equipment set wp_publish_enabled=true where id=$1", [eq]);
+      await recordPost(eq, 4700, "publish");
+      await asPostgres(c);
+      await c.query("delete from public.jobs where type='wp_publish'");
+      await asUser(c, UID.admin);
+      await c.query("update public.equipment set wp_brand='ju' where id=$1", [eq]);
+      await asPostgres(c);
+      const r = await c.query("select wp_dirty from public.equipment where id=$1", [eq]);
+      expect(r.rows[0].wp_dirty).toBe(true);
+      expect(await wpJobs(eq)).toHaveLength(0);
+    });
+  });
+
+  test("초안 글 장비의 wp_brand 변경 → sync 잡 (저장 시 자동 반영)", async () => {
+    await inRollbackTx(c, async () => {
+      const eq = await seed();
+      await asPostgres(c);
+      await c.query("update public.equipment set wp_publish_enabled=true where id=$1", [eq]);
+      await recordPost(eq, 4701, "draft");
+      await asPostgres(c);
+      await c.query("delete from public.jobs where type='wp_publish'");
+      await asUser(c, UID.admin);
+      await c.query("update public.equipment set wp_brand='flora' where id=$1", [eq]);
+      const jobs = await wpJobs(eq);
+      expect(jobs.map((j) => j.action)).toContain("sync");
+    });
+  });
+});
