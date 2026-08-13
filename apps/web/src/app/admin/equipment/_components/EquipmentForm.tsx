@@ -16,7 +16,7 @@ import {
 } from "../actions";
 import { equipmentSelectableOptions, type CategoryNode } from "@/lib/equipment/category-tree";
 import { needsUnpublishConfirm } from "@/lib/equipment/wp-form-logic";
-import { resolveWpCategoryId } from "@jhtechsaas/shared";
+import { resolveWpCategoryId, WP_BRANDS, WP_BRAND_LABELS } from "@jhtechsaas/shared";
 import { SpecEditor } from "./SpecEditor";
 import { HighlightsEditor } from "./HighlightsEditor";
 import { YoutubeUrlsEditor } from "./YoutubeUrlsEditor";
@@ -64,6 +64,7 @@ export function EquipmentForm(props: Props) {
             status: "active",
             is_demo: false,
             wp_publish_enabled: false,
+            wp_brand: "",
             wp_subtitle: "",
             wp_series_name: "",
             highlights: [],
@@ -380,6 +381,24 @@ function WpPublishField({
             저장하면 홈페이지 초안에 자동 반영됩니다. 공개된 글은 장비 상세의 [홈페이지 갱신]으로 반영합니다.
           </p>
         )
+      ) : null}
+      {enabled ? (
+        // #277 브랜드 — 전체 제품 페이지(/product/)의 브랜드 진열 위치. 프린터는 선택 권장.
+        <label className="mt-1 flex items-center gap-2 text-small text-text">
+          <span className="shrink-0 text-muted">홈페이지 브랜드</span>
+          <select
+            aria-label="홈페이지 브랜드"
+            {...register("wp_brand")}
+            className="rounded-sm border border-border bg-surface px-2.5 py-1.5 text-small text-text"
+          >
+            <option value="">없음 (커팅기·3D 등)</option>
+            {WP_BRANDS.map((b) => (
+              <option key={b} value={b}>
+                {WP_BRAND_LABELS[b]}
+              </option>
+            ))}
+          </select>
+        </label>
       ) : null}
       {enabled ? (
         // #262 템플릿 슬롯 문구 — 비우면 홈페이지에서 해당 슬롯 섹션이 숨겨진다.

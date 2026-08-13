@@ -86,6 +86,8 @@ export async function createEquipment(
     is_demo: v.is_demo,
     // 홈페이지 등록 체크(#253) — 반영 잡 enqueue는 DB 트리거가 담당(웹은 값만 저장).
     wp_publish_enabled: v.wp_publish_enabled,
+    // #277 홈페이지 브랜드 — 빈 값은 null(브랜드 카테고리 미부착)
+    wp_brand: v.wp_brand || null,
     // #262 템플릿 슬롯 — 빈 값은 null(슬롯 숨김)
     wp_subtitle: v.wp_subtitle || null,
     wp_series_name: v.wp_series_name || null,
@@ -154,6 +156,8 @@ export async function updateEquipment(
       is_demo: v.is_demo,
       // 홈페이지 등록 체크(#253) — 반영 잡 enqueue는 DB 트리거가 담당(웹은 값만 저장).
       wp_publish_enabled: v.wp_publish_enabled,
+      // #277 홈페이지 브랜드 — 빈 값은 null(브랜드 카테고리 미부착)
+      wp_brand: v.wp_brand || null,
       // #262 템플릿 슬롯 — 빈 값은 null(슬롯 숨김)
       wp_subtitle: v.wp_subtitle || null,
       wp_series_name: v.wp_series_name || null,

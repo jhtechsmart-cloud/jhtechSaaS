@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { SPEC_ICONS } from "@jhtechsaas/shared";
+import { SPEC_ICONS, WP_BRANDS } from "@jhtechsaas/shared";
 
 // 사양 항목 — 빈 값 허용(편집 중 빈 행). 직렬화 시 제거·id 부여(serializeSpecs).
 // id: 안정 고유표식(신규 항목은 빈 문자열, 저장 시 채움). pdf: 견적서 기본 포함.
@@ -50,6 +50,8 @@ export const equipmentFormSchema = z.object({
   is_demo: z.boolean().default(false),
   // 홈페이지(워드프레스) 등록 여부(#253) — 기존 장비 전부 false 시작. 실제 반영은 DB 트리거가 enqueue.
   wp_publish_enabled: z.boolean().default(false),
+  // #277 홈페이지 브랜드 — 전체 제품 페이지(/product/)의 브랜드 진열 위치. 빈 문자열=없음(커팅기·3D 등).
+  wp_brand: z.enum(WP_BRANDS).or(z.literal("")).default(""),
   // #262 템플릿 복제 슬롯 — 빈 값이면 해당 슬롯 섹션이 홈페이지에서 숨겨진다. 한 줄 강제(max 80).
   wp_subtitle: z.string().trim().max(80, "부제는 80자 이내로 입력하세요").default(""),
   wp_series_name: z.string().trim().max(80, "시리즈명은 80자 이내로 입력하세요").default(""),

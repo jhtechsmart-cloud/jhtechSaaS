@@ -159,3 +159,21 @@ describe("catalog_pdf", () => {
     ).toBe(false);
   });
 });
+
+// #277 홈페이지 브랜드 — 전체 제품 페이지 브랜드 진열 위치
+describe("wp_brand", () => {
+  it("유효 브랜드 4종 통과", () => {
+    for (const b of ["flora", "ju", "mutoh", "efi"]) {
+      expect(equipmentFormSchema.safeParse({ ...base, wp_brand: b }).success).toBe(true);
+    }
+  });
+  it("빈 문자열 허용(없음)·미지정 시 기본값 빈 문자열", () => {
+    expect(equipmentFormSchema.safeParse({ ...base, wp_brand: "" }).success).toBe(true);
+    const r = equipmentFormSchema.safeParse(base);
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.wp_brand).toBe("");
+  });
+  it("목록 밖 값 거부", () => {
+    expect(equipmentFormSchema.safeParse({ ...base, wp_brand: "epson" }).success).toBe(false);
+  });
+});
