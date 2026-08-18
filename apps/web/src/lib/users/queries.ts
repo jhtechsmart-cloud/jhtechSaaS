@@ -9,6 +9,7 @@ export interface UserListRow {
   is_active: boolean;
   hiworks_user_id: string | null; // 하이웍스 발송자 계정 ID(견적 메일 발송용)
   position: string | null; // 직책
+  department: string | null; // 소속 부서 키(sales/tech/management) — 라벨은 department.ts
   phone: string | null; // 연락처
   created_at: string;
 }
@@ -20,7 +21,7 @@ export async function listUsers(): Promise<UserListRow[]> {
   const [profilesRes, authRes] = await Promise.all([
     admin
       .from("profiles")
-      .select("id,name,permissions,is_active,hiworks_user_id,position,phone,created_at")
+      .select("id,name,permissions,is_active,hiworks_user_id,position,department,phone,created_at")
       .order("created_at", { ascending: true }),
     admin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
   ]);
@@ -37,6 +38,7 @@ export async function listUsers(): Promise<UserListRow[]> {
     is_active: p.is_active,
     hiworks_user_id: p.hiworks_user_id ?? null,
     position: p.position ?? null,
+    department: p.department ?? null,
     phone: p.phone ?? null,
     created_at: p.created_at,
   }));
@@ -47,7 +49,7 @@ export async function getUser(id: string): Promise<UserListRow | null> {
   const admin = createSupabaseAdminClient();
   const { data: p, error } = await admin
     .from("profiles")
-    .select("id,name,permissions,is_active,hiworks_user_id,position,phone,created_at")
+    .select("id,name,permissions,is_active,hiworks_user_id,position,department,phone,created_at")
     .eq("id", id)
     .maybeSingle();
   if (error) throw new Error(`사용자 조회 실패: ${error.message}`);
@@ -61,6 +63,7 @@ export async function getUser(id: string): Promise<UserListRow | null> {
     is_active: p.is_active,
     hiworks_user_id: p.hiworks_user_id ?? null,
     position: p.position ?? null,
+    department: p.department ?? null,
     phone: p.phone ?? null,
     created_at: p.created_at,
   };

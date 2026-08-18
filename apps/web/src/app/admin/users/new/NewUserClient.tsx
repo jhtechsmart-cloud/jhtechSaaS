@@ -5,6 +5,7 @@ import { SALES_PRESET } from "@jhtechsaas/shared";
 import { createUserAction } from "@/lib/users/actions";
 import { PermissionPicker } from "../_components/PermissionPicker";
 import { TempPasswordModal } from "../_components/TempPasswordModal";
+import { DepartmentSelect } from "../_components/DepartmentSelect";
 
 export function NewUserClient() {
   const router = useRouter();
@@ -12,6 +13,7 @@ export function NewUserClient() {
   const [email, setEmail] = useState("");
   const [position, setPosition] = useState("");
   const [phone, setPhone] = useState("");
+  const [department, setDepartment] = useState(""); // "" = 미지정
   // 프리셋 우선 — 기본은 영업담당(가장 흔한 신규 계정).
   const [permissions, setPermissions] = useState<string[]>([...SALES_PRESET]);
   const [error, setError] = useState<string | null>(null);
@@ -22,7 +24,7 @@ export function NewUserClient() {
     e.preventDefault();
     setError(null);
     startTransition(async () => {
-      const res = await createUserAction({ name, email, permissions, position, phone });
+      const res = await createUserAction({ name, email, permissions, position, phone, department });
       if ("error" in res) {
         setError(res.error);
         return;
@@ -65,6 +67,14 @@ export function NewUserClient() {
               onChange={(e) => setPosition(e.target.value)}
               maxLength={50}
               placeholder="영업팀 대리"
+              className="rounded-md border border-border bg-surface px-3 py-2 text-body text-text"
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-small font-medium text-text">부서</span>
+            <DepartmentSelect
+              value={department}
+              onChange={setDepartment}
               className="rounded-md border border-border bg-surface px-3 py-2 text-body text-text"
             />
           </label>

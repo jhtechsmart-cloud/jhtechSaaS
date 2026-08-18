@@ -80,13 +80,21 @@ test("프리셋=편집 가능한 시드: 영업담당 선택→그리드 편집�
   // 3) 편집된 권한으로 계정 생성 → 편집 화면에서 체크 상태 그대로 반영
   await page.getByLabel("이름").fill(NEW_NAME);
   await page.getByLabel("이메일 (로그인 ID)").fill(NEW_EMAIL);
+  // 부서 선택(영업부) — 저장 후 편집 화면·목록에 반영돼야 한다.
+  await page.getByLabel("부서").selectOption("sales");
   await page.getByRole("button", { name: "계정 생성" }).click();
   await expect(page.getByTestId("temp-password")).toBeVisible({ timeout: 20_000 });
   await page.getByRole("button", { name: "닫기" }).click();
 
   await page.goto("/admin/users");
+  // 목록에 부서 라벨(영업부) 표시.
+  await expect(
+    page.getByRole("row").filter({ hasText: NEW_NAME }).filter({ hasText: "영업부" }),
+  ).toBeVisible();
   await page.getByRole("link", { name: NEW_NAME }).first().click();
   await page.waitForURL(/\/admin\/users\/[0-9a-f-]+/, { timeout: 20_000 });
+  // 편집 화면 부서 select에 저장값 유지.
+  await expect(page.getByLabel("부서")).toHaveValue("sales");
   await expect(keyCheckbox(page, REMOVE_KEY)).not.toBeChecked();
   await expect(keyCheckbox(page, ADD_KEY)).toBeChecked();
   await expect(keyCheckbox(page, "applications.claim")).toBeChecked();

@@ -106,7 +106,10 @@ test.describe.serial("E4 견적 트리아지 콘솔 E2E", () => {
     await expect(page.getByText("담당자를 먼저 배정해주세요")).toBeVisible();
 
     // 3) 담당 배정 → status new→assigned 자동 전이. 배지(testid)로 정밀 단언.
+    // 배정 후보는 영업부(department=sales)만 — 시드 '영업담당'은 보이고 '관리자'(부서 미지정)는 안 보인다.
     const assign = page.getByRole("combobox").first();
+    await expect(assign.locator("option", { hasText: "영업담당" })).toHaveCount(1);
+    await expect(assign.locator("option", { hasText: "관리자" })).toHaveCount(0);
     await assign.selectOption({ index: 1 });
     await page.getByRole("button", { name: "저장" }).click();
     await expect(page.getByTestId("app-status")).toHaveText("배정", { timeout: 15_000 });

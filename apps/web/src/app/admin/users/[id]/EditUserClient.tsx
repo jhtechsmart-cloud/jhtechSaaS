@@ -7,6 +7,7 @@ import { resetUserPasswordAction } from "@/lib/users/password-actions";
 import { formatDeleteBlockers } from "@/lib/users/delete-blockers";
 import { PermissionPicker } from "../_components/PermissionPicker";
 import { TempPasswordModal } from "../_components/TempPasswordModal";
+import { DepartmentSelect } from "../_components/DepartmentSelect";
 
 export function EditUserClient({
   user,
@@ -27,15 +28,19 @@ export function EditUserClient({
   const [name, setName] = useState<string>(user.name);
   const [position, setPosition] = useState<string>(user.position ?? "");
   const [phone, setPhone] = useState<string>(user.phone ?? "");
+  const [department, setDepartment] = useState<string>(user.department ?? "");
   const [basicsPending, startBasics] = useTransition();
   const [deletePending, startDelete] = useTransition();
   const basicsDirty =
-    name.trim() !== user.name || position !== (user.position ?? "") || phone !== (user.phone ?? "");
+    name.trim() !== user.name ||
+    position !== (user.position ?? "") ||
+    phone !== (user.phone ?? "") ||
+    department !== (user.department ?? "");
 
   function saveBasics() {
     setMessage(null);
     startBasics(async () => {
-      const res = await updateUserBasics(user.id, { name, position, phone });
+      const res = await updateUserBasics(user.id, { name, position, phone, department });
       if ("error" in res) setMessage({ kind: "error", text: res.error });
       else {
         setMessage({ kind: "ok", text: "기본 정보를 저장했습니다" });
@@ -117,10 +122,10 @@ export function EditUserClient({
 
   return (
     <div className="flex max-w-2xl flex-col gap-5">
-      {/* 기본 정보 — 이름·직책·연락처 편집(이메일=로그인ID는 읽기전용). */}
+      {/* 기본 정보 — 이름·직책·부서·연락처 편집(이메일=로그인ID는 읽기전용). */}
       <div className="flex flex-col gap-3 rounded-md border border-border bg-surface p-4">
         <span className="text-body font-semibold text-text">기본 정보</span>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <label className="flex flex-col gap-1">
             <span className="text-micro text-muted">이름</span>
             <input
@@ -137,6 +142,14 @@ export function EditUserClient({
               onChange={(e) => setPosition(e.target.value)}
               maxLength={50}
               placeholder="영업팀 대리"
+              className="rounded-md border border-border px-3 py-2 text-small text-text"
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-micro text-muted">부서</span>
+            <DepartmentSelect
+              value={department}
+              onChange={setDepartment}
               className="rounded-md border border-border px-3 py-2 text-small text-text"
             />
           </label>

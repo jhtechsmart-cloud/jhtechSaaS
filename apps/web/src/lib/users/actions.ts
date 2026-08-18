@@ -7,6 +7,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { sanitizePermissions } from "./permissions-ui";
 import { generateTempPassword } from "./password";
 import { hasDeleteBlockers, type DeleteUserBlockers } from "./delete-blockers";
+import { DEPARTMENT_KEYS, parseDepartment } from "./department";
 
 export type CreateUserResult =
   | { error: string }
@@ -20,6 +21,8 @@ const createSchema = z.object({
   permissions: z.array(z.string()).default([]),
   position: z.string().trim().max(50, "직책은 50자 이내로 입력하세요").optional(),
   phone: z.string().trim().max(30, "연락처는 30자 이내로 입력하세요").optional(),
+  // 부서: 영업부/기술부/관리부 키 또는 빈 값(미지정).
+  department: z.enum(DEPARTMENT_KEYS as [string, ...string[]]).or(z.literal("")).nullable().optional(),
 });
 
 // 계정 생성 — users.manage 필요. createUser(임시 PW) → 트리거가 profile 자동생성 → 권한 UPDATE.
@@ -30,6 +33,7 @@ export async function createUserAction(input: {
   permissions: string[];
   position?: string;
   phone?: string;
+  department?: string | null;
 }): Promise<CreateUserResult> {
   const access = await requirePermission("users.manage");
   if (access.status === "forbidden") return { error: "권한이 없습니다" };
@@ -40,6 +44,7 @@ export async function createUserAction(input: {
   const { name, email } = parsed.data;
   const position = parsed.data.position?.trim() || null;
   const phone = parsed.data.phone?.trim() || null;
+  const department = parseDepartment(parsed.data.department);
   const permissions = sanitizePermissions(parsed.data.permissions);
   const isActive = permissions.length > 0;
 
@@ -62,7 +67,15 @@ export async function createUserAction(input: {
 
   // 2) 권한·이름·활성 반영(insert 아닌 UPDATE). 부분 실패 시 멱등 재시도 1회.
   // 신규 계정은 임시 비밀번호 상태 → 첫 로그인 시 강제 변경.
-  const patch = { permissions, name, position, phone, is_active: isActive, must_change_password: true };
+  const patch = {
+    permissions,
+    name,
+    position,
+    phone,
+    department,
+    is_active: isActive,
+    must_change_password: true,
+  };
   let upErr = (await admin.from("profiles").update(patch).eq("id", userId)).error;
   if (upErr) {
     upErr = (await admin.from("profiles").update(patch).eq("id", userId)).error;
@@ -125,17 +138,18 @@ export async function setUserActive(
   return { ok: true };
 }
 
-// 기본정보(이름·직책·연락처) 수정 — users.manage 필요. 이름은 profiles + auth user_metadata 동기.
-// 빈 직책·연락처는 null로 저장. 이메일(로그인ID)은 여기서 못 바꿈.
+// 기본정보(이름·직책·부서·연락처) 수정 — users.manage 필요. 이름은 profiles + auth user_metadata 동기.
+// 빈 직책·연락처·부서는 null로 저장. 이메일(로그인ID)은 여기서 못 바꿈.
 const basicsSchema = z.object({
   name: z.string().trim().min(1, "이름을 입력하세요").max(60),
   position: z.string().trim().max(50, "직책은 50자 이내로 입력하세요"),
   phone: z.string().trim().max(30, "연락처는 30자 이내로 입력하세요"),
+  department: z.enum(DEPARTMENT_KEYS as [string, ...string[]]).or(z.literal("")).nullable().optional(),
 });
 
 export async function updateUserBasics(
   userId: string,
-  input: { name: string; position: string; phone: string },
+  input: { name: string; position: string; phone: string; department?: string | null },
 ): Promise<UserActionResult> {
   const access = await requirePermission("users.manage");
   if (access.status === "forbidden") return { error: "권한이 없습니다" };
@@ -146,11 +160,12 @@ export async function updateUserBasics(
   const { name } = parsed.data;
   const position = parsed.data.position.trim() || null;
   const phone = parsed.data.phone.trim() || null;
+  const department = parseDepartment(parsed.data.department);
 
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("profiles")
-    .update({ name, position, phone })
+    .update({ name, position, phone, department })
     .eq("id", userId)
     .select("id");
   if (error || !data || data.length === 0) return { error: "정보 저장에 실패했습니다" };
