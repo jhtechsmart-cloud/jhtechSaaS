@@ -35,6 +35,7 @@ interface SeedUser {
   email: string;
   name: string;
   permissions: PermissionKey[];
+  department?: "sales" | "tech" | "management"; // profiles.department — 영업 시드는 영업부(배정 목록 필터 대상)
   passwordEnv: string; // 이 사용자 비번을 읽을 env 키
   devDefault: string; // 로컬 전용 기본 비번
   localOnly?: boolean; // true면 프로덕션 시드에서 제외(개발 편의 계정)
@@ -52,6 +53,7 @@ const SEED_USERS: SeedUser[] = [
     email: "sales@jhtech.local",
     name: "영업담당",
     permissions: [...SALES_PRESET], // E5a: 영업담당 표준 프리셋(본인+미배정 스코프·self-claim·견적·메일)
+    department: "sales",
     passwordEnv: "SEED_SALES_PASSWORD",
     devDefault: "jhtech-sales-dev",
     localOnly: true, // 개발 편의 계정 — 프로덕션엔 만들지 않음
@@ -100,7 +102,7 @@ async function main(): Promise<void> {
     // 트리거가 만든 profiles 행에 권한·이름 반영(service_role → RLS 우회).
     const { error } = await sb
       .from("profiles")
-      .update({ permissions: u.permissions, name: u.name, is_active: true })
+      .update({ permissions: u.permissions, name: u.name, is_active: true, department: u.department ?? null })
       .eq("id", id);
     if (error) throw new Error(`권한 부여 실패 ${u.email}: ${error.message}`);
 

@@ -3,6 +3,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { formatPhone } from "@jhtechsaas/shared";
 import type { UserListRow } from "@/lib/users/queries";
+import { departmentLabel } from "@/lib/users/department";
 
 function permissionSummary(row: UserListRow): string {
   if (row.permissions.includes("users.manage")) return "관리자";
@@ -33,6 +34,7 @@ export function UserTable({ users }: { users: UserListRow[] }) {
         <thead>
           <tr className="border-b border-border text-left text-small text-muted">
             <th className="py-2 pr-4 font-medium">이름</th>
+            <th className="py-2 pr-4 font-medium">부서</th>
             <th className="py-2 pr-4 font-medium">직책</th>
             <th className="py-2 pr-4 font-medium">이메일</th>
             <th className="py-2 pr-4 font-medium">연락처</th>
@@ -54,6 +56,9 @@ export function UserTable({ users }: { users: UserListRow[] }) {
                 >
                   {u.name}
                 </Link>
+              </td>
+              <td className="py-2 pr-4 text-text">
+                {departmentLabel(u.department) || <span className="text-muted">-</span>}
               </td>
               <td className="py-2 pr-4 text-text">{u.position ?? <span className="text-muted">-</span>}</td>
               <td className="py-2 pr-4">

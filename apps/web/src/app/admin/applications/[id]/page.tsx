@@ -5,6 +5,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getApplicationForAdmin } from "@/lib/applications/admin-queries";
 import { claimApplication } from "@/lib/applications/admin-actions";
 import { listAssignableStaff } from "@/lib/customers/queries";
+import { buildAssignOptions } from "@/lib/applications/assign-options";
 import type { ApplicationStatus } from "@/lib/customers/history";
 import { SURVEY_LABELS, SURVEY_FIELD_LABELS, PHOTO_SLOTS, type PhotoSlot } from "@/lib/applications/schema";
 import { ClaimButton } from "@/app/admin/_components/ClaimButton";
@@ -82,7 +83,8 @@ export default async function ApplicationDetailPage({
   const survey = fields.install_survey ?? {};
 
   // 권한 계산
-  const staff = await listAssignableStaff();
+  // 배정 후보 = 영업부만(불필요한 인원 노출 방지). 현재 담당자는 부서 무관하게 옵션에 보존.
+  const salesStaff = await listAssignableStaff({ department: "sales" });
   const canAssign = can(access.permissions, "applications.assign");
   const canClaim = can(access.permissions, "applications.claim");
   const canStatus = can(access.permissions, "applications.status");
@@ -275,6 +277,7 @@ export default async function ApplicationDetailPage({
 
   // 담당자 이름
   const assigneeName = (r.profiles as { name?: string } | null)?.name ?? null;
+  const staff = buildAssignOptions(salesStaff, r.assignee_id as string | null, assigneeName);
 
   // 처리 바 담당자 컨트롤 — 권한별 분기
   const assigneeNode = canAssign ? (

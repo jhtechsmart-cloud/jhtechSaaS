@@ -47,13 +47,12 @@ export async function getCustomerHistory(id: string): Promise<CustomerHistory> {
 }
 
 // 담당자 선택 목록 — is_active=true인 스태프만. 폼 select 옵션에 사용.
-export async function listAssignableStaff() {
+// department를 주면 그 부서(profiles.department 키)로 좁힌다 — 의뢰(견적) 배정은 영업부만.
+export async function listAssignableStaff(opts?: { department?: string }) {
   const supabase = await createSupabaseServerClient();
-  const { data } = await supabase
-    .from("profiles")
-    .select("id,name")
-    .eq("is_active", true)
-    .order("name");
+  let q = supabase.from("profiles").select("id,name").eq("is_active", true);
+  if (opts?.department) q = q.eq("department", opts.department);
+  const { data } = await q.order("name");
   return data ?? [];
 }
 
