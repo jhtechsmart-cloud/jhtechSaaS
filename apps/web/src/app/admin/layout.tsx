@@ -77,7 +77,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     { href: "/admin/sales-logs", label: "영업일지", icon: "book", show: anyOf(["quotes.write", "customers.edit", "customers.view_all"]), section: "업무" },
     {
       href: "/admin/service-requests", label: "A/S", icon: "service", section: "업무",
-      show: anyOf(["service_requests.view_all", "service_requests.status", "service_requests.claim"]),
+      show: anyOf(["service_requests.view_all", "service_requests.status", "service_requests.claim", "service_requests.create"]),
       badge: unread,
     },
     {

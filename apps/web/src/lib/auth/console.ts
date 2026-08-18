@@ -13,6 +13,7 @@ export const CONSOLE_CAPABILITIES: PermissionKey[] = [
   "service_requests.view_all",
   "service_requests.status",
   "service_requests.claim",
+  "service_requests.create",
   "supply_requests.view_all",
   "supply_requests.status",
   "supply_requests.claim",
@@ -41,7 +42,7 @@ const LANDING_RULES: { keys: PermissionKey[]; path: string }[] = [
   },
   { keys: ["customers.edit", "customers.view_all"], path: "/admin/customers" },
   {
-    keys: ["service_requests.view_all", "service_requests.status", "service_requests.claim"],
+    keys: ["service_requests.view_all", "service_requests.status", "service_requests.claim", "service_requests.create"],
     path: "/admin/service-requests",
   },
   {

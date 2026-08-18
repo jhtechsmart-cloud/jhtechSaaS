@@ -115,6 +115,7 @@ export const requireServiceConsole = () =>
     "service_requests.view_all",
     "service_requests.status",
     "service_requests.claim",
+    "service_requests.create",
   ]);
 export const requireSupplyConsole = () =>
   requireAnyPermission([

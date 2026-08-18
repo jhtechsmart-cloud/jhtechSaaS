@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { can } from "@jhtechsaas/shared";
 import { Toaster } from "@/components/ui/sonner";
 import { SavedToast } from "./_components/SavedToast";
 import { requireCustomersEdit } from "@/lib/auth/guard";
@@ -110,6 +111,7 @@ export default async function CustomerDetailPage({
         ledgerNo={fields.ledger_no}
         tradeStatus={tradeStatusOf(counts)}
         kpiCells={kpiCells}
+        canCreateServiceRequest={can(access.permissions, "service_requests.create")}
       />
 
       {/* 2단 그리드(330px + 1fr). 모바일 1단 스택: 주 연락처 → 거래 활동 → 나머지 정보 카드. */}

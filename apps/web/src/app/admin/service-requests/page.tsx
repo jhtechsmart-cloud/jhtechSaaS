@@ -1,3 +1,4 @@
+import { can } from "@jhtechsaas/shared";
 import { requireServiceConsole } from "@/lib/auth/guard";
 import { listServiceRequests } from "@/lib/service-requests/queries";
 import { ServiceListShell } from "./_components/ServiceListShell";
@@ -24,7 +25,7 @@ export default async function ServiceRequestsPage() {
           고객 A/S 접수·처리 — 전체 {items.length.toLocaleString("ko-KR")}건
         </p>
       </div>
-      <ServiceListShell items={items} />
+      <ServiceListShell items={items} canCreate={can(access.permissions, "service_requests.create")} />
     </div>
   );
 }

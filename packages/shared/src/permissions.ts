@@ -111,6 +111,12 @@ const PERMISSION_REGISTRY_RAW = [
     group: "A/S",
   },
   {
+    key: "service_requests.create",
+    label: "A/S 대행 접수",
+    description: "전화·방문으로 받은 A/S를 콘솔에서 고객 대신 접수(#281)",
+    group: "A/S",
+  },
+  {
     key: "service_reports.write",
     label: "서비스 리포트 작성",
     description: "현장 서비스 리포트 작성·확정 (as.jhtech.co.kr 현장 콘솔)",
@@ -204,6 +210,7 @@ export const SALES_PRESET: PermissionKey[] = [
   "release_orders.write",
   "service_requests.status",
   "service_requests.claim",
+  "service_requests.create",
   // 발행 리포트 조회 — 고객 응대 시 직전 A/S 확인. draft는 포함되지 않는다(view_all 아님).
   "service_reports.view",
   "supply_requests.status",

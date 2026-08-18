@@ -131,8 +131,16 @@ export async function checkCustomerDuplicate(input: {
   return res.hit;
 }
 
+// 등록 후 복귀 허용 경로(#281 A/S 대행 접수에서 "고객 등록" 이탈 → 등록 직후 그 고객으로 접수 계속). 화이트리스트만.
+const RETURN_TO_ALLOWED = new Set(["/admin/service-requests/new"]);
+
 // 업체 신규 등록. id는 클라에서 미리 생성한 UUID(uuid()). 장비 저장 실패 시 보상 삭제.
-export async function createCustomer(id: string, values: CompanyFormValues): Promise<CustomerActionResult> {
+// returnTo(선택): 화이트리스트 경로면 `${returnTo}?company=<id>`로 복귀, 아니면 기본(편집 화면).
+export async function createCustomer(
+  id: string,
+  values: CompanyFormValues,
+  returnTo?: string,
+): Promise<CustomerActionResult> {
   const access = await requireCustomersEdit();
   if (access.status === "forbidden") return { error: "권한이 없습니다." };
   if (!z.guid().safeParse(id).success) return { error: "잘못된 요청입니다." };
@@ -169,6 +177,7 @@ export async function createCustomer(id: string, values: CompanyFormValues): Pro
     return { error: "보유장비를 저장하지 못했습니다." };
   }
   revalidatePath("/admin/customers");
+  if (returnTo && RETURN_TO_ALLOWED.has(returnTo)) redirect(`${returnTo}?company=${id}`);
   redirect(`/admin/customers/${id}/edit`);
 }
 

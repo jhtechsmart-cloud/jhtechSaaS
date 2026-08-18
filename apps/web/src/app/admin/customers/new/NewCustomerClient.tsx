@@ -22,6 +22,8 @@ export function NewCustomerClient({
   const [id] = useState(() => crypto.randomUUID());
   const searchParams = useSearchParams();
   const initialMode = searchParams.get("mode") === "import" ? "import" : "direct";
+  // #281: A/S 대행 접수에서 이탈해 온 경우 등록 후 복귀(서버 액션이 화이트리스트 검증).
+  const returnTo = searchParams.get("return") ?? undefined;
   const [activeMode, setActiveMode] = useState<"direct" | "import">(initialMode);
 
   return (
@@ -46,7 +48,7 @@ export function NewCustomerClient({
         <CompanyForm
           mode="create"
           id={id}
-          onSubmit={createCustomer}
+          onSubmit={(cid, values) => createCustomer(cid, values, returnTo)}
           staff={staff}
           catalog={catalog}
         />

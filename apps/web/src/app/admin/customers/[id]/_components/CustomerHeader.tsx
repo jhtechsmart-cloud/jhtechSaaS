@@ -34,6 +34,7 @@ export function CustomerHeader({
   ledgerNo,
   tradeStatus,
   kpiCells,
+  canCreateServiceRequest = false,
 }: {
   id: string;
   name: string;
@@ -43,6 +44,7 @@ export function CustomerHeader({
   ledgerNo: number | null;
   tradeStatus: "거래중" | "신규";
   kpiCells: KpiCell[];
+  canCreateServiceRequest?: boolean; // #281 A/S 대행 접수 권한(service_requests.create)
 }) {
   return (
     <Card className="gap-0 overflow-hidden py-0 shadow-card">
@@ -73,6 +75,11 @@ export function CustomerHeader({
         </div>
         <div className="flex shrink-0 gap-2">
           {/* 내비게이션은 시맨틱상 link — buttonVariants로 버튼 외형만 차용(role=link 유지) */}
+          {canCreateServiceRequest && (
+            <Link href={`/admin/service-requests/new?company=${id}`} className={buttonVariants({ variant: "outline" })}>
+              A/S 접수
+            </Link>
+          )}
           <Link href={`/admin/quotes/new?company=${id}`} className={buttonVariants({ variant: "outline" })}>
             견적 작성
           </Link>
