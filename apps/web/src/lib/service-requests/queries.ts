@@ -15,6 +15,8 @@ export interface ServiceRequestListRow {
   symptom: string;
   verified: boolean; // company_id 매칭 여부(미확인=미등록 접수)
   unread: boolean; // admin_read_at NULL
+  channel: string; // 접수 경로(web/phone/visit/other) — #281
+  created_by_name: string | null; // 대행 접수 직원 이름(웹 접수·RLS 비공개면 null)
   created_at: string;
 }
 
@@ -23,12 +25,13 @@ export async function listServiceRequests(): Promise<ServiceRequestListRow[]> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("service_requests")
-    .select("id,seq_no,status,company_id,contact_company,assignee_id,admin_read_at,created_at,fields,profiles:assignee_id(name)")
+    .select("id,seq_no,status,company_id,contact_company,assignee_id,admin_read_at,created_at,fields,channel,created_by,profiles:assignee_id(name),creator:created_by(name)")
     .order("created_at", { ascending: false })
     .limit(100);
   if (error) { console.error("[service_requests.list]", error); return []; }
   return (data ?? []).map((r: Record<string, unknown>) => {
     const profiles = r.profiles as { name?: string } | null;
+    const creator = r.creator as { name?: string } | null;
     const fields = (r.fields as { symptom?: string } | null) ?? {};
     return {
       id: r.id as string,
@@ -40,6 +43,8 @@ export async function listServiceRequests(): Promise<ServiceRequestListRow[]> {
       symptom: fields.symptom ?? "",
       verified: r.company_id != null,
       unread: r.admin_read_at == null,
+      channel: (r.channel as string | null) ?? "web",
+      created_by_name: r.created_by ? (creator?.name ?? null) : null,
       created_at: r.created_at as string,
     };
   });
@@ -61,7 +66,7 @@ export async function getServiceRequest(id: string) {
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase
     .from("service_requests")
-    .select("*, profiles:assignee_id(name), companies:company_id(name,biz_no), company_equipment:company_equipment_id(label, equipment:equipment_id(name,model))")
+    .select("*, profiles:assignee_id(name), creator:created_by(name), companies:company_id(name,biz_no), company_equipment:company_equipment_id(label, equipment:equipment_id(name,model))")
     .eq("id", id)
     .maybeSingle();
   return data;

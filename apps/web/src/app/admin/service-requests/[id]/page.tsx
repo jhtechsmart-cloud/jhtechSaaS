@@ -8,13 +8,19 @@ import { ClaimButton } from "@/app/admin/_components/ClaimButton";
 import { StatusBadge } from "../_components/StatusBadge";
 import { StatusControl } from "./_components/StatusControl";
 import { MarkReadOnView } from "./_components/MarkReadOnView";
+import { CreatedToast } from "./_components/CreatedToast";
+import { Toaster } from "@/components/ui/sonner";
+import { CHANNEL_META, type ServiceRequestChannel } from "@/lib/service-requests/channel";
 
 export default async function ServiceRequestDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ created?: string }>;
 }) {
   const { id } = await params;
+  const { created } = await searchParams;
   const access = await requireServiceConsole();
   if (access.status === "forbidden") {
     return <p className="text-body text-muted">A/S 조회 권한이 없습니다.</p>;
@@ -58,10 +64,20 @@ export default async function ServiceRequestDetailPage({
   const canStatus = can(access.permissions, "service_requests.status");
   const canClaim = can(access.permissions, "service_requests.claim");
   const assigneeId = r.assignee_id as string | null;
+  // #281 접수 경로·접수자(웹 접수는 표시 안 함). 접수자 이름은 profiles RLS로 비공개일 수 있다.
+  const channel = ((r.channel as string | null) ?? "web") as ServiceRequestChannel;
+  const creatorName = (r.creator as { name?: string } | null)?.name ?? null;
+  const fieldsExtra = fields as { contact_name?: string; callback_phone?: string };
 
   return (
     <div className="flex max-w-2xl flex-col gap-6">
       <MarkReadOnView id={id} />
+      {created && (
+        <>
+          <Toaster position="bottom-center" />
+          <CreatedToast seqNo={created} />
+        </>
+      )}
       <div className="flex items-center justify-between">
         <Link href="/admin/service-requests" className="text-small text-muted hover:text-text">← 목록</Link>
         <StatusBadge status={status} />
@@ -74,6 +90,14 @@ export default async function ServiceRequestDetailPage({
           <span className="mt-1 inline-block rounded-sm bg-coral-soft px-2 py-0.5 text-small font-semibold text-coral-text">
             미확인 고객 — 콜백으로 검증 필요
           </span>
+        )}
+        {channel !== "web" && (
+          <p className="mt-1 flex items-center gap-2 text-small text-muted" data-testid="sr-channel">
+            <span className={`rounded-sm px-1.5 py-0.5 text-micro font-semibold ${CHANNEL_META[channel]?.badgeClass ?? CHANNEL_META.other.badgeClass}`}>
+              {CHANNEL_META[channel]?.label ?? "기타"} 접수
+            </span>
+            <span>접수자 {r.created_by ? (creatorName ?? "(비공개)") : "-"}</span>
+          </p>
         )}
       </div>
 
@@ -93,6 +117,8 @@ export default async function ServiceRequestDetailPage({
         <Row label="주소" value={str(r.contact_address)} />
         <Row label="사업자번호" value={str(r.biz_no)} mono />
         <Row label="담당영업" value={(r.profiles as { name?: string } | null)?.name ?? "미배정"} />
+        {fieldsExtra.contact_name && <Row label="통화하신 분" value={fieldsExtra.contact_name} />}
+        {fieldsExtra.callback_phone && <Row label="회신 번호" value={fieldsExtra.callback_phone} mono />}
       </Section>
 
       <Section title="신청 내용">

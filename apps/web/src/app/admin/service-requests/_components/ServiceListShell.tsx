@@ -10,11 +10,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { QuickFilterCards } from "@/app/admin/_components/request-list/QuickFilterCards";
 import { RequestToolbar } from "@/app/admin/_components/request-list/RequestToolbar";
 import { StatusBadge, STATUS_META } from "./StatusBadge";
+import { CHANNEL_META, type ServiceRequestChannel } from "@/lib/service-requests/channel";
 
 // A/S 신청 목록 — 고객목록과 동일 레이아웃(KPI 빠른필터 + 통합검색 툴바 + 데이터 테이블).
 // 데이터는 서버가 RLS 스코프로 내려준 전량(≤100건)을 클라에서 필터(소량이라 충분).
 
-export function ServiceListShell({ items }: { items: ServiceRequestListRow[] }) {
+export function ServiceListShell({ items, canCreate = false }: { items: ServiceRequestListRow[]; canCreate?: boolean }) {
   const router = useRouter();
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("all");
@@ -42,11 +43,21 @@ export function ServiceListShell({ items }: { items: ServiceRequestListRow[] }) 
     });
   }, [items, q, status, assignee]);
 
+  const createButton = canCreate ? (
+    <Link
+      href="/admin/service-requests/new"
+      className="inline-flex items-center rounded-md bg-accent px-3.5 py-2 text-small font-medium text-white hover:bg-accent-2"
+    >
+      + 대행 접수
+    </Link>
+  ) : null;
+
   if (items.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-2 rounded-md border border-border bg-surface p-10">
+      <div className="flex flex-col items-center gap-3 rounded-md border border-border bg-surface p-10">
         <p className="text-body font-medium text-text">접수된 A/S 신청이 없습니다</p>
-        <p className="text-small text-muted">고객이 /support 에서 신청하면 여기 표시됩니다</p>
+        <p className="text-small text-muted">고객이 /support 에서 신청하거나 직원이 대행 접수하면 여기 표시됩니다</p>
+        {createButton}
       </div>
     );
   }
@@ -60,6 +71,7 @@ export function ServiceListShell({ items }: { items: ServiceRequestListRow[] }) 
 
   return (
     <div className="flex flex-col gap-4">
+      {createButton && <div className="flex justify-end">{createButton}</div>}
       <QuickFilterCards cards={cards} active={status} onSelect={setStatus} />
       <RequestToolbar
         q={q}
@@ -121,6 +133,14 @@ export function ServiceListShell({ items }: { items: ServiceRequestListRow[] }) 
                           </Link>
                           {!it.verified && (
                             <span className="shrink-0 rounded-sm bg-coral-soft px-1.5 py-0.5 text-micro font-semibold text-coral-text">미확인</span>
+                          )}
+                          {it.channel !== "web" && (
+                            <span
+                              className={`shrink-0 rounded-sm px-1.5 py-0.5 text-micro font-semibold ${CHANNEL_META[it.channel as ServiceRequestChannel]?.badgeClass ?? CHANNEL_META.other.badgeClass}`}
+                              title={it.created_by_name ? `접수자 ${it.created_by_name}` : "직원 대행 접수"}
+                            >
+                              {CHANNEL_META[it.channel as ServiceRequestChannel]?.label ?? "기타"}
+                            </span>
                           )}
                         </span>
                         <span className="block font-mono text-micro tabular-nums text-muted">{it.seq_no}</span>

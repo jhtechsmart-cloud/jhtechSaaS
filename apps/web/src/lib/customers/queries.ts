@@ -87,7 +87,7 @@ export interface CustomerListRow {
 }
 
 // 통합 검색 OR 절 — 업체명·장부명·대표자·담당자(ilike) + 숫자검색(search_digits, 하이픈 무시) + 장부번호(eq).
-function buildListSearchOr(q: string): string | null {
+export function buildListSearchOr(q: string): string | null {
   const cleaned = q.replace(/[,()%_*\\]/g, "").trim();
   if (!cleaned) return null;
   const parts = [
