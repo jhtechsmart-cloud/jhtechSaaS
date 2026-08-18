@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { signOut } from "@/app/login/actions";
+import { BrandMark } from "@/components/BrandMark";
 import { Icon } from "./Icon";
 import { SidebarNav, type NavItem } from "./SidebarNav";
 
@@ -84,9 +85,7 @@ export function MobileNav({
             className="absolute inset-y-0 left-0 z-10 flex w-64 flex-col border-r border-border bg-sidebar text-sidebar-text shadow-xl"
           >
             <div className="flex items-center gap-2.5 px-3.5 py-5">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent text-white shadow-sm">
-                <Icon name="dashboard" size={18} />
-              </span>
+              <BrandMark size={36} />
               <span className="flex min-w-0 flex-1 flex-col leading-tight">
                 <span className="truncate text-body font-extrabold tracking-tight text-accent-2">재현테크</span>
                 <span className="truncate text-micro text-sidebar-text">관리 콘솔</span>

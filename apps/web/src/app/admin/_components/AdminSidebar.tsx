@@ -4,6 +4,7 @@ import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { signOut } from "@/app/login/actions";
 import { roleLabel } from "@/lib/avatar/avatar";
+import { BrandMark } from "@/components/BrandMark";
 import { Icon } from "./Icon";
 import { UserAvatar } from "./UserAvatar";
 import { SidebarNav, type NavItem } from "./SidebarNav";
@@ -57,9 +58,7 @@ export function AdminSidebar({
     >
       {/* 브랜드 + 토글 */}
       <div className="flex items-center gap-2.5 px-3.5 py-5">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent text-white shadow-sm">
-          <Icon name="dashboard" size={18} />
-        </span>
+        <BrandMark size={36} />
         <span className={`flex min-w-0 flex-1 flex-col leading-tight ${fade(expanded)}`}>
           <span className="truncate text-body font-extrabold tracking-tight text-accent-2">재현테크</span>
           <span className="truncate text-micro text-sidebar-text">관리 콘솔</span>
