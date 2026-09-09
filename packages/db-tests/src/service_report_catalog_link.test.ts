@@ -64,14 +64,17 @@ async function issueDirect(
   const id = (created.rows[0].row as Record<string, unknown>).id as string;
 
   await asPostgres(c);
-  await c.query(
-    `insert into storage.objects (bucket_id, name, metadata) values ('service-reports', $1, '{"size": 1024}'::jsonb)`,
-    [`${id}/signature.png`],
-  );
+  // #285: 확정에는 고객 서명 + 기사 서명 둘 다 필요
+  for (const n of ["signature.png", "engineer-signature.png"]) {
+    await c.query(
+      `insert into storage.objects (bucket_id, name, metadata) values ('service-reports', $1, '{"size": 1024}'::jsonb)`,
+      [`${id}/${n}`],
+    );
+  }
   await asUser(c, ENG);
   await c.query("select public.upsert_service_report($1, $2::jsonb)", [
     id,
-    JSON.stringify({ ...base, signature_path: `${id}/signature.png` }),
+    JSON.stringify({ ...base, signature_path: `${id}/signature.png`, engineer_signature_path: `${id}/engineer-signature.png` }),
   ]);
   const issued = await c.query("select public.issue_service_report($1) as row", [id]);
   return issued.rows[0].row as Record<string, unknown>;
@@ -236,16 +239,18 @@ describe("카탈로그 링크 해석 — 통계 원본(F3·H1)", () => {
       ]);
       const id = (created.rows[0].row as Record<string, unknown>).id as string;
       await asPostgres(c);
-      await c.query(
-        `insert into storage.objects (bucket_id, name, metadata) values ('service-reports',$1,'{"size":1024}'::jsonb)`,
-        [`${id}/signature.png`],
-      );
+      for (const n of ["signature.png", "engineer-signature.png"]) {
+        await c.query(
+          `insert into storage.objects (bucket_id, name, metadata) values ('service-reports',$1,'{"size":1024}'::jsonb)`,
+          [`${id}/${n}`],
+        );
+      }
       // 확정 직전에 카탈로그를 비활성화 — 이름 재매칭이면 null이 되지만 선택값은 살아야 한다
       await c.query("update public.equipment set status='inactive' where id=$1", [s.catA]);
       await asUser(c, ENG);
       await c.query("select public.upsert_service_report($1, $2::jsonb)", [
         id,
-        JSON.stringify({ ...base, signature_path: `${id}/signature.png` }),
+        JSON.stringify({ ...base, signature_path: `${id}/signature.png`, engineer_signature_path: `${id}/engineer-signature.png` }),
       ]);
       const issued = await c.query("select public.issue_service_report($1) as row", [id]);
       expect((issued.rows[0].row as Record<string, unknown>).catalog_equipment_id).toBe(s.catA);
