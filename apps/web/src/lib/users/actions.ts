@@ -205,6 +205,43 @@ export async function setUserHiworksId(userId: string, value: string): Promise<U
   return { ok: true };
 }
 
+// #285 결재 직인 등록 — users.manage. 클라(관리자 세션·RLS)가 approval-stamps/<대상 uid>/stamp-<ts>.<ext>에
+// 올린 뒤 이 액션이 포인터를 저장한다. 경로 접두 = 대상 사용자 uid 강제(DB CHECK와 이중) — 타인 직인 경로 지정 차단.
+// 교체 시 옛 파일은 승인본이 참조하면 남겨야 하므로(DELETE 정책이 거부) 미참조일 때만 best-effort 삭제.
+export async function setUserApprovalStamp(userId: string, path: string): Promise<UserActionResult> {
+  const access = await requirePermission("users.manage");
+  if (access.status === "forbidden") return { error: "권한이 없습니다" };
+  const re = new RegExp(`^${userId}/stamp-[0-9]+\\.(png|jpg|jpeg|webp)$`);
+  if (!z.string().min(1).max(300).safeParse(path).success || !re.test(path)) return { error: "잘못된 직인 경로입니다" };
+  const supabase = await createSupabaseServerClient();
+  const { data: prev } = await supabase.from("profiles").select("approval_stamp_path").eq("id", userId).maybeSingle();
+  const oldPath = (prev as { approval_stamp_path?: string | null } | null)?.approval_stamp_path ?? null;
+  const { data, error } = await supabase.from("profiles").update({ approval_stamp_path: path }).eq("id", userId).select("id");
+  if (error || !data || data.length === 0) return { error: "직인 저장에 실패했습니다" };
+  if (oldPath && oldPath !== path) {
+    const { error: stErr } = await supabase.storage.from("approval-stamps").remove([oldPath]);
+    if (stErr) console.error("[stamp.set] 이전 직인 정리 실패(승인본 참조 중이면 정상)", stErr);
+  }
+  revalidatePath(`/admin/users/${userId}`);
+  return { ok: true };
+}
+
+export async function clearUserApprovalStamp(userId: string): Promise<UserActionResult> {
+  const access = await requirePermission("users.manage");
+  if (access.status === "forbidden") return { error: "권한이 없습니다" };
+  const supabase = await createSupabaseServerClient();
+  const { data: prev } = await supabase.from("profiles").select("approval_stamp_path").eq("id", userId).maybeSingle();
+  const path = (prev as { approval_stamp_path?: string | null } | null)?.approval_stamp_path ?? null;
+  const { data, error } = await supabase.from("profiles").update({ approval_stamp_path: null }).eq("id", userId).select("id");
+  if (error || !data || data.length === 0) return { error: "직인 삭제에 실패했습니다" };
+  if (path) {
+    const { error: stErr } = await supabase.storage.from("approval-stamps").remove([path]);
+    if (stErr) console.error("[stamp.clear] 파일 삭제 실패(승인본 참조 중이면 정상 — 포인터만 해제)", stErr);
+  }
+  revalidatePath(`/admin/users/${userId}`);
+  return { ok: true };
+}
+
 export type DeleteUserResult =
   | { ok: true }
   | { error: string }

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { requireUsersManage } from "@/lib/auth/guard";
 import { getUser } from "@/lib/users/queries";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { signOut } from "@/app/login/actions";
 import { EditUserClient } from "./EditUserClient";
 
@@ -24,10 +25,16 @@ export default async function EditUserPage({
   const { id } = await params;
   const user = await getUser(id);
   if (!user) notFound();
+  // #285 직인 미리보기 — approval-stamps는 비공개 버킷(users.manage 읽기) → 서버가 admin 클라로 10분 서명 URL.
+  let stampUrl: string | null = null;
+  if (user.approval_stamp_path) {
+    const signed = await createSupabaseAdminClient().storage.from("approval-stamps").createSignedUrl(user.approval_stamp_path, 600);
+    stampUrl = signed.data?.signedUrl ?? null;
+  }
   return (
     <section className="flex flex-col gap-4">
       <h1 className="text-h1 font-semibold text-text">{user.name}</h1>
-      <EditUserClient user={user} isSelf={user.id === access.userId} />
+      <EditUserClient user={user} isSelf={user.id === access.userId} stampUrl={stampUrl} />
     </section>
   );
 }

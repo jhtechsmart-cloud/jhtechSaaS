@@ -1,40 +1,10 @@
-import Link from "next/link";
+import { StatCard } from "@/components/StatCard";
 
 // KPI 4장 — 처리 대기(≥1 코랄 경고) / 진행 중 견적(건수+합계) / 이번 주 데모·납품(+가동률) / 전체 고객(+이번 달 신규).
 // 집계 실패(null)는 "—"로 정직하게 표시(0으로 위장 금지).
 
 const won = (n: number) => `₩${n.toLocaleString("ko-KR")}`;
-
-function Card({
-  label,
-  value,
-  sub,
-  warn,
-  href,
-}: {
-  label: string;
-  value: string;
-  sub: string | null;
-  warn?: boolean;
-  href?: string;
-}) {
-  const inner = (
-    <div
-      className={`flex h-full flex-col gap-1 rounded-2xl border bg-gradient-to-br p-5 shadow-card transition-shadow ${
-        warn
-          ? "border-coral from-coral-soft to-[#FBE2D6]"
-          : "border-border from-surface to-mint-hover"
-      } ${href ? "hover:shadow-card-hover" : ""}`}
-    >
-      <p className={`text-small font-medium ${warn ? "text-coral-text" : "text-muted"}`}>{label}</p>
-      <p className={`text-display font-bold tracking-tight tabular-nums ${warn ? "text-coral-text" : "text-text"}`}>
-        {value}
-      </p>
-      {sub && <p className={`text-micro ${warn ? "text-coral-text/80" : "text-muted"}`}>{sub}</p>}
-    </div>
-  );
-  return href ? <Link href={href}>{inner}</Link> : inner;
-}
+const Card = StatCard; // #285: 공용 StatCard로 추출(서비스 리포트 KPI와 공유)
 
 export function KpiCards({
   pending,
