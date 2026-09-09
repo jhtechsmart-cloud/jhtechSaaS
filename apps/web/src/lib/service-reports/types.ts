@@ -34,6 +34,7 @@ export interface ServiceReportRow {
   vat: number;
   total: number;
   signature_path: string | null;
+  engineer_signature_path: string | null; // #285 기사 서명(<id>/engineer-signature.png)
   pdf_url: string | null;
   sender_hiworks_user_id: string | null;
   created_at: string;
@@ -60,6 +61,7 @@ export interface ReportPayload {
   photos_before: string[];
   photos_after: string[];
   signature_path: string;
+  engineer_signature_path: string; // 빈 값 = 미서명(RPC가 null로 저장)
   follow_needed: boolean;
   follow_memo: string;
   follow_date: string;

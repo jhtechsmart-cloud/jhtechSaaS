@@ -128,7 +128,7 @@ export async function deleteDraftAction(id: string): Promise<Result<null>> {
 
   const { data: row, error } = await supabase
     .from("service_reports")
-    .select("id, status, created_by, photos_before, photos_after, signature_path")
+    .select("id, status, created_by, photos_before, photos_after, signature_path, engineer_signature_path")
     .eq("id", id)
     .maybeSingle();
   if (error || !row) return { ok: false, error: "리포트를 찾을 수 없습니다" };
@@ -138,12 +138,14 @@ export async function deleteDraftAction(id: string): Promise<Result<null>> {
     photos_before: string[] | null;
     photos_after: string[] | null;
     signature_path: string | null;
+    engineer_signature_path: string | null;
   };
   if (r.created_by !== uid) return { ok: false, error: "본인 리포트만 삭제할 수 있습니다" };
   if (r.status !== "draft") return { ok: false, error: "작성 중 리포트만 삭제할 수 있습니다" };
 
   const paths = [...(r.photos_before ?? []), ...(r.photos_after ?? [])];
   if (r.signature_path) paths.push(r.signature_path);
+  if (r.engineer_signature_path) paths.push(r.engineer_signature_path);
   if (paths.length > 0) {
     const { error: stErr } = await supabase.storage.from("service-reports").remove(paths);
     if (stErr) console.error("[serviceReports.deleteDraft] 첨부 삭제 실패(행은 계속 삭제)", stErr);

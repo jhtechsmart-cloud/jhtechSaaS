@@ -168,7 +168,10 @@ export function Step8Summary({
   const [lockView, setLockView] = useState(false);
   const [signBlob, setSignBlob] = useState<Blob | null>(null);
   const [signed, setSigned] = useState(!!draft.signature_path);
-  const [busy, setBusy] = useState<"" | "upload" | "issue">("");
+  // 기사 서명(#285) — 고객 서명 뒤 순서. 완료 여부는 draft 경로에서 파생(내용 변경·고객 재서명 시 자동 무효화와 동기).
+  const [engBlob, setEngBlob] = useState<Blob | null>(null);
+  const engSigned = !!draft.engineer_signature_path;
+  const [busy, setBusy] = useState<"" | "upload" | "upload-eng" | "issue">("");
   const [error, setError] = useState("");
 
   const calc = calculateServiceCharge({
@@ -223,6 +226,36 @@ export function Step8Summary({
     setSigned(true);
     setBusy("");
     return true;
+  }
+
+  // 기사 본인 서명 저장 — 고객 서명 저장과 동일 경로(remove→upload, 스토리지 UPDATE 정책 없음).
+  // 결재 박스 '담당' 칸에 찍힌다. 고객 서명이 먼저 저장돼 있어 reportId는 항상 있다(방어적으로 persist).
+  async function saveEngineerSignature(): Promise<void> {
+    if (!engBlob) return;
+    setBusy("upload-eng");
+    setError("");
+    let id = reportId;
+    if (!id) {
+      const saved = await persist();
+      if (!saved.ok || !saved.id) {
+        setBusy("");
+        setError(saved.error ?? "임시저장에 실패했습니다");
+        return;
+      }
+      id = saved.id;
+    }
+    const path = `${id}/engineer-signature.png`;
+    const supabase = createSupabaseBrowserClient();
+    await supabase.storage.from("service-reports").remove([path]);
+    const { error: upErr } = await supabase.storage
+      .from("service-reports")
+      .upload(path, engBlob, { contentType: "image/png" });
+    setBusy("");
+    if (upErr) {
+      setError("기사 서명 업로드 실패 — 네트워크 확인 후 다시 시도해 주세요 (서명은 유지됩니다)");
+      return;
+    }
+    patch({ engineer_signature_path: path });
   }
 
   // 기사 최종 확정(2단) — 서명 경로 포함 draft 저장 → issue RPC. 실패 시 서명 보존(F-S1).
@@ -329,7 +362,8 @@ export function Step8Summary({
               onClick={() => {
                 setSigned(false);
                 setSignBlob(null);
-                patch({ signature_path: "" });
+                setEngBlob(null);
+                patch({ signature_path: "" }); // 고객 재서명 = 기사 서명도 함께 무효(draft.ts 규칙)
                 setLockView(true);
               }}
               className="min-h-11 px-2 text-small text-muted underline"
@@ -353,6 +387,42 @@ export function Step8Summary({
         )}
       </div>
 
+      {/* 기사 서명(#285) — 결재 '담당' 칸. 고객 서명 뒤에만 열린다. */}
+      <div className="rounded-md border border-border bg-surface p-4 shadow-card">
+        {!signed ? (
+          <p className="text-small text-muted">고객 서명이 끝나면 기사 본인 서명을 받습니다.</p>
+        ) : engSigned ? (
+          <div className="flex items-center justify-between">
+            <p className="text-body font-semibold text-accent">✓ 기사 서명 완료</p>
+            <button
+              type="button"
+              onClick={() => {
+                setEngBlob(null);
+                patch({ engineer_signature_path: "" });
+              }}
+              className="min-h-11 px-2 text-small text-muted underline"
+            >
+              다시 서명
+            </button>
+          </div>
+        ) : (
+          <>
+            <p className="mb-3 text-small text-muted">
+              기사 본인 서명 — 결재 담당 칸에 표시됩니다. 서명 후 내용을 바꾸면 다시 서명해야 합니다.
+            </p>
+            <SignaturePad onChange={setEngBlob} label="기사 서명 입력" />
+            <button
+              type="button"
+              disabled={!engBlob || busy !== ""}
+              onClick={() => void saveEngineerSignature()}
+              className="mt-3 min-h-12 w-full rounded-full bg-accent text-body font-bold text-white disabled:opacity-40"
+            >
+              {busy === "upload-eng" ? "서명 저장 중…" : "기사 서명 저장"}
+            </button>
+          </>
+        )}
+      </div>
+
       {error && (
         <p className="rounded-md bg-danger/10 px-3 py-2 text-small font-medium text-danger">{error}</p>
       )}
@@ -367,7 +437,7 @@ export function Step8Summary({
         </button>
         <button
           type="button"
-          disabled={!signed || busy !== ""}
+          disabled={!signed || !engSigned || busy !== ""}
           onClick={() => void finalIssue()}
           className="min-h-12 flex-1 rounded-full bg-accent text-body font-bold text-white disabled:opacity-40"
         >

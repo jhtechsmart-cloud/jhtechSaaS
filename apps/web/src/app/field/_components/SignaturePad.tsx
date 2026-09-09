@@ -5,9 +5,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 // 회전/리사이즈 시 캔버스가 리셋되므로 안내 후 재서명(autoplan F-A2).
 export function SignaturePad({
   onChange,
+  label = "고객 서명 입력",
 }: {
   // 유효 서명이면 PNG Blob, 지우면 null.
   onChange: (blob: Blob | null) => void;
+  label?: string; // 캔버스 접근성 라벨(고객/기사 서명 구분 — e2e 셀렉터)
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
@@ -79,7 +81,7 @@ export function SignaturePad({
       <div className="relative overflow-hidden rounded-md border-2 border-border bg-white">
         <canvas
           ref={canvasRef}
-          aria-label="고객 서명 입력"
+          aria-label={label}
           className="block h-52 w-full touch-none"
           onPointerDown={(e) => {
             e.currentTarget.setPointerCapture(e.pointerId);
