@@ -44,7 +44,15 @@ async function main(): Promise<void> {
 
   console.log("jhtechSaaS worker: jobs 폴링 시작");
   await runLoop({
-    runOnce: () => runOnce(supabase, { mailSender, wpPublisher }),
+    runOnce: () =>
+      runOnce(supabase, {
+        mailSender,
+        wpPublisher,
+        approvalNotice: {
+          adminBaseUrl: env.ADMIN_SITE_URL,
+          ...(env.HIWORKS_NOTICE_FALLBACK_USER ? { fallbackSenderId: env.HIWORKS_NOTICE_FALLBACK_USER } : {}),
+        },
+      }),
     sleep,
     isStopping: () => stopping,
     pollMs: POLL_MS,

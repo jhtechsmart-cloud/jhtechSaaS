@@ -3,11 +3,18 @@ import { buildServiceReportPdf } from "./render-service-report-pdf";
 import { getFontDataUri } from "./assets";
 import type { ServiceReportHtmlData } from "./service-report-html";
 
-// 로컬 시각 검증 전용(워커 잡 아님). 유상(이력·부품 최대부하) + 무상 2종 렌더 → /tmp 저장 → Read 대조.
+// 로컬 시각 검증 전용(워커 잡 아님). 유상(이력·부품 최대부하) + 무상 2종 × 미승인/승인 × 결재 박스 상단/하단
+// = 8장 렌더 → /tmp 저장 → Read 대조(#285: 결재 박스 3칸·기사 서명·직인·1페이지 유지).
 // 실행: pnpm --filter worker exec tsx src/jobs/_render-service-report-check.ts
 
-function dummySignature(): string {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="360" height="120"><path d="M20 80 C 60 20, 90 100, 130 55 S 210 30, 250 70 S 320 40, 340 60" stroke="#176455" stroke-width="4" fill="none" stroke-linecap="round"/></svg>`;
+function dummySignature(color = "#176455"): string {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="360" height="120"><path d="M20 80 C 60 20, 90 100, 130 55 S 210 30, 250 70 S 320 40, 340 60" stroke="${color}" stroke-width="4" fill="none" stroke-linecap="round"/></svg>`;
+  return `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
+}
+
+// 붉은 원형 직인(등록 직인 모사).
+function dummyStamp(): string {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><circle cx="60" cy="60" r="52" fill="none" stroke="#c0392b" stroke-width="5"/><text x="60" y="52" font-size="26" text-anchor="middle" fill="#c0392b" font-weight="700">재현</text><text x="60" y="84" font-size="26" text-anchor="middle" fill="#c0392b" font-weight="700">테크</text></svg>`;
   return `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
 }
 
@@ -53,10 +60,7 @@ async function main() {
     fontDataUri: font,
   };
 
-  const paid = await buildServiceReportPdf(base);
-  await writeFile("/tmp/service-report-paid.pdf", paid);
-
-  const free = await buildServiceReportPdf({
+  const free: ServiceReportHtmlData = {
     ...base,
     seqNo: "SR-20260716-00008",
     warrantyLabel: "보증기간 내 (구매 후 9개월)",
@@ -70,10 +74,38 @@ async function main() {
     total: 0,
     isFree: true,
     freeReason: "보증기간 내",
-  });
-  await writeFile("/tmp/service-report-free.pdf", free);
+  };
+  const approval = {
+    name: "배승인",
+    title: "영업부 이사",
+    dateLabel: "2026-09-10",
+    approvedAtLabel: "2026-09-10 09:12",
+    stampDataUri: dummyStamp(),
+  };
+  const engineerSignatureDataUri = dummySignature("#1a2a25");
 
-  console.log("written: /tmp/service-report-paid.pdf, /tmp/service-report-free.pdf");
+  const written: string[] = [];
+  for (const [kind, data] of [["paid", base], ["free", free]] as const) {
+    for (const stage of ["issued", "approved"] as const) {
+      for (const pos of ["top", "bottom"] as const) {
+        const pdf = await buildServiceReportPdf({
+          ...data,
+          engineerSignatureDataUri,
+          approvalBoxPosition: pos,
+          ...(stage === "approved" ? { approval } : {}),
+        });
+        const path = `/tmp/service-report-${kind}-${stage}-${pos}.pdf`;
+        await writeFile(path, pdf);
+        written.push(path);
+      }
+    }
+  }
+  // 기존 발행본(기사 서명 없음) 폴백 1장
+  const legacy = await buildServiceReportPdf({ ...base, seqNo: "SR-20260716-00009" });
+  await writeFile("/tmp/service-report-paid-legacy-top.pdf", legacy);
+  written.push("/tmp/service-report-paid-legacy-top.pdf");
+
+  console.log(`written:\n${written.join("\n")}`);
   process.exit(0);
 }
 

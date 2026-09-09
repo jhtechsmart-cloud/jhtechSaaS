@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import {
+  composeApprovalNoticeEmail,
   composeQuoteEmailHtml,
   defaultQuoteEmail,
   FakeMailSender,
@@ -99,6 +100,43 @@ describe("parseHiworksResponse 분류", () => {
   });
   test("파싱 불가 응답 → 영구 실패(안전)", () => {
     expect(parseHiworksResponse(200, null, "a@b.com").ok).toBe(false);
+  });
+});
+
+describe("승인 요청 알림 템플릿(#285 A-1)", () => {
+  const base = {
+    seqNo: "SR-20260909-00020",
+    customerName: "아트원 작업실",
+    deviceName: "JU-2513UV",
+    engineerName: "홍기사",
+    total: 179630,
+    isFree: false,
+    issuedAtLabel: "2026-09-09 14:02",
+    detailUrl: "https://admin.jhtech.co.kr/admin/service-reports/abc",
+    reminder: false,
+  };
+
+  test("제목 = [승인 요청] 번호·고객명·청구액, 본문에 상세 링크·요약", () => {
+    const m = composeApprovalNoticeEmail(base);
+    expect(m.subject).toBe("[승인 요청] SR-20260909-00020 아트원 작업실 179,630원");
+    expect(m.html).toContain('href="https://admin.jhtech.co.kr/admin/service-reports/abc"');
+    expect(m.html).toContain("JU-2513UV");
+    expect(m.html).toContain("홍기사");
+    expect(m.html).toContain("2026-09-09 14:02");
+  });
+
+  test("재알림은 제목에 [재알림] 접두", () => {
+    expect(composeApprovalNoticeEmail({ ...base, reminder: true }).subject).toMatch(/^\[재알림\]\[승인 요청\]/);
+  });
+
+  test("무상은 청구액 대신 '무상'", () => {
+    expect(composeApprovalNoticeEmail({ ...base, isFree: true, total: 0 }).subject).toContain("무상");
+  });
+
+  test("고객명·장비명 HTML 이스케이프", () => {
+    const m = composeApprovalNoticeEmail({ ...base, customerName: "<b>x</b>" });
+    expect(m.html).not.toContain("<b>x</b>");
+    expect(m.html).toContain("&lt;b&gt;x&lt;/b&gt;");
   });
 });
 

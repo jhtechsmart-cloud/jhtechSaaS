@@ -7,12 +7,24 @@ import {
 import { MAX_ATTEMPTS } from "./queue";
 
 // 서비스 리포트 메일 발송 잡(#228 Part 2) — email.ts(견적)와 동일한 멱등 상태기계.
-// 발송 트리거는 DB(pdf_url 기록 AFTER UPDATE)가 자동 enqueue — 발신자·수신처는 리포트 스냅샷.
+// #285: 자동 발송 제거 — 상세 화면 [메일 발송] 버튼 → enqueue_service_report_email RPC가 enqueue.
+// 발신자 = RPC가 payload에 실은 호출자 하이웍스 ID(타인 명의 금지). 승인본(approved/completed)만 발송.
 // 링크는 7일 서명URL(서명·개인정보 문서 — 견적 30일보다 짧게, autoplan 결정#4).
 
 const SIGNED_URL_TTL = 7 * 24 * 60 * 60;
 
 const str = (v: unknown): string => (typeof v === "string" ? v : "");
+
+// 고객에게 보낼 수 있는 상태 — 승인 전(issued)은 결재 미완료 문서라 발송 금지.
+export const SERVICE_REPORT_MAILABLE = ["approved", "completed"] as const;
+
+// 발신자 하이웍스 ID — payload(발송 버튼 누른 사람) 우선, 없으면 리포트 기사 스냅샷(구 잡 호환).
+export function resolveSenderHiworksId(
+  payload: Record<string, unknown>,
+  row: { sender_hiworks_user_id: string | null },
+): string {
+  return str(payload.hiworks_user_id) || (row.sender_hiworks_user_id ?? "");
+}
 
 export async function processServiceReportEmailJob(
   supabase: SupabaseClient,
@@ -47,14 +59,14 @@ export async function processServiceReportEmailJob(
     const r = report as Record<string, unknown>;
     const pdfPath = str(r.pdf_url);
     const to = str(r.recipient_email);
-    const fromUserId = str(r.sender_hiworks_user_id);
+    const fromUserId = resolveSenderHiworksId(payload, { sender_hiworks_user_id: str(r.sender_hiworks_user_id) || null });
     if (!pdfPath) throw new Error("pdf_url 없음(PDF 미생성)");
-    if (!to || !fromUserId) throw new Error("수신처/발신자 스냅샷 누락"); // 트리거 조건상 도달 불가(방어)
-    if (str(r.status) !== "issued") {
-      // enqueue~발송 사이 무효화(voided) — 무효 문서를 고객에게 보내지 않고 종단.
+    if (!to || !fromUserId) throw new Error("수신처/발신자 누락"); // RPC 조건상 도달 불가(방어)
+    if (!(SERVICE_REPORT_MAILABLE as readonly string[]).includes(str(r.status))) {
+      // enqueue~발송 사이 무효화(voided) 등 — 승인본이 아닌 문서를 고객에게 보내지 않고 종단.
       await supabase
         .from("email_log")
-        .update({ status: "failed", error_msg: "발송 전 리포트가 무효화됨" })
+        .update({ status: "failed", error_msg: `발송 전 리포트 상태가 바뀜(${str(r.status)})` })
         .eq("id", logId);
       console.warn(`[worker] service_report_email 중단 — 리포트 상태 ${str(r.status)} log=${logId}`);
       return;

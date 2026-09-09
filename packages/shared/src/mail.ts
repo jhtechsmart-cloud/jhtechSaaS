@@ -255,3 +255,54 @@ export function composeServiceReportEmailHtml(p: {
     `</table></td></tr></table></div>`,
   ].join("");
 }
+
+// 승인 요청 알림(#285 A-1) — 기사가 확정한 리포트를 승인 권한자(이사)에게 사내 메일로 알린다.
+// 발신자 = 리포트 기사 명의(워커가 결정). 본문은 상세 링크 + 요약(번호·고객·장비·청구액·확정 일시).
+// 수신자가 앱을 열지 않아도 대기열을 알 수 있게 하는 best-effort 알림 — 결재 진행 자체엔 영향 없음.
+export function composeApprovalNoticeEmail(p: {
+  seqNo: string;
+  customerName: string;
+  deviceName: string;
+  engineerName: string;
+  total: number;
+  isFree: boolean;
+  issuedAtLabel: string;
+  detailUrl: string;
+  reminder: boolean;
+}): { subject: string; html: string } {
+  const amount = p.isFree ? "무상" : `${p.total.toLocaleString("ko-KR")}원`;
+  const subject = `${p.reminder ? "[재알림]" : ""}[승인 요청] ${p.seqNo} ${p.customerName.trim() || "고객"} ${amount}`;
+  const url = escapeHtml(p.detailUrl);
+  const font = "font-family:'Apple SD Gothic Neo','Malgun Gothic',Helvetica,Arial,sans-serif";
+  const row = (k: string, v: string) =>
+    `<tr><td style="padding:4px 0;color:#5b6f69;font-size:12px;width:88px">${k}</td><td style="padding:4px 0;color:#1a2a25;font-size:13px;font-weight:600">${v}</td></tr>`;
+  const html = [
+    `<div style="margin:0;padding:24px 12px;background:#f4f6f5;${font}">`,
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f5"><tr><td align="center">`,
+    `<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;background:#ffffff;border:1px solid #e3e8e6;border-radius:12px;overflow:hidden">`,
+    `<tr><td style="background:${PINE};padding:22px 28px">`,
+    `<div style="color:#ffffff;font-size:19px;font-weight:700;letter-spacing:.3px">서비스 리포트 승인 요청${p.reminder ? " (재알림)" : ""}</div>`,
+    `<div style="color:#cde7dd;font-size:13px;margin-top:5px">${p.reminder ? "3일이 지났지만 아직 승인되지 않은 리포트입니다." : "현장에서 확정된 리포트가 결재를 기다리고 있습니다."}</div>`,
+    `</td></tr>`,
+    `<tr><td style="padding:26px 28px">`,
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 18px;background:${PINE_SOFT};border-left:4px solid ${PINE};border-radius:6px"><tr><td style="padding:12px 16px"><table role="presentation" cellpadding="0" cellspacing="0">`,
+    row("리포트 번호", `<span style="font-family:'Courier New',monospace;color:${PINE}">${escapeHtml(p.seqNo)}</span>`),
+    row("고객", escapeHtml(p.customerName)),
+    row("장비", escapeHtml(p.deviceName)),
+    row("청구액", escapeHtml(amount)),
+    row("담당 기사", escapeHtml(p.engineerName)),
+    row("확정 일시", escapeHtml(p.issuedAtLabel)),
+    `</table></td></tr></table>`,
+    `<table role="presentation" cellpadding="0" cellspacing="0" align="center" style="margin:6px auto 14px"><tr>`,
+    `<td align="center" style="border-radius:8px;background:${PINE}">`,
+    `<a href="${url}" style="display:inline-block;padding:15px 38px;color:#ffffff;font-size:16px;font-weight:700;text-decoration:none;letter-spacing:.3px">리포트 확인 · 승인</a>`,
+    `</td></tr></table>`,
+    `<div style="text-align:center;color:#8a9b95;font-size:12px;line-height:1.6">버튼이 보이지 않으면 <a href="${url}" style="color:${PINE}">여기</a>를 눌러 주세요.<br>관리자 콘솔 로그인이 필요합니다.</div>`,
+    `</td></tr>`,
+    `<tr><td style="background:#f4f6f5;border-top:1px solid #e3e8e6;padding:14px 28px">`,
+    `<div style="color:#a8b5b0;font-size:11px">${escapeHtml(SUPPLIER.name)} 내부 알림 메일입니다. 승인 후에는 재알림이 발송되지 않습니다.</div>`,
+    `</td></tr>`,
+    `</table></td></tr></table></div>`,
+  ].join("");
+  return { subject, html };
+}

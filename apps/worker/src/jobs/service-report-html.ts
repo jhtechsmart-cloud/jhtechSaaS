@@ -37,6 +37,18 @@ export type ServiceReportHtmlData = {
   // 7. 서명
   signatureDataUri: string; // 고객 서명 PNG data URI
   fontDataUri: string;
+  // 결재 박스(#285) — 담당(기사 서명) / 팀장(v1 "생략" 고정) / 본부장(직인+이름+승인일)
+  engineerSignatureDataUri?: string; // 없으면(기존 발행본) 엔지니어 이름 텍스트 폴백
+  approval?: ServiceReportApproval; // 없으면 본부장 칸 "승인 대기"
+  approvalBoxPosition?: "top" | "bottom"; // 기본 top(헤더 우측). bottom은 시각 대조용 2안
+};
+
+export type ServiceReportApproval = {
+  name: string;
+  title: string; // 없으면 빈 문자열
+  dateLabel: string; // 승인일 YYYY-MM-DD
+  approvedAtLabel: string; // 승인 일시 YYYY-MM-DD HH:mm(푸터)
+  stampDataUri: string;
 };
 
 const esc = (s: string): string =>
@@ -47,7 +59,23 @@ const txt = (s: string | null | undefined): string =>
 
 const won = (n: number): string => n.toLocaleString("ko-KR");
 
+// 결재 박스 — 종이 양식 우측 하단 "결재: 담당/팀장/본부장" 3칸의 전자화.
+// 담당 = 기사 서명 이미지(없으면 이름 텍스트) · 팀장 = v1 "생략" 고정 · 본부장 = 직인+이름+승인일(미승인은 "승인 대기").
+function renderApprovalBox(d: ServiceReportHtmlData): string {
+  const engineerCell = d.engineerSignatureDataUri
+    ? `<img src="${d.engineerSignatureDataUri}" alt="담당 서명"><div class="nm">${esc(d.engineerName)}</div>`
+    : `<div class="nm nm-only">${esc(d.engineerName)}</div>`;
+  const a = d.approval;
+  const directorCell = a
+    ? `<img src="${a.stampDataUri}" alt="본부장 직인"><div class="nm">${esc(a.name)}${a.title ? ` <span class="ttl">${esc(a.title)}</span>` : ""}</div><div class="dt">${esc(a.dateLabel)}</div>`
+    : `<div class="pending">승인 대기</div>`;
+  return `<table class="approval"><tr><th class="lbl" rowspan="2">결<br>재</th><th>담당</th><th>팀장</th><th>본부장</th></tr>
+    <tr><td>${engineerCell}</td><td><div class="skip">생략</div></td><td>${directorCell}</td></tr></table>`;
+}
+
 export function renderServiceReportHtml(d: ServiceReportHtmlData): string {
+  const approvalBox = renderApprovalBox(d);
+  const boxTop = d.approvalBoxPosition !== "bottom";
   const histRows = d.history.length
     ? `<table class="grid hist">${d.history
         .map((h) => `<tr><th>${esc(h.dateLabel)}</th><td>${esc(h.summary)}</td></tr>`)
@@ -99,11 +127,31 @@ export function renderServiceReportHtml(d: ServiceReportHtmlData): string {
   .sign-cell img{ max-height:44px; }
   .sign-cell .eng-name{ font-size:15px; font-weight:700; color:var(--pine-deep); margin-top:12px; }
   .rs-foot{ margin-top:8px; border-top:1px solid var(--line); padding-top:6px; font-size:10px; color:#666; display:flex; justify-content:space-between; }
+  .rs-head .right{ display:flex; flex-direction:column; align-items:flex-end; gap:4px; }
+  .rs-head .co.one{ font-size:10px; line-height:1.3; }
+  .rs-head .co.one b{ font-size:11px; }
+  table.approval{ width:auto; border-collapse:collapse; font-size:10px; }
+  table.approval th, table.approval td{ border:1px solid var(--line); text-align:center; vertical-align:middle; padding:0; }
+  table.approval th{ background:var(--soft); color:#243b34; font-weight:700; height:16px; padding:0 6px; }
+  table.approval th.lbl{ width:16px; background:var(--pine); color:#fff; line-height:1.2; }
+  table.approval td{ width:76px; height:48px; }
+  table.approval td img{ max-height:26px; max-width:66px; display:block; margin:2px auto 0; }
+  table.approval .nm{ white-space:nowrap; }
+  table.approval .nm{ font-size:9.5px; color:#243b34; line-height:1.2; }
+  table.approval .nm-only{ font-size:11px; font-weight:700; color:var(--pine-deep); }
+  table.approval .ttl{ font-weight:400; color:#5b6f69; }
+  table.approval .dt{ font-size:8.5px; color:#5b6f69; font-variant-numeric:tabular-nums; }
+  table.approval .skip, table.approval .pending{ color:#a9b8b2; font-size:10px; }
+  .approval-bottom{ display:flex; justify-content:flex-end; margin-top:8px; }
   </style></head><body><div class="page">
 
   <div class="rs-head">
     <h1>SERVICE REPORT</h1>
-    <div class="co"><b>(주)재현테크</b><br>JaeHyun Tech Co., Ltd.<br>TEL 02-839-7723</div>
+    ${
+      boxTop
+        ? `<div class="right">${approvalBox}<div class="co one"><b>(주)재현테크</b> JaeHyun Tech Co., Ltd. · TEL 02-839-7723</div></div>`
+        : `<div class="co"><b>(주)재현테크</b><br>JaeHyun Tech Co., Ltd.<br>TEL 02-839-7723</div>`
+    }
   </div>
   <div class="rs-meta">
     <span>리포트 번호: <b>${esc(d.seqNo)}</b></span>
@@ -165,7 +213,8 @@ export function renderServiceReportHtml(d: ServiceReportHtmlData): string {
     <div class="sign-cell"><div class="t">고객 확인 [Client] — ${esc(d.customerName)}</div>${d.signatureDataUri ? `<img src="${d.signatureDataUri}" alt="고객 서명">` : ""}</div>
     <div class="sign-cell"><div class="t">엔지니어 [Engineer]</div><div class="eng-name">${esc(d.engineerName)}${d.engineerTitle ? ` <span style="font-size:12px;font-weight:400;color:#555">${esc(d.engineerTitle)}</span>` : ""}</div></div>
   </div>
-  <div class="rs-foot"><span>본 리포트는 고객 전자 서명 시점(${esc(d.issuedAtLabel)})에 확정되었으며 이후 수정할 수 없습니다.</span><span>${esc(d.seqNo)}</span></div>
+  ${boxTop ? "" : `<div class="approval-bottom">${approvalBox}</div>`}
+  <div class="rs-foot"><span>본 리포트는 고객 전자 서명 시점(${esc(d.issuedAtLabel)})에 확정되었으며 이후 수정할 수 없습니다.${d.approval ? ` 승인 일시 ${esc(d.approval.approvedAtLabel)}.` : ""}</span><span>${esc(d.seqNo)}</span></div>
   </section>
 
   </div></body></html>`;

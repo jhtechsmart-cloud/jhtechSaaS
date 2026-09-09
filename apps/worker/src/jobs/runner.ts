@@ -6,14 +6,17 @@ import { processReleasePdfJob } from "./release-pdf";
 import { processEmailJob } from "./email";
 import { processServiceReportPdfJob } from "./service-report-pdf";
 import { processServiceReportEmailJob } from "./service-report-email";
+import { processApprovalNoticeJob, type ApprovalNoticeOpts } from "./service-report-approval-notice";
 import { processWpPublishJob, type WpPublishOpts } from "./wp-publish";
 
 // 워커 의존 주입(잡 타입별 외부 자원). 메일 발송기·WP 발행기는 index.ts가 env 기반으로 주입.
 // wpComposeCard = 카드 합성 오버라이드(테스트가 Puppeteer 없이 스텁 주입).
+// approvalNotice = 승인 알림 링크 호스트·발신자 폴백(#285) — 없으면 알림 잡은 실패 기록(설정 누락 표면화).
 export type RunDeps = {
   mailSender?: MailSender;
   wpPublisher?: WpPublisher;
   wpComposeCard?: WpPublishOpts["composeCard"];
+  approvalNotice?: ApprovalNoticeOpts;
 };
 
 // 잡 1건 처리 — claim → 타입별 process → complete/fail. 처리할 잡이 있었으면 true.
@@ -39,6 +42,11 @@ export async function runOnce(supabase: SupabaseClient, deps: RunDeps = {}): Pro
       case "service_report_email":
         if (!deps.mailSender) throw new Error("MailSender 미주입 — 워커 메일 설정 누락");
         await processServiceReportEmailJob(supabase, job.payload, deps.mailSender, job.attempts);
+        break;
+      case "service_report_approval_notice":
+        if (!deps.mailSender) throw new Error("MailSender 미주입 — 워커 메일 설정 누락");
+        if (!deps.approvalNotice) throw new Error("승인 알림 옵션 미주입 — ADMIN_SITE_URL 설정 누락");
+        await processApprovalNoticeJob(supabase, job.payload, deps.mailSender, deps.approvalNotice);
         break;
       case "wp_publish":
         if (!deps.wpPublisher) throw new Error("WpPublisher 미주입 — 워커 WP 설정 누락");
