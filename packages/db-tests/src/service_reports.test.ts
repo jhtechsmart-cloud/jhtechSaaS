@@ -348,7 +348,8 @@ describe("service_reports — 발행 동결·voided·후속 처리", () => {
 });
 
 describe("service_reports — 메일 enqueue(pdf_url 기록 시)·멱등", () => {
-  test("recipient+발신자 스냅샷 있으면 email_log+잡 1건, 재기록엔 중복 없음", async () => {
+  // #285 UC1: 고객 메일 자동 발송 제거 — 승인본만 수동 RPC(enqueue_service_report_email)로 보낸다.
+  test("recipient+발신자 스냅샷이 있어도 pdf_url 기록 시 자동 메일 없음(email_log·잡 0건)", async () => {
     await inRollbackTx(c, async () => {
       const s = await seed();
       const row = await createDraft(s);
@@ -359,12 +360,12 @@ describe("service_reports — 메일 enqueue(pdf_url 기록 시)·멱등", () =>
       await asPostgres(c);
       const logs = await c.query(
         "select count(*)::int as n from public.email_log where service_report_id=$1", [row.id]);
-      expect(logs.rows[0].n).toBe(1);
+      expect(logs.rows[0].n).toBe(0);
       const jobs = await c.query(
         "select count(*)::int as n from public.jobs where type='service_report_email' and payload->>'service_report_id'=$1",
         [row.id],
       );
-      expect(jobs.rows[0].n).toBe(1);
+      expect(jobs.rows[0].n).toBe(0);
     });
   });
 
