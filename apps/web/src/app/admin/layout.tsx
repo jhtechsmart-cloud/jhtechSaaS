@@ -83,7 +83,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     {
       // 서비스 리포트(현장 A/S 결과 보고서) — 조회 전용. 작성은 현장 콘솔(/field).
       href: "/admin/service-reports", label: "서비스 리포트", icon: "service", section: "업무",
-      show: anyOf(["service_reports.write", "service_reports.view", "service_reports.view_all"]),
+      show: anyOf(["service_reports.write", "service_reports.view", "service_reports.view_all", "service_reports.approve", "service_reports.complete"]),
     },
     {
       href: "/admin/supply-requests", label: "소모품신청", icon: "supply", section: "업무",
@@ -96,7 +96,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       // 장비 — #243: 영업(리포트 조회 view)도 상세·AS 이력 열람. 재고·분류는 manage 유지.
       href: "/admin/equipment", label: "장비", icon: "equipment", section: "카탈로그",
       show: can(perms, "equipment.manage") ||
-        anyOf(["service_reports.write", "service_reports.view", "service_reports.view_all"]),
+        anyOf(["service_reports.write", "service_reports.view", "service_reports.view_all", "service_reports.approve", "service_reports.complete"]),
     },
     { href: "/admin/inventory", label: "재고현황", icon: "inventory", show: can(perms, "equipment.manage"), section: "카탈로그" },
     { href: "/admin/consumables", label: "소모품", icon: "consumables", show: can(perms, "consumables.manage"), section: "카탈로그" },

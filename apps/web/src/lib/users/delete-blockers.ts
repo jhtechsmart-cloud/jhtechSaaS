@@ -7,6 +7,8 @@ export type DeleteUserBlockers = {
   quotes: number;
   supply_requests: number;
   service_requests: number;
+  /** #285: 승인(approved_by)·완료(completed_by)한 서비스 리포트 — FK no action이라 재배정 불가, 계정 보존 필요 */
+  service_report_approvals: number;
 };
 
 // 표시 순서 = 객체 키 순서. 라벨은 화면 안내용.
@@ -16,6 +18,7 @@ const LABELS: Record<keyof DeleteUserBlockers, string> = {
   quotes: "담당 견적",
   supply_requests: "담당 소모품 의뢰",
   service_requests: "담당 A/S 의뢰",
+  service_report_approvals: "승인·완료한 서비스 리포트",
 };
 
 /** 차단 건이 하나라도 있으면 true. */
