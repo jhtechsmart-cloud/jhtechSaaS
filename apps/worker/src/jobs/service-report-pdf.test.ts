@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { decidePdfJob, parsePdfJobPayload, stampCopyPath } from "./service-report-pdf";
+import { decidePdfJob, parsePdfJobPayload } from "./service-report-pdf";
 
 // #285 D-C8 — PDF 세대(pdf_revision) 가드·직인 복사 경로 순수 로직. 렌더·스토리지는 통합 테스트.
 
@@ -52,9 +52,4 @@ describe("decidePdfJob — 렌더 직전 재조회한 행과 잡 세대 대조",
   it("구 잡(세대 null)은 행의 세대·상태를 그대로 쓴다", () => {
     expect(decidePdfJob({ id: "r1", revision: null, expectedStatus: null }, { status: "approved", pdf_revision: 2, pdf_url: null })).toEqual({ kind: "render" });
   });
-});
-
-describe("stampCopyPath — 직인을 리포트 폴더로 복사할 때 확장자 보존", () => {
-  it("png", () => expect(stampCopyPath("r1", "u1/stamp-1757400000.png")).toBe("r1/approval-stamp.png"));
-  it("jpeg", () => expect(stampCopyPath("r1", "u1/stamp-2.jpeg")).toBe("r1/approval-stamp.jpeg"));
 });

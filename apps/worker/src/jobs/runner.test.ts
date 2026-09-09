@@ -77,6 +77,17 @@ describe("runOnce — 잡 1건 처리", () => {
     expect(completeJob).toHaveBeenCalledWith(supabase, "j2");
   });
 
+  test("service_report_approval_notice 잡에 알림 옵션(ADMIN_SITE_URL)이 없으면 실패 기록", async () => {
+    const notice: Job = { id: "j4", type: "service_report_approval_notice", payload: {}, attempts: 1, status: "processing" };
+    vi.mocked(claimNextJob).mockResolvedValue(notice);
+    vi.mocked(failJob).mockResolvedValue(undefined);
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    await runOnce(supabase, { mailSender: new FakeMailSender() });
+    expect(failJob).toHaveBeenCalledWith(supabase, notice, expect.stringContaining("ADMIN_SITE_URL"));
+    expect(processApprovalNoticeJob).not.toHaveBeenCalled();
+    errSpy.mockRestore();
+  });
+
   test("service_report_approval_notice 잡에 MailSender가 없으면 실패 기록", async () => {
     const notice: Job = { id: "j3", type: "service_report_approval_notice", payload: {}, attempts: 1, status: "processing" };
     vi.mocked(claimNextJob).mockResolvedValue(notice);

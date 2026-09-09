@@ -271,7 +271,10 @@ export function composeApprovalNoticeEmail(p: {
   reminder: boolean;
 }): { subject: string; html: string } {
   const amount = p.isFree ? "무상" : `${p.total.toLocaleString("ko-KR")}원`;
-  const subject = `${p.reminder ? "[재알림]" : ""}[승인 요청] ${p.seqNo} ${p.customerName.trim() || "고객"} ${amount}`;
+  // 제목은 헤더로 나가므로 개행·제어문자를 공백으로(헤더 주입·공급자 거부 방지) + 길이 제한.
+  // eslint-disable-next-line no-control-regex
+  const customer = p.customerName.replace(/[\x00-\x1f\x7f]+/g, " ").trim() || "고객";
+  const subject = `${p.reminder ? "[재알림]" : ""}[승인 요청] ${p.seqNo} ${customer} ${amount}`.slice(0, 200);
   const url = escapeHtml(p.detailUrl);
   const font = "font-family:'Apple SD Gothic Neo','Malgun Gothic',Helvetica,Arial,sans-serif";
   const row = (k: string, v: string) =>

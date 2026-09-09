@@ -24,6 +24,7 @@ function fmtKstMinute(iso: string): string {
 }
 
 // 승인 권한자 이메일 목록 — profiles(권한·활성) → auth.admin(이메일). 이메일 없는 계정은 제외.
+// 한 계정의 조회 실패(고아 프로필·일시 오류)가 나머지 승인자 알림까지 막지 않게 건너뛰고 로그만 남긴다.
 async function listApproverEmails(supabase: SupabaseClient): Promise<string[]> {
   const { data, error } = await supabase
     .from("profiles")
@@ -35,11 +36,27 @@ async function listApproverEmails(supabase: SupabaseClient): Promise<string[]> {
   for (const row of data ?? []) {
     const id = str((row as Record<string, unknown>).id);
     const { data: u, error: uErr } = await supabase.auth.admin.getUserById(id);
-    if (uErr) throw new Error(`승인자 이메일 조회 실패(${id}): ${uErr.message}`);
+    if (uErr) {
+      console.error(`[worker] approval_notice 승인자 이메일 조회 실패(건너뜀) profile=${id}: ${uErr.message}`);
+      continue;
+    }
     const email = u.user?.email?.trim();
     if (email) emails.push(email);
   }
   return emails.sort();
+}
+
+// 이미 같은 제목(initial/reminder 구분)으로 sent 기록된 수신자 — 부분 실패 재시도에서 중복 발송을 막는다.
+async function alreadySent(supabase: SupabaseClient, reportId: string, subject: string): Promise<Set<string>> {
+  const { data, error } = await supabase
+    .from("email_log")
+    .select("to_email")
+    .eq("service_report_id", reportId)
+    .eq("kind", "approval_notice")
+    .eq("status", "sent")
+    .eq("subject", subject);
+  if (error) throw new Error(`알림 발송 이력 조회 실패: ${error.message}`);
+  return new Set((data ?? []).map((r) => str((r as Record<string, unknown>).to_email)));
 }
 
 export async function processApprovalNoticeJob(
@@ -54,7 +71,7 @@ export async function processApprovalNoticeJob(
 
   const { data: report, error } = await supabase
     .from("service_reports")
-    .select("seq_no, status, customer_name, device_name, total, charge_type, engineer_name, issued_at, sender_hiworks_user_id")
+    .select("id, seq_no, status, customer_name, device_name, total, charge_type, engineer_name, issued_at, sender_hiworks_user_id")
     .eq("id", id)
     .single();
   if (error || !report) throw new Error(`리포트 조회 실패: ${error?.message ?? "없음"}`);
@@ -67,8 +84,8 @@ export async function processApprovalNoticeJob(
 
   const recipients = await listApproverEmails(supabase);
   if (recipients.length === 0) {
-    console.warn(`[worker] approval_notice 수신자 0명 — 승인 권한자(활성·이메일)가 없습니다 report=${id}`);
-    return;
+    // 조용히 성공 처리하면 "알림 갔다"로 보이는 설정 오류가 묻힌다 → 잡 실패로 표면화(3회 후 failed → 타임라인 '알림 실패').
+    throw new Error("승인 권한자(활성·이메일 보유)가 없어 알림을 보낼 수 없습니다 — /admin/users에서 service_reports.approve 부여 확인");
   }
 
   const fromUserId = str(r.sender_hiworks_user_id) || opts.fallbackSenderId || "";
@@ -85,12 +102,17 @@ export async function processApprovalNoticeJob(
     total: num(r.total),
     isFree: r.charge_type === "free",
     issuedAtLabel: fmtKstMinute(str(r.issued_at)),
-    detailUrl: `${opts.adminBaseUrl.replace(/\/+$/, "")}/admin/service-reports/${id}`,
+    detailUrl: `${opts.adminBaseUrl.replace(/\/+$/, "")}/admin/service-reports/${str(r.id)}`,
     reminder,
   });
 
+  const done = await alreadySent(supabase, id, subject);
   const transient: string[] = [];
   for (const to of recipients) {
+    if (done.has(to)) {
+      console.log(`[worker] approval_notice 건너뜀(이미 sent) report=${id} to=${to}`);
+      continue;
+    }
     const result = await mailSender.send({ fromUserId, to, cc: null, bcc: null, subject, html });
     console.log(
       `[worker] hiworks 응답(approval_notice) report=${id} to=${to} ok=${result.ok} permanent=${result.permanent ?? "-"} raw=${JSON.stringify(result.raw)}`,

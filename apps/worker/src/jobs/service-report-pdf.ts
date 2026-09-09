@@ -69,12 +69,6 @@ export function decidePdfJob(
   return { kind: "render" };
 }
 
-// 직인 원본(`approval-stamps/<uid>/stamp-<n>.<ext>`) → 리포트 폴더 복사본 경로(확장자 보존).
-export function stampCopyPath(reportId: string, stampPath: string): string {
-  const ext = stampPath.split(".").pop()?.toLowerCase() ?? "png";
-  return `${reportId}/approval-stamp.${ext}`;
-}
-
 function mimeOf(path: string): string {
   const ext = path.split(".").pop()?.toLowerCase() ?? "png";
   return ext === "jpg" || ext === "jpeg" ? "image/jpeg" : ext === "webp" ? "image/webp" : "image/png";
@@ -89,21 +83,12 @@ async function download(supabase: SupabaseClient, bucket: string, path: string):
 }
 const toDataUri = (buf: Buffer, path: string): string => `data:${mimeOf(path)};base64,${buf.toString("base64")}`;
 
-// 승인 직인: 행에 스냅샷된 원본 경로(approver_stamp_path, 이후 직인 교체와 무관)를 리포트 폴더로 1회 복사.
-// 복사본이 이미 있으면 재사용(재시도·재승인 없음 — 승인은 1회 전이). 복사·다운로드 실패 = 잡 실패(throw).
-async function loadApprovalStamp(supabase: SupabaseClient, reportId: string, stampPath: string): Promise<string> {
-  const copyPath = stampCopyPath(reportId, stampPath);
-  const existing = await supabase.storage.from("service-reports").download(copyPath);
-  if (!existing.error && existing.data) {
-    return toDataUri(Buffer.from(await existing.data.arrayBuffer()), copyPath);
-  }
-  const buf = await download(supabase, "approval-stamps", stampPath);
-  const up = await supabase.storage
-    .from("service-reports")
-    .upload(copyPath, buf, { contentType: mimeOf(copyPath), upsert: true });
-  if (up.error) throw new Error(`직인 복사 실패(${copyPath}): ${up.error.message}`);
-  console.log(`[worker] service_report_pdf 직인 복사 report=${reportId} ${stampPath} → ${copyPath}`);
-  return toDataUri(buf, copyPath);
+// 승인 직인(approved 이상) — 행에 스냅샷된 원본 경로(approver_stamp_path)를 `approval-stamps`(users.manage 전용 읽기)에서
+// 직접 읽어 PDF에만 임베드한다. ⚠️ 리포트 폴더로 복사하지 않는다 — 복사본은 리포트 열람자 전원이 원본 해상도 직인
+// 파일을 내려받을 수 있게 만든다(리뷰 3소스 공통 지적). 불변성은 버전 파일명(stamp-<n>)이 보장하고,
+// 참조 중 삭제 차단은 스토리지 DELETE 정책(#C 마이그)이 담당. 다운로드 실패 = 잡 실패(throw → 재시도 → failed 표면화).
+async function loadApprovalStamp(supabase: SupabaseClient, stampPath: string): Promise<string> {
+  return toDataUri(await download(supabase, "approval-stamps", stampPath), stampPath);
 }
 
 // 부품 jsonb → 표시용 배열(RPC가 정규화 저장하므로 형태 신뢰하되 방어 파싱).
@@ -140,7 +125,7 @@ export async function processServiceReportPdfJob(
   let history: ServiceReportHtmlData["history"] = [];
   const equipmentId = str(r.company_equipment_id);
   if (equipmentId) {
-    const { data: prev } = await supabase
+    const { data: prev, error: hErr } = await supabase
       .from("service_reports")
       .select("issued_at, faults, action_text")
       .eq("company_equipment_id", equipmentId)
@@ -148,6 +133,8 @@ export async function processServiceReportPdfJob(
       .neq("id", id)
       .order("issued_at", { ascending: false })
       .limit(3);
+    // 조회 실패를 빈 이력으로 삼키면 불완전한 문서가 발행(승인본이면 직인까지)된다 → 잡 실패로 재시도.
+    if (hErr) throw new Error(`A/S 이력 조회 실패: ${hErr.message}`);
     history = (prev ?? []).map((h) => {
       const row = h as Record<string, unknown>;
       const faults = arr(row.faults);
@@ -179,7 +166,7 @@ export async function processServiceReportPdfJob(
       title: str(r.approver_title),
       dateLabel: approvedAt.slice(0, 10),
       approvedAtLabel: approvedAt,
-      stampDataUri: await loadApprovalStamp(supabase, id, stampPath),
+      stampDataUri: await loadApprovalStamp(supabase, stampPath),
     };
   }
 
@@ -250,7 +237,11 @@ export async function processServiceReportPdfJob(
     .select("id");
   if (uErr) throw new Error(`pdf_url 기록 실패: ${uErr.message}`);
   if (!updated || updated.length === 0) {
-    console.warn(`[worker] service_report_pdf 기록 0행 — 렌더 중 전이됨(폐기) report=${id} r${revision} ${status}`);
+    // 미연결 PDF(무효화된 문서·직인 포함 가능)가 열람 가능한 폴더에 남지 않게 best-effort 삭제.
+    const rm = await supabase.storage.from("service-reports").remove([path]);
+    console.warn(
+      `[worker] service_report_pdf 기록 0행 — 렌더 중 전이됨(폐기) report=${id} r${revision} ${status} 업로드 삭제=${rm.error ? `실패(${rm.error.message})` : "완료"}`,
+    );
     return;
   }
   console.log(`[worker] service_report_pdf 완료 report=${id} status=${status} r${revision} → ${path}`);
