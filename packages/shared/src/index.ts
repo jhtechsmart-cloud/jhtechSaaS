@@ -20,6 +20,7 @@ export * from "./mail";
 export * from "./password";
 export * from "./release-order";
 export * from "./service-report";
+export * from "./service-report-status";
 export * from "./youtube";
 export * from "./wp-brand";
 export * from "./wp-category";
