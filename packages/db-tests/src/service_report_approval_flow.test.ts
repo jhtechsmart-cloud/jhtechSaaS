@@ -95,7 +95,9 @@ describe("#285 전이·동결 트리거", () => {
       for (const set of frozen.concat(["completed_at=now() - interval '1 day'", "tax_invoice_memo='m'"])) {
         await expectReject(() => c.query(`update public.service_reports set ${set} where id=$1`, [s.reportId]), /수정할 수 없습니다/);
       }
-      await c.query("update public.service_reports set pdf_url=$2 where id=$1", [s.reportId, `${s.reportId}/report-r2b.pdf`]);
+      await c.query("update public.service_reports set pdf_url=$2 where id=$1", [s.reportId, `${s.reportId}/report-r2.pdf`]);
+      // pdf_url 형식·역할 강제(리뷰 수정): 작성자 REST UPDATE로는 못 바꾸고, 경로는 이 리포트 폴더의 report(-rN).pdf만
+      await expectReject(() => c.query("update public.service_reports set pdf_url=$2 where id=$1", [s.reportId, "other/report.pdf"]), /PDF 경로가 올바르지 않습니다/);
     });
   });
 

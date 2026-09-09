@@ -55,8 +55,9 @@ export default async function EquipmentDetailPage({
   // #262 [그래도 덮어쓰기]는 관리자 전용(RPC도 users.manage 재강제 — UI는 노출 제어만)
   const canForce = can(access.permissions, "users.manage");
   // equipment.manage 단독 계정은 RLS로 리포트가 0건 — 조용한 빈 목록 대신 권한 안내를 띄운다.
+  // #285: 승인(approve)·완료(complete) 권한자도 RLS로 발행 이후 리포트를 본다 — guard.ts 5키와 동기
   const canReadReports = (
-    ["service_reports.write", "service_reports.view", "service_reports.view_all"] as const
+    ["service_reports.write", "service_reports.view", "service_reports.view_all", "service_reports.approve", "service_reports.complete"] as const
   ).some((k) => can(access.permissions, k));
 
   // 리포트·미연결 조회는 필요한 탭에서만(#244 — 개요 탭은 미조회로 탭 전환마다의 중복 조회 회피).

@@ -12,6 +12,7 @@ drop function if exists public.service_report_kpis();
 drop function if exists public.enqueue_service_report_email(uuid);
 drop function if exists public.complete_service_report(uuid, text, date, text);
 drop function if exists public.approve_service_report(uuid);
+drop function if exists public.service_request_reevaluate_done(uuid);
 
 -- void_service_report — 20260716170100 본문
 create or replace function public.void_service_report(p_id uuid, p_reason text)

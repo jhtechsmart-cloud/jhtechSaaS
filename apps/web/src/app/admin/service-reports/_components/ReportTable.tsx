@@ -6,6 +6,9 @@ import {
   adminVoidReportAction,
   type AdminReportRow,
 } from "@/lib/service-reports/admin-actions";
+import { SERVICE_REPORT_FINALIZED, SERVICE_REPORT_STATUS_LABEL } from "@/lib/service-reports/status";
+
+const isFinalized = (s: AdminReportRow["status"]) => (SERVICE_REPORT_FINALIZED as readonly string[]).includes(s);
 
 // 리포트 테이블(클라) — 빠른필터 탭 + 행 액션. 상태 3톤: 발행=긍정(민트)·작성중=중립·무효=코랄.
 type Filter = "all" | "follow" | "voided";
@@ -22,7 +25,12 @@ function StatusChip({ row }: { row: AdminReportRow }) {
     );
   if (row.status === "draft")
     return <span className="rounded-full bg-surface-2 px-2.5 py-0.5 text-micro font-bold text-muted">작성중</span>;
-  return <span className="rounded-full bg-accent-soft px-2.5 py-0.5 text-micro font-bold text-accent">발행</span>;
+  // #285: 결재 상태 라벨은 단일 출처(승인 대기/세금계산서 미발행/완료). 색·탭 재구성은 PR #C.
+  return (
+    <span className="rounded-full bg-accent-soft px-2.5 py-0.5 text-micro font-bold text-accent">
+      {SERVICE_REPORT_STATUS_LABEL[row.status]}
+    </span>
+  );
 }
 
 export function ReportTable({ items, canVoid }: { items: AdminReportRow[]; canVoid: boolean }) {
@@ -30,8 +38,9 @@ export function ReportTable({ items, canVoid }: { items: AdminReportRow[]; canVo
   const [note, setNote] = useState("");
   const [pending, startTransition] = useTransition();
 
+  // #285: 승인·완료본의 후속조치도 대기 목록에 남는다
   const followOpen = (r: AdminReportRow) =>
-    r.status === "issued" && r.follow_needed && !r.follow_resolved_at;
+    isFinalized(r.status) && r.follow_needed && !r.follow_resolved_at;
 
   const filtered = useMemo(() => {
     if (filter === "follow") return items.filter(followOpen);
@@ -164,7 +173,7 @@ export function ReportTable({ items, canVoid }: { items: AdminReportRow[]; canVo
                         후속 처리 완료
                       </button>
                     )}
-                    {canVoid && r.status === "issued" && (
+                    {canVoid && (r.status === "issued" || r.status === "approved") && (
                       <button
                         type="button"
                         disabled={pending}

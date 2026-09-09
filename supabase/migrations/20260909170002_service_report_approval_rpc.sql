@@ -327,9 +327,16 @@ begin
   if v_sig_size is null or v_sig_size <= 0 then
     raise exception '서명 파일이 업로드되지 않았습니다 — 다시 서명해 주세요';
   end if;
+  -- #285 서명 경로 행 바인딩 — RLS UPDATE로 타 리포트 폴더 경로를 넣어도 이 리포트 것만 인정(서명 위조 차단)
+  if v_row.signature_path <> p_id::text || '/signature.png' then
+    raise exception '서명 경로가 이 리포트의 것이 아닙니다';
+  end if;
   -- #285 기사 서명(결재 담당 칸) — 고객 서명과 동일한 실존·크기 검증
   if v_row.engineer_signature_path is null then
     raise exception '기사 서명이 필요합니다(결재 담당 칸)';
+  end if;
+  if v_row.engineer_signature_path <> p_id::text || '/engineer-signature.png' then
+    raise exception '기사 서명 경로가 이 리포트의 것이 아닙니다';
   end if;
   select coalesce((o.metadata ->> 'size')::int, 0) into v_eng_sig_size
     from storage.objects o
@@ -350,8 +357,13 @@ begin
     if v_parent.service_request_id is distinct from v_row.service_request_id then
       raise exception '같은 의뢰의 리포트만 부모로 지정할 수 있습니다';
     end if;
-    if v_row.company_id is not null and v_parent.company_id is distinct from v_row.company_id then
-      raise exception '같은 고객의 리포트만 부모로 지정할 수 있습니다';
+    -- 고객 비교: 등록 고객이면 id 일치, 직접입력이면 의뢰 연결이 있어야 부모 관계를 인정(둘 다 없으면 타 고객 이력 오염 가능)
+    if v_row.company_id is not null then
+      if v_parent.company_id is distinct from v_row.company_id then
+        raise exception '같은 고객의 리포트만 부모로 지정할 수 있습니다';
+      end if;
+    elsif v_row.service_request_id is null then
+      raise exception '후속 리포트는 등록 고객 또는 연결된 의뢰가 있어야 합니다';
     end if;
   end if;
 
@@ -469,7 +481,7 @@ begin
   select * into v_profile from public.profiles where id = v_row.created_by;
 
   -- ⚠️ [1a] catalog_equipment_id는 반드시 이 status 전환 UPDATE에 합쳐 쓴다.
-  -- 동결 트리거는 `old.status = 'issued'`일 때만 화이트리스트를 검사하므로(draft→issued 전환은
+  -- 동결 트리거(20260909170001)는 old.status가 issued/approved/completed일 때 전이별 허용 컬럼만 검사하므로(draft→issued 전환은 v_check=false라
   -- old.status='draft'라 통과) 여기서는 자유롭게 쓰이지만, 확정 후 별도 UPDATE로 쓰면 예외로 실패한다.
   -- 화이트리스트에 이 컬럼을 추가하는 방식으로 우회하지 말 것 — 발행본 통계 원본이 수정 가능해진다.
   perform set_config('app.service_reports_status_change', '1', true);
@@ -498,6 +510,33 @@ end;
 $$;
 revoke all on function public.issue_service_report(uuid) from public, anon;
 grant execute on function public.issue_service_report(uuid) to authenticated;
+
+-- ── C0. service_request_reevaluate_done — 의뢰 done 조건(D-C13)의 단일 출처. complete·resolve_follow가 호출 ──
+--   조건: draft·voided 제외 전 리포트가 completed ∧ 각 후속조치 없음/처리됨. 이미 done/canceled면 no-op.
+create or replace function public.service_request_reevaluate_done(p_request_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_open int;
+begin
+  if p_request_id is null then return; end if;
+  perform 1 from public.service_requests where id = p_request_id for update;
+  select count(*) into v_open
+    from public.service_reports r
+    where r.service_request_id = p_request_id
+      and r.status not in ('draft', 'voided')
+      and (r.status <> 'completed' or (r.follow_needed and r.follow_resolved_at is null));
+  if v_open = 0 then
+    update public.service_requests
+      set status = 'done'
+      where id = p_request_id and status not in ('done', 'canceled');
+  end if;
+end;
+$$;
+revoke all on function public.service_request_reevaluate_done(uuid) from public, anon, authenticated;
 
 -- ── C. approve_service_report — 이사 승인(D-A1·D-A3·D-C12) ─────────────────────────────
 create or replace function public.approve_service_report(p_id uuid)
@@ -564,7 +603,6 @@ as $$
 declare
   v_uid uuid := auth.uid();
   v_row public.service_reports;
-  v_open int;
 begin
   if not public.has_permission(v_uid, 'service_reports.complete') then
     raise exception '서비스 리포트 완료 처리 권한이 없습니다' using errcode = 'insufficient_privilege';
@@ -597,20 +635,8 @@ begin
   where id = p_id
   returning * into v_row;
 
-  -- 의뢰 done 조건: draft·voided 제외 전 리포트가 completed ∧ 후속조치 없음/처리됨. 이미 done/canceled면 no-op.
-  if v_row.service_request_id is not null then
-    perform 1 from public.service_requests where id = v_row.service_request_id for update;
-    select count(*) into v_open
-      from public.service_reports r
-      where r.service_request_id = v_row.service_request_id
-        and r.status not in ('draft', 'voided')
-        and (r.status <> 'completed' or (r.follow_needed and r.follow_resolved_at is null));
-    if v_open = 0 then
-      update public.service_requests
-        set status = 'done'
-        where id = v_row.service_request_id and status not in ('done', 'canceled');
-    end if;
-  end if;
+  -- 의뢰 done 재평가(공용 함수 — resolve_follow와 동일 규칙)
+  perform public.service_request_reevaluate_done(v_row.service_request_id);
   return to_jsonb(v_row);
 end;
 $$;
@@ -684,6 +710,16 @@ begin
   end if;
   select * into v_row from public.service_reports where id = p_id for update;
   if not found then raise exception '존재하지 않는 리포트입니다'; end if;
+  -- 행 조회 스코프(service_reports_select와 동일) — email.send만으로 uuid 추측 발송·수신처 탐지 차단
+  if not (v_row.created_by = v_uid
+          or public.has_permission(v_uid, 'users.manage')
+          or public.has_permission(v_uid, 'service_reports.view_all')
+          or public.has_permission(v_uid, 'service_reports.write')
+          or public.has_permission(v_uid, 'service_reports.view')
+          or public.has_permission(v_uid, 'service_reports.approve')
+          or public.has_permission(v_uid, 'service_reports.complete')) then
+    raise exception '리포트 조회 권한이 없습니다' using errcode = 'insufficient_privilege';
+  end if;
   if v_row.status not in ('approved', 'completed') then
     raise exception '승인된 리포트만 고객에게 발송할 수 있습니다(현재: %)', v_row.status;
   end if;
@@ -799,6 +835,8 @@ begin
   if not found then
     raise exception '처리할 후속조치가 없습니다';
   end if;
+  -- #285: 완료된 리포트의 후속조치가 나중에 처리되면 의뢰 done을 재평가(그렇지 않으면 영원히 in_progress)
+  perform public.service_request_reevaluate_done(v_row.service_request_id);
   return to_jsonb(v_row);
 end;
 $$;

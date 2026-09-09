@@ -1,5 +1,5 @@
 // #285 ③ — RPC(issue 재정의/approve/complete/void/resolve/retry·pdf_status/upsert·후속 리포트).
-// 픽스처·전이 헬퍼는 flow 테스트 파일에서 공유(같은 사용자 4명·같은 규칙).
+// 픽스처·전이 헬퍼는 service_report_approval_fixture.ts에서 공유(같은 사용자 4명·같은 규칙).
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import type { Client } from "pg";
 import { asPostgres, asUser, inRollbackTx, makeClient, UID } from "./helpers";
@@ -229,6 +229,63 @@ describe("#285 RPC — issue/approve/complete/void/resolve/후속", () => {
       ]);
       expect(r2.rows[0].r.parent_report_id).toBe(parent.reportId);
       expect(r2.rows[0].r.engineer_signature_path).toBe(`${s.reportId}/${ENG_SIG}`);
+    });
+  });
+});
+
+// /review 수정분(2026-09-09): 서명 위조·승인필드 선기입·발송 스코프·후속 처리 후 done 재평가
+describe("#285 리뷰 보강 — 위조·스코프·재평가", () => {
+  test("issue: 타 리포트 폴더의 서명 경로를 넣으면 거부(행 바인딩)", async () => {
+    await inRollbackTx(c, async () => {
+      const s = await seed(); const other = await seed();
+      await asPostgres(c);
+      await c.query("update public.service_reports set engineer_signature_path=$2 where id=$1", [s.reportId, `${other.reportId}/${ENG_SIG}`]);
+      await asUser(c, ENG);
+      await expectReject(() => c.query("select public.issue_service_report($1)", [s.reportId]), /이 리포트의 것이 아닙니다/);
+    });
+  });
+
+  test("issue: draft에 미리 채운 승인·세금 필드는 확정 시 null로 초기화", async () => {
+    await inRollbackTx(c, async () => {
+      const s = await seed();
+      await asPostgres(c);
+      await c.query("update public.service_reports set approved_by=$2, approver_name='위조', tax_invoice_status='invoiced' where id=$1", [s.reportId, DIR]);
+      await asUser(c, ENG);
+      const r = await c.query("select public.issue_service_report($1) as r", [s.reportId]);
+      expect(r.rows[0].r.approved_by).toBeNull();
+      expect(r.rows[0].r.approver_name).toBeNull();
+      expect(r.rows[0].r.tax_invoice_status).toBeNull();
+    });
+  });
+
+  test("enqueue_email: email.send만 있고 리포트 조회 권한이 없으면 거부", async () => {
+    await inRollbackTx(c, async () => {
+      const s = await seed(); await toIssued(s.reportId); await setPdf(s.reportId, 1); await toApproved(s.reportId); await setPdf(s.reportId, 2);
+      const MAILER = "00000000-0000-0000-0000-0000000000f8";
+      await asPostgres(c);
+      await c.query("insert into auth.users (id, email) values ($1, 'ap-mailer@jhtech.test')", [MAILER]);
+      await c.query("update public.profiles set permissions='{email.send}', hiworks_user_id='mailer' where id=$1", [MAILER]);
+      await asUser(c, MAILER);
+      await expectReject(() => c.query("select public.enqueue_service_report_email($1)", [s.reportId]), /조회 권한/);
+    });
+  });
+
+  test("resolve_follow: 완료 후 후속조치 처리 시 의뢰가 done으로 재평가", async () => {
+    await inRollbackTx(c, async () => {
+      const s = await seed({ follow: true }); await toIssued(s.reportId); await setPdf(s.reportId, 1);
+      await toApproved(s.reportId); await setPdf(s.reportId, 2);
+      await asPostgres(c);
+      await c.query("update public.service_requests set status='in_progress' where id=$1", [s.requestId]);
+      await asUser(c, MGMT);
+      await c.query("select public.complete_service_report($1,'not_required',null,null)", [s.reportId]);
+      await asPostgres(c);
+      let rq = await c.query("select status from public.service_requests where id=$1", [s.requestId]);
+      expect(rq.rows[0].status).toBe("in_progress");
+      await asUser(c, ENG);
+      await c.query("select public.resolve_service_report_follow($1)", [s.reportId]);
+      await asPostgres(c);
+      rq = await c.query("select status from public.service_requests where id=$1", [s.requestId]);
+      expect(rq.rows[0].status).toBe("done");
     });
   });
 });

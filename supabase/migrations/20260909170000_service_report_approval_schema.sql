@@ -75,6 +75,13 @@ create unique index email_log_active_service_report
 alter table public.jobs add column if not exists run_after timestamptz;
 create index if not exists jobs_claim_idx on public.jobs (status, run_after, created_at);
 -- PDF 잡: 같은 리포트의 queued 1건(전이가 연달아 오면 트리거가 기존 queued의 payload를 최신 세대로 갱신)
+-- 운영 큐에 같은 리포트의 queued 잡이 2건 이상 남아 있으면 유니크 생성이 실패하므로 최신 1건만 남기고 정리
+delete from public.jobs j
+  using public.jobs k
+  where j.type = 'service_report_pdf' and k.type = 'service_report_pdf'
+    and j.status = 'queued' and k.status = 'queued'
+    and j.payload ->> 'service_report_id' = k.payload ->> 'service_report_id'
+    and j.created_at < k.created_at;
 create unique index if not exists jobs_service_report_pdf_queued_uniq
   on public.jobs ((payload ->> 'service_report_id'))
   where type = 'service_report_pdf' and status = 'queued';

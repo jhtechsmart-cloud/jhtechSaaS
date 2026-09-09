@@ -59,6 +59,12 @@ begin
       v_check := false;
       new.pdf_revision := old.pdf_revision + 1;
       new.pdf_url := null;
+      -- 작성자가 draft에 직접 UPDATE로 승인·완료·세금·무효 필드를 미리 채워 두는 경로 차단(BEFORE INSERT와 동일 초기화)
+      new.approved_at := null; new.approved_by := null;
+      new.approver_name := null; new.approver_title := null; new.approver_stamp_path := null;
+      new.completed_at := null; new.completed_by := null;
+      new.tax_invoice_status := null; new.tax_invoice_date := null; new.tax_invoice_memo := null;
+      new.voided_at := null; new.voided_by := null; new.void_reason := null;
     elsif old.status = 'issued' and new.status = 'approved' then
       if new.approved_by is null or new.approved_at is null then
         raise exception '승인자(approved_by)·승인 일시가 필요합니다';
@@ -90,6 +96,17 @@ begin
 
   if v_check and (to_jsonb(new) - v_allowed) is distinct from (to_jsonb(old) - v_allowed) then
     raise exception '발행된 리포트는 수정할 수 없습니다(무효화 또는 새 리포트로 정정)';
+  end if;
+
+  -- pdf_url은 발행 이후 워커(service_role)만 기록한다. RLS UPDATE(작성자 본인)로 REST에서 직접 바꾸면
+  -- 승인·완료 전제(pdf_url 존재)를 우회하거나 타 문서 경로를 연결할 수 있으므로 역할과 경로 형식을 함께 강제.
+  if old.status in ('issued', 'approved', 'completed') and new.pdf_url is distinct from old.pdf_url then
+    if not (coalesce(auth.role(), '') = 'service_role' or current_user in ('postgres', 'supabase_admin')) then
+      raise exception 'PDF 경로는 워커만 기록할 수 있습니다';
+    end if;
+    if new.pdf_url is not null and new.pdf_url !~ ('^' || new.id::text || '/report(-r[0-9]+)?\.pdf$') then
+      raise exception 'PDF 경로가 올바르지 않습니다: %', new.pdf_url;
+    end if;
   end if;
   return new;
 end; $$;

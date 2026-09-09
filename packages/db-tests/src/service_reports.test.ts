@@ -321,7 +321,16 @@ describe("service_reports — 발행 동결·voided·후속 처리", () => {
       const id = await issuedReport(s);
       await asService(c);
       await expectReject(() => c.query("update public.service_reports set diagnosis='조작' where id=$1", [id]), /수정할 수 없습니다/);
-      await c.query("update public.service_reports set pdf_url='r/x.pdf' where id=$1", [id]); // 허용
+      // #285: pdf_url은 service_role만, 경로는 <id>/report(-rN).pdf 형식만
+      await c.query("update public.service_reports set pdf_url=$2 where id=$1", [id, `${id}/report-r1.pdf`]); // 허용
+      // 작성자 REST UPDATE로 pdf_url 조작 불가(RLS가 0행이든 트리거가 거부하든 값이 남아야 한다)
+      await asUser(c, ENG1);
+      await c.query("savepoint sp");
+      try { await c.query("update public.service_reports set pdf_url=null where id=$1", [id]); } catch { /* 트리거 거부도 정답 */ }
+      await c.query("rollback to savepoint sp");
+      await asPostgres(c);
+      const after = await c.query("select pdf_url from public.service_reports where id=$1", [id]);
+      expect(after.rows[0].pdf_url).toBe(`${id}/report-r1.pdf`);
     });
   });
 
@@ -362,7 +371,7 @@ describe("service_reports — 메일 enqueue(pdf_url 기록 시)·멱등", () =>
       await attachSignature(row.id as string, {}, s);
       await c.query("select public.issue_service_report($1)", [row.id]);
       await asService(c); // 워커가 PDF 완료 → pdf_url 기록
-      await c.query("update public.service_reports set pdf_url='r/a.pdf' where id=$1", [row.id]);
+      await c.query("update public.service_reports set pdf_url=$2 where id=$1", [row.id, `${row.id}/report-r1.pdf`]);
       await asPostgres(c);
       const logs = await c.query(
         "select count(*)::int as n from public.email_log where service_report_id=$1", [row.id]);
@@ -384,7 +393,7 @@ describe("service_reports — 메일 enqueue(pdf_url 기록 시)·멱등", () =>
       await attachSignature(row.id as string, { recipient_email: null }, s);
       await c.query("select public.issue_service_report($1)", [row.id]);
       await asService(c);
-      await c.query("update public.service_reports set pdf_url='r/b.pdf' where id=$1", [row.id]);
+      await c.query("update public.service_reports set pdf_url=$2 where id=$1", [row.id, `${row.id}/report-r1.pdf`]);
       await asPostgres(c);
       const logs = await c.query(
         "select count(*)::int as n from public.email_log where service_report_id=$1", [row.id]);
