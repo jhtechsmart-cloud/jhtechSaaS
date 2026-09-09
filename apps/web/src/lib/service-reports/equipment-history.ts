@@ -3,6 +3,7 @@ import "server-only";
 // ⚠️ 단일 원본 = service_reports.catalog_equipment_id 직접 조회(전용 인덱스).
 //    company_equipment 조인 금지 — 영업(view) RLS 스코프에 걸려 타 담당 고객 이력이 조용히 누락된다.
 // ⚠️ status는 RLS만 믿지 않고 앱에서 명시 — view_all·admin 계정의 draft 혼입 방어.
+import { SERVICE_REPORT_FINALIZED } from "@jhtechsaas/shared";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { EquipmentReportRow } from "@/lib/equipment/history-filters";
 
@@ -19,7 +20,8 @@ export async function listEquipmentReports(
       "id, seq_no, status, customer_name, device_serial, faults, action_text, parts, charge_type, total, pdf_url, void_reason, issued_at, company_equipment_id, free_reason",
     )
     .eq("catalog_equipment_id", equipmentId)
-    .in("status", ["issued", "voided"])
+    // #285: 승인·완료본도 이력이다(issued 하드코딩이면 결재 후 이력에서 사라짐)
+    .in("status", [...SERVICE_REPORT_FINALIZED, "voided"])
     // nullsFirst:false — null issued_at 행이 300 슬롯 맨 앞을 차지해 최신 행을 밀어내지 않게(#244).
     .order("issued_at", { ascending: false, nullsFirst: false })
     .limit(HISTORY_LIMIT);
@@ -41,7 +43,7 @@ export async function listEquipmentReportsForStats(equipmentId: string): Promise
         "id, seq_no, status, customer_name, device_serial, faults, action_text, parts, charge_type, total, pdf_url, void_reason, issued_at, company_equipment_id, free_reason",
       )
       .eq("catalog_equipment_id", equipmentId)
-      .eq("status", "issued")
+      .in("status", [...SERVICE_REPORT_FINALIZED]) // #285: 통계 표본 = 발행 이후 유효 3상태
       .order("issued_at", { ascending: false, nullsFirst: false })
       .limit(HISTORY_LIMIT + 1),
     supabase

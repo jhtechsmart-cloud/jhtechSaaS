@@ -1,7 +1,7 @@
 "use server";
 // 현장 서비스 리포트 서버 액션(#228 Part 3). 모든 액션이 requireServiceReportsWrite를 재검증
 // (Server Action은 직접 POST 가능 — 가드 규약). 쓰기·검증은 전부 SECURITY DEFINER RPC가 수행.
-import { catalogDeviceLabel } from "@jhtechsaas/shared";
+import { catalogDeviceLabel, SERVICE_REPORT_FINALIZED } from "@jhtechsaas/shared";
 import { requireServiceReportsWrite } from "@/lib/auth/guard";
 import { groupByCategory } from "@/lib/equipment/group";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -83,7 +83,7 @@ export async function loadCompanyContextAction(
         .from("service_reports")
         .select("company_equipment_id, issued_at, faults, action_text")
         .in("company_equipment_id", ids)
-        .eq("status", "issued")
+        .in("status", [...SERVICE_REPORT_FINALIZED]) // #285: 결재 후에도 현장 과거 이력에 남아야 한다
         .order("issued_at", { ascending: false })
         .limit(30);
       for (const h of (hist ?? []) as {
