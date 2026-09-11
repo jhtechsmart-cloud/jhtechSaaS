@@ -8,13 +8,16 @@ import { formatDeleteBlockers } from "@/lib/users/delete-blockers";
 import { PermissionPicker } from "../_components/PermissionPicker";
 import { TempPasswordModal } from "../_components/TempPasswordModal";
 import { DepartmentSelect } from "../_components/DepartmentSelect";
+import { StampUpload } from "../_components/StampUpload";
 
 export function EditUserClient({
   user,
   isSelf,
+  stampUrl = null,
 }: {
   user: UserListRow;
   isSelf: boolean;
+  stampUrl?: string | null; // #285 직인 미리보기(서명 URL)
 }) {
   const router = useRouter();
   const [permissions, setPermissions] = useState<string[]>(user.permissions);
@@ -219,6 +222,13 @@ export function EditUserClient({
         <span className="text-body font-semibold text-text">권한</span>
         <PermissionPicker value={permissions} onChange={setPermissions} />
       </div>
+
+      {/* #285 직인 — 권한 섹션 바로 아래. 승인 권한(또는 users.manage 슈퍼) 체크 시 안내 강조. */}
+      <StampUpload
+        userId={user.id}
+        initialUrl={stampUrl}
+        needsStamp={permissions.includes("service_reports.approve")}
+      />
 
       <div className="flex flex-col gap-2 rounded-md border border-border bg-surface p-4">
         <span className="text-body font-semibold text-text">하이웍스 발송자 ID</span>

@@ -2,7 +2,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import type { Client } from "pg";
 import { asAnon, asPostgres, asUser, inRollbackTx, makeClient, seedAuthUser, UID } from "./helpers";
-import { DIR, ENG, ENG_SIG, MGMT, VIEW, bindClient, seed, toApproved, toIssued } from "./service_report_approval_fixture";
+import { DIR, ENG, ENG_SIG, MGMT, STAMP, VIEW, bindClient, seed, toApproved, toIssued } from "./service_report_approval_fixture";
 
 let c: Client;
 beforeAll(async () => { c = await makeClient(); bindClient(c); });
@@ -106,6 +106,39 @@ describe("#285 정책", () => {
       const b = await c.query("select public, file_size_limit from storage.buckets where id='approval-stamps'");
       expect(b.rows[0].public).toBe(false);
       expect(Number(b.rows[0].file_size_limit)).toBe(2097152);
+    });
+  });
+
+  // #285 #C 이월 — 워커가 직인을 복사하지 않고 원본을 직접 읽으므로, 승인본이 참조 중인 직인은 지울 수 없어야 한다.
+  // 로컬 스토리지 이미지는 authenticated의 직접 DELETE를 트리거로 막는다("Use the Storage API instead") → 정책 조건을
+  // 실행 대신 정책 정의 + 동일 조건식 평가로 단언한다(has_function_privilege 방식과 같은 취지).
+  test("approval-stamps DELETE 정책: 승인본(approver_stamp_path)이 참조 중인 직인은 제외 조건이 있고, 그 조건이 참조 객체를 걸러낸다", async () => {
+    await inRollbackTx(c, async () => {
+      const s = await seed(); await toIssued(s.reportId); await toApproved(s.reportId); // approver_stamp_path = STAMP
+      await asPostgres(c);
+      const pol = await c.query("select qual from pg_policies where policyname='approval_stamps_delete' and tablename='objects'");
+      expect(pol.rows[0].qual).toContain("approver_stamp_path");
+      await c.query("insert into storage.objects (bucket_id, name, owner) values ('approval-stamps',$1,$2)", [`${DIR}/stamp-1757400009.png`, UID.admin]);
+      const r = await c.query(
+        `select name from storage.objects o where o.bucket_id='approval-stamps' and o.name in ($1,$2)
+           and not exists (select 1 from public.service_reports r where r.approver_stamp_path = o.name) order by name`,
+        [STAMP, `${DIR}/stamp-1757400009.png`],
+      );
+      expect(r.rows.map((x) => x.name)).toEqual([`${DIR}/stamp-1757400009.png`]);
+    });
+  });
+
+  test("profiles.approval_stamp_path: 경로 접두 uuid = 본인 id만(타인 직인 경로 지정 차단)", async () => {
+    await inRollbackTx(c, async () => {
+      await seed();
+      await asPostgres(c);
+      await expectReject(
+        () => c.query("update public.profiles set approval_stamp_path=$2 where id=$1", [MGMT, `${DIR}/stamp-1757400000.png`]),
+        /approval_stamp_path/,
+      );
+      await c.query("update public.profiles set approval_stamp_path=$2 where id=$1", [MGMT, `${MGMT}/stamp-1757400000.png`]);
+      const r = await c.query("select approval_stamp_path from public.profiles where id=$1", [MGMT]);
+      expect(r.rows[0].approval_stamp_path).toBe(`${MGMT}/stamp-1757400000.png`);
     });
   });
 

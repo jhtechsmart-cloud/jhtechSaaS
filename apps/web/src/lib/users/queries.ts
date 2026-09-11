@@ -11,6 +11,7 @@ export interface UserListRow {
   position: string | null; // 직책
   department: string | null; // 소속 부서 키(sales/tech/management) — 라벨은 department.ts
   phone: string | null; // 연락처
+  approval_stamp_path: string | null; // #285 결재 직인(approval-stamps/<uid>/stamp-<ts>.<ext>)
   created_at: string;
 }
 
@@ -21,7 +22,7 @@ export async function listUsers(): Promise<UserListRow[]> {
   const [profilesRes, authRes] = await Promise.all([
     admin
       .from("profiles")
-      .select("id,name,permissions,is_active,hiworks_user_id,position,department,phone,created_at")
+      .select("id,name,permissions,is_active,hiworks_user_id,position,department,phone,approval_stamp_path,created_at")
       .order("created_at", { ascending: true }),
     admin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
   ]);
@@ -40,6 +41,7 @@ export async function listUsers(): Promise<UserListRow[]> {
     position: p.position ?? null,
     department: p.department ?? null,
     phone: p.phone ?? null,
+    approval_stamp_path: p.approval_stamp_path ?? null,
     created_at: p.created_at,
   }));
 }
@@ -49,7 +51,7 @@ export async function getUser(id: string): Promise<UserListRow | null> {
   const admin = createSupabaseAdminClient();
   const { data: p, error } = await admin
     .from("profiles")
-    .select("id,name,permissions,is_active,hiworks_user_id,position,department,phone,created_at")
+    .select("id,name,permissions,is_active,hiworks_user_id,position,department,phone,approval_stamp_path,created_at")
     .eq("id", id)
     .maybeSingle();
   if (error) throw new Error(`사용자 조회 실패: ${error.message}`);
@@ -65,6 +67,7 @@ export async function getUser(id: string): Promise<UserListRow | null> {
     position: p.position ?? null,
     department: p.department ?? null,
     phone: p.phone ?? null,
+    approval_stamp_path: p.approval_stamp_path ?? null,
     created_at: p.created_at,
   };
 }

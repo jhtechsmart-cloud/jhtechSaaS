@@ -16,9 +16,6 @@ const SALES_PASSWORD = process.env.E2E_SALES_PASSWORD ?? "jhtech-sales-dev";
 const CUSTOMER = "E2E현장고객상사";
 
 test.use({ viewport: { width: 390, height: 844 } });
-// #285 PR #A: issue RPC가 기사 서명(engineer_signature_path)을 요구하지만 현장 UI(기사 서명 단계)는 PR #B'에서 붙는다.
-// #B' 머지 시 이 skip을 제거하고 기사 서명 단계를 시나리오에 추가할 것.
-test.skip(true, "#285 #B'(기사 서명 UI) 전까지 확정 RPC가 기사 서명을 요구 — #B'에서 복원");
 
 // 캔버스 서명 드로잉(경로 길이 ≥100px) — 고객/기사 공용.
 async function drawSignature(page: Page, label: string) {
@@ -154,6 +151,7 @@ test("미인증 /field → login?next → 마법사 완주 → 서명 → 확정
   await page.getByLabel("출장비", { exact: true }).fill("90000");
   await expect(page.getByLabel("출장비", { exact: true })).toHaveValue("90,000");
   await expect(page.getByText("99,000원")).toBeVisible(); // 총액 = 90,000 + VAT 9,000
+  await page.getByLabel(/리포트 사본 수신 이메일/).fill("e2e-customer@jhtech.test"); // 완료 화면 메일 안내(#285 수동 발송) 확인용
   await page.getByRole("button", { name: "다음" }).click();
 
   // 8단계: 요약 → 서명 잠금 뷰(고객 핸드오프)
@@ -194,6 +192,8 @@ test("미인증 /field → login?next → 마법사 완주 → 서명 → 확정
   await expect(page.getByText("리포트가 확정되었습니다")).toBeVisible({ timeout: 20_000 });
   await expect(page.getByText(/SR-\d{8}-\d{5,}/)).toBeVisible();
   await expect(page.getByText("확정된 리포트는 수정할 수 없습니다")).toBeVisible();
+  // #285(D-B10): 고객 메일은 자동 발송되지 않는다 — 승인 후 사무실에서 수동
+  await expect(page.getByText("이사 승인 후 사무실에서 고객에게 발송됩니다")).toBeVisible({ timeout: 10_000 });
 });
 
 test("권한 없는 계정(영업)은 /field 안내 화면", async ({ page }) => {

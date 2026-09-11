@@ -8,6 +8,7 @@ import { sanitizePermissions } from "./permissions-ui";
 import { generateTempPassword } from "./password";
 import { hasDeleteBlockers, type DeleteUserBlockers } from "./delete-blockers";
 import { DEPARTMENT_KEYS, parseDepartment } from "./department";
+import { readImageMeta } from "./image-meta";
 
 export type CreateUserResult =
   | { error: string }
@@ -201,6 +202,54 @@ export async function setUserHiworksId(userId: string, value: string): Promise<U
     .eq("id", userId)
     .select("id");
   if (error || !data || data.length === 0) return { error: "하이웍스 ID 저장에 실패했습니다" };
+  revalidatePath(`/admin/users/${userId}`);
+  return { ok: true };
+}
+
+// #285 결재 직인 등록 — users.manage. 클라(관리자 세션·RLS)가 approval-stamps/<대상 uid>/stamp-<ts>.<ext>에
+// 올린 뒤 이 액션이 포인터를 저장한다. 경로 접두 = 대상 사용자 uid 강제(DB CHECK와 이중) — 타인 직인 경로 지정 차단.
+// 교체 시 옛 파일은 승인본이 참조하면 남겨야 하므로(DELETE 정책이 거부) 미참조일 때만 best-effort 삭제.
+export async function setUserApprovalStamp(userId: string, path: string): Promise<UserActionResult> {
+  const access = await requirePermission("users.manage");
+  if (access.status === "forbidden") return { error: "권한이 없습니다" };
+  if (!z.guid().safeParse(userId).success) return { error: "잘못된 사용자입니다" }; // 정규식에 넣기 전 uuid 확정
+  const re = new RegExp(`^${userId}/stamp-[0-9]+\\.(png|jpg|jpeg|webp)$`);
+  if (!z.string().min(1).max(300).safeParse(path).success || !re.test(path)) return { error: "잘못된 직인 경로입니다" };
+  const supabase = await createSupabaseServerClient();
+
+  // 업로드된 실제 바이트를 서버가 검증한다 — 클라 MIME·확장자만 믿으면 이름만 바꾼 파일이 승인 RPC의
+  // "size>0" 검사를 통과해 결재 PDF에 깨진 이미지가 박힌다. 실패하면 방금 올린 객체를 정리(고아 방지).
+  const dl = await supabase.storage.from("approval-stamps").download(path);
+  const reject = async (msg: string): Promise<UserActionResult> => {
+    const { error: rmErr } = await supabase.storage.from("approval-stamps").remove([path]);
+    if (rmErr) console.error("[stamp.set] 잘못된 업로드 정리 실패", rmErr);
+    return { error: msg };
+  };
+  if (dl.error || !dl.data) return { error: "업로드한 파일을 확인하지 못했습니다 — 다시 시도해 주세요" };
+  const buf = Buffer.from(await dl.data.arrayBuffer());
+  if (buf.byteLength > 2 * 1024 * 1024) return reject("이미지 크기는 2MB 이하여야 합니다");
+  const meta = readImageMeta(buf);
+  if (!meta) return reject("이미지 파일이 아닙니다 — PNG·JPG·WEBP 원본을 올려 주세요");
+  if (meta.width < 100 || meta.height < 100) {
+    return reject(`직인이 너무 작습니다(${meta.width}×${meta.height}) — 300px 이상 권장`);
+  }
+
+  const { data, error } = await supabase.from("profiles").update({ approval_stamp_path: path }).eq("id", userId).select("id");
+  if (error || !data || data.length === 0) return { error: "직인 저장에 실패했습니다" };
+  // 옛 파일은 지우지 않는다 — 진행 중인 승인이 옛 경로를 스냅샷하는 레이스에 대비(버전 파일명이라 누적 무해).
+  revalidatePath(`/admin/users/${userId}`);
+  return { ok: true };
+}
+
+// 직인 해제 = 포인터만 null. ⚠️ 스토리지 객체는 지우지 않는다 — 진행 중인 승인이 방금 검증한 경로를
+// 스냅샷하기 직전에 파일이 사라지면(별도 트랜잭션) 승인본이 없는 직인을 가리켜 PDF 재생성이 영구 실패한다.
+// 버전 파일명이라 누적돼도 무해하고, 정말 지워야 하면 DELETE 정책(승인본 참조 중 제외)으로 콘솔에서 정리한다.
+export async function clearUserApprovalStamp(userId: string): Promise<UserActionResult> {
+  const access = await requirePermission("users.manage");
+  if (access.status === "forbidden") return { error: "권한이 없습니다" };
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.from("profiles").update({ approval_stamp_path: null }).eq("id", userId).select("id");
+  if (error || !data || data.length === 0) return { error: "직인 삭제에 실패했습니다" };
   revalidatePath(`/admin/users/${userId}`);
   return { ok: true };
 }

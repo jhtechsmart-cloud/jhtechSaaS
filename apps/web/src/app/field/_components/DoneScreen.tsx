@@ -40,16 +40,17 @@ export function DoneScreen({ report }: { report: ServiceReportRow }) {
     else setNote(res.error);
   }
 
+  // #285(D-B10): 고객 메일은 자동 발송되지 않는다 — 이사 승인 후 사무실(관리자 콘솔)에서 수동 발송.
   const mailLabel = !report.recipient_email
-    ? "수신 이메일 없음 — 발송 생략"
-    : !report.sender_hiworks_user_id
-      ? "메일 미발송 — 계정에 하이웍스 ID가 없습니다 (PDF 링크로 전달해 주세요)"
-      : email === "sent"
-        ? `발송됨 → ${report.recipient_email}`
-        : email === "failed"
-          ? "발송 실패 — 관리자 화면에서 확인해 주세요"
-          : email === null
-            ? "확인 중…"
+    ? "수신 이메일 없음 — 필요하면 사무실에서 PDF 링크로 전달합니다"
+    : email === "sent"
+      ? `발송됨 → ${report.recipient_email}`
+      : email === "failed"
+        ? "발송 실패 — 관리자 화면에서 확인해 주세요"
+        : email === null
+          ? "확인 중…"
+          : email === "skipped"
+            ? "이사 승인 후 사무실에서 고객에게 발송됩니다"
             : "발송 대기 중…";
 
   return (
