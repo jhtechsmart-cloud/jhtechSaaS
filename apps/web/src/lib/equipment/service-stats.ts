@@ -20,7 +20,8 @@ function issuedOnly(rows: EquipmentReportRow[]): {
   excludedVoided: number;
 } {
   // voided만 명시 집계 — 횡단 뷰가 draft 섞인 입력을 줘도 draft가 '무효 제외'로 오표기되지 않게.
-  const issued = rows.filter((r) => r.status === "issued");
+  // #285: 승인·완료본도 유효 표본(issued 하드코딩이면 결재 순간 통계에서 사라짐)
+  const issued = rows.filter((r) => r.status === "issued" || r.status === "approved" || r.status === "completed");
   const excludedVoided = rows.filter((r) => r.status === "voided").length;
   return { issued, excludedVoided };
 }

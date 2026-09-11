@@ -130,8 +130,19 @@ export const requireEquipmentDetailRead = () =>
     "service_reports.write",
     "service_reports.view",
     "service_reports.view_all",
+    "service_reports.approve",
+    "service_reports.complete",
     "equipment.manage",
   ]);
 // 서비스 리포트 조회 — admin 조회 화면용. view는 발행·무효본만 보는 읽기전용 키(영업 기본).
+// #285: 승인(approve)·완료(complete) 권한자도 결재 대상 리포트를 조회해야 한다(RLS SELECT와 동일 5키).
 export const requireServiceReportsRead = () =>
-  requireAnyPermission(["service_reports.write", "service_reports.view", "service_reports.view_all"]);
+  requireAnyPermission([
+    "service_reports.write",
+    "service_reports.view",
+    "service_reports.view_all",
+    "service_reports.approve",
+    "service_reports.complete",
+  ]);
+export const requireServiceReportsApprove = () => requirePermission("service_reports.approve");
+export const requireServiceReportsComplete = () => requirePermission("service_reports.complete");

@@ -9,7 +9,7 @@ import {
 
 describe("permission registry", () => {
   // E5a: capability registry. *.manage 3키는 step6에서 분해·삭제됨. 새 기능마다 키 추가, 스키마 변경 0.
-  test("registry는 22개 capability 키를 정의한다", () => {
+  test("registry는 24개 capability 키를 정의한다", () => {
     expect([...PERMISSIONS].sort()).toEqual(
       [
         "demo_reservations.write",
@@ -30,6 +30,8 @@ describe("permission registry", () => {
         "service_reports.write",
         "service_reports.view",
         "service_reports.view_all",
+        "service_reports.approve",
+        "service_reports.complete",
         "supply_requests.view_all",
         "supply_requests.status",
         "supply_requests.claim",
@@ -38,6 +40,15 @@ describe("permission registry", () => {
         "users.manage",
       ].sort(),
     );
+  });
+
+  test("결재 키 2개(#285)는 A/S 그룹, SALES_PRESET 미포함", () => {
+    const approve = PERMISSION_REGISTRY.find((p) => p.key === "service_reports.approve");
+    const complete = PERMISSION_REGISTRY.find((p) => p.key === "service_reports.complete");
+    expect(approve?.group).toBe("A/S");
+    expect(complete?.group).toBe("A/S");
+    expect(SALES_PRESET).not.toContain("service_reports.approve");
+    expect(SALES_PRESET).not.toContain("service_reports.complete");
   });
 
   test("PERMISSIONS는 PERMISSION_REGISTRY에서 파생된다(키 집합 일치)", () => {

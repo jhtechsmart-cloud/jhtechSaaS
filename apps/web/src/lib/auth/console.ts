@@ -14,6 +14,9 @@ export const CONSOLE_CAPABILITIES: PermissionKey[] = [
   "service_requests.status",
   "service_requests.claim",
   "service_requests.create",
+  // #285: 결재(승인)·완료 처리만 가진 계정도 콘솔 셸에 들어와야 서비스 리포트를 결재할 수 있다
+  "service_reports.approve",
+  "service_reports.complete",
   "supply_requests.view_all",
   "supply_requests.status",
   "supply_requests.claim",

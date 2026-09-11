@@ -1,10 +1,10 @@
-import type { ServicePart } from "@jhtechsaas/shared";
+import type { ServicePart, ServiceReportStatus } from "@jhtechsaas/shared";
 
 // 서비스 리포트 행(서버가 RPC jsonb로 반환) — 화면에서 쓰는 필드만 좁혀 파싱.
 export interface ServiceReportRow {
   id: string;
   seq_no: string;
-  status: "draft" | "issued" | "voided";
+  status: ServiceReportStatus; // #285: draft→issued→approved→completed(+voided)
   service_request_id: string | null;
   company_id: string | null;
   company_equipment_id: string | null;

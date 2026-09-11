@@ -2,6 +2,7 @@
 // admin 서비스 리포트 조회·운영 액션(#228 Part 4) — 조회는 read(write·view·view_all),
 // 무효화는 RPC가 users.manage를 최종 강제. 리포트 작성·수정은 admin에서 불가(현장 콘솔 전용).
 import { revalidatePath } from "next/cache";
+import type { ServiceReportStatus } from "@jhtechsaas/shared";
 import { requireServiceReportsRead } from "@/lib/auth/guard";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -10,7 +11,7 @@ type Result<T> = { ok: true; data: T } | { ok: false; error: string };
 export interface AdminReportRow {
   id: string;
   seq_no: string;
-  status: "draft" | "issued" | "voided";
+  status: ServiceReportStatus; // #285: 5상태(단일 출처 shared)
   customer_name: string;
   device_name: string;
   engineer_name: string | null;

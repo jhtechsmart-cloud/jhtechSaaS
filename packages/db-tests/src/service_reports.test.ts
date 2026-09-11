@@ -77,10 +77,13 @@ async function createDraft(s: Seeded, over: Record<string, unknown> = {}): Promi
 // 서명 객체 fake 업로드(postgres 직삽) + draft에 서명 경로 반영.
 async function attachSignature(reportId: string, payloadOver: Record<string, unknown>, s: Seeded): Promise<void> {
   await asPostgres(c);
-  await c.query(
-    `insert into storage.objects (bucket_id, name, metadata) values ('service-reports', $1, '{"size": 2048}'::jsonb)`,
-    [`${reportId}/signature.png`],
-  );
+  // #285: 확정에는 고객 서명 + 기사 서명(결재 담당 칸) 둘 다 필요
+  for (const n of ["signature.png", "engineer-signature.png"]) {
+    await c.query(
+      `insert into storage.objects (bucket_id, name, metadata) values ('service-reports', $1, '{"size": 2048}'::jsonb)`,
+      [`${reportId}/${n}`],
+    );
+  }
   await asUser(c, ENG1);
   const payload = {
     company_id: s.companyId,
@@ -92,6 +95,7 @@ async function attachSignature(reportId: string, payloadOver: Record<string, unk
     charge_type: "paid",
     visit_fee: 90000,
     signature_path: `${reportId}/signature.png`,
+    engineer_signature_path: `${reportId}/engineer-signature.png`,
     ...payloadOver,
   };
   await c.query("select public.upsert_service_report($1, $2::jsonb)", [reportId, JSON.stringify(payload)]);
@@ -205,7 +209,8 @@ describe("service_reports — 확정(issue)", () => {
     });
   });
 
-  test("확정 성공: issued+스냅샷(기사 이름·직책·하이웍스)+연결 신청 done 전이", async () => {
+  // #285 UC2: 확정은 의뢰를 '진행 중'으로만 옮기고, 완료(done)는 관리부 완료 RPC가 결정한다.
+  test("확정 성공: issued+스냅샷(기사 이름·직책·하이웍스)+연결 신청 in_progress 전이", async () => {
     await inRollbackTx(c, async () => {
       const s = await seed();
       const row = await createDraft(s);
@@ -218,7 +223,7 @@ describe("service_reports — 확정(issue)", () => {
       expect(issued.sender_hiworks_user_id).toBe("eng1");
       await asPostgres(c);
       const req = await c.query("select status from public.service_requests where id=$1", [s.requestId]);
-      expect(req.rows[0].status).toBe("done");
+      expect(req.rows[0].status).toBe("in_progress");
       // PDF 잡 enqueue 확인
       const job = await c.query(
         "select count(*)::int as n from public.jobs where type='service_report_pdf' and payload->>'service_report_id'=$1",
@@ -228,7 +233,8 @@ describe("service_reports — 확정(issue)", () => {
     });
   });
 
-  test("후속조치 필요 시 신청 상태 유지(전이 없음)", async () => {
+  // #285: 후속조치 여부와 무관하게 확정 = 진행 중(done 여부는 완료 RPC의 후속 처리 조건이 판단)
+  test("후속조치 필요해도 확정 시 신청은 in_progress로 전이", async () => {
     await inRollbackTx(c, async () => {
       const s = await seed();
       const row = await createDraft(s, { follow_needed: true, follow_memo: "부품 수급 후 재방문" });
@@ -236,7 +242,7 @@ describe("service_reports — 확정(issue)", () => {
       await c.query("select public.issue_service_report($1)", [row.id]);
       await asPostgres(c);
       const req = await c.query("select status from public.service_requests where id=$1", [s.requestId]);
-      expect(req.rows[0].status).toBe("received");
+      expect(req.rows[0].status).toBe("in_progress");
     });
   });
 
@@ -315,7 +321,16 @@ describe("service_reports — 발행 동결·voided·후속 처리", () => {
       const id = await issuedReport(s);
       await asService(c);
       await expectReject(() => c.query("update public.service_reports set diagnosis='조작' where id=$1", [id]), /수정할 수 없습니다/);
-      await c.query("update public.service_reports set pdf_url='r/x.pdf' where id=$1", [id]); // 허용
+      // #285: pdf_url은 service_role만, 경로는 <id>/report(-rN).pdf 형식만
+      await c.query("update public.service_reports set pdf_url=$2 where id=$1", [id, `${id}/report-r1.pdf`]); // 허용
+      // 작성자 REST UPDATE로 pdf_url 조작 불가(RLS가 0행이든 트리거가 거부하든 값이 남아야 한다)
+      await asUser(c, ENG1);
+      await c.query("savepoint sp");
+      try { await c.query("update public.service_reports set pdf_url=null where id=$1", [id]); } catch { /* 트리거 거부도 정답 */ }
+      await c.query("rollback to savepoint sp");
+      await asPostgres(c);
+      const after = await c.query("select pdf_url from public.service_reports where id=$1", [id]);
+      expect(after.rows[0].pdf_url).toBe(`${id}/report-r1.pdf`);
     });
   });
 
@@ -348,23 +363,24 @@ describe("service_reports — 발행 동결·voided·후속 처리", () => {
 });
 
 describe("service_reports — 메일 enqueue(pdf_url 기록 시)·멱등", () => {
-  test("recipient+발신자 스냅샷 있으면 email_log+잡 1건, 재기록엔 중복 없음", async () => {
+  // #285 UC1: 고객 메일 자동 발송 제거 — 승인본만 수동 RPC(enqueue_service_report_email)로 보낸다.
+  test("recipient+발신자 스냅샷이 있어도 pdf_url 기록 시 자동 메일 없음(email_log·잡 0건)", async () => {
     await inRollbackTx(c, async () => {
       const s = await seed();
       const row = await createDraft(s);
       await attachSignature(row.id as string, {}, s);
       await c.query("select public.issue_service_report($1)", [row.id]);
       await asService(c); // 워커가 PDF 완료 → pdf_url 기록
-      await c.query("update public.service_reports set pdf_url='r/a.pdf' where id=$1", [row.id]);
+      await c.query("update public.service_reports set pdf_url=$2 where id=$1", [row.id, `${row.id}/report-r1.pdf`]);
       await asPostgres(c);
       const logs = await c.query(
         "select count(*)::int as n from public.email_log where service_report_id=$1", [row.id]);
-      expect(logs.rows[0].n).toBe(1);
+      expect(logs.rows[0].n).toBe(0);
       const jobs = await c.query(
         "select count(*)::int as n from public.jobs where type='service_report_email' and payload->>'service_report_id'=$1",
         [row.id],
       );
-      expect(jobs.rows[0].n).toBe(1);
+      expect(jobs.rows[0].n).toBe(0);
     });
   });
 
@@ -377,7 +393,7 @@ describe("service_reports — 메일 enqueue(pdf_url 기록 시)·멱등", () =>
       await attachSignature(row.id as string, { recipient_email: null }, s);
       await c.query("select public.issue_service_report($1)", [row.id]);
       await asService(c);
-      await c.query("update public.service_reports set pdf_url='r/b.pdf' where id=$1", [row.id]);
+      await c.query("update public.service_reports set pdf_url=$2 where id=$1", [row.id, `${row.id}/report-r1.pdf`]);
       await asPostgres(c);
       const logs = await c.query(
         "select count(*)::int as n from public.email_log where service_report_id=$1", [row.id]);

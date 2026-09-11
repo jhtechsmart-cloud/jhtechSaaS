@@ -7,6 +7,7 @@ const zero: DeleteUserBlockers = {
   quotes: 0,
   supply_requests: 0,
   service_requests: 0,
+  service_report_approvals: 0,
 };
 
 describe("delete-blockers — 사용자 삭제 차단 사유", () => {
@@ -17,6 +18,8 @@ describe("delete-blockers — 사용자 삭제 차단 사유", () => {
 
   it("하나라도 있으면 차단", () => {
     expect(hasDeleteBlockers({ ...zero, applications: 1 })).toBe(true);
+    // #285: 승인·완료 이력은 FK no action이라 재배정 불가 → 삭제 차단
+    expect(hasDeleteBlockers({ ...zero, service_report_approvals: 1 })).toBe(true);
   });
 
   it("0이 아닌 항목만 라벨·건수로 나열", () => {
@@ -32,9 +35,10 @@ describe("delete-blockers — 사용자 삭제 차단 사유", () => {
       quotes: 1,
       supply_requests: 1,
       service_requests: 1,
+      service_report_approvals: 1,
     };
     expect(formatDeleteBlockers(full)).toBe(
-      "담당 고객사 1건, 담당 의뢰 1건, 담당 견적 1건, 담당 소모품 의뢰 1건, 담당 A/S 의뢰 1건",
+      "담당 고객사 1건, 담당 의뢰 1건, 담당 견적 1건, 담당 소모품 의뢰 1건, 담당 A/S 의뢰 1건, 승인·완료한 서비스 리포트 1건",
     );
   });
 });

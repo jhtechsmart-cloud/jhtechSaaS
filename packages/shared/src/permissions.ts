@@ -134,6 +134,18 @@ const PERMISSION_REGISTRY_RAW = [
     description: "담당 무관 모든 서비스 리포트 조회 (없으면 본인 작성 draft + 발행본만)",
     group: "A/S",
   },
+  {
+    key: "service_reports.approve",
+    label: "서비스 리포트 승인(결재)",
+    description: "확정된 서비스 리포트를 등록 직인으로 승인(본부장 결재). 승인 버튼은 이 키 보유자에게만 표시(#285)",
+    group: "A/S",
+  },
+  {
+    key: "service_reports.complete",
+    label: "서비스 리포트 완료 처리(세금계산서)",
+    description: "승인본 확인 후 세금계산서 발행 여부를 기록하고 A/S를 완료 처리(관리부, #285)",
+    group: "A/S",
+  },
   // ── 소모품신청 (supply_requests) ──
   {
     key: "supply_requests.view_all",

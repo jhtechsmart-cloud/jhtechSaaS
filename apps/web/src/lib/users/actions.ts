@@ -223,12 +223,16 @@ export async function deleteUserAction(userId: string): Promise<DeleteUserResult
   const admin = createSupabaseAdminClient();
 
   // 담당 건 카운트 — service_role이라 RLS 우회. head:true로 행 없이 count만.
-  const [companies, applications, quotes, supplyRequests, serviceRequests] = await Promise.all([
+  const [companies, applications, quotes, supplyRequests, serviceRequests, approvedReports, completedReports] = await Promise.all([
     admin.from("companies").select("id", { count: "exact", head: true }).eq("assignee_id", userId),
     admin.from("applications").select("id", { count: "exact", head: true }).eq("assignee_id", userId),
     admin.from("quotes").select("id", { count: "exact", head: true }).eq("assignee_id", userId),
     admin.from("supply_requests").select("id", { count: "exact", head: true }).eq("assignee_id", userId),
     admin.from("service_requests").select("id", { count: "exact", head: true }).eq("assignee_id", userId),
+    // #285: 승인·완료 이력은 문서 동결의 일부(FK no action) — 있으면 계정 삭제 불가.
+    // .or() 문자열 보간 대신 .eq() 2회(userId가 필터 문법에 섞이지 않게)
+    admin.from("service_reports").select("id", { count: "exact", head: true }).eq("approved_by", userId),
+    admin.from("service_reports").select("id", { count: "exact", head: true }).eq("completed_by", userId),
   ]);
   const blockers: DeleteUserBlockers = {
     companies: companies.count ?? 0,
@@ -236,6 +240,7 @@ export async function deleteUserAction(userId: string): Promise<DeleteUserResult
     quotes: quotes.count ?? 0,
     supply_requests: supplyRequests.count ?? 0,
     service_requests: serviceRequests.count ?? 0,
+    service_report_approvals: (approvedReports.count ?? 0) + (completedReports.count ?? 0),
   };
   if (hasDeleteBlockers(blockers)) {
     return { error: "담당 건이 있어 삭제할 수 없습니다", blockers };

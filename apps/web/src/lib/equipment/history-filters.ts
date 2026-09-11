@@ -17,7 +17,7 @@ export interface HistoryFilters {
 export interface EquipmentReportRow {
   id: string;
   seq_no: string;
-  status: "issued" | "voided";
+  status: "issued" | "approved" | "completed" | "voided"; // #285: 발행 이후 3상태 + 무효(단일 출처 shared와 동기)
   customer_name: string;
   device_serial: string | null;
   faults: string[];
