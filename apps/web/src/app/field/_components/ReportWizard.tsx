@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { ReportPayload, ServiceReportRow, EquipmentItem, OpenRequest } from "@/lib/service-reports/types";
 import { upsertReportAction } from "@/lib/service-reports/actions";
+import { applyDraftPatch } from "@/lib/service-reports/draft";
 import { Step1Customer, Step2Equipment } from "./steps-basic";
 import { Step3Fault, Step4Action, Step5Follow, Step6Parts } from "./steps-detail";
 import { Step7Charge, Step8Summary } from "./steps-confirm";
@@ -44,6 +45,7 @@ export function emptyPayload(): ReportPayload {
     photos_before: [],
     photos_after: [],
     signature_path: "",
+    engineer_signature_path: "",
     follow_needed: false,
     follow_memo: "",
     follow_date: "",
@@ -75,6 +77,7 @@ export function rowToPayload(r: ServiceReportRow): ReportPayload {
     photos_before: r.photos_before ?? [],
     photos_after: r.photos_after ?? [],
     signature_path: r.signature_path ?? "",
+    engineer_signature_path: r.engineer_signature_path ?? "",
     follow_needed: r.follow_needed ?? false,
     follow_memo: r.follow_memo ?? "",
     follow_date: r.follow_date ?? "",
@@ -126,12 +129,8 @@ export function ReportWizard({ initial }: { initial: ServiceReportRow | null }) 
   }, [reportId]);
 
   const patch = useCallback((p: Partial<ReportPayload>) => {
-    setDraft((d) => {
-      const next = { ...d, ...p };
-      // 서명 후 내용이 바뀌면 서명 무효화 — 고객이 서명한 내용과 다른 문서로 확정 불가(재서명 요구).
-      if (!("signature_path" in p) && d.signature_path) next.signature_path = "";
-      return next;
-    });
+    // 서명 후 내용이 바뀌면 고객·기사 서명 무효화 — 서명한 내용과 다른 문서로 확정 불가(규칙은 draft.ts 순수 함수).
+    setDraft((d) => applyDraftPatch(d, p));
   }, []);
 
   // draft 저장 — 신규면 id 획득 후 URL에 반영(새로고침·이어쓰기 성립).

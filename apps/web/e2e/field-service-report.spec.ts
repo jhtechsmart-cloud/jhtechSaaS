@@ -20,6 +20,27 @@ test.use({ viewport: { width: 390, height: 844 } });
 // #B' 머지 시 이 skip을 제거하고 기사 서명 단계를 시나리오에 추가할 것.
 test.skip(true, "#285 #B'(기사 서명 UI) 전까지 확정 RPC가 기사 서명을 요구 — #B'에서 복원");
 
+// 캔버스 서명 드로잉(경로 길이 ≥100px) — 고객/기사 공용.
+async function drawSignature(page: Page, label: string) {
+  const canvas = page.getByLabel(label);
+  const box = await canvas.boundingBox();
+  if (!box) throw new Error(`서명 캔버스 없음: ${label}`);
+  await page.mouse.move(box.x + 30, box.y + 90);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 150, box.y + 60, { steps: 12 });
+  await page.mouse.move(box.x + 280, box.y + 110, { steps: 12 });
+  await page.mouse.up();
+}
+
+// #285 #B' — 고객 서명 뒤 기사 본인 서명(결재 '담당' 칸). 기사 서명 전엔 확정 비활성.
+async function signEngineer(page: Page) {
+  await expect(page.getByRole("button", { name: "리포트 확정" })).toBeDisabled();
+  await drawSignature(page, "기사 서명 입력");
+  await page.getByRole("button", { name: "기사 서명 저장" }).click();
+  await expect(page.getByText("✓ 기사 서명 완료")).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole("button", { name: "리포트 확정" })).toBeEnabled();
+}
+
 function svc(path: string, init: RequestInit = {}) {
   return fetch(`${LOCAL_SUPABASE_URL}${path}`, {
     ...init,
@@ -142,19 +163,31 @@ test("미인증 /field → login?next → 마법사 완주 → 서명 → 확정
   await expect(page.getByText("총 청구액", { exact: false })).toBeVisible();
 
   // 캔버스 서명(경로 길이 ≥100px 드로잉)
-  const canvas = page.getByLabel("고객 서명 입력");
-  const box = await canvas.boundingBox();
-  if (!box) throw new Error("서명 캔버스 없음");
-  await page.mouse.move(box.x + 30, box.y + 90);
-  await page.mouse.down();
-  await page.mouse.move(box.x + 150, box.y + 60, { steps: 12 });
-  await page.mouse.move(box.x + 280, box.y + 110, { steps: 12 });
-  await page.mouse.up();
+  await drawSignature(page, "고객 서명 입력");
   await expect(page.getByText("서명이 입력되었습니다")).toBeVisible();
   await page.getByRole("button", { name: "서명 완료" }).click();
 
-  // 기사 화면 복귀 → 최종 확정(2단)
+  // 기사 화면 복귀 → 기사 서명(#285) → 최종 확정(2단)
   await expect(page.getByText("✓ 고객 서명 완료")).toBeVisible({ timeout: 15_000 });
+  await signEngineer(page);
+
+  // 기사 서명 후 내용을 바꾸면 두 서명 모두 무효 → 다시 받아야 확정 가능
+  await page.getByRole("button", { name: "재납땜 후 정상" }).click();
+  await expect(page.getByRole("heading", { name: "조치·수리 내역", level: 1 })).toBeVisible();
+  await page.getByLabel("조치 내역").fill("재납땜 후 정상 (보정)");
+  await page.getByRole("button", { name: "다음" }).click();
+  for (const h of ["향후 일정", "교체 부품", "청구 내역"]) {
+    await expect(page.getByRole("heading", { name: h, level: 1 })).toBeVisible();
+    await page.getByRole("button", { name: "다음" }).click();
+  }
+  await expect(page.getByText("리포트 요약", { exact: false })).toBeVisible();
+  await expect(page.getByRole("button", { name: "고객 확인 요청 (서명 받기)" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "리포트 확정" })).toBeDisabled();
+  await page.getByRole("button", { name: "고객 확인 요청 (서명 받기)" }).click();
+  await drawSignature(page, "고객 서명 입력");
+  await page.getByRole("button", { name: "서명 완료" }).click();
+  await expect(page.getByText("✓ 고객 서명 완료")).toBeVisible({ timeout: 15_000 });
+  await signEngineer(page);
   await page.getByRole("button", { name: "리포트 확정" }).click();
 
   // 완료 화면 — SR 번호·수정불가 안내(PDF는 로컬 워커 미가동이라 '생성 중' 허용)
@@ -221,33 +254,31 @@ test("카탈로그 피커 선택 → 확정 → 카탈로그 링크 기록 + 보
     await expect(page.getByRole("heading", { name: "청구 내역", level: 1 })).toBeVisible();
     await page.getByRole("button", { name: "다음" }).click();
 
-    // 8단계: 서명 → 확정
+    // 8단계: 고객 서명 → 기사 서명 → 확정
     await page.getByRole("button", { name: "고객 확인 요청 (서명 받기)" }).click();
-    const canvas = page.getByLabel("고객 서명 입력");
-    const box = await canvas.boundingBox();
-    if (!box) throw new Error("서명 캔버스 없음");
-    await page.mouse.move(box.x + 30, box.y + 90);
-    await page.mouse.down();
-    await page.mouse.move(box.x + 160, box.y + 60, { steps: 12 });
-    await page.mouse.move(box.x + 290, box.y + 110, { steps: 12 });
-    await page.mouse.up();
+    await drawSignature(page, "고객 서명 입력");
     await page.getByRole("button", { name: "서명 완료" }).click();
     await expect(page.getByText("✓ 고객 서명 완료")).toBeVisible({ timeout: 15_000 });
+    await signEngineer(page);
     await page.getByRole("button", { name: "리포트 확정" }).click();
     await expect(page.getByText("리포트가 확정되었습니다")).toBeVisible({ timeout: 20_000 });
 
-    // 검증 1: 확정본에 카탈로그 링크가 기록됐다(모델 단위 집계의 단일 원본)
+    // 검증 1: 확정본에 카탈로그 링크 + 기사 서명 경로가 기록됐다(모델 단위 집계의 단일 원본 / 결재 담당 칸)
     const repRes = await svc(
-      `/rest/v1/service_reports?select=id,catalog_equipment_id,company_equipment_id,company_id&catalog_equipment_id=eq.${equipmentId}`,
+      `/rest/v1/service_reports?select=id,catalog_equipment_id,company_equipment_id,company_id,engineer_signature_path,status&catalog_equipment_id=eq.${equipmentId}`,
     );
     const reports = (await repRes.json()) as {
       id: string;
       catalog_equipment_id: string;
       company_equipment_id: string;
       company_id: string;
+      engineer_signature_path: string | null;
+      status: string;
     }[];
     expect(reports.length).toBe(1);
     expect(reports[0].catalog_equipment_id).toBe(equipmentId);
+    expect(reports[0].status).toBe("issued");
+    expect(reports[0].engineer_signature_path).toBe(`${reports[0].id}/engineer-signature.png`);
 
     // 검증 2: 보유장비가 카탈로그에 연결된 채 1행만 생성됐다
     const ceRes = await svc(
