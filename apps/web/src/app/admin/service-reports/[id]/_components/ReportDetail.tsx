@@ -15,6 +15,7 @@ import {
 } from "@/lib/service-reports/admin-actions";
 import type { PdfStatus } from "@/lib/service-reports/types";
 import { buildApprovalTimeline, describeTurn, fmtKstMinute } from "@/lib/service-reports/timeline";
+import { SERVICE_REPORT_STATUS_LABEL } from "@/lib/service-reports/status";
 import { MailBadge, StatusBadge } from "../../_components/ReportTable";
 import { Modal } from "./Modal";
 import { CompleteModal } from "./CompleteModal";
@@ -365,11 +366,21 @@ export function ReportDetail({ initial }: { initial: AdminReportDetail }) {
             {r.parent_report_id && (
               <li>
                 <Link href={`/admin/service-reports/${r.parent_report_id}`} className="text-accent underline">
-                  원 리포트(후속 방문)
+                  원 리포트 — 이 문서는 후속 방문입니다
                 </Link>
               </li>
             )}
-            {!r.service_request_id && !r.company_id && !r.catalog_equipment_id && !r.parent_report_id && <li className="text-muted">연결된 항목 없음</li>}
+            {r.children.map((c) => (
+              <li key={c.id}>
+                <Link href={`/admin/service-reports/${c.id}`} className="text-accent underline">
+                  후속 방문 {c.seq_no}
+                </Link>
+                <span className="ml-1 text-micro text-muted">{SERVICE_REPORT_STATUS_LABEL[c.status]}</span>
+              </li>
+            ))}
+            {!r.service_request_id && !r.company_id && !r.catalog_equipment_id && !r.parent_report_id && r.children.length === 0 && (
+              <li className="text-muted">연결된 항목 없음</li>
+            )}
           </ul>
         </div>
       </section>

@@ -1,12 +1,13 @@
 import Link from "next/link";
-import { myDraftsAction } from "@/lib/service-reports/actions";
+import { myDraftsAction, openFollowUpsAction } from "@/lib/service-reports/actions";
 import { DraftList } from "./_components/DraftList";
+import { FollowUpList } from "./_components/FollowUpList";
 
-// 현장 콘솔 홈 — 작성 중(draft) 이어쓰기 카드 + 새 리포트 CTA. (autoplan F-H4)
+// 현장 콘솔 홈 — 작성 중(draft) 이어쓰기 카드 + 후속 방문 대기(#285 #D) + 새 리포트 CTA. (autoplan F-H4)
 export const dynamic = "force-dynamic";
 
 export default async function FieldHome() {
-  const drafts = await myDraftsAction();
+  const [drafts, followUps] = await Promise.all([myDraftsAction(), openFollowUpsAction()]);
 
   return (
     <main className="flex flex-1 flex-col gap-4 p-4">
@@ -25,6 +26,17 @@ export default async function FieldHome() {
           </p>
         ) : (
           <DraftList initial={drafts.data} />
+        )}
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <h2 className="text-small font-semibold text-muted">후속 방문 대기</h2>
+        {!followUps.ok ? (
+          <p className="rounded-md border border-border bg-surface p-4 text-small text-danger">
+            후속 방문 목록을 불러오지 못했습니다 — 새로고침해 주세요.
+          </p>
+        ) : (
+          <FollowUpList items={followUps.data} />
         )}
       </section>
     </main>

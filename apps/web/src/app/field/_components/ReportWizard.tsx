@@ -4,6 +4,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import type { ReportPayload, ServiceReportRow, EquipmentItem, OpenRequest } from "@/lib/service-reports/types";
 import { upsertReportAction } from "@/lib/service-reports/actions";
 import { applyDraftPatch } from "@/lib/service-reports/draft";
+import { emptyPayloadBase, rowToPayload } from "@/lib/service-reports/payload";
+import type { FollowUpReference } from "@/lib/service-reports/followup";
 import { Step1Customer, Step2Equipment } from "./steps-basic";
 import { Step3Fault, Step4Action, Step5Follow, Step6Parts } from "./steps-detail";
 import { Step7Charge, Step8Summary } from "./steps-confirm";
@@ -25,69 +27,7 @@ export const STEP_TITLES = [
   "고객 확인·서명",
 ] as const;
 
-export function emptyPayload(): ReportPayload {
-  return {
-    company_id: null,
-    company_equipment_id: null,
-    catalog_equipment_id: null,
-    service_request_id: null,
-    customer_name: "",
-    customer_biz_no: "",
-    customer_tel: "",
-    customer_addr: "",
-    recipient_email: "",
-    device_name: "",
-    device_serial: "",
-    purchased_at: "",
-    faults: [],
-    diagnosis: "",
-    action_text: "",
-    photos_before: [],
-    photos_after: [],
-    signature_path: "",
-    engineer_signature_path: "",
-    follow_needed: false,
-    follow_memo: "",
-    follow_date: "",
-    parts: [],
-    charge_type: "paid",
-    free_reason: "",
-    visit_fee: 0,
-    overtime_fee: 0,
-  };
-}
 
-export function rowToPayload(r: ServiceReportRow): ReportPayload {
-  return {
-    company_id: r.company_id,
-    company_equipment_id: r.company_equipment_id,
-    catalog_equipment_id: r.catalog_equipment_id,
-    service_request_id: r.service_request_id,
-    customer_name: r.customer_name ?? "",
-    customer_biz_no: r.customer_biz_no ?? "",
-    customer_tel: r.customer_tel ?? "",
-    customer_addr: r.customer_addr ?? "",
-    recipient_email: r.recipient_email ?? "",
-    device_name: r.device_name ?? "",
-    device_serial: r.device_serial ?? "",
-    purchased_at: r.purchased_at ?? "",
-    faults: r.faults ?? [],
-    diagnosis: r.diagnosis ?? "",
-    action_text: r.action_text ?? "",
-    photos_before: r.photos_before ?? [],
-    photos_after: r.photos_after ?? [],
-    signature_path: r.signature_path ?? "",
-    engineer_signature_path: r.engineer_signature_path ?? "",
-    follow_needed: r.follow_needed ?? false,
-    follow_memo: r.follow_memo ?? "",
-    follow_date: r.follow_date ?? "",
-    parts: r.parts ?? [],
-    charge_type: r.charge_type ?? "paid",
-    free_reason: r.free_reason ?? "",
-    visit_fee: r.visit_fee ?? 0,
-    overtime_fee: r.overtime_fee ?? 0,
-  };
-}
 
 // 단계별 컨텍스트(고객 검색 결과 등 payload 밖 화면 상태)
 export interface WizardCtx {
@@ -99,19 +39,32 @@ export interface WizardCtx {
 
 type SaveState = { kind: "idle" } | { kind: "saving" } | { kind: "saved" } | { kind: "error"; msg: string };
 
-export function ReportWizard({ initial }: { initial: ServiceReportRow | null }) {
+export function ReportWizard({
+  initial,
+  followUp = null,
+}: {
+  initial: ServiceReportRow | null;
+  // #285 #D 후속 방문 — 부모에서 고객·장비를 프리필하고, 원 리포트 내용을 읽기 전용 참고 카드로 보여준다.
+  followUp?: { seed: ReportPayload; reference: FollowUpReference } | null;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const step = Math.min(8, Math.max(1, Number(searchParams.get("step") ?? "1") || 1));
 
   const [reportId, setReportId] = useState<string | null>(initial?.id ?? null);
   const [seqNo, setSeqNo] = useState<string>(initial?.seq_no ?? "");
-  const [draft, setDraft] = useState<ReportPayload>(initial ? rowToPayload(initial) : emptyPayload());
+  const [draft, setDraft] = useState<ReportPayload>(
+    initial ? rowToPayload(initial) : (followUp?.seed ?? emptyPayloadBase()),
+  );
   const [ctx, setCtx] = useState<WizardCtx>({
     equipment: [],
     openRequests: [],
-    manualCustomer: initial ? initial.company_id === null && !!initial.customer_name : false,
-    manualEquipment: initial ? initial.company_equipment_id === null && !!initial.device_name : false,
+    manualCustomer: initial
+      ? initial.company_id === null && !!initial.customer_name
+      : !!followUp && followUp.seed.company_id === null && !!followUp.seed.customer_name,
+    manualEquipment: initial
+      ? initial.company_equipment_id === null && !!initial.device_name
+      : !!followUp && followUp.seed.company_equipment_id === null && !!followUp.seed.device_name,
   });
   const [save, setSave] = useState<SaveState>({ kind: "idle" });
   const [stepError, setStepError] = useState("");
@@ -127,6 +80,12 @@ export function ReportWizard({ initial }: { initial: ServiceReportRow | null }) 
   useEffect(() => {
     idRef.current = reportId;
   }, [reportId]);
+  // 사용자가 마지막으로 "가려고 한" 단계. 첫 저장 뒤 id를 URL에 심는 replace가, 방금 push한 단계를
+  // 되돌리지 않게 한다(push는 RSC 응답이 와야 window.location에 반영되므로 replace가 옛 step을 읽는다).
+  const pendingStepRef = useRef(step);
+  useEffect(() => {
+    pendingStepRef.current = step;
+  }, [step]);
 
   const patch = useCallback((p: Partial<ReportPayload>) => {
     // 서명 후 내용이 바뀌면 고객·기사 서명 무효화 — 서명한 내용과 다른 문서로 확정 불가(규칙은 draft.ts 순수 함수).
@@ -149,6 +108,8 @@ export function ReportWizard({ initial }: { initial: ServiceReportRow | null }) 
       // 저장 중에 단계가 넘어간 경우 옛 step으로 되돌리는 replace가 돼 단계가 튕긴다.
       const q = new URLSearchParams(window.location.search);
       q.set("id", res.data.id);
+      q.set("step", String(pendingStepRef.current));
+      q.delete("parent"); // id가 생기면 부모는 행에 저장돼 있다 — URL에 남기면 새로고침 시 시드를 다시 만든다
       router.replace(`/field/report?${q.toString()}`, { scroll: false });
     }
     return { ok: true, id: res.data.id };
@@ -156,8 +117,12 @@ export function ReportWizard({ initial }: { initial: ServiceReportRow | null }) 
 
   const goto = useCallback(
     (next: number) => {
+      pendingStepRef.current = next;
       const q = new URLSearchParams(searchParams.toString());
-      if (idRef.current) q.set("id", idRef.current);
+      if (idRef.current) {
+        q.set("id", idRef.current);
+        q.delete("parent");
+      }
       q.set("step", String(next));
       router.push(`/field/report?${q.toString()}`, { scroll: false });
       window.scrollTo({ top: 0 });
@@ -218,7 +183,7 @@ export function ReportWizard({ initial }: { initial: ServiceReportRow | null }) 
         <div className="flex items-baseline justify-between">
           <h1 className="text-body font-extrabold text-text">{STEP_TITLES[step - 1]}</h1>
           <span className="font-mono text-micro text-muted">
-            {seqNo || "임시 작성 중"} · {step} / 8
+            {seqNo || (followUp ? "후속 리포트" : "임시 작성 중")} · {step} / 8
           </span>
         </div>
         {contextLine && <p className="mt-0.5 truncate text-small text-muted">{contextLine}</p>}
@@ -242,6 +207,30 @@ export function ReportWizard({ initial }: { initial: ServiceReportRow | null }) 
           )}
         </div>
       </div>
+
+      {followUp && (
+        <details className="mx-4 mt-3 rounded-md border border-accent/40 bg-accent-soft/40 px-3 py-2">
+          <summary className="cursor-pointer list-none text-small font-semibold text-accent">
+            후속 방문 · 원 리포트 {followUp.reference.seqNo} 보기
+          </summary>
+          <div className="mt-2 flex flex-col gap-1 text-small text-text">
+            <p className="text-micro text-muted">확정 {followUp.reference.issuedAtLabel}</p>
+            {followUp.reference.faults.length > 0 && (
+              <p>
+                <span className="text-muted">고장 분류 </span>
+                {followUp.reference.faults.join(", ")}
+              </p>
+            )}
+            {followUp.reference.followLabel && (
+              <p>
+                <span className="text-muted">후속 예정 </span>
+                {followUp.reference.followLabel}
+              </p>
+            )}
+            <p className="whitespace-pre-wrap text-muted">{followUp.reference.actionSummary}</p>
+          </div>
+        </details>
+      )}
 
       <div className="flex flex-1 flex-col gap-3 p-4">
         {step === 1 && <Step1Customer draft={draft} patch={patch} ctx={ctx} setCtx={setCtx} />}

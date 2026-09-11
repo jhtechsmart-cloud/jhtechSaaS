@@ -64,6 +64,7 @@ export interface AdminReportDetail extends AdminReportRow {
   pdf_revision: number;
   email_logs: { id: string; to_email: string; status: string; error_msg: string | null; created_at: string; sent_at: string | null }[];
   approval_notice: { sent_count: number; last_sent_at: string | null } | null;
+  children: { id: string; seq_no: string; status: ServiceReportStatus }[]; // 이 리포트를 부모로 둔 후속 방문(#285 #D)
   viewer: {
     canApprove: boolean;
     canComplete: boolean;
@@ -263,7 +264,7 @@ export async function adminGetReportAction(id: string): Promise<Result<AdminRepo
   if (!row) return { ok: false, error: "리포트를 찾을 수 없습니다" };
   const r = row as Record<string, unknown>;
 
-  const [logsRes, noticeRes, profileRes, completerRes] = await Promise.all([
+  const [logsRes, noticeRes, profileRes, completerRes, childRes] = await Promise.all([
     supabase
       .from("email_log")
       .select("id, to_email, status, error_msg, created_at, sent_at")
@@ -276,6 +277,7 @@ export async function adminGetReportAction(id: string): Promise<Result<AdminRepo
     r.completed_by
       ? createSupabaseAdminClient().from("profiles").select("name").eq("id", r.completed_by as string).maybeSingle()
       : Promise.resolve({ data: null }),
+    supabase.from("service_reports").select("id, seq_no, status").eq("parent_report_id", id).order("created_at"),
   ]);
   // 메일 이력은 감사 기록 — 조회 실패를 "이력 없음"으로 위장하지 않는다.
   if (logsRes.error) return { ok: false, error: `메일 발송 이력 조회 실패: ${logsRes.error.message}` };
@@ -326,6 +328,7 @@ export async function adminGetReportAction(id: string): Promise<Result<AdminRepo
     pdf_revision: (r.pdf_revision as number | null) ?? 0,
     email_logs: logs,
     approval_notice: notice ? { sent_count: notice.sent_count ?? 0, last_sent_at: notice.last_sent_at ?? null } : null,
+    children: (childRes.data ?? []) as AdminReportDetail["children"],
     viewer: {
       canApprove: has(g.permissions, "service_reports.approve") && status === "issued",
       canComplete: has(g.permissions, "service_reports.complete") && status === "approved",
