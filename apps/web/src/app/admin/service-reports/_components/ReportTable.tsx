@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { adminPdfUrlAction, adminResolveFollowAction, type AdminReportRow } from "@/lib/service-reports/admin-actions";
 import { SERVICE_REPORT_STATUS_LABEL } from "@/lib/service-reports/status";
@@ -18,12 +18,6 @@ type Period = "all" | "month";
 const won = (n: number) => n.toLocaleString("ko-KR") + "원";
 const d10 = (iso: string | null) => (iso ? iso.slice(0, 10) : "—");
 
-// KST 이번 달 시작(ISO) — 완료 탭 '이번 달' 프리셋(KPI '이번 달 완료'와 동일 기준).
-function monthStartKst(now = new Date()): number {
-  const k = new Date(now.getTime() + 9 * 3600 * 1000);
-  return Date.UTC(k.getUTCFullYear(), k.getUTCMonth(), 1) - 9 * 3600 * 1000;
-}
-
 export function StatusBadge({ status, title }: { status: AdminReportRow["status"]; title?: string }) {
   return (
     <span className={`rounded-full px-2.5 py-0.5 text-micro font-bold ${STATUS_BADGE_CLASS[status]}`} title={title}>
@@ -39,49 +33,29 @@ export function MailBadge({ mail }: { mail: AdminReportRow["mail"] }) {
 
 export function ReportTable({
   items,
-  initialTab,
-  initialPeriod,
+  counts,
+  tab,
+  period,
+  canResolveFollow,
 }: {
-  items: AdminReportRow[];
-  initialTab: ReportTabKey;
-  initialPeriod: Period;
+  items: AdminReportRow[]; // 활성 탭 기준으로 서버가 이미 필터한 행
+  counts: Record<ReportTabKey, number> | null; // DB 전체 기준 정확 건수(실패 시 null → 숫자 생략)
+  tab: ReportTabKey;
+  period: Period;
+  canResolveFollow: boolean;
 }) {
   const router = useRouter();
-  const [tab, setTab] = useState<ReportTabKey>(initialTab);
-  const [period, setPeriod] = useState<Period>(initialPeriod);
   const [note, setNote] = useState("");
   const [pending, startTransition] = useTransition();
 
-  // shallow URL 갱신(RSC 재조회 없음) — useListParams 패턴.
-  function syncUrl(nextTab: ReportTabKey, nextPeriod: Period) {
+  // 탭·기간 전환은 서버 재조회(필터가 서버에 있음) — 검색어 입력과 달리 레이스가 없으므로 push가 맞다.
+  function go(nextTab: ReportTabKey, nextPeriod: Period) {
     const sp = new URLSearchParams();
     sp.set("tab", nextTab);
     if (nextTab === "completed" && nextPeriod === "month") sp.set("period", "month");
-    window.history.replaceState(null, "", `?${sp.toString()}`);
+    router.push(`/admin/service-reports?${sp.toString()}`);
   }
-  function selectTab(k: ReportTabKey) {
-    setTab(k);
-    syncUrl(k, period);
-  }
-  function selectPeriod(p: Period) {
-    setPeriod(p);
-    syncUrl(tab, p);
-  }
-
-  const counts = useMemo(() => {
-    const c = {} as Record<ReportTabKey, number>;
-    for (const t of REPORT_TABS) c[t.key] = items.filter((r) => tabMatches(t.key, r)).length;
-    return c;
-  }, [items]);
-
-  const filtered = useMemo(() => {
-    let rows = items.filter((r) => tabMatches(tab, r));
-    if (tab === "completed" && period === "month") {
-      const start = monthStartKst();
-      rows = rows.filter((r) => r.completed_at && Date.parse(r.completed_at) >= start);
-    }
-    return rows;
-  }, [items, tab, period]);
+  const filtered = items;
 
   const emptyText: Record<ReportTabKey, string> = {
     all: "표시할 리포트가 없습니다",
@@ -118,12 +92,12 @@ export function ReportTable({
             role="tab"
             aria-selected={tab === t.key}
             aria-current={tab === t.key ? "page" : undefined}
-            onClick={() => selectTab(t.key)}
+            onClick={() => go(t.key, period)}
             className={`min-h-9 shrink-0 rounded-full border px-4 py-1.5 text-small font-semibold ${
               tab === t.key ? "border-accent bg-accent text-white" : "border-border bg-surface text-muted hover:text-text"
             }`}
           >
-            {t.label} {counts[t.key]}
+            {t.label}{counts ? ` ${counts[t.key]}` : ""}
           </button>
         ))}
       </div>
@@ -138,7 +112,7 @@ export function ReportTable({
             <button
               key={p.k}
               type="button"
-              onClick={() => selectPeriod(p.k)}
+              onClick={() => go(tab, p.k)}
               className={`rounded-full border px-3 py-1 text-micro font-semibold ${
                 period === p.k ? "border-accent bg-accent-soft text-accent" : "border-border bg-surface text-muted"
               }`}
@@ -173,7 +147,7 @@ export function ReportTable({
                 <td colSpan={10} className="px-3 py-8 text-center text-muted">
                   {emptyText[tab]}
                   {tab !== "all" && (
-                    <button type="button" onClick={() => selectTab("all")} className="ml-2 text-accent underline">
+                    <button type="button" onClick={() => go("all", period)} className="ml-2 text-accent underline">
                       전체 보기
                     </button>
                   )}
@@ -222,7 +196,7 @@ export function ReportTable({
                         PDF
                       </button>
                     )}
-                    {tabMatches("follow", r) && (
+                    {canResolveFollow && tabMatches("follow", r) && (
                       <button
                         type="button"
                         disabled={pending}

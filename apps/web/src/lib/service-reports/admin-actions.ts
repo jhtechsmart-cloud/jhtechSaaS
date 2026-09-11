@@ -3,11 +3,12 @@
 // 승인/완료/메일/무효화는 각 RPC가 권한을 최종 강제. 리포트 작성·수정은 admin에서 불가(현장 콘솔 전용).
 import { revalidatePath } from "next/cache";
 import type { ServiceReportStatus, TaxInvoiceStatus } from "@jhtechsaas/shared";
+import { SERVICE_REPORT_FINALIZED, SERVICE_REPORT_MAILABLE } from "@jhtechsaas/shared";
 import { requireServiceReportsRead } from "@/lib/auth/guard";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { completeReportSchema, type CompleteReportInput } from "./complete-schema";
-import { mailBadgeKey, type MailBadgeKey } from "./report-tabs";
+import { canResolveFollow, mailBadgeKey, monthStartKstIso, type MailBadgeKey, type ReportTabKey } from "./report-tabs";
 import type { PdfStatus } from "./types";
 
 type Result<T> = { ok: true; data: T } | { ok: false; error: string };
@@ -69,6 +70,7 @@ export interface AdminReportDetail extends AdminReportRow {
     canSendMail: boolean;
     canVoid: boolean;
     canRetryPdf: boolean;
+    canResolveFollow: boolean; // resolve RPC = service_reports.write | service_requests.status
     hasStamp: boolean; // 승인자 본인 직인 등록 여부(미등록이면 승인 버튼 비활성 + 안내)
     stampUrl: string | null; // 승인 확인 모달 미리보기(10분 서명 URL)
     hiworksReady: boolean; // 메일 발송자(호출자) 하이웍스 ID 유무
@@ -94,18 +96,20 @@ const has = (perms: readonly string[], key: string) => perms.includes("users.man
 const LIST_COLUMNS =
   "id, seq_no, status, customer_name, device_name, engineer_name, charge_type, total, follow_needed, follow_memo, follow_date, follow_resolved_at, service_request_id, pdf_url, void_reason, issued_at, approved_at, completed_at, created_at";
 
+type SupabaseServer = Awaited<ReturnType<typeof createSupabaseServerClient>>;
+
 // 리포트별 고객 메일 상태(email_log kind=customer) — RLS가 리포트 권한자에게 열려 있다.
-async function loadMailBadges(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
-  ids: string[],
-): Promise<Map<string, string[]>> {
+// 조회 실패는 배지만 "미발송"으로 보이게 두되 서버 로그에 남긴다(중복 발송은 DB 부분 유니크가 최종 차단).
+async function loadMailBadges(supabase: SupabaseServer, ids: string[]): Promise<Map<string, string[]>> {
   const map = new Map<string, string[]>();
   if (ids.length === 0) return map;
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("email_log")
     .select("service_report_id, status")
     .eq("kind", "customer")
-    .in("service_report_id", ids);
+    .in("service_report_id", ids)
+    .limit(2000);
+  if (error) console.error("[serviceReports.list] 메일 배지 조회 실패(배지만 영향)", error);
   for (const row of data ?? []) {
     const r = row as { service_report_id: string; status: string };
     map.set(r.service_report_id, [...(map.get(r.service_report_id) ?? []), r.status]);
@@ -113,18 +117,78 @@ async function loadMailBadges(
   return map;
 }
 
-// 목록 — RLS 스코프 안에서 최근순 + 메일 배지.
-export async function adminListReportsAction(): Promise<Result<AdminReportRow[]>> {
+// '메일 미발송' 탭 = 승인본(approved|completed) 중 고객 메일 sent 이력이 없는 건.
+// 승인본은 미처리 업무라 건수가 제한적 → id만 모아 sent 로그와 대조(최근 N건 창에 갇히지 않는다).
+async function mailUnsentIds(supabase: SupabaseServer): Promise<string[]> {
+  const { data, error } = await supabase
+    .from("service_reports")
+    .select("id")
+    .in("status", [...SERVICE_REPORT_MAILABLE])
+    .limit(2000);
+  if (error) throw new Error(error.message);
+  const ids = (data ?? []).map((r) => (r as { id: string }).id);
+  if (ids.length === 0) return [];
+  const badges = await loadMailBadges(supabase, ids);
+  return ids.filter((id) => !(badges.get(id) ?? []).includes("sent"));
+}
+
+// 탭별 서버 필터 — 미처리 업무 큐(승인 대기·세금계산서·후속·메일 미발송)는 절대 "최근 N건"으로 자르지 않는다.
+// 이력 성격 탭(전체·완료·무효)만 최근 300건 창을 쓴다.
+function applyTabFilter<T extends { eq: (c: string, v: unknown) => T; in: (c: string, v: unknown[]) => T; is: (c: string, v: null) => T; gte: (c: string, v: string) => T }>(
+  q: T,
+  tab: ReportTabKey,
+  monthStartIso: string | null,
+): T {
+  switch (tab) {
+    case "awaiting_approval":
+      return q.eq("status", "issued");
+    case "awaiting_tax":
+      return q.eq("status", "approved");
+    case "follow":
+      return q.in("status", [...SERVICE_REPORT_FINALIZED]).eq("follow_needed", true).is("follow_resolved_at", null);
+    case "completed":
+      return monthStartIso ? q.eq("status", "completed").gte("completed_at", monthStartIso) : q.eq("status", "completed");
+    case "voided":
+      return q.eq("status", "voided");
+    default:
+      return q;
+  }
+}
+
+const HISTORY_TABS: ReportTabKey[] = ["all", "completed", "voided"];
+
+// 목록 — 활성 탭을 서버에서 필터(RLS 스코프 안). 미처리 큐는 전량, 이력 탭은 최근 300건.
+export async function adminListReportsAction(
+  tab: ReportTabKey = "all",
+  period: "all" | "month" = "all",
+): Promise<Result<AdminReportRow[]>> {
   const g = await guarded();
   if (!g.ok) return g;
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from("service_reports")
-    .select(LIST_COLUMNS)
-    .order("created_at", { ascending: false })
-    .limit(300);
-  if (error) return { ok: false, error: error.message };
-  const rows = (data ?? []) as Omit<AdminReportRow, "mail" | "mail_sent">[];
+  const monthStart = tab === "completed" && period === "month" ? monthStartKstIso() : null;
+  let rows: Omit<AdminReportRow, "mail" | "mail_sent">[];
+  if (tab === "mail_unsent") {
+    let ids: string[];
+    try {
+      ids = await mailUnsentIds(supabase);
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : "메일 미발송 조회 실패" };
+    }
+    if (ids.length === 0) return { ok: true, data: [] };
+    const { data, error } = await supabase
+      .from("service_reports")
+      .select(LIST_COLUMNS)
+      .in("id", ids)
+      .order("created_at", { ascending: false });
+    if (error) return { ok: false, error: error.message };
+    rows = (data ?? []) as typeof rows;
+  } else {
+    const base = supabase.from("service_reports").select(LIST_COLUMNS).order("created_at", { ascending: false });
+    const q = applyTabFilter(base, tab, monthStart);
+    const { data, error } = await (HISTORY_TABS.includes(tab) ? q.limit(300) : q.limit(2000));
+    if (error) return { ok: false, error: error.message };
+    rows = (data ?? []) as typeof rows;
+  }
   const badges = await loadMailBadges(supabase, rows.map((r) => r.id));
   return {
     ok: true,
@@ -133,6 +197,34 @@ export async function adminListReportsAction(): Promise<Result<AdminReportRow[]>
       return { ...r, mail: mailBadgeKey(statuses), mail_sent: statuses.includes("sent") };
     }),
   };
+}
+
+// 탭 배지 숫자 — DB 전체 기준 정확 카운트(로드된 페이지에서 세면 300건 창 밖이 누락되고 KPI와 어긋난다).
+export async function adminTabCountsAction(period: "all" | "month" = "all"): Promise<Result<Record<ReportTabKey, number>>> {
+  const g = await guarded();
+  if (!g.ok) return g;
+  const supabase = await createSupabaseServerClient();
+  const monthStart = period === "month" ? monthStartKstIso() : null;
+  const countable: ReportTabKey[] = ["all", "awaiting_approval", "awaiting_tax", "follow", "completed", "voided"];
+  try {
+    const [pairs, unsent] = await Promise.all([
+      Promise.all(
+        countable.map(async (tab) => {
+          const base = supabase.from("service_reports").select("id", { count: "exact", head: true });
+          const { count, error } = await applyTabFilter(base, tab, tab === "completed" ? monthStart : null);
+          if (error) throw new Error(error.message);
+          return [tab, count ?? 0] as const;
+        }),
+      ),
+      mailUnsentIds(supabase).then((ids) => ids.length),
+    ]);
+    const out = Object.fromEntries(pairs) as Record<ReportTabKey, number>;
+    out.mail_unsent = unsent;
+    return { ok: true, data: out };
+  } catch (e) {
+    console.error("[serviceReports.tabCounts]", e);
+    return { ok: false, error: "탭 건수를 계산하지 못했습니다" };
+  }
 }
 
 // KPI 5박스 — DEFINER RPC(권한 무관 동일 숫자, AC10). 실패는 null(화면 "—").
@@ -185,6 +277,10 @@ export async function adminGetReportAction(id: string): Promise<Result<AdminRepo
       ? createSupabaseAdminClient().from("profiles").select("name").eq("id", r.completed_by as string).maybeSingle()
       : Promise.resolve({ data: null }),
   ]);
+  // 메일 이력은 감사 기록 — 조회 실패를 "이력 없음"으로 위장하지 않는다.
+  if (logsRes.error) return { ok: false, error: `메일 발송 이력 조회 실패: ${logsRes.error.message}` };
+  if (profileRes.error) console.error("[serviceReports.detail] 내 프로필 조회 실패(직인·하이웍스 상태 미확정)", profileRes.error);
+  if (noticeRes.error) console.error("[serviceReports.detail] 승인 알림 요약 조회 실패", noticeRes.error);
   const logs = (logsRes.data ?? []) as AdminReportDetail["email_logs"];
   const statuses = logs.map((l) => l.status);
   const stampPath = (profileRes.data as { approval_stamp_path?: string | null } | null)?.approval_stamp_path ?? null;
@@ -198,8 +294,10 @@ export async function adminGetReportAction(id: string): Promise<Result<AdminRepo
   const notice = (noticeRes.data ?? null) as { sent_count?: number; last_sent_at?: string | null } | null;
   const status = r.status as ServiceReportStatus;
   const canVoid = g.permissions.includes("users.manage") && (status === "issued" || status === "approved");
+  const { completed_by: _completedBy, ...publicRow } = r; // 직원 uuid는 클라 응답에서 제외(이름만 내려보낸다)
+  void _completedBy;
   const detail: AdminReportDetail = {
-    ...(r as unknown as Omit<AdminReportRow, "mail" | "mail_sent">),
+    ...(publicRow as unknown as Omit<AdminReportRow, "mail" | "mail_sent">),
     mail: mailBadgeKey(statuses),
     mail_sent: statuses.includes("sent"),
     company_id: (r.company_id as string | null) ?? null,
@@ -237,6 +335,7 @@ export async function adminGetReportAction(id: string): Promise<Result<AdminRepo
         has(g.permissions, "service_reports.approve") ||
         has(g.permissions, "service_reports.complete") ||
         g.permissions.includes("service_reports.write"),
+      canResolveFollow: canResolveFollow(g.permissions),
       hasStamp: !!stampPath,
       stampUrl,
       hiworksReady: !!hiworks,

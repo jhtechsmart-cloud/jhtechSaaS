@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { Client } from "pg";
+import { makePng } from "./_png";
 
 // #285 #C — 결재 흐름 e2e: issued 리포트(확정본 PDF 있음) → 관리자 직인 등록 → 상세 [승인](직인 미리보기 모달)
 // → 승인 대기→세금계산서 미발행 배지 + 'PDF 재생성 중' → (워커 대신) 승인본 pdf_url 기록 → [완료 처리] 모달(불필요)
@@ -8,10 +9,11 @@ const LOCAL_SUPABASE_URL = "http://127.0.0.1:54321";
 const LOCAL_SERVICE_ROLE_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
 const DB_URL = process.env.SUPABASE_DB_URL ?? "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
-const ADMIN_EMAIL = process.env.E2E_ADMIN_EMAIL ?? "admin@jhtech.local";
-const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD ?? "jhtech-admin-dev";
+// 이 spec 전용 계정 — 공유 admin 계정을 쓰면 다른 spec이 같은 직인을 지워 레이스가 난다(파일 병렬 실행).
+const APPROVER_EMAIL = "e2e-approver@jhtech.test";
+const APPROVER_PASSWORD = "e2eApprover1234";
 const CUSTOMER = "E2E결재고객상사";
-const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==", "base64");
+const PNG = makePng(); // 320px 단색 PNG — 서버가 헤더로 형식·크기를 검증한다
 
 function svc(path: string, init: RequestInit = {}) {
   return fetch(`${LOCAL_SUPABASE_URL}${path}`, {
@@ -34,14 +36,14 @@ async function uploadObject(bucket: string, path: string, body: Buffer, contentT
 
 async function login(page: Page) {
   await page.goto("/login");
-  await page.getByLabel("이메일").fill(ADMIN_EMAIL);
-  await page.getByLabel("비밀번호", { exact: true }).fill(ADMIN_PASSWORD);
+  await page.getByLabel("이메일").fill(APPROVER_EMAIL);
+  await page.getByLabel("비밀번호", { exact: true }).fill(APPROVER_PASSWORD);
   await page.getByRole("button", { name: "로그인" }).click();
   await page.waitForURL(/\/admin\//, { timeout: 20_000 });
 }
 
 const pg = new Client({ connectionString: DB_URL });
-let adminId = "";
+let approverId = "";
 let reportId = "";
 let stampPath = "";
 
@@ -50,6 +52,15 @@ async function transition(sql: string, params: unknown[]) {
   await pg.query("select set_config('app.service_reports_status_change','1',true)");
   await pg.query(sql, params);
   await pg.query("commit");
+}
+
+// 전용 계정 정리(이전 실행 잔여 포함)
+async function deleteApprover() {
+  const res = await svc("/auth/v1/admin/users?per_page=1000").catch(() => null);
+  if (!res || !res.ok) return;
+  const body = (await res.json()) as { users?: { id: string; email?: string }[] };
+  const u = (body.users ?? []).find((x) => x.email === APPROVER_EMAIL);
+  if (u) await svc(`/auth/v1/admin/users/${u.id}`, { method: "DELETE" }).catch(() => {});
 }
 
 async function cleanup() {
@@ -66,10 +77,20 @@ async function cleanup() {
 test.beforeAll(async () => {
   await pg.connect();
   await cleanup();
-  const admin = await pg.query("select id from auth.users where email=$1", [ADMIN_EMAIL]);
-  adminId = admin.rows[0].id as string;
-  // 관리자 = 승인(users.manage 슈퍼) + 완료 + 메일 발송(하이웍스 ID 필요) — 직인은 화면에서 등록.
-  await pg.query("update public.profiles set hiworks_user_id='e2eadmin', approval_stamp_path=null where id=$1", [adminId]);
+  // 전용 승인자 계정 생성(권한: 사용자관리=직인 등록·무효화 / 승인 / 완료 / 메일 발송)
+  await deleteApprover();
+  const created = await svc("/auth/v1/admin/users", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: APPROVER_EMAIL, password: APPROVER_PASSWORD, email_confirm: true }),
+  });
+  if (!created.ok) throw new Error(`승인자 계정 생성 실패: ${await created.text()}`);
+  approverId = ((await created.json()) as { id: string }).id;
+  await pg.query(
+    `update public.profiles set permissions='{users.manage,service_reports.approve,service_reports.complete,service_reports.view_all,email.send}',
+       name='E2E승인이사', position='영업부 이사', hiworks_user_id='e2eapprover', must_change_password=false, approval_stamp_path=null where id=$1`,
+    [approverId],
+  );
 
   const biz = String(9100000000 + Math.floor(Math.random() * 1_000_000));
   const co = await pg.query("insert into public.companies (name, biz_no, email) values ($1,$2,'cust@jhtech.test') returning id", [CUSTOMER, biz]);
@@ -82,7 +103,7 @@ test.beforeAll(async () => {
     `insert into public.service_reports (service_request_id, company_id, customer_name, device_name, faults, diagnosis, action_text,
         charge_type, visit_fee, follow_needed, recipient_email, created_by)
      values ($1,$2,$3,'JU-2513UV','{접촉불량}','진단','조치','paid',90000,false,'cust@jhtech.test',$4) returning id`,
-    [rq.rows[0].id, co.rows[0].id, CUSTOMER, adminId],
+    [rq.rows[0].id, co.rows[0].id, CUSTOMER, approverId],
   );
   reportId = rp.rows[0].id as string;
   await uploadObject("service-reports", `${reportId}/signature.png`, PNG, "image/png");
@@ -102,8 +123,8 @@ test.beforeAll(async () => {
 });
 test.afterAll(async () => {
   await cleanup();
-  await pg.query("update public.profiles set approval_stamp_path=null, hiworks_user_id=null where id=$1", [adminId]);
   if (stampPath) await svc(`/storage/v1/object/approval-stamps/${stampPath}`, { method: "DELETE" }).catch(() => {});
+  await deleteApprover();
   await pg.end();
 });
 
@@ -124,15 +145,15 @@ test("승인 대기 → [승인](직인) → 세금계산서 미발행 → [완�
   await expect(approveBtn).toHaveAttribute("title", /직인이 등록되지 않았습니다/);
 
   // 관리자 직인 등록(사용자 상세)
-  await page.goto(`/admin/users/${adminId}`);
+  await page.goto(`/admin/users/${approverId}`);
   const card = page.getByTestId("stamp-upload");
   await page.waitForLoadState("networkidle"); // goto 직후 하이드레이션 전 change 이벤트 유실 방지
   if ((await card.getByRole("img", { name: "직인 이미지" }).count()) === 0) {
     await card.locator('input[type="file"]').setInputFiles({ name: "stamp.png", mimeType: "image/png", buffer: PNG });
   }
   await expect(card.getByRole("img", { name: "직인 이미지" })).toBeVisible({ timeout: 15_000 });
-  stampPath = (await pg.query("select approval_stamp_path from public.profiles where id=$1", [adminId])).rows[0].approval_stamp_path as string;
-  expect(stampPath).toMatch(new RegExp(`^${adminId}/stamp-\\d+\\.png$`));
+  stampPath = (await pg.query("select approval_stamp_path from public.profiles where id=$1", [approverId])).rows[0].approval_stamp_path as string;
+  expect(stampPath).toMatch(new RegExp(`^${approverId}/stamp-\\d+\\.png$`));
 
   // 승인: 모달(직인 미리보기 + 문구) → 승인 → 배지 전환 + PDF 재생성 중
   await page.goto(`/admin/service-reports/${reportId}`);
@@ -185,8 +206,8 @@ test("승인 대기 → [승인](직인) → 세금계산서 미발행 → [완�
   await mm.getByRole("button", { name: "발송", exact: true }).click();
   await expect(page.getByText("발송을 요청했습니다", { exact: false }).first()).toBeVisible({ timeout: 20_000 }); // toast + aria-live
   const logs = await pg.query("select status, kind, from_user_id from public.email_log where service_report_id=$1", [reportId]);
-  expect(logs.rows).toEqual([{ status: "pending", kind: "customer", from_user_id: adminId }]);
+  expect(logs.rows).toEqual([{ status: "pending", kind: "customer", from_user_id: approverId }]);
   await expect(page.getByText("발송 대기").first()).toBeVisible({ timeout: 20_000 });
   const job = await pg.query("select payload->>'hiworks_user_id' h from public.jobs where type='service_report_email' and payload->>'service_report_id'=$1", [reportId]);
-  expect(job.rows[0].h).toBe("e2eadmin");
+  expect(job.rows[0].h).toBe("e2eapprover");
 });

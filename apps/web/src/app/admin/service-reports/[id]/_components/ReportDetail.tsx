@@ -30,15 +30,20 @@ export function ReportDetail({ initial }: { initial: AdminReportDetail }) {
   const [modal, setModal] = useState<ModalKind>(null);
   const [pending, startTransition] = useTransition();
   const [pdf, setPdf] = useState<PdfStatus>(r.pdf_url ? { state: "ready", pdf_url: r.pdf_url } : { state: "processing" });
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [pdfUrl, setPdfUrl] = useState<{ url: string; rev: number } | null>(null); // 세대 바인딩 — 옛 세대 URL 재사용 금지
   const [live, setLive] = useState(""); // aria-live 알림
 
   // PDF 상태 폴링(5초, 화면이 열려 있는 동안만) — 승인 직후 '재생성 중' → ready 전환.
   useEffect(() => {
-    if (pdf.state === "ready" || pdf.state === "failed") return;
+    // none(잡 없음)도 종단 — 아니면 draft·폐기된 잡에서 5초마다 영원히 폴링한다.
+    if (pdf.state !== "processing") return;
     let stop = false;
+    let inFlight = false;
     const tick = async () => {
+      if (inFlight || document.hidden) return; // 요청 겹침·백그라운드 탭 낭비 방지
+      inFlight = true;
       const res = await adminPdfStatusAction(r.id);
+      inFlight = false;
       if (stop) return;
       if (res.ok) {
         setPdf(res.data);
@@ -58,12 +63,29 @@ export function ReportDetail({ initial }: { initial: AdminReportDetail }) {
     if (pdf.state !== "ready") return;
     let stop = false;
     adminPdfUrlAction(r.id).then((res) => {
-      if (!stop && res.ok) setPdfUrl(res.data);
+      if (!stop && res.ok) setPdfUrl({ url: res.data, rev: r.pdf_revision });
     });
     return () => {
       stop = true;
     };
-  }, [pdf.state, r.id]);
+  }, [pdf.state, r.id, r.pdf_revision]);
+
+  // 고객 메일 상태 폴링 — 워커가 pending → sent/failed로 바꾸는 걸 화면이 스스로 받아온다(최대 2분).
+  // 없으면 "발송 대기"에 고착돼 재발송 버튼이 계속 잠긴다. 화면이 열려 있는 동안만(세션26 taste).
+  useEffect(() => {
+    if (r.mail !== "pending") return;
+    let left = 24;
+    const t = setInterval(() => {
+      if (document.hidden) return;
+      left -= 1;
+      if (left <= 0) {
+        clearInterval(t);
+        return;
+      }
+      router.refresh();
+    }, 5000);
+    return () => clearInterval(t);
+  }, [r.mail, router]);
 
   const closeModal = useCallback(() => setModal(null), []);
   const turn = describeTurn(r, new Date());
@@ -194,8 +216,8 @@ export function ReportDetail({ initial }: { initial: AdminReportDetail }) {
           <p className="text-text">{r.faults.length ? r.faults.join(", ") : "—"}</p>
           <p className="mt-2 text-muted">후속조치</p>
           <p className="text-text">
-            {r.follow_needed ? (r.follow_resolved_at ? `처리됨 ${r.follow_resolved_at.slice(0, 10)}` : `대기${r.follow_date ? ` · ${r.follow_date}` : ""}`) : "없음"}
-            {r.follow_needed && !r.follow_resolved_at && (
+            {r.follow_needed ? (r.follow_resolved_at ? `처리됨 ${(fmtKstMinute(r.follow_resolved_at) ?? "").slice(0, 10)}` : `대기${r.follow_date ? ` · ${r.follow_date}` : ""}`) : "없음"}
+            {r.viewer.canResolveFollow && r.follow_needed && !r.follow_resolved_at && (
               <button
                 type="button"
                 disabled={pending}
@@ -257,8 +279,8 @@ export function ReportDetail({ initial }: { initial: AdminReportDetail }) {
             )}
           </div>
         </div>
-        {pdf.state === "ready" && pdfUrl ? (
-          <iframe title="리포트 PDF" src={pdfUrl} className="hidden h-[70vh] w-full rounded-md border border-border lg:block" />
+        {pdf.state === "ready" && pdfUrl?.rev === r.pdf_revision ? (
+          <iframe title="리포트 PDF" src={pdfUrl.url} className="hidden h-[70vh] w-full rounded-md border border-border lg:block" />
         ) : pdf.state === "ready" ? (
           <div className="hidden h-[70vh] w-full animate-pulse rounded-md bg-surface-2 lg:block" aria-busy="true" />
         ) : null}
@@ -386,7 +408,9 @@ export function ReportDetail({ initial }: { initial: AdminReportDetail }) {
               // eslint-disable-next-line @next/next/no-img-element
               <img src={r.viewer.stampUrl} alt="내 직인" className="h-16 w-16 rounded-md border border-border object-contain" />
             ) : (
-              <div className="h-16 w-16 rounded-md border border-dashed border-border" />
+              <div className="flex h-16 w-16 items-center justify-center rounded-md border border-dashed border-border text-center text-micro text-muted">
+                미리보기 실패
+              </div>
             )}
             <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-small">
               <dt className="text-muted">고객</dt>
@@ -406,7 +430,7 @@ export function ReportDetail({ initial }: { initial: AdminReportDetail }) {
               type="button"
               disabled={pending}
               onClick={() =>
-                run("승인했습니다 — 직인이 찍힌 PDF를 다시 만드는 중입니다", () => adminApproveAction(r.id), () => setPdf({ state: "processing" }))
+                run("승인했습니다 — 직인이 찍힌 PDF를 다시 만드는 중입니다", () => adminApproveAction(r.id), () => { setPdf({ state: "processing" }); setPdfUrl(null); })
               }
               className="min-h-11 rounded-full bg-accent px-5 text-small font-bold text-white disabled:opacity-50"
             >

@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { makePng } from "./_png";
 
 // admin 서비스 리포트 조회 콘솔 e2e (#228 Part 4) — 목록·필터 탭 렌더 + 사이드바 메뉴 노출.
 const ADMIN_EMAIL = process.env.E2E_ADMIN_EMAIL ?? "admin@jhtech.local";
@@ -57,17 +58,16 @@ test("사용자 상세 — 결재 직인 업로드·미리보기·삭제(#285)",
   await page.waitForURL(/\/admin\/users\/[0-9a-f-]{36}$/, { timeout: 20_000 });
   const card = page.getByTestId("stamp-upload");
   await expect(card.getByText("결재 직인·서명 이미지")).toBeVisible();
-  // 1x1 PNG
-  const png = Buffer.from(
-    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
-    "base64",
-  );
-  await card.locator('input[type="file"]').setInputFiles({ name: "stamp.png", mimeType: "image/png", buffer: png });
+  // 서버가 헤더를 읽어 형식·크기를 검증하므로 실제 320px PNG를 올린다(#285 #C)
+  await card.locator('input[type="file"]').setInputFiles({ name: "stamp.png", mimeType: "image/png", buffer: makePng() });
   await expect(card.getByRole("img", { name: "직인 이미지" })).toBeVisible({ timeout: 15_000 });
   await expect(card.getByText("승인 권한자는 직인이 필요합니다")).toHaveCount(0);
-  // 삭제 → 빈 상태
+  // 이미지가 아닌 파일(이름만 .png)은 서버 검증이 거부한다
   await card.getByRole("button", { name: "직인 이미지 삭제" }).click();
   await expect(card.getByRole("img", { name: "직인 이미지" })).toHaveCount(0, { timeout: 15_000 });
+  await card.locator('input[type="file"]').setInputFiles({ name: "fake.png", mimeType: "image/png", buffer: Buffer.from("not an image") });
+  await expect(card.getByText("이미지 파일이 아닙니다", { exact: false })).toBeVisible({ timeout: 15_000 });
+  await expect(card.getByRole("img", { name: "직인 이미지" })).toHaveCount(0);
   await expect(card.getByText("클릭 · 끌어다 놓기")).toBeVisible();
 });
 

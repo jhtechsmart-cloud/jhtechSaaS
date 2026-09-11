@@ -95,3 +95,15 @@ export function mailBadgeKey(statuses: readonly string[]): MailBadgeKey {
   if (statuses.includes("failed")) return "failed";
   return "none";
 }
+
+// 후속조치 처리 RPC(resolve_service_report_follow)가 요구하는 권한 — 읽기 전용 영업에게 버튼을 보여주면 항상 실패한다.
+export function canResolveFollow(permissions: readonly string[]): boolean {
+  const has = (k: string) => permissions.includes("users.manage") || permissions.includes(k);
+  return has("service_reports.write") || has("service_requests.status");
+}
+
+// KST 이번 달 시작(ISO) — '완료(이번 달)' 프리셋. KPI completed_this_month와 같은 기준.
+export function monthStartKstIso(now = new Date()): string {
+  const k = new Date(now.getTime() + 9 * 3600 * 1000);
+  return new Date(Date.UTC(k.getUTCFullYear(), k.getUTCMonth(), 1) - 9 * 3600 * 1000).toISOString();
+}
