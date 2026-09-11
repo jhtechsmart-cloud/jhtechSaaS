@@ -113,3 +113,50 @@ describe("renderServiceReportHtml", () => {
     expect(html).toContain("부품 수급 후 재방문");
   });
 });
+
+// #285 결재 박스(담당/팀장/본부장) — 미승인·승인·기사 서명 폴백·위치 2안.
+describe("renderServiceReportHtml — 결재 박스(#285)", () => {
+  it("미승인(issued): 담당 칸에 기사 서명 이미지, 팀장 '생략', 본부장 칸은 '승인 대기'", () => {
+    const html = renderServiceReportHtml(make({ engineerSignatureDataUri: "data:image/png;base64,ENGSIG" }));
+    expect(html).toContain('class="approval"');
+    expect(html).toContain("data:image/png;base64,ENGSIG");
+    expect(html).toContain("생략");
+    expect(html).toContain("승인 대기");
+    expect(html).not.toContain("승인 일시");
+  });
+
+  it("승인(approved): 본부장 칸에 직인 이미지·이름·승인일, 푸터에 승인 일시", () => {
+    const html = renderServiceReportHtml(
+      make({
+        engineerSignatureDataUri: "data:image/png;base64,ENGSIG",
+        approval: {
+          name: "배이사",
+          title: "영업부 이사",
+          dateLabel: "2026-09-10",
+          approvedAtLabel: "2026-09-10 09:12",
+          stampDataUri: "data:image/png;base64,STAMP",
+        },
+      }),
+    );
+    expect(html).toContain("data:image/png;base64,STAMP");
+    expect(html).toMatch(/배이사[\s\S]*영업부 이사/);
+    expect(html).toContain("2026-09-10");
+    expect(html).not.toContain("승인 대기");
+    expect(html).toContain("승인 일시 2026-09-10 09:12");
+  });
+
+  it("기사 서명 없음(기존 발행본): 담당 칸은 엔지니어 이름 텍스트 폴백", () => {
+    const html = renderServiceReportHtml(make());
+    const start = html.indexOf('class="approval"');
+    const box = html.slice(start, html.indexOf("</table>", start));
+    expect(box).not.toContain("<img");
+    expect(box).toContain("홍기사");
+  });
+
+  it("위치: 기본은 헤더(상단), bottom이면 7. 고객 확인 섹션 뒤", () => {
+    const top = renderServiceReportHtml(make());
+    expect(top.indexOf('class="approval"')).toBeLessThan(top.indexOf("1. 고객 정보"));
+    const bottom = renderServiceReportHtml(make({ approvalBoxPosition: "bottom" }));
+    expect(bottom.indexOf('class="approval"')).toBeGreaterThan(bottom.indexOf("7. 고객 확인"));
+  });
+});
