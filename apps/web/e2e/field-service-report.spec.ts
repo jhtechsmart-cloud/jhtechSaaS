@@ -16,30 +16,6 @@ const SALES_PASSWORD = process.env.E2E_SALES_PASSWORD ?? "jhtech-sales-dev";
 const CUSTOMER = "E2E현장고객상사";
 
 test.use({ viewport: { width: 390, height: 844 } });
-// #285 PR #A: issue RPC가 기사 서명(engineer_signature_path)을 요구하지만 현장 UI(기사 서명 단계)는 PR #B'에서 붙는다.
-// #B' 머지 시 이 skip을 제거하고 기사 서명 단계를 시나리오에 추가할 것.
-test.skip(true, "#285 #B'(기사 서명 UI) 전까지 확정 RPC가 기사 서명을 요구 — #B'에서 복원");
-
-// 캔버스 서명 드로잉(경로 길이 ≥100px) — 고객/기사 공용.
-async function drawSignature(page: Page, label: string) {
-  const canvas = page.getByLabel(label);
-  const box = await canvas.boundingBox();
-  if (!box) throw new Error(`서명 캔버스 없음: ${label}`);
-  await page.mouse.move(box.x + 30, box.y + 90);
-  await page.mouse.down();
-  await page.mouse.move(box.x + 150, box.y + 60, { steps: 12 });
-  await page.mouse.move(box.x + 280, box.y + 110, { steps: 12 });
-  await page.mouse.up();
-}
-
-// #285 #B' — 고객 서명 뒤 기사 본인 서명(결재 '담당' 칸). 기사 서명 전엔 확정 비활성.
-async function signEngineer(page: Page) {
-  await expect(page.getByRole("button", { name: "리포트 확정" })).toBeDisabled();
-  await drawSignature(page, "기사 서명 입력");
-  await page.getByRole("button", { name: "기사 서명 저장" }).click();
-  await expect(page.getByText("✓ 기사 서명 완료")).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByRole("button", { name: "리포트 확정" })).toBeEnabled();
-}
 
 // 캔버스 서명 드로잉(경로 길이 ≥100px) — 고객/기사 공용.
 async function drawSignature(page: Page, label: string) {
