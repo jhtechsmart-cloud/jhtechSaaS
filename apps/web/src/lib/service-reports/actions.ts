@@ -6,10 +6,12 @@ import { requireServiceReportsWrite } from "@/lib/auth/guard";
 import { groupByCategory } from "@/lib/equipment/group";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { buildFollowUpSeed, followUpBlockReason, followUpReference, type FollowUpReference } from "./followup";
 import type {
   CatalogGroup,
   CompanyHit,
   DraftCard,
+  FollowUpCard,
   EmailStatus,
   EquipmentItem,
   OpenRequest,
@@ -246,6 +248,41 @@ export async function myDraftsAction(): Promise<Result<DraftCard[]>> {
     .limit(20);
   if (error) return { ok: false, error: error.message };
   return { ok: true, data: (data ?? []) as DraftCard[] };
+}
+
+// 후속 방문 대기 목록(현장 홈) — 확정본 중 후속조치가 남은 리포트. RLS가 스코프를 강제한다
+// (기사 write 권한은 발행 이후 상태만 보이므로 draft는 섞이지 않는다). 예정일 빠른 순.
+export async function openFollowUpsAction(): Promise<Result<FollowUpCard[]>> {
+  const g = await guarded();
+  if (!g.ok) return g;
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("service_reports")
+    .select("id, seq_no, customer_name, device_name, follow_memo, follow_date, issued_at")
+    .in("status", [...SERVICE_REPORT_FINALIZED])
+    .eq("follow_needed", true)
+    .is("follow_resolved_at", null)
+    .order("follow_date", { ascending: true, nullsFirst: false })
+    .limit(30);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, data: (data ?? []) as FollowUpCard[] };
+}
+
+// 후속 리포트 시작 — 부모 행을 읽어 프리필 payload + 읽기 전용 참고 카드를 만든다.
+// 진입 차단 사유(무효·확정 전·1단 초과·이미 처리)는 화면 문구로, 최종 검증은 issue RPC.
+export async function followUpSeedAction(
+  parentId: string,
+): Promise<Result<{ seed: ReportPayload; reference: FollowUpReference }>> {
+  const g = await guarded();
+  if (!g.ok) return g;
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.from("service_reports").select("*").eq("id", parentId).maybeSingle();
+  if (error) return { ok: false, error: error.message };
+  if (!data) return { ok: false, error: "원 리포트를 찾을 수 없습니다" };
+  const parent = data as ServiceReportRow;
+  const blocked = followUpBlockReason(parent);
+  if (blocked) return { ok: false, error: blocked };
+  return { ok: true, data: { seed: buildFollowUpSeed(parent), reference: followUpReference(parent) } };
 }
 
 // PDF 생성 상태(완료 화면 폴링) — jobs는 RLS 무정책이라 DEFINER RPC 경유.

@@ -25,6 +25,7 @@ export interface ServiceReportRow {
   follow_needed: boolean;
   follow_memo: string | null;
   follow_date: string | null;
+  follow_resolved_at: string | null; // 후속 방문 리포트 확정 또는 수동 처리 시 기록
   parts: ServicePart[];
   charge_type: "paid" | "free";
   free_reason: string | null;
@@ -35,6 +36,7 @@ export interface ServiceReportRow {
   total: number;
   signature_path: string | null;
   engineer_signature_path: string | null; // #285 기사 서명(<id>/engineer-signature.png)
+  parent_report_id: string | null; // #285 후속 방문 리포트의 원 리포트(1단만)
   pdf_url: string | null;
   sender_hiworks_user_id: string | null;
   created_at: string;
@@ -62,6 +64,7 @@ export interface ReportPayload {
   photos_after: string[];
   signature_path: string;
   engineer_signature_path: string; // 빈 값 = 미서명(RPC가 null로 저장)
+  parent_report_id: string | null; // 후속 방문이면 원 리포트 id(확정 RPC가 불변식 검증)
   follow_needed: boolean;
   follow_memo: string;
   follow_date: string;
@@ -103,6 +106,17 @@ export interface OpenRequest {
   created_at: string;
   company_equipment_id: string | null;
   symptom: string | null;
+}
+
+// 후속 방문 대기 카드(현장 홈) — 확정본 중 후속조치가 남은 리포트(#285 #D)
+export interface FollowUpCard {
+  id: string;
+  seq_no: string;
+  customer_name: string;
+  device_name: string;
+  follow_memo: string | null;
+  follow_date: string | null;
+  issued_at: string | null;
 }
 
 export interface DraftCard {

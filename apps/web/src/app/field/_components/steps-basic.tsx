@@ -236,7 +236,11 @@ export function Step2Equipment({ draft, patch, ctx, setCtx }: StepProps) {
   const [catalog, setCatalog] = useState<CatalogGroup[] | null>(null);
   const [openCat, setOpenCat] = useState("");
   const [catQuery, setCatQuery] = useState("");
-  const [freeText, setFreeText] = useState(false);
+  // 이미 자유입력으로 적힌 장비명(이어쓰기 draft·후속 방문 프리필)은 입력칸을 펼쳐서 보여준다 —
+  // 접혀 있으면 값이 있는데도 화면에 안 보여 기사가 "장비가 비었다"고 오해한다(#285 #D).
+  const [freeText, setFreeText] = useState(
+    !!draft.device_name && !draft.catalog_equipment_id && !draft.company_equipment_id,
+  );
   useEffect(() => {
     if (!ctx.manualEquipment || catalog !== null) return;
     void equipmentCatalogAction().then((res) => {
