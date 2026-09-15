@@ -37,7 +37,7 @@ export type ServiceReportHtmlData = {
   // 7. 서명
   signatureDataUri: string; // 고객 서명 PNG data URI
   fontDataUri: string;
-  // 결재 박스(#285) — 담당(기사 서명) / 팀장(v1 "생략" 고정) / 본부장(직인+이름+승인일)
+  // 결재 박스(#285) — 담당(기사 서명) / 팀장(v1 "생략" 고정) / 본부장(직인 이미지)
   engineerSignatureDataUri?: string; // 없으면(기존 발행본) 엔지니어 이름 텍스트 폴백
   approval?: ServiceReportApproval; // 없으면 본부장 칸 "승인 대기"
   approvalBoxPosition?: "top" | "bottom"; // 기본 top(헤더 우측). bottom은 시각 대조용 2안
@@ -60,14 +60,15 @@ const txt = (s: string | null | undefined): string =>
 const won = (n: number): string => n.toLocaleString("ko-KR");
 
 // 결재 박스 — 종이 양식 우측 하단 "결재: 담당/팀장/본부장" 3칸의 전자화.
-// 담당 = 기사 서명 이미지(없으면 이름 텍스트) · 팀장 = v1 "생략" 고정 · 본부장 = 직인+이름+승인일(미승인은 "승인 대기").
+// 담당 = 기사 서명 이미지(없으면 이름 텍스트) · 팀장 = v1 "생략" 고정 · 본부장 = 직인 이미지만(미승인은 "승인 대기").
 function renderApprovalBox(d: ServiceReportHtmlData): string {
   const engineerCell = d.engineerSignatureDataUri
     ? `<img src="${d.engineerSignatureDataUri}" alt="담당 서명"><div class="nm">${esc(d.engineerName)}</div>`
     : `<div class="nm nm-only">${esc(d.engineerName)}</div>`;
   const a = d.approval;
+  // 본부장 칸 = 직인 이미지만(이름·직책·승인일 미표시 — 종이 결재란과 동일하게 도장만 찍힌 모양).
   const directorCell = a
-    ? `<img src="${a.stampDataUri}" alt="본부장 직인"><div class="nm">${esc(a.name)}${a.title ? ` <span class="ttl">${esc(a.title)}</span>` : ""}</div><div class="dt">${esc(a.dateLabel)}</div>`
+    ? `<img class="stamp" src="${a.stampDataUri}" alt="본부장 직인">`
     : `<div class="pending">승인 대기</div>`;
   return `<table class="approval"><tr><th class="lbl" rowspan="2">결<br>재</th><th>담당</th><th>팀장</th><th>본부장</th></tr>
     <tr><td>${engineerCell}</td><td><div class="skip">생략</div></td><td>${directorCell}</td></tr></table>`;
@@ -136,6 +137,7 @@ export function renderServiceReportHtml(d: ServiceReportHtmlData): string {
   table.approval th.lbl{ width:16px; background:var(--pine); color:#fff; line-height:1.2; }
   table.approval td{ width:76px; height:48px; }
   table.approval td img{ max-height:26px; max-width:66px; display:block; margin:2px auto 0; }
+  table.approval td img.stamp{ max-height:42px; max-width:70px; margin:3px auto; }
   table.approval .nm{ white-space:nowrap; }
   table.approval .nm{ font-size:9.5px; color:#243b34; line-height:1.2; }
   table.approval .nm-only{ font-size:11px; font-weight:700; color:var(--pine-deep); }

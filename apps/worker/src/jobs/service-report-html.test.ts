@@ -125,7 +125,7 @@ describe("renderServiceReportHtml — 결재 박스(#285)", () => {
     expect(html).not.toContain("승인 일시");
   });
 
-  it("승인(approved): 본부장 칸에 직인 이미지·이름·승인일, 푸터에 승인 일시", () => {
+  it("승인(approved): 본부장 칸은 직인 이미지만(이름·직책·승인일 미표시), 푸터에 승인 일시", () => {
     const html = renderServiceReportHtml(
       make({
         engineerSignatureDataUri: "data:image/png;base64,ENGSIG",
@@ -139,8 +139,11 @@ describe("renderServiceReportHtml — 결재 박스(#285)", () => {
       }),
     );
     expect(html).toContain("data:image/png;base64,STAMP");
-    expect(html).toMatch(/배이사[\s\S]*영업부 이사/);
-    expect(html).toContain("2026-09-10");
+    const start = html.indexOf('class="approval"');
+    const box = html.slice(start, html.indexOf("</table>", start));
+    expect(box).not.toContain("배이사");
+    expect(box).not.toContain("영업부 이사");
+    expect(box).not.toContain("2026-09-10");
     expect(html).not.toContain("승인 대기");
     expect(html).toContain("승인 일시 2026-09-10 09:12");
   });
