@@ -140,7 +140,8 @@ export async function listCalendarEvents(
       .lt("created_at", toIso),
     supabase
       .from("demo_reservations")
-      .select("id, customer_name, time_range, equipment:equipment_id(name)")
+      // 장비는 자식 테이블(복수 장비) — 단수 equipment_id 열은 삭제됨(임베드 시 PGRST200로 데모 전체 누락)
+      .select("id, customer_name, time_range, demo_reservation_equipment(equipment:equipment_id(name))")
       .overlaps("time_range", `[${fromIso},${toIso})`)
       .neq("status", "canceled"),
     // 납품 = 발행 출고의뢰서의 의뢰별 최신 설치일시(견적 delivery_date 대체).
@@ -190,16 +191,20 @@ export async function listCalendarEvents(
       href: `/admin/supply-requests/${r.id as string}`,
     });
   }
+  // 조회 에러를 삼키면 데모가 조용히 사라지므로 최소한 서버 로그에 남긴다
+  if (demoRes.error) console.error("[dashboard.calendar.demo]", demoRes.error);
   for (const raw of demoRes.data ?? []) {
     const r = raw as Record<string, unknown>;
     const range = parseTstzRange((r.time_range as string) ?? "");
     const date = range ? kstDateOf(range.startIso) : null;
     if (!range || !date) continue;
-    const eq = r.equipment as { name?: string } | null;
+    const children =
+      (r.demo_reservation_equipment as Array<{ equipment?: { name?: string } | null }> | null) ?? [];
+    const eqLabel = children.map((x) => x.equipment?.name).filter(Boolean).join(", ") || "장비";
     events.push({
       type: "demo",
       id: r.id as string,
-      title: `${r.customer_name as string} ${eq?.name ?? "장비"} 데모`,
+      title: `${r.customer_name as string} ${eqLabel} 데모`,
       date,
       hm: kstHmOf(range.startIso),
       href: `/admin/demo-reservations?date=${date}`,
