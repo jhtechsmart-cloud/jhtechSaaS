@@ -6,7 +6,7 @@ import { PostgrestError } from "@supabase/supabase-js";
 import { normalizeBizNo, can } from "@jhtechsaas/shared";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { requireCustomersEdit, requireCustomersDelete, requireCustomersViewAll } from "@/lib/auth/guard";
+import { requireAnyPermission, requireCustomersEdit, requireCustomersDelete } from "@/lib/auth/guard";
 import { companyFormSchema, makeCompanyFormSchema, type CompanyFormValues } from "@/lib/customers/schema";
 import { hasAnyContact } from "@/lib/customers/validation";
 import { getCustomers, customerKpiCounts, type CustomerListRow } from "@/lib/customers/queries";
@@ -271,7 +271,8 @@ export async function registerFromApplication(applicationId: string): Promise<{ 
 // 견적 신청 검색 서버 액션 — ApplicationPicker(클라이언트)에서 호출.
 // queries.ts는 server-only라 직접 import 불가 → server action으로 래핑.
 export async function searchApplicationsAction(query: string): Promise<{ error: string } | unknown[]> {
-  const access = await requireCustomersViewAll();
+  // 페이지 진입 권한(customers.edit)과 맞춤. 검색 범위는 RPC가 판정: view_all=전체, edit=본인이 볼 수 있는 의뢰만.
+  const access = await requireAnyPermission(["customers.view_all", "customers.edit"]);
   if (access.status === "forbidden") return { error: "권한이 없습니다." };
   const { searchApplicationsForCustomer } = await import("@/lib/customers/queries");
   return searchApplicationsForCustomer(query);

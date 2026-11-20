@@ -4,7 +4,7 @@
 // authenticated만 실행(anon 차단). E1 하니스(helpers.ts) 재사용.
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import type { Client } from "pg";
-import { asPostgres, asUser, inRollbackTx, makeClient, UID } from "./helpers";
+import { asPostgres, asUser, inRollbackTx, makeClient, seedAuthUser, UID } from "./helpers";
 
 let c: Client;
 beforeAll(async () => {
@@ -51,6 +51,9 @@ async function seed(): Promise<{ companyAId: string; companyBId: string }> {
     "insert into public.companies (name, ceo, phone1) values ($1,$2,$3) returning id",
     ["　재현산업　테크　", "김대표", "010-3333-4444"],
   );
+  // 호출자 = 고객 등록·수정 권한(customers.edit) 보유 영업 — 실제 호출 경로(lib/customers/actions.ts) 가드와 동일.
+  await seedAuthUser(c, UID.sales1, "dup-sales1@test.local");
+  await c.query("update public.profiles set permissions='{customers.edit}' where id=$1", [UID.sales1]);
   return { companyAId: a.rows[0].id, companyBId: b.rows[0].id };
 }
 
@@ -161,6 +164,16 @@ describe("check_company_duplicate RPC", () => {
       await asUser(c, UID.sales1);
       const r = await callDup(c, "9999999999", "존재안함", "01000000000", null);
       expect(r).toBeNull();
+    });
+  });
+
+  test("customers.edit 없는 로그인 직원(예: 현장 기사) → 42501 거부 (RLS 우회 함수 내부 권한 검사)", async () => {
+    await inRollbackTx(c, async () => {
+      await seed();
+      await seedAuthUser(c, UID.sales2, "dup-tech@test.local");
+      await c.query("update public.profiles set permissions='{service_reports.write}' where id=$1", [UID.sales2]);
+      await asUser(c, UID.sales2);
+      await expect(callDup(c, "2208162517", "", "", null)).rejects.toMatchObject({ code: "42501" });
     });
   });
 
