@@ -10,6 +10,9 @@ import { StatusControl } from "./_components/StatusControl";
 import { MarkReadOnView } from "./_components/MarkReadOnView";
 import { CreatedToast } from "./_components/CreatedToast";
 import { Toaster } from "@/components/ui/sonner";
+import { SERVICE_REPORT_STATUS_LABEL } from "@/lib/service-reports/status";
+import { STATUS_BADGE_CLASS } from "@/lib/service-reports/report-tabs";
+import type { ServiceReportStatus } from "@jhtechsaas/shared";
 import { CHANNEL_META, type ServiceRequestChannel } from "@/lib/service-requests/channel";
 
 export default async function ServiceRequestDetailPage({
@@ -57,7 +60,7 @@ export default async function ServiceRequestDetailPage({
     .eq("service_request_id", id)
     .order("created_at", { ascending: false });
   const reports = (linkedReports ?? []) as {
-    id: string; seq_no: string; status: string; issued_at: string | null;
+    id: string; seq_no: string; status: ServiceReportStatus; issued_at: string | null;
     charge_type: string; total: number; follow_needed: boolean; follow_resolved_at: string | null;
   }[];
 
@@ -144,7 +147,7 @@ export default async function ServiceRequestDetailPage({
             {reports.map((rep) => (
               <Link
                 key={rep.id}
-                href="/admin/service-reports"
+                href={`/admin/service-reports/${rep.id}`}
                 className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-2 hover:bg-surface-2"
               >
                 <span className="font-mono text-small tabular-nums text-text">{rep.seq_no}</span>
@@ -154,16 +157,9 @@ export default async function ServiceRequestDetailPage({
                   {rep.charge_type === "free" ? "무상" : `${rep.total.toLocaleString("ko-KR")}원`}
                   {rep.follow_needed && !rep.follow_resolved_at ? " · 후속 대기" : ""}
                 </span>
-                <span
-                  className={`rounded-full px-2.5 py-0.5 text-micro font-bold ${
-                    rep.status === "voided"
-                      ? "bg-danger/10 text-danger"
-                      : rep.status === "issued"
-                        ? "bg-accent-soft text-accent"
-                        : "bg-surface-2 text-muted"
-                  }`}
-                >
-                  {rep.status === "voided" ? "무효" : rep.status === "issued" ? "발행" : "작성중"}
+                {/* 상태 배지 = 리포트 목록과 같은 단일 출처(5상태) — 승인·완료를 '작성중'으로 오표시하던 문제 수정 */}
+                <span className={`rounded-full px-2.5 py-0.5 text-micro font-bold ${STATUS_BADGE_CLASS[rep.status]}`}>
+                  {SERVICE_REPORT_STATUS_LABEL[rep.status]}
                 </span>
               </Link>
             ))}

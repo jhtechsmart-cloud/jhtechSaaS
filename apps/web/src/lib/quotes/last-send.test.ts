@@ -12,6 +12,11 @@ describe("formatLastSendLine", () => {
     const line = formatLastSendLine({ to: "a@b.com", status: "failed", at: "2026-06-17T05:24:24.000Z" });
     expect(line).toContain("실패");
   });
+  it("가짜 발송(토큰 미설정) → '성공'이 아니라 미발송(테스트 모드)", () => {
+    const line = formatLastSendLine({ to: "a@b.com", status: "simulated", at: "2026-06-17T05:24:24.000Z" });
+    expect(line).toContain("미발송(테스트 모드)");
+    expect(line).not.toContain("성공");
+  });
   it("발송 이력 없으면 null", () => {
     expect(formatLastSendLine(null)).toBeNull();
   });

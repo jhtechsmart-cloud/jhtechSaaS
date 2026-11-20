@@ -5,6 +5,7 @@ import {
   MAIL_BADGE,
   defaultTabFor,
   kpiTabHref,
+  mailBadgeKey,
   tabMatches,
   type ReportTabRow,
 } from "./report-tabs";
@@ -92,5 +93,15 @@ describe("배지 톤(D-B5)", () => {
     expect(MAIL_BADGE.pending.label).toBe("발송 대기");
     expect(MAIL_BADGE.sent.label).toBe("발송됨");
     expect(MAIL_BADGE.failed.label).toBe("발송 실패");
+    expect(MAIL_BADGE.simulated.label).toBe("미발송(테스트 모드)");
+  });
+});
+
+describe("mailBadgeKey — 가짜 발송(토큰 미설정) 구분", () => {
+  it("simulated만 있으면 '미발송(테스트 모드)', 실제 sent가 하나라도 있으면 sent 우선", () => {
+    expect(mailBadgeKey(["simulated"])).toBe("simulated");
+    expect(mailBadgeKey(["simulated", "sent"])).toBe("sent");
+    expect(mailBadgeKey(["simulated", "pending"])).toBe("pending");
+    expect(mailBadgeKey(["failed", "simulated"])).toBe("simulated");
   });
 });

@@ -86,7 +86,8 @@ export async function processEmailJob(
     if (result.ok) {
       await supabase
         .from("email_log")
-        .update({ status: "sent", sent_at: new Date().toISOString() })
+        // 가짜 발송기(토큰 미설정)면 simulated=true — 화면이 "미발송(테스트 모드)"로 구분 표시
+        .update({ status: "sent", sent_at: new Date().toISOString(), simulated: result.simulated === true })
         .eq("id", logId);
       return;
     }

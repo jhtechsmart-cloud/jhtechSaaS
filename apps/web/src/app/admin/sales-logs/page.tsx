@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireAnyConsoleCapability } from "@/lib/auth/guard";
+import { requireAnyPermission } from "@/lib/auth/guard";
 import { signOut } from "@/app/login/actions";
 import { listMySalesLogs } from "@/lib/sales-logs/queries";
 
@@ -16,7 +16,8 @@ function formatKst(iso: string): string {
 }
 
 export default async function MySalesLogsPage() {
-  const access = await requireAnyConsoleCapability();
+  // 사이드바 메뉴 노출 조건(layout.tsx)과 같은 키 — 메뉴가 안 보이는 직원의 URL 직접 접근 차단
+  const access = await requireAnyPermission(["quotes.write", "customers.edit", "customers.view_all"]);
   if (access.status === "forbidden") {
     return (
       <main className="flex min-h-dvh flex-col items-center justify-center gap-3 p-6">

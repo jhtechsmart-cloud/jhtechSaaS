@@ -88,6 +88,9 @@ describe("email 워커 파이프라인(통합)", () => {
     await runOnce(supabase, { mailSender: fake });
 
     expect(await logStatus(logId)).toBe("sent");
+    // 가짜 발송기 = 실제 미발송 → simulated=true로 기록(화면이 "미발송(테스트 모드)"로 구분)
+    const { data: sim } = await supabase.from("email_log").select("simulated").eq("id", logId).single();
+    expect(sim?.simulated).toBe(true);
     expect(fake.sent).toHaveLength(1);
     expect(fake.sent[0].fromUserId).toBe("hong");
     expect(fake.sent[0].to).toBe("cust@x.com");

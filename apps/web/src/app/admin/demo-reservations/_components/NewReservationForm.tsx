@@ -94,6 +94,8 @@ export interface ReservationFormInitial {
   equipmentIds: string[];
   assigneeId: string | null;
   visitorPhone: string;
+  // 폼에 입력칸은 없지만 과거 예약에 저장된 방문자명을 수정 저장 시 보존(update RPC가 전 필드를 갱신하므로)
+  visitorName?: string;
   startTime: string;
   durationMin: DurationOption;
   memo: string;
@@ -187,6 +189,7 @@ export function NewReservationForm({
       customerName: customer.customerName,
       equipmentIds,
       assigneeId: assigneeId || null,
+      visitorName: initial?.visitorName ?? "",
       visitorPhone,
       date,
       startTime,

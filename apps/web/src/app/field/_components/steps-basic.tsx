@@ -211,7 +211,7 @@ export function Step1Customer({ draft, patch, ctx, setCtx }: StepProps) {
                   </div>
                   {r.symptom && <p className="mt-1 text-small text-muted">{r.symptom}</p>}
                   <span className="mt-1 block text-small font-medium text-accent">
-                    {selected ? "연결됨 — 확정 시 처리완료로 전환" : "이 신청과 연결"}
+                    {selected ? "연결됨 — 확정 시 처리중, 결재 완료 후 처리완료" : "이 신청과 연결"}
                   </span>
                 </button>
               );

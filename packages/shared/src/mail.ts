@@ -24,6 +24,7 @@ export interface MailSendResult {
   raw: unknown;
   error?: string;
   permanent?: boolean; // true=영구 실패(재시도 금지), false=재시도 가능
+  simulated?: boolean; // true=가짜 발송기 — 실제 메일은 나가지 않음(email_log.simulated로 기록)
 }
 
 export interface MailSender {
@@ -42,7 +43,7 @@ export class FakeMailSender implements MailSender {
       return { ok: false, raw: null, error: "fake-fail", permanent: this.failPermanent };
     }
     this.sent.push(msg);
-    return { ok: true, raw: { code: "SUC" } };
+    return { ok: true, raw: { code: "SUC" }, simulated: true };
   }
 }
 

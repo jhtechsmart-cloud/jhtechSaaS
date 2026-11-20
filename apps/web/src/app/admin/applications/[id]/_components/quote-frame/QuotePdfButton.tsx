@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { getQuotePdfUrl } from "@/lib/quotes/actions";
 
 // 견적서 확인(PDF) 버튼 — 발행 직후엔 워커가 PDF를 아직 안 만들어 pdf_url이 없다.
@@ -10,6 +11,7 @@ const MAX_ATTEMPTS = 24; // 약 60초
 
 export function QuotePdfButton({ quoteId, initialReady }: { quoteId: string; initialReady: boolean }) {
   const [ready, setReady] = useState(initialReady);
+  const router = useRouter();
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -22,6 +24,8 @@ export function QuotePdfButton({ quoteId, initialReady }: { quoteId: string; ini
         if (u) {
           setReady(true);
           if (timer.current) clearInterval(timer.current);
+          // 서버 렌더 값(pdfReady)에 묶인 메일 발송 버튼도 새로고침 없이 활성화되도록 서버 컴포넌트 재조회
+          router.refresh();
           return;
         }
       } catch {
@@ -32,7 +36,7 @@ export function QuotePdfButton({ quoteId, initialReady }: { quoteId: string; ini
     return () => {
       if (timer.current) clearInterval(timer.current);
     };
-  }, [ready, quoteId]);
+  }, [ready, quoteId, router]);
 
   if (ready) {
     return (

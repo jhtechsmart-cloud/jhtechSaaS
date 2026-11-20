@@ -1,3 +1,4 @@
+import { displayMailStatus } from "@/lib/email/display-status";
 import Link from "next/link";
 import { can } from "@jhtechsaas/shared";
 import { requireApplicationsConsole } from "@/lib/auth/guard";
@@ -213,16 +214,17 @@ export default async function ApplicationDetailPage({
   if (selected) {
     const { data: el } = await supabase
       .from("email_log")
-      .select("status, to_email, created_at")
+      .select("status, simulated, to_email, created_at")
       .eq("quote_id", selected.id)
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    const row = el as { status?: string; to_email?: string; created_at?: string } | null;
-    emailStatus = row?.status ?? null;
+    const row = el as { status?: string; simulated?: boolean; to_email?: string; created_at?: string } | null;
+    // sent+simulated(토큰 미설정 가짜 발송) → "simulated"로 구분 표시
+    emailStatus = row?.status ? displayMailStatus(row.status, row.simulated) : null;
     lastSend =
       row?.to_email && row?.created_at
-        ? { to: row.to_email, status: row.status ?? "", at: row.created_at }
+        ? { to: row.to_email, status: emailStatus ?? "", at: row.created_at }
         : null;
   }
 
