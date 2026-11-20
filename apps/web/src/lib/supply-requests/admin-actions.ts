@@ -2,7 +2,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { requirePermission } from "@/lib/auth/guard";
+import { requirePermission, requireSupplyConsole } from "@/lib/auth/guard";
 import { SUPPLY_REQUEST_STATUSES } from "./status";
 
 export type SupplyRequestActionResult = { error: string } | null;
@@ -49,7 +49,9 @@ export async function claimSupplyRequest(id: string): Promise<SupplyRequestActio
 
 // 열람 표시 — supply_requests.view_all 필요. 미열람(NULL)일 때만 기록(멱등).
 export async function markSupplyRequestRead(id: string): Promise<void> {
-  const access = await requirePermission("supply_requests.view_all");
+  // 상세를 볼 수 있는 콘솔 권한(view_all·status·claim)이면 열람 처리 — 담당 영업이 열어도 '미열람' 해제.
+  // 실제로 어느 행을 고칠 수 있는지는 RLS(supply_requests_update: 본인 담당·view_all·미배정+claim)가 판정.
+  const access = await requireSupplyConsole();
   if (access.status === "forbidden") return;
   const supabase = await createSupabaseServerClient();
   await supabase.from("supply_requests").update({ admin_read_at: new Date().toISOString() }).eq("id", id).is("admin_read_at", null);
