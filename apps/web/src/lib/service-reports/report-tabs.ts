@@ -80,11 +80,12 @@ export const STATUS_BADGE_CLASS: Record<ServiceReportStatus, string> = {
   voided: "bg-danger/10 text-danger",
 };
 
-export type MailBadgeKey = "none" | "pending" | "sent" | "failed";
+export type MailBadgeKey = "none" | "pending" | "sent" | "simulated" | "failed";
 export const MAIL_BADGE: Record<MailBadgeKey, { label: string; className: string }> = {
   none: { label: "미발송", className: "bg-surface-2 text-muted" },
   pending: { label: "발송 대기", className: "bg-lime/30 text-pine-3" },
   sent: { label: "발송됨", className: "bg-accent-soft text-accent" },
+  simulated: { label: "미발송(테스트 모드)", className: "bg-surface-2 text-muted" },
   failed: { label: "발송 실패", className: "bg-danger/10 text-danger" },
 };
 
@@ -92,6 +93,7 @@ export const MAIL_BADGE: Record<MailBadgeKey, { label: string; className: string
 export function mailBadgeKey(statuses: readonly string[]): MailBadgeKey {
   if (statuses.some((s) => s === "pending" || s === "sending")) return "pending";
   if (statuses.includes("sent")) return "sent";
+  if (statuses.includes("simulated")) return "simulated"; // 가짜 발송만 있음 = 실제로는 미발송
   if (statuses.includes("failed")) return "failed";
   return "none";
 }

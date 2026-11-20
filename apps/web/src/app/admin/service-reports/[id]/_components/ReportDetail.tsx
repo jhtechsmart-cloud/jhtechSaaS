@@ -397,7 +397,7 @@ export function ReportDetail({ initial }: { initial: AdminReportDetail }) {
               <li key={l.id} className="flex flex-wrap items-center gap-2">
                 <span className="font-mono tabular-nums text-muted">{fmtKstMinute(l.sent_at ?? l.created_at)}</span>
                 <span className="text-text">{l.to_email}</span>
-                <MailBadge mail={l.status === "sent" ? "sent" : l.status === "failed" ? "failed" : "pending"} />
+                <MailBadge mail={l.status === "sent" || l.status === "simulated" || l.status === "failed" ? l.status : "pending"} />
                 {l.error_msg && <span className="text-micro text-danger">{l.error_msg}</span>}
               </li>
             ))}

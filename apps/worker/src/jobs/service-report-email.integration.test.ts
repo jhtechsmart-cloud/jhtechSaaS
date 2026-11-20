@@ -17,9 +17,9 @@ async function insertLog(id: string): Promise<string> {
   );
   return r.rows[0].id as string;
 }
-async function logRow(logId: string): Promise<{ status: string; error_msg: string | null }> {
-  const r = await seed.pg.query("select status, error_msg from public.email_log where id=$1", [logId]);
-  return r.rows[0] as { status: string; error_msg: string | null };
+async function logRow(logId: string): Promise<{ status: string; error_msg: string | null; simulated: boolean }> {
+  const r = await seed.pg.query("select status, error_msg, simulated from public.email_log where id=$1", [logId]);
+  return r.rows[0] as { status: string; error_msg: string | null; simulated: boolean };
 }
 // 승인본 + PDF 파일 + pdf_url(워커 경로) 준비.
 async function seedApprovedWithPdf(): Promise<string> {
@@ -57,6 +57,7 @@ describe("service_report_email 잡(통합)", () => {
     expect(mail.sent[0]!.to).toBe("cust@jhtech.test");
     expect(mail.sent[0]!.html).toContain(`${id}/report-r2.pdf`);
     expect((await logRow(logId)).status).toBe("sent");
+    expect((await logRow(logId)).simulated).toBe(true); // 가짜 발송기 = 실제 미발송 표시
   });
 
   test("issued(미승인)면 발송 없이 email_log failed 종단", async () => {

@@ -124,6 +124,7 @@ export async function processApprovalNoticeJob(
       subject,
       status: result.ok ? "sent" : "failed",
       sent_at: result.ok ? new Date().toISOString() : null,
+      simulated: result.ok && result.simulated === true, // 가짜 발송기 = 실제 미발송
       error_msg: result.ok ? null : (result.error ?? "발송 실패").slice(0, 500),
     });
     if (logErr) throw new Error(`email_log 기록 실패: ${logErr.message}`);

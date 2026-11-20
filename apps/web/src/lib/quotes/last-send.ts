@@ -7,6 +7,12 @@ export function formatLastSendLine(lastSend: LastSend | null): string | null {
   if (!lastSend) return null;
   const when = formatKstDateTime(lastSend.at);
   const statusLabel =
-    lastSend.status === "sent" ? "성공" : lastSend.status === "failed" ? "실패" : lastSend.status;
+    lastSend.status === "sent"
+      ? "성공"
+      : lastSend.status === "failed"
+        ? "실패"
+        : lastSend.status === "simulated"
+          ? "미발송(테스트 모드)"
+          : lastSend.status;
   return `직전 발송: ${lastSend.to} (${statusLabel}${when ? `, ${when}` : ""})`;
 }

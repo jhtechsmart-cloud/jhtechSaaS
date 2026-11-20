@@ -42,6 +42,7 @@ export function SendQuoteEmailModal({
   }, [open]);
 
   const sent = emailStatus === "sent";
+  const simulated = emailStatus === "simulated"; // 토큰 미설정 — 기록만 되고 실제 메일은 안 나감
   const inFlight = emailStatus === "pending" || emailStatus === "sending";
   const failed = emailStatus === "failed";
   const lastLine = formatLastSendLine(lastSend ?? null);
@@ -71,6 +72,9 @@ export function SendQuoteEmailModal({
     <>
       {sent && (
         <span className="rounded-md bg-mint py-1.5 text-center text-micro font-medium text-accent-2">✓ 메일 발송됨</span>
+      )}
+      {simulated && (
+        <span className="rounded-md bg-surface-2 py-1.5 text-center text-micro font-medium text-muted">미발송(테스트 모드) — 실제 메일은 나가지 않았습니다</span>
       )}
       <button
         type="button"

@@ -1,6 +1,7 @@
 "use server";
 // admin 서비스 리포트 조회·운영 액션(#228 Part 4 → #285 #C 결재 흐름) — 조회는 read 5키,
 // 승인/완료/메일/무효화는 각 RPC가 권한을 최종 강제. 리포트 작성·수정은 admin에서 불가(현장 콘솔 전용).
+import { displayMailStatus } from "@/lib/email/display-status";
 import { revalidatePath } from "next/cache";
 import type { ServiceReportStatus, TaxInvoiceStatus } from "@jhtechsaas/shared";
 import { SERVICE_REPORT_FINALIZED, SERVICE_REPORT_MAILABLE } from "@jhtechsaas/shared";
@@ -106,14 +107,14 @@ async function loadMailBadges(supabase: SupabaseServer, ids: string[]): Promise<
   if (ids.length === 0) return map;
   const { data, error } = await supabase
     .from("email_log")
-    .select("service_report_id, status")
+    .select("service_report_id, status, simulated")
     .eq("kind", "customer")
     .in("service_report_id", ids)
     .limit(2000);
   if (error) console.error("[serviceReports.list] 메일 배지 조회 실패(배지만 영향)", error);
   for (const row of data ?? []) {
-    const r = row as { service_report_id: string; status: string };
-    map.set(r.service_report_id, [...(map.get(r.service_report_id) ?? []), r.status]);
+    const r = row as { service_report_id: string; status: string; simulated: boolean | null };
+    map.set(r.service_report_id, [...(map.get(r.service_report_id) ?? []), displayMailStatus(r.status, r.simulated)]);
   }
   return map;
 }
@@ -267,7 +268,7 @@ export async function adminGetReportAction(id: string): Promise<Result<AdminRepo
   const [logsRes, noticeRes, profileRes, completerRes, childRes] = await Promise.all([
     supabase
       .from("email_log")
-      .select("id, to_email, status, error_msg, created_at, sent_at")
+      .select("id, to_email, status, simulated, error_msg, created_at, sent_at")
       .eq("kind", "customer")
       .eq("service_report_id", id)
       .order("created_at", { ascending: false })
@@ -283,7 +284,9 @@ export async function adminGetReportAction(id: string): Promise<Result<AdminRepo
   if (logsRes.error) return { ok: false, error: `메일 발송 이력 조회 실패: ${logsRes.error.message}` };
   if (profileRes.error) console.error("[serviceReports.detail] 내 프로필 조회 실패(직인·하이웍스 상태 미확정)", profileRes.error);
   if (noticeRes.error) console.error("[serviceReports.detail] 승인 알림 요약 조회 실패", noticeRes.error);
-  const logs = (logsRes.data ?? []) as AdminReportDetail["email_logs"];
+  const logs = ((logsRes.data ?? []) as (AdminReportDetail["email_logs"][number] & { simulated: boolean | null })[]).map(
+    ({ simulated, ...l }) => ({ ...l, status: displayMailStatus(l.status, simulated) }),
+  );
   const statuses = logs.map((l) => l.status);
   const stampPath = (profileRes.data as { approval_stamp_path?: string | null } | null)?.approval_stamp_path ?? null;
   const hiworks = (profileRes.data as { hiworks_user_id?: string | null } | null)?.hiworks_user_id ?? null;
